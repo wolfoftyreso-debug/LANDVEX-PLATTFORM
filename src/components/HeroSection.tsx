@@ -18,6 +18,8 @@ const HeroSection = () => {
         </p>
 
 
+        <div className="w-24 h-px bg-primary/40 mx-auto my-8"></div>
+
         <p className="max-w-xl mx-auto text-foreground text-xl mb-8 leading-relaxed">
           Äkta fika levererat till ditt företag — varje vecka
         </p>
