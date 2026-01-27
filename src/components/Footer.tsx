@@ -4,14 +4,14 @@ const Footer = () => {
       <div className="max-w-5xl mx-auto">
         {/* Main footer content */}
         <div className="text-center mb-12">
-          <p className="font-display text-3xl font-semibold mb-2 italic text-foreground">
+          <p className="font-display text-3xl font-semibold mb-2 text-foreground">
             Lennart Svenssons
           </p>
           <p className="font-display text-xl text-primary mb-4">
             Konditorivaror
           </p>
-          <p className="text-muted-foreground italic">
-            "Äkta svenskt hantverk sedan 1974"
+          <p className="text-muted-foreground">
+            "Äkta hantverk sedan 1974"
           </p>
         </div>
 
