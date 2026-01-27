@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-import mandelkubbImage from "@/assets/mandelkubb.jpg";
-import kolasnittImage from "@/assets/kolasnitt.jpg";
-import chokladsnittImage from "@/assets/chokladsnitt.jpg";
+import mandelkubbImage from "@/assets/mandelkubb-plate.jpg";
+import kolasnittImage from "@/assets/kolasnitt-plate.jpg";
+import chokladsnittImage from "@/assets/chokladsnitt-plate.jpg";
 
 const cookies = [
   {
