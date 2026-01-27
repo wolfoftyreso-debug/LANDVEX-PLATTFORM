@@ -12,21 +12,18 @@ import Header from "@/components/Header";
 import { LogOut, Save } from "lucide-react";
 
 const profileSchema = z.object({
-  display_name: z.string().trim().max(100, { message: "Namn får max vara 100 tecken" }).optional(),
-  phone: z.string().trim().max(20, { message: "Telefonnummer får max vara 20 tecken" }).optional(),
+  company_name: z.string().trim().max(100, { message: "Företagsnamn får max vara 100 tecken" }).optional(),
   address: z.string().trim().max(500, { message: "Adress får max vara 500 tecken" }).optional(),
 });
 
 interface ProfileData {
-  display_name: string;
-  phone: string;
+  company_name: string;
   address: string;
 }
 
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
-    display_name: "",
-    phone: "",
+    company_name: "",
     address: "",
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +47,7 @@ const Account = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, phone, address")
+        .select("company_name, address")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -63,8 +60,7 @@ const Account = () => {
         });
       } else if (data) {
         setProfile({
-          display_name: data.display_name || "",
-          phone: data.phone || "",
+          company_name: data.company_name || "",
           address: data.address || "",
         });
       }
@@ -92,8 +88,7 @@ const Account = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          display_name: profile.display_name || null,
-          phone: profile.phone || null,
+          company_name: profile.company_name || null,
           address: profile.address || null,
         })
         .eq("user_id", user!.id);
@@ -105,10 +100,8 @@ const Account = () => {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Profil sparad!",
-          description: "Dina uppgifter har uppdaterats.",
-        });
+        // Navigate to confirmation page after successful save
+        navigate("/account/confirmation");
       }
     } finally {
       setIsSaving(false);
@@ -150,29 +143,19 @@ const Account = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="display_name">Namn</Label>
+                <Label htmlFor="company_name">Företagsnamn / E-post</Label>
                 <Input
-                  id="display_name"
+                  id="company_name"
                   type="text"
-                  value={profile.display_name}
+                  value={profile.company_name}
                   onChange={(e) =>
-                    setProfile({ ...profile, display_name: e.target.value })
+                    setProfile({ ...profile, company_name: e.target.value })
                   }
-                  placeholder="Ditt namn"
+                  placeholder="Ditt företag eller e-postadress"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefon</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(e) =>
-                    setProfile({ ...profile, phone: e.target.value })
-                  }
-                  placeholder="070-123 45 67"
-                />
+                <p className="text-xs text-muted-foreground">
+                  Inloggad som: {user?.email}
+                </p>
               </div>
 
               <div className="space-y-2">
