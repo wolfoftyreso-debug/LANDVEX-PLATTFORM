@@ -69,7 +69,7 @@ const AccountMenu = () => {
               </div>
               <DropdownMenuItem
                 onClick={() => handleOpenAuth("login")}
-                className="cursor-pointer hover:!bg-[rgba(220,38,38,0.3)] focus:!bg-[rgba(220,38,38,0.3)]"
+                className="cursor-pointer hover:!bg-[rgba(220,38,38,0.3)] focus:!bg-[rgba(220,38,38,0.3)] hover:!text-black focus:!text-black"
               >
                 Logga in
               </DropdownMenuItem>
