@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Package } from "lucide-react";
+import { CheckCircle, Package, User } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,9 +14,13 @@ interface ProfileData {
 
 const AccountConfirmation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user just saved their profile
+  const justSaved = location.state?.justSaved === true;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,6 +64,8 @@ const AccountConfirmation = () => {
     );
   }
 
+  const hasAddress = profile && (profile.street_address || profile.postal_code || profile.city);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -68,29 +74,40 @@ const AccountConfirmation = () => {
         <div className="mb-6">
           <button
             type="button"
-            onClick={() => navigate("/account")}
+            onClick={() => navigate("/")}
             className="text-sm text-muted-foreground hover:underline"
           >
-            ← Tillbaka till mitt konto
+            ← Tillbaka till startsidan
           </button>
         </div>
 
         <div className="max-w-2xl mx-auto">
-          {/* Success message */}
+          {/* Header section */}
           <div className="bg-card border border-border rounded-lg p-6 md:p-8 shadow-sm mb-6">
             <div className="flex items-center gap-4 mb-4">
-              <CheckCircle className="h-8 w-8 text-primary flex-shrink-0" />
+              {justSaved ? (
+                <CheckCircle className="h-8 w-8 text-primary flex-shrink-0" />
+              ) : (
+                <User className="h-8 w-8 text-primary flex-shrink-0" />
+              )}
               <div>
                 <h1 className="font-serif text-2xl font-semibold">
-                  Uppgifter sparade!
+                  {justSaved ? "Uppgifter sparade!" : "Mitt konto"}
                 </h1>
-                <p className="text-muted-foreground text-sm">
-                  Dina kontuppgifter har uppdaterats.
-                </p>
+                {justSaved && (
+                  <p className="text-muted-foreground text-sm">
+                    Dina kontuppgifter har uppdaterats.
+                  </p>
+                )}
+                {!justSaved && user?.email && (
+                  <p className="text-muted-foreground text-sm">
+                    {user.email}
+                  </p>
+                )}
               </div>
             </div>
 
-            {profile && (profile.street_address || profile.postal_code || profile.city) && (
+            {hasAddress && (
               <div className="mt-4 pt-4 border-t border-border">
                 <p className="text-sm font-medium mb-2">Leveransadress:</p>
                 <p className="text-muted-foreground text-sm">
@@ -101,6 +118,16 @@ const AccountConfirmation = () => {
                 </p>
               </div>
             )}
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/account")}
+                className="w-full"
+              >
+                Redigera uppgifter
+              </Button>
+            </div>
           </div>
 
           {/* Subscription status */}
@@ -129,24 +156,6 @@ const AccountConfirmation = () => {
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Beställ abonnemang
-            </Button>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/account")}
-              className="flex-1"
-            >
-              Redigera uppgifter
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/")}
-              className="flex-1"
-            >
-              Till startsidan
             </Button>
           </div>
         </div>
