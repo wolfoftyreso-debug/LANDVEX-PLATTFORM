@@ -62,7 +62,7 @@ const AccountMenu = () => {
               <div className="px-1 py-1">
                 <button
                   onClick={() => handleOpenAuth("signup")}
-                  className="w-full px-3 py-2 text-left font-bold rounded-md hover:bg-[rgba(220,38,38,0.3)] focus:bg-[rgba(220,38,38,0.3)] transition-colors"
+                  className="w-full px-3 py-2 text-left rounded-md hover:bg-[rgba(220,38,38,0.3)] focus:bg-[rgba(220,38,38,0.3)] transition-colors"
                 >
                   Skapa konto
                 </button>
