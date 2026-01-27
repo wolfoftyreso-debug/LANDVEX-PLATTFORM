@@ -1,0 +1,148 @@
+import { useEffect, useRef, useState } from "react";
+import bakeryHeritageImage from "@/assets/bakery-heritage.jpg";
+import mandelkubbImage from "@/assets/mandelkubb.jpg";
+import kolasnittImage from "@/assets/kolasnitt.jpg";
+import chokladsnittImage from "@/assets/chokladsnitt.jpg";
+
+const cookies = [
+  {
+    name: "Mandelkubb",
+    image: mandelkubbImage,
+  },
+  {
+    name: "Kolasnitt",
+    image: kolasnittImage,
+  },
+  {
+    name: "Chokladsnitt",
+    image: chokladsnittImage,
+  },
+];
+
+const HeritageSection = () => {
+  const [heroVisible, setHeroVisible] = useState(false);
+  const [cookiesVisible, setCookiesVisible] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const cookiesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.2,
+      rootMargin: "0px 0px -50px 0px",
+    };
+
+    const heroObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setHeroVisible(true);
+        }
+      });
+    }, observerOptions);
+
+    const cookiesObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setCookiesVisible(true);
+        }
+      });
+    }, observerOptions);
+
+    if (heroRef.current) heroObserver.observe(heroRef.current);
+    if (cookiesRef.current) cookiesObserver.observe(cookiesRef.current);
+
+    return () => {
+      heroObserver.disconnect();
+      cookiesObserver.disconnect();
+    };
+  }, []);
+
+  return (
+    <section className="bg-secondary/30 py-24 px-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Heritage Hero */}
+        <div
+          ref={heroRef}
+          className={`transition-all duration-1000 ease-out ${
+            heroVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-12"
+          }`}
+        >
+          {/* Image */}
+          <div className="relative rounded-sm overflow-hidden mb-12 shadow-xl">
+            <img
+              src={bakeryHeritageImage}
+              alt="Traditionellt svenskt konditori"
+              className="w-full h-[400px] md:h-[500px] object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+          </div>
+
+          {/* Text Content */}
+          <div className="text-center max-w-3xl mx-auto">
+            <div className="divider-ornament mb-6">
+              <span className="ornament">✦</span>
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-6">
+              Handbakat med Kärlek
+            </h2>
+            <div className="space-y-4 text-foreground/80 text-lg leading-relaxed">
+              <p>
+                Konsten att baka har gått i vår familj i flera generationer. 
+                Vi tror på det enkla – <em className="text-primary">riktigt svenskt smör</em>, 
+                färska mandlar och äkta choklad. Inga konstigheter, inga processade 
+                ingredienser. Bara ärlig, traditionell bakning.
+              </p>
+              <p>
+                Varje kaka formas för hand med samma omsorg som våra förfäder 
+                gjorde. Det är så det alltid har varit, och så det alltid kommer att vara.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Cookies Grid */}
+        <div
+          ref={cookiesRef}
+          className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
+          {cookies.map((cookie, index) => (
+            <div
+              key={cookie.name}
+              className={`transition-all duration-700 ease-out ${
+                cookiesVisible
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-12"
+              }`}
+              style={{
+                transitionDelay: cookiesVisible ? `${index * 200}ms` : "0ms",
+              }}
+            >
+              <div className="bg-card rounded-sm overflow-hidden card-classic">
+                <div className="aspect-square overflow-hidden">
+                  <img
+                    src={cookie.image}
+                    alt={cookie.name}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <div className="p-6 text-center">
+                  <h3 className="font-display text-2xl font-semibold text-foreground">
+                    {cookie.name}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom ornament */}
+        <div className="text-center mt-16 text-primary/40 font-display text-2xl">
+          ❦
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default HeritageSection;
