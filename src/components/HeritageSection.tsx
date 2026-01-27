@@ -84,18 +84,18 @@ const HeritageSection = () => {
               <span className="ornament">✦</span>
             </div>
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-6">
-              Handbakat med Kärlek
+              Hantverk & Kvalitet
             </h2>
             <div className="space-y-4 text-foreground/80 text-lg leading-relaxed">
               <p>
-                Konsten att baka har gått i vår familj i flera generationer. 
-                Vi tror på det enkla – <em className="text-primary">riktigt svenskt smör</em>, 
-                färska mandlar och äkta choklad. Inga konstigheter, inga processade 
-                ingredienser. Bara ärlig, traditionell bakning.
+                Våra recept grundar sig i det klassiska <em className="text-primary">Svenska Konditorilexikon från 1954</em> och 
+                har förädlats genom generationer av bagare. Vi använder bara riktigt smör, 
+                färska mandlar och äkta choklad – inga konstigheter, inga processade 
+                ingredienser.
               </p>
               <p>
-                Varje kaka formas för hand med samma omsorg som våra förfäder 
-                gjorde. Det är så det alltid har varit, och så det alltid kommer att vara.
+                Varje kaka formas för hand med samma omsorg som traditionella 
+                konditorer alltid har gjort. Det är så det har varit i över 70 år, och så det alltid kommer att vara.
               </p>
             </div>
           </div>
