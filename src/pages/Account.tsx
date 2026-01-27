@@ -132,17 +132,18 @@ const Account = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="pt-24 px-4 pb-12">
+        {/* Back link - top left */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            ← Tillbaka till startsidan
+          </button>
+        </div>
+
         <div className="max-w-2xl mx-auto">
-          {/* Back link - top left */}
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="text-sm text-muted-foreground hover:underline"
-            >
-              ← Tillbaka till startsidan
-            </button>
-          </div>
 
           {/* Header */}
           <div className="text-center mb-8">
