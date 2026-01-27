@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Fika",
+    name: "Lilla",
     kgPerWeek: "3 kg",
     priceMonthExclVat: "5 400",
     features: [
@@ -13,7 +13,7 @@ const plans = [
     featured: false,
   },
   {
-    name: "Kontor",
+    name: "Mellan",
     kgPerWeek: "5 kg",
     priceMonthExclVat: "9 000",
     features: [
@@ -24,7 +24,7 @@ const plans = [
     featured: true,
   },
   {
-    name: "Företag",
+    name: "Stora",
     kgPerWeek: "10 kg",
     priceMonthExclVat: "18 000",
     features: [
