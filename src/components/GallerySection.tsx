@@ -18,17 +18,6 @@ const GallerySection = () => {
   return (
     <section id="gallery" className="py-24 px-6 bg-card">
       <div className="max-w-5xl mx-auto">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
-          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4 italic">
-            Hantverk & Kvalitet
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Varje produkt bakas med samma recept och omsorg som i vår lilla verkstad sedan 1974
-          </p>
-        </div>
-
         {/* Image grid with classic frames */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {images.map((image, index) => (
