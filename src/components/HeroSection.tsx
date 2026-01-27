@@ -3,18 +3,13 @@ import heroBakeryImage from "@/assets/hero-bakery.jpg";
 
 const HeroSection = () => {
   return (
-    <section 
-      className="relative flex flex-col justify-center items-center text-center min-h-[70vh] w-screen"
-      style={{
-        backgroundImage: `url(${heroBakeryImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#8b5a2b'
-      }}
-    >
-      {/* Overlay for opacity effect */}
-      <div className="absolute inset-0 bg-background/60" />
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[70vh]">
+      {/* Background image with opacity (doesn't affect content) */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40"
+        style={{ backgroundImage: `url(${heroBakeryImage})` }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-background/60" />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
         <img 
