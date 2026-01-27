@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import AbonnemangForm from "./AbonnemangForm";
+import { useShopifyProducts } from "@/hooks/useShopifyProducts";
+import { useCartStore } from "@/stores/cartStore";
+import { toast } from "sonner";
 
-const plans = [
+const planDetails = [
   {
     name: "Liten",
     kgPerWeek: "3 kg",
@@ -18,6 +19,7 @@ const plans = [
       "Veckoleverans",
       "Betala direkt eller med Klarna",
     ],
+    shopifyHandle: "liten-kakabonnemang-3-kg-vecka",
   },
   {
     name: "Mellan",
@@ -29,6 +31,7 @@ const plans = [
       "Veckoleverans",
       "Betala direkt eller med Klarna",
     ],
+    shopifyHandle: "mellan-kakabonnemang-5-kg-vecka",
   },
   {
     name: "Stor",
@@ -40,17 +43,65 @@ const plans = [
       "Veckoleverans",
       "Betala direkt eller med Klarna",
     ],
+    shopifyHandle: "stor-kakabonnemang-10-kg-vecka",
   },
 ];
 
 const PlansSection = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  
+  const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
+  const { addItem, getCheckoutUrl, isLoading: cartLoading } = useCartStore();
 
-  const handleSelectPlan = (plan: typeof plans[0]) => {
-    setSelectedPlan(`${plan.name} (${plan.kgPerWeek}/vecka)`);
-    setDialogOpen(true);
+  const handleSelectPlan = async (plan: typeof planDetails[0]) => {
+    // Find the matching Shopify product
+    const shopifyProduct = products.find(p => p.node.handle === plan.shopifyHandle);
+    
+    if (!shopifyProduct) {
+      toast.error("Kunde inte hitta produkten");
+      return;
+    }
+
+    const variant = shopifyProduct.node.variants.edges[0]?.node;
+    if (!variant) {
+      toast.error("Ingen variant tillgänglig");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setSelectedPlan(plan.name);
+
+    try {
+      await addItem({
+        product: shopifyProduct,
+        variantId: variant.id,
+        variantTitle: variant.title,
+        price: variant.price,
+        quantity: 1,
+        selectedOptions: variant.selectedOptions || [],
+      });
+
+      // Small delay to ensure cart is created
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const checkoutUrl = useCartStore.getState().getCheckoutUrl();
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank');
+        toast.success("Omdirigerar till betalning...");
+      } else {
+        toast.error("Kunde inte skapa checkout");
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error("Något gick fel");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
+
+  const isLoading = productsLoading || cartLoading || checkoutLoading;
 
   return (
     <section id="plans" className="py-24 px-6 bg-background">
@@ -70,7 +121,7 @@ const PlansSection = () => {
 
         {/* Plans grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
+          {planDetails.map((plan, index) => (
             <div
               key={index}
               className="relative bg-card p-8 card-classic rounded-sm"
@@ -111,9 +162,17 @@ const PlansSection = () => {
               {/* CTA Button */}
               <button
                 onClick={() => handleSelectPlan(plan)}
-                className="block w-full text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic"
+                disabled={isLoading}
+                className="block w-full text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic disabled:opacity-50"
               >
-                Välj abonnemang
+                {isLoading && selectedPlan === plan.name ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Laddar...
+                  </span>
+                ) : (
+                  "Beställ nu"
+                )}
               </button>
             </div>
           ))}
@@ -124,16 +183,6 @@ const PlansSection = () => {
           ❦
         </div>
       </div>
-
-      {/* Order Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-card">
-          <AbonnemangForm
-            selectedPlan={selectedPlan}
-            onClose={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };
