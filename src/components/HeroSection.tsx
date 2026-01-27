@@ -13,12 +13,11 @@ const HeroSection = () => {
           className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-8"
         />
 
+        <div className="w-40 h-px bg-primary/40 mx-auto my-4"></div>
+
         <p className="text-muted-foreground text-lg mb-8">
           Svenskt konditorhantverk sedan 1953
         </p>
-
-
-        <div className="w-40 h-px bg-primary/40 mx-auto my-8"></div>
 
         <p className="max-w-xl mx-auto text-foreground text-xl mb-8 leading-relaxed">
           Äkta fika levererat till ditt företag — varje vecka
