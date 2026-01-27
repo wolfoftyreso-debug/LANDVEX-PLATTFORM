@@ -4,33 +4,33 @@ const plans = [
   {
     name: "Lilla",
     kgPerWeek: "3 kg",
-    priceMonthExclVat: "5 400",
+    priceWeekExclVat: "1 350",
     features: [
       "3 kg kakor per vecka",
       "Veckoleverans",
-      "Företagsfaktura",
+      "Kortbetalning",
     ],
     featured: false,
   },
   {
     name: "Mellan",
     kgPerWeek: "5 kg",
-    priceMonthExclVat: "9 000",
+    priceWeekExclVat: "2 250",
     features: [
       "5 kg kakor per vecka",
       "Veckoleverans",
-      "Företagsfaktura",
+      "Kortbetalning",
     ],
     featured: true,
   },
   {
     name: "Stora",
     kgPerWeek: "10 kg",
-    priceMonthExclVat: "18 000",
+    priceWeekExclVat: "4 500",
     features: [
       "10 kg kakor per vecka",
       "Veckoleverans",
-      "Företagsfaktura",
+      "Kortbetalning",
     ],
     featured: false,
   },
@@ -87,9 +87,9 @@ const PlansSection = () => {
                 </div>
                 <div>
                   <span className="font-display text-3xl font-bold text-primary">
-                    {plan.priceMonthExclVat}
+                    {plan.priceWeekExclVat}
                   </span>
-                  <span className="text-muted-foreground ml-1">kr/mån exkl. moms</span>
+                  <span className="text-muted-foreground ml-1">kr/vecka exkl. moms</span>
                 </div>
               </div>
 
