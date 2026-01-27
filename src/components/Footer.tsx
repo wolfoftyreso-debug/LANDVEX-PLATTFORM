@@ -15,10 +15,6 @@ const Footer = () => {
           </p>
         </div>
 
-        {/* Divider */}
-        <div className="divider-ornament mb-8">
-          <span className="ornament text-lg">✦</span>
-        </div>
 
         {/* Links */}
         <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground mb-12">

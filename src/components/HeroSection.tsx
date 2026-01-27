@@ -17,9 +17,6 @@ const HeroSection = () => {
           Svenskt konditorhantverk sedan 1953
         </p>
 
-        <div className="divider-ornament my-8">
-          <span className="ornament">❧</span>
-        </div>
 
         <p className="max-w-xl mx-auto text-foreground text-xl mb-8 leading-relaxed">
           Äkta fika levererat till ditt företag — varje vecka
@@ -41,10 +38,6 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Bottom ornament */}
-      <div className="mt-8 text-primary/40 font-display text-2xl">
-        ❦
-      </div>
     </section>
   );
 };
