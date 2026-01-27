@@ -10,7 +10,7 @@ const Footer = () => {
           <p className="font-display text-xl text-primary mb-4">
             Konditorivaror
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground italic">
             Äkta svenskt konditorhantverk
           </p>
         </div>
