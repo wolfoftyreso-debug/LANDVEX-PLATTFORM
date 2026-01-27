@@ -2,44 +2,50 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Bas",
-    subtitle: "Kontorsabonnemang",
-    price: "1 990",
-    period: "kr/månad",
-    description: "Perfekt för mindre kontor med upp till 15 personer",
+    name: "Starter",
+    subtitle: "Abonnemang",
+    kgPerWeek: "3 kg",
+    priceWeekExclVat: "1 350",
+    priceWeekInclVat: "1 687,50",
+    priceMonthExclVat: "5 400",
+    priceMonthInclVat: "6 750",
     features: [
-      "2 leveranser per månad",
-      "Premium konditorikakor",
-      "Fast leveransdag",
+      "3 kg kakor per vecka",
+      "Veckoleverans",
       "Företagsfaktura",
+      "Flexibelt upplägg",
     ],
     featured: false,
   },
   {
-    name: "Pro",
-    subtitle: "Kontorsabonnemang",
-    price: "3 490",
-    period: "kr/månad",
-    description: "För växande företag med 15–40 personer",
+    name: "Standard",
+    subtitle: "Abonnemang",
+    kgPerWeek: "5 kg",
+    priceWeekExclVat: "2 250",
+    priceWeekInclVat: "2 812,50",
+    priceMonthExclVat: "9 000",
+    priceMonthInclVat: "11 250",
     features: [
-      "4 leveranser per månad",
-      "Utvalda sortiment",
+      "5 kg kakor per vecka",
+      "Veckoleverans",
       "Prioriterad hantering",
-      "Fakturabetalning",
+      "Företagsfaktura",
     ],
     featured: true,
   },
   {
-    name: "Avtal",
-    subtitle: "Företagsanpassat",
-    price: "Offert",
-    period: "",
-    description: "För stora kontor, event och kedjor",
+    name: "Pro / Office Plus",
+    subtitle: "Abonnemang",
+    kgPerWeek: "10 kg",
+    priceWeekExclVat: "4 500",
+    priceWeekInclVat: "5 625",
+    priceMonthExclVat: "18 000",
+    priceMonthInclVat: "22 500",
     features: [
-      "Anpassad volym",
-      "Möjlighet till branding",
-      "Avtalspriser",
+      "10 kg kakor per vecka",
+      "Veckoleverans",
       "Personlig kontakt",
+      "Anpassade sortiment",
     ],
     featured: false,
   },
@@ -89,19 +95,24 @@ const PlansSection = () => {
                 </h3>
               </div>
 
-              {/* Price */}
-              <div className="text-center mb-6">
-                <span className="font-display text-4xl font-bold text-primary">
-                  {plan.price}
-                </span>
-                {plan.period && (
-                  <span className="text-muted-foreground ml-1">{plan.period}</span>
-                )}
+              {/* Price info */}
+              <div className="text-center mb-6 space-y-2">
+                <div className="text-muted-foreground text-sm">
+                  {plan.kgPerWeek}/vecka
+                </div>
+                <div>
+                  <span className="font-display text-3xl font-bold text-primary">
+                    {plan.priceMonthInclVat}
+                  </span>
+                  <span className="text-muted-foreground ml-1">kr/mån</span>
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  ({plan.priceMonthExclVat} kr exkl. moms)
+                </div>
+                <div className="text-muted-foreground text-xs border-t border-border pt-2 mt-2">
+                  Veckopris: {plan.priceWeekInclVat} kr inkl. moms
+                </div>
               </div>
-
-              <p className="text-muted-foreground text-center mb-8 text-sm">
-                {plan.description}
-              </p>
 
               {/* Features */}
               <ul className="space-y-3 mb-8">
@@ -122,7 +133,7 @@ const PlansSection = () => {
                     : "btn-outline-classic"
                 }`}
               >
-                {plan.price === "Offert" ? "Begär offert" : "Välj abonnemang"}
+                Välj abonnemang
               </a>
             </div>
           ))}
