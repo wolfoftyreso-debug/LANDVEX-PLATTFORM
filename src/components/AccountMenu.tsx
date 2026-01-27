@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, LogIn, LogOut, ChevronDown } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +34,9 @@ const AccountMenu = () => {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="text-primary hover:text-primary/80 font-serif text-base flex items-center gap-1"
+            className="text-primary hover:text-primary/80 font-serif text-base"
           >
-            <User className="h-4 w-4" />
             Mitt konto
-            <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -62,9 +60,8 @@ const AccountMenu = () => {
             <>
               <DropdownMenuItem
                 onClick={() => handleOpenAuth("signup")}
-                className="cursor-pointer flex items-center gap-2"
+                className="cursor-pointer font-bold border border-primary rounded-md mx-1 my-1"
               >
-                <User className="h-4 w-4" />
                 Skapa konto
               </DropdownMenuItem>
               <DropdownMenuItem
