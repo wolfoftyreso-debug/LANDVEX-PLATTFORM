@@ -36,7 +36,7 @@ const HeroSection = () => {
             href="#gallery"
             className="inline-block px-10 py-4 text-lg rounded-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            Se Produkter
+            Sortiment
           </a>
         </div>
       </div>
