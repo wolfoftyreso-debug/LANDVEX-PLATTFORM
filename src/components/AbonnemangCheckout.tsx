@@ -35,9 +35,7 @@ const AbonnemangCheckout = ({ selectedPlan, onBack }: AbonnemangCheckoutProps) =
 
   return (
     <div className="text-center py-8">
-      <div className="divider-ornament mb-6">
-        <span className="ornament">✦</span>
-      </div>
+      <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
       
       <h2 className="font-display text-3xl md:text-4xl font-semibold mb-4">
         Ditt abonnemang: {planName}

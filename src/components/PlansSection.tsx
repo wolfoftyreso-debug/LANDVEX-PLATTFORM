@@ -108,9 +108,7 @@ const PlansSection = () => {
       <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-16">
-          <div className="divider-ornament mb-6">
-            <span className="ornament">✦</span>
-          </div>
+          <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
           <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4">
             Våra Abonnemang
           </h2>
@@ -178,10 +176,6 @@ const PlansSection = () => {
           ))}
         </div>
 
-        {/* Bottom ornament */}
-        <div className="text-center mt-16 text-primary/40 font-display text-2xl">
-          ❦
-        </div>
       </div>
     </section>
   );

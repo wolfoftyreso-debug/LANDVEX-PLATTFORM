@@ -68,9 +68,7 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
   if (submitted) {
     return (
       <div className="text-center py-12 px-6">
-        <div className="divider-ornament mb-6">
-          <span className="ornament">✦</span>
-        </div>
+        <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
         <h2 className="font-display text-3xl md:text-4xl font-semibold mb-4">
           Tack för din beställning!
         </h2>
