@@ -2,9 +2,8 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Liten",
+    name: "Fika",
     kgPerWeek: "3 kg",
-    priceWeekExclVat: "1 350",
     priceMonthExclVat: "5 400",
     features: [
       "3 kg kakor per vecka",
@@ -14,9 +13,8 @@ const plans = [
     featured: false,
   },
   {
-    name: "Mellan",
+    name: "Kontor",
     kgPerWeek: "5 kg",
-    priceWeekExclVat: "2 250",
     priceMonthExclVat: "9 000",
     features: [
       "5 kg kakor per vecka",
@@ -26,9 +24,8 @@ const plans = [
     featured: true,
   },
   {
-    name: "Stor",
+    name: "Företag",
     kgPerWeek: "10 kg",
-    priceWeekExclVat: "4 500",
     priceMonthExclVat: "18 000",
     features: [
       "10 kg kakor per vecka",
@@ -78,7 +75,7 @@ const PlansSection = () => {
                 <p className="text-muted-foreground text-sm uppercase tracking-wider mb-1">
                   Abonnemang
                 </p>
-                <h3 className="font-display text-3xl font-semibold text-foreground italic">
+                <h3 className="font-display text-3xl font-semibold text-foreground">
                   {plan.name}
                 </h3>
               </div>
@@ -93,9 +90,6 @@ const PlansSection = () => {
                     {plan.priceMonthExclVat}
                   </span>
                   <span className="text-muted-foreground ml-1">kr/mån exkl. moms</span>
-                </div>
-                <div className="text-muted-foreground text-xs border-t border-border pt-2 mt-2">
-                  Veckopris: {plan.priceWeekExclVat} kr exkl. moms
                 </div>
               </div>
 
