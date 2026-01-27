@@ -1,4 +1,11 @@
+import { useState } from "react";
 import { Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import AbonnemangForm from "./AbonnemangForm";
 
 const plans = [
   {
@@ -37,6 +44,14 @@ const plans = [
 ];
 
 const PlansSection = () => {
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleSelectPlan = (plan: typeof plans[0]) => {
+    setSelectedPlan(`${plan.name} (${plan.kgPerWeek}/vecka)`);
+    setDialogOpen(true);
+  };
+
   return (
     <section id="plans" className="py-24 px-6 bg-background">
       <div className="max-w-5xl mx-auto">
@@ -94,12 +109,12 @@ const PlansSection = () => {
               </ul>
 
               {/* CTA Button */}
-              <a
-                href="#"
-                className="block text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic"
+              <button
+                onClick={() => handleSelectPlan(plan)}
+                className="block w-full text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic"
               >
                 Välj abonnemang
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -109,6 +124,16 @@ const PlansSection = () => {
           ❦
         </div>
       </div>
+
+      {/* Order Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-card">
+          <AbonnemangForm
+            selectedPlan={selectedPlan}
+            onClose={() => setDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
