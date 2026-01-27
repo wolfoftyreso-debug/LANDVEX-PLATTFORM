@@ -3,17 +3,20 @@ import heroBakeryImage from "@/assets/hero-bakery.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative flex flex-col justify-center items-center text-center py-16 pt-20 pb-12 overflow-visible">
-      {/* Background image with opacity - full viewport width */}
-      <div 
-        className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 bg-cover bg-center opacity-40"
-        style={{ backgroundImage: `url(${heroBakeryImage})` }}
-      />
-      <div 
-        className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 bg-background/60"
-      />
+    <section 
+      className="relative flex flex-col justify-center items-center text-center min-h-[70vh] w-screen"
+      style={{
+        backgroundImage: `url(${heroBakeryImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#8b5a2b'
+      }}
+    >
+      {/* Overlay for opacity effect */}
+      <div className="absolute inset-0 bg-background/60" />
       
-      <div className="animate-fade-up max-w-4xl relative z-10 px-6">
+      <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
         <img 
           src={logoImage} 
           alt="Lennart Svensson Konditorivaror" 
