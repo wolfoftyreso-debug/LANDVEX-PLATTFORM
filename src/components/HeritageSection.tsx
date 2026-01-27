@@ -6,16 +6,19 @@ import chokladsnittImage from "@/assets/chokladsnitt.jpg";
 
 const cookies = [
   {
-    name: "Mandelkubb",
+    name: "Mandelkubben",
     image: mandelkubbImage,
+    description: "Mjuk och smörig med en härlig mandelsmak som smälter på tungan. Toppas med rostade mandelflagor.",
   },
   {
-    name: "Kolasnitt",
+    name: "Kolasnitten",
     image: kolasnittImage,
+    description: "Krämig kolakaka med en perfekt balans av sötma och smörighet. En riktig favorit på fikarasten.",
   },
   {
-    name: "Chokladsnitt",
+    name: "Chokladsnitten",
     image: chokladsnittImage,
+    description: "Rik och fyllig chokladsmak med en len glasyr. För dig som älskar äkta, mörk choklad.",
   },
 ];
 
@@ -118,19 +121,20 @@ const HeritageSection = () => {
                 transitionDelay: cookiesVisible ? `${index * 200}ms` : "0ms",
               }}
             >
-              <div className="bg-card rounded-sm overflow-hidden card-classic">
-                <div className="aspect-square overflow-hidden">
+              <div className="text-center">
+                <div className="aspect-square overflow-hidden rounded-sm mb-6">
                   <img
                     src={cookie.image}
                     alt={cookie.name}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <div className="p-6 text-center">
-                  <h3 className="font-display text-2xl font-semibold text-foreground">
-                    {cookie.name}
-                  </h3>
-                </div>
+                <h3 className="font-display text-2xl font-semibold text-foreground mb-3">
+                  {cookie.name}
+                </h3>
+                <p className="text-foreground/70 leading-relaxed">
+                  {cookie.description}
+                </p>
               </div>
             </div>
           ))}
