@@ -34,7 +34,8 @@ const AccountMenu = () => {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="text-primary hover:text-primary/80 font-serif text-base"
+            className="text-primary hover:text-primary/80 font-serif text-base border-2 hover:bg-[rgba(220,38,38,0.3)]"
+            style={{ borderColor: '#dc2626' }}
           >
             Mitt konto
           </Button>
