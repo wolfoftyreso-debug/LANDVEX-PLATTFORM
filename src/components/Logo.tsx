@@ -2,9 +2,9 @@ import logoImage from "@/assets/logo.png";
 
 const Logo = ({ className = "", size = "default" }: { className?: string; size?: "small" | "default" | "large" }) => {
   const sizeClasses = {
-    small: "h-12",
-    default: "h-20",
-    large: "h-32"
+    small: "h-16",
+    default: "h-24",
+    large: "h-40"
   };
 
   return (
