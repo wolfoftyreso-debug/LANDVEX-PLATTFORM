@@ -16,33 +16,48 @@ const images = [
 
 const GallerySection = () => {
   return (
-    <section className="py-24 px-6">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="font-display text-center text-4xl md:text-5xl font-bold mb-4">
-          Hantverk. Kvalitet. Leveranssäkerhet.
-        </h2>
-        <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
-          Varje produkt bakas med kärlek och levereras med precision
-        </p>
+    <section className="py-24 px-6 bg-card">
+      <div className="max-w-5xl mx-auto">
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <div className="divider-ornament mb-6">
+            <span className="ornament">✦</span>
+          </div>
+          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4 italic">
+            Hantverk & Kvalitet
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Varje produkt bakas med samma recept och omsorg som i vår lilla verkstad sedan 1974
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Image grid with classic frames */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {images.map((image, index) => (
             <div
               key={index}
-              className="group relative h-64 md:h-72 rounded-2xl overflow-hidden card-glow bg-card"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="group"
             >
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <p className="absolute bottom-4 left-4 font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                {image.alt}
-              </p>
+              {/* Classic frame effect */}
+              <div className="relative p-3 bg-background border border-border card-classic">
+                <div className="overflow-hidden">
+                  <img
+                    src={image.src}
+                    alt={image.alt}
+                    className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105 sepia-[.15]"
+                  />
+                </div>
+                <p className="text-center mt-3 font-display text-lg text-muted-foreground italic">
+                  {image.alt}
+                </p>
+              </div>
             </div>
           ))}
+        </div>
+
+        {/* Bottom ornament */}
+        <div className="text-center mt-16 text-primary/40 font-display text-2xl">
+          ❦
         </div>
       </div>
     </section>
