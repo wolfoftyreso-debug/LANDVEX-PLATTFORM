@@ -12,6 +12,14 @@ const Header = () => {
           />
         </a>
         
+        <nav className="hidden md:flex items-center gap-4 text-sm">
+          <a href="#plans" className="bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:bg-primary/90 transition-colors">
+            Abonnemang
+          </a>
+          <a href="#gallery" className="border-2 border-primary text-primary px-4 py-2 rounded-sm hover:bg-primary hover:text-primary-foreground transition-colors">
+            Sortiment
+          </a>
+        </nav>
       </div>
     </header>
   );
