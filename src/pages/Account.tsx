@@ -4,24 +4,29 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import { LogOut, Save } from "lucide-react";
+import { Save } from "lucide-react";
 
 const profileSchema = z.object({
-  address: z.string().trim().max(500, { message: "Adress får max vara 500 tecken" }).optional(),
+  street_address: z.string().trim().max(200, { message: "Gatuadress får max vara 200 tecken" }).optional(),
+  postal_code: z.string().trim().max(10, { message: "Postnummer får max vara 10 tecken" }).optional(),
+  city: z.string().trim().max(100, { message: "Ort får max vara 100 tecken" }).optional(),
 });
 
 interface ProfileData {
-  address: string;
+  street_address: string;
+  postal_code: string;
+  city: string;
 }
 
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
-    address: "",
+    street_address: "",
+    postal_code: "",
+    city: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,7 +49,7 @@ const Account = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("address")
+        .select("street_address, postal_code, city")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -57,7 +62,9 @@ const Account = () => {
         });
       } else if (data) {
         setProfile({
-          address: data.address || "",
+          street_address: data.street_address || "",
+          postal_code: data.postal_code || "",
+          city: data.city || "",
         });
       }
     } finally {
@@ -84,7 +91,9 @@ const Account = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          address: profile.address || null,
+          street_address: profile.street_address || null,
+          postal_code: profile.postal_code || null,
+          city: profile.city || null,
         })
         .eq("user_id", user!.id);
 
@@ -159,17 +168,46 @@ const Account = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Leveransadress</Label>
-                <Textarea
-                  id="address"
-                  value={profile.address}
-                  onChange={(e) =>
-                    setProfile({ ...profile, address: e.target.value })
-                  }
-                  placeholder="Gatuadress, postnummer, ort"
-                  rows={3}
-                />
+              <div className="space-y-4">
+                <Label>Leveransadress</Label>
+                
+                <div className="space-y-2">
+                  <Input
+                    id="street_address"
+                    type="text"
+                    value={profile.street_address}
+                    onChange={(e) =>
+                      setProfile({ ...profile, street_address: e.target.value })
+                    }
+                    placeholder="Gatuadress"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Input
+                      id="postal_code"
+                      type="text"
+                      value={profile.postal_code}
+                      onChange={(e) =>
+                        setProfile({ ...profile, postal_code: e.target.value })
+                      }
+                      placeholder="Postnummer"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      id="city"
+                      type="text"
+                      value={profile.city}
+                      onChange={(e) =>
+                        setProfile({ ...profile, city: e.target.value })
+                      }
+                      placeholder="Ort"
+                    />
+                  </div>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   Denna adress används vid beställning av abonnemang.
                 </p>
