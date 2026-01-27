@@ -20,8 +20,8 @@ const HeroSection = () => {
           <span className="ornament">❧</span>
         </div>
 
-        <p className="max-w-xl mx-auto text-foreground text-xl mb-8 leading-relaxed italic">
-          "Äkta fika levererat till ditt företag — prenumeration eller engångsorder"
+        <p className="max-w-xl mx-auto text-foreground text-xl mb-8 leading-relaxed">
+          Äkta fika levererat till ditt företag — varje vecka
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
