@@ -16,7 +16,7 @@ const images = [
 
 const GallerySection = () => {
   return (
-    <section className="py-24 px-6 bg-card">
+    <section id="gallery" className="py-24 px-6 bg-card">
       <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-16">
