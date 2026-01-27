@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { LogIn, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ const AccountMenu = () => {
   const { user, loading, signOut } = useAuth();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const navigate = useNavigate();
 
   const handleOpenAuth = (mode: "login" | "signup") => {
     setAuthMode(mode);
@@ -50,8 +52,15 @@ const AccountMenu = () => {
                 {user.email}
               </DropdownMenuItem>
               <DropdownMenuItem
+                onClick={() => navigate("/profile")}
+                className="cursor-pointer flex items-center gap-2 hover:!bg-[rgba(220,38,38,0.3)] focus:!bg-[rgba(220,38,38,0.3)] hover:!text-black focus:!text-black"
+              >
+                <User className="h-4 w-4" />
+                Min profil
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={handleSignOut}
-                className="cursor-pointer flex items-center gap-2"
+                className="cursor-pointer flex items-center gap-2 hover:!bg-[rgba(220,38,38,0.3)] focus:!bg-[rgba(220,38,38,0.3)] hover:!text-black focus:!text-black"
               >
                 <LogOut className="h-4 w-4" />
                 Logga ut
