@@ -10,7 +10,7 @@ const HeroSection = () => {
         <img 
           src={logoImage} 
           alt="Lennart Svensson Konditorivaror" 
-          className="h-48 md:h-56 lg:h-64 w-auto mx-auto mb-8"
+          className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-8"
         />
 
         <p className="text-muted-foreground text-lg mb-8">
