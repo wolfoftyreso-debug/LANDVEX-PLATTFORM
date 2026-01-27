@@ -58,12 +58,14 @@ const AccountMenu = () => {
             </>
           ) : (
             <>
-              <DropdownMenuItem
-                onClick={() => handleOpenAuth("signup")}
-                className="cursor-pointer font-bold border-2 border-red-600 rounded-md mx-1 my-1 hover:bg-red-600/30 focus:bg-red-600/30"
-              >
-                Skapa konto
-              </DropdownMenuItem>
+              <div className="px-1 py-1">
+                <button
+                  onClick={() => handleOpenAuth("signup")}
+                  className="w-full px-3 py-2 text-left font-bold border-2 border-red-600 rounded-md hover:bg-red-600/30 transition-colors"
+                >
+                  Skapa konto
+                </button>
+              </div>
               <DropdownMenuItem
                 onClick={() => handleOpenAuth("login")}
                 className="cursor-pointer flex items-center gap-2"
