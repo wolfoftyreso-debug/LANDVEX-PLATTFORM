@@ -68,7 +68,13 @@ const HeritageSection = () => {
           }`}
         >
           {/* Image */}
-          <div className="relative rounded-sm overflow-hidden mb-12 shadow-xl">
+          <div 
+            className={`relative rounded-sm overflow-hidden mb-12 shadow-xl transition-all duration-[6000ms] ease-out ${
+              heroVisible
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 translate-y-20 scale-95"
+            }`}
+          >
             <img
               src={bakeryHeritageImage}
               alt="Traditionellt svenskt konditori"
