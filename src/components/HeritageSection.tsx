@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import bakeryHeritageImage from "@/assets/bakery-heritage.jpg";
+
 import mandelkubbImage from "@/assets/mandelkubb.jpg";
 import kolasnittImage from "@/assets/kolasnitt.jpg";
 import chokladsnittImage from "@/assets/chokladsnitt.jpg";
@@ -67,22 +67,6 @@ const HeritageSection = () => {
               : "opacity-0 translate-y-24 scale-95"
           }`}
         >
-          {/* Image */}
-          <div 
-            className={`relative rounded-sm overflow-hidden mb-12 shadow-xl transition-all duration-[6000ms] ease-out ${
-              heroVisible
-                ? "opacity-100 translate-y-0 scale-100"
-                : "opacity-0 translate-y-20 scale-95"
-            }`}
-          >
-            <img
-              src={bakeryHeritageImage}
-              alt="Traditionellt svenskt konditori"
-              className="w-full h-[400px] md:h-[500px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-          </div>
-
           {/* Text Content */}
           <div className="text-center max-w-3xl mx-auto">
             <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
