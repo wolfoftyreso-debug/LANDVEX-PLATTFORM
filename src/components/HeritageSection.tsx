@@ -93,8 +93,7 @@ const HeritageSection = () => {
               <p>
                 Våra recept grundar sig i det klassiska <em className="text-primary">Svenska Konditorilexikon från 1954</em> och 
                 har förädlats genom generationer av bagare. Vi använder bara riktigt smör, 
-                färska mandlar och äkta choklad – inga konstigheter, inga processade 
-                ingredienser.
+                färska mandlar och äkta choklad.
               </p>
               <p>
                 Varje kaka formas för hand med samma omsorg som traditionella 
