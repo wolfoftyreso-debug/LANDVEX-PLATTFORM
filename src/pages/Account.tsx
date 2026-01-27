@@ -124,6 +124,17 @@ const Account = () => {
       <Header />
       <div className="pt-24 px-4 pb-12">
         <div className="max-w-2xl mx-auto">
+          {/* Back link - top left */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="text-sm text-muted-foreground hover:underline"
+            >
+              ← Tillbaka till startsidan
+            </button>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="font-serif text-3xl md:text-4xl font-semibold mb-2">
@@ -175,24 +186,15 @@ const Account = () => {
             </form>
           </div>
 
-          {/* Links */}
-          <div className="text-center mt-6 space-y-3">
+          {/* Sign out link */}
+          <div className="text-center mt-6">
             <button
               type="button"
               onClick={handleSignOut}
-              className="text-sm text-muted-foreground hover:underline"
+              className="text-sm text-destructive hover:underline"
             >
               Logga ut
             </button>
-            <div>
-              <button
-                type="button"
-                onClick={() => navigate("/")}
-                className="text-sm text-primary hover:underline"
-              >
-                ← Tillbaka till startsidan
-              </button>
-            </div>
           </div>
         </div>
       </div>
