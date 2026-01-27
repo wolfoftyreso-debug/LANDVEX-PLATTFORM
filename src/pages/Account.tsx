@@ -175,35 +175,24 @@ const Account = () => {
             </form>
           </div>
 
-          {/* Sign Out */}
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Logga ut</h3>
-                <p className="text-sm text-muted-foreground">
-                  Logga ut från ditt konto
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logga ut
-              </Button>
-            </div>
-          </div>
-
-          {/* Back link */}
-          <div className="text-center mt-8">
+          {/* Links */}
+          <div className="text-center mt-6 space-y-3">
             <button
               type="button"
-              onClick={() => navigate("/")}
-              className="text-sm text-primary hover:underline"
+              onClick={handleSignOut}
+              className="text-sm text-muted-foreground hover:underline"
             >
-              ← Tillbaka till startsidan
+              Logga ut
             </button>
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="text-sm text-primary hover:underline"
+              >
+                ← Tillbaka till startsidan
+              </button>
+            </div>
           </div>
         </div>
       </div>
