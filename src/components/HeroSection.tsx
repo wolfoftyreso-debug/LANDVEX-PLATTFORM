@@ -1,9 +1,17 @@
 import logoImage from "@/assets/logo.png";
+import heroBakeryImage from "@/assets/hero-bakery.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 bg-background">
-      <div className="animate-fade-up max-w-4xl">
+    <section className="relative flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 overflow-hidden">
+      {/* Background image with opacity */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-40"
+        style={{ backgroundImage: `url(${heroBakeryImage})` }}
+      />
+      <div className="absolute inset-0 bg-background/60" />
+      
+      <div className="animate-fade-up max-w-4xl relative z-10">
         <img 
           src={logoImage} 
           alt="Lennart Svensson Konditorivaror" 
