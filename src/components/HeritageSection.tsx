@@ -85,9 +85,7 @@ const HeritageSection = () => {
 
           {/* Text Content */}
           <div className="text-center max-w-3xl mx-auto">
-            <div className="divider-ornament mb-6">
-              <span className="ornament">✦</span>
-            </div>
+            <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-6">
               Hantverk & Kvalitet
             </h2>
@@ -141,10 +139,6 @@ const HeritageSection = () => {
           ))}
         </div>
 
-        {/* Bottom ornament */}
-        <div className="text-center mt-16 text-primary/40 font-display text-2xl">
-          ❦
-        </div>
       </div>
     </section>
   );
