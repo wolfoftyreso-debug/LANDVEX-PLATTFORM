@@ -76,6 +76,14 @@
     font-family: var(--font-body);
   }
 
+  /* Ensure full-width layout (avoid template max-width/padding on #root) */
+  #root {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    text-align: inherit;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
   }
