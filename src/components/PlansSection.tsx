@@ -5,34 +5,34 @@ const plans = [
     name: "Lilla",
     kgPerWeek: "3 kg",
     priceWeekExclVat: "1 350",
+    employeeRecommendation: "1–10 anställda",
     features: [
       "3 kg kakor per vecka",
       "Veckoleverans",
-      "Kortbetalning",
+      "Betala direkt eller med Klarna",
     ],
-    featured: false,
   },
   {
     name: "Mellan",
     kgPerWeek: "5 kg",
     priceWeekExclVat: "2 250",
+    employeeRecommendation: "10–25 anställda",
     features: [
       "5 kg kakor per vecka",
       "Veckoleverans",
-      "Kortbetalning",
+      "Betala direkt eller med Klarna",
     ],
-    featured: true,
   },
   {
     name: "Stora",
     kgPerWeek: "10 kg",
     priceWeekExclVat: "4 500",
+    employeeRecommendation: "25+ anställda",
     features: [
       "10 kg kakor per vecka",
       "Veckoleverans",
-      "Kortbetalning",
+      "Betala direkt eller med Klarna",
     ],
-    featured: false,
   },
 ];
 
@@ -58,18 +58,8 @@ const PlansSection = () => {
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`relative bg-card p-8 card-classic rounded-sm ${
-                plan.featured ? "border-2 border-primary" : ""
-              }`}
+              className="relative bg-card p-8 card-classic rounded-sm"
             >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold rounded-sm">
-                    Rekommenderad
-                  </span>
-                </div>
-              )}
-
               {/* Plan header */}
               <div className="text-center mb-6 pb-6 border-b border-border">
                 <p className="text-muted-foreground text-sm uppercase tracking-wider mb-1">
@@ -78,6 +68,9 @@ const PlansSection = () => {
                 <h3 className="font-display text-3xl font-semibold text-foreground">
                   {plan.name}
                 </h3>
+                <p className="text-muted-foreground text-sm mt-2">
+                  Rekommenderas för {plan.employeeRecommendation}
+                </p>
               </div>
 
               {/* Price info */}
@@ -106,11 +99,7 @@ const PlansSection = () => {
               {/* CTA Button */}
               <a
                 href="#"
-                className={`block text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 ${
-                  plan.featured
-                    ? "btn-classic"
-                    : "btn-outline-classic"
-                }`}
+                className="block text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic"
               >
                 Välj abonnemang
               </a>
