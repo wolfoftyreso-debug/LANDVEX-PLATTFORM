@@ -8,17 +8,17 @@ const cookies = [
   {
     name: "Mandelkubben",
     image: mandelkubbImage,
-    description: "Mjuk och smörig med en härlig mandelsmak som smälter på tungan. Toppas med rostade mandelflagor.",
+    description: "Den traditionella mandelkubben – nötig och klassisk med mild sötma och tydlig mandelsmak. En riktig svensk fikakaka.",
   },
   {
     name: "Kolasnitten",
     image: kolasnittImage,
-    description: "Krämig kolakaka med en perfekt balans av sötma och smörighet. En riktig favorit på fikarasten.",
+    description: "Den klassiska kolakakan med fyllig, smörig kolasmak som smälter i munnen. Spröd på ytan, mjuk inuti.",
   },
   {
     name: "Chokladsnitten",
     image: chokladsnittImage,
-    description: "Rik och fyllig chokladsmak med en len glasyr. För dig som älskar äkta, mörk choklad.",
+    description: "En chokladälskares favorit – perfekt balans mellan sötma och rik chokladsmak. Krispig på kanterna, mjuk i mitten.",
   },
 ];
 
