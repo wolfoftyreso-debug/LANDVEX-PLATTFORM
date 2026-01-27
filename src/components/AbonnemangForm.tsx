@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
@@ -19,6 +21,7 @@ interface AbonnemangFormProps {
 }
 
 const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     företag: "",
     kontaktperson: "",
@@ -34,6 +37,37 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Pre-fill form with user's profile data if logged in
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("display_name, phone, address")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (data) {
+          setFormData((prev) => ({
+            ...prev,
+            kontaktperson: data.display_name || prev.kontaktperson,
+            telefon: data.phone || prev.telefon,
+            epost: user.email || prev.epost,
+            // Parse address if it exists (format: "gatuadress, postnummer ort")
+            adress: data.address?.split(",")[0]?.trim() || prev.adress,
+          }));
+        } else {
+          // At least fill in email
+          setFormData((prev) => ({
+            ...prev,
+            epost: user.email || prev.epost,
+          }));
+        }
+      }
+    };
+    fetchProfileData();
+  }, [user]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -42,6 +76,31 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
     // Clear error when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const saveAddressToProfile = async () => {
+    if (!user) return;
+
+    // Combine address fields into one string
+    const fullAddress = [
+      formData.adress,
+      formData.postnummer && formData.stad
+        ? `${formData.postnummer} ${formData.stad}`
+        : formData.postnummer || formData.stad,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    if (fullAddress) {
+      await supabase
+        .from("profiles")
+        .update({
+          address: fullAddress,
+          phone: formData.telefon || null,
+          display_name: formData.kontaktperson || null,
+        })
+        .eq("user_id", user.id);
     }
   };
 
@@ -60,6 +119,9 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
       setErrors(fieldErrors);
       return;
     }
+
+    // Save address to profile if user is logged in
+    await saveAddressToProfile();
 
     // For now, just show success - backend integration can be added later
     setSubmitted(true);
