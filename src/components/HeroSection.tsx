@@ -1,5 +1,3 @@
-import Logo from "./Logo";
-
 const HeroSection = () => {
   return (
     <section className="hero-gradient min-h-screen flex flex-col justify-center items-center text-center px-6 py-20 pt-32 relative">
@@ -7,12 +5,14 @@ const HeroSection = () => {
       <div className="absolute top-0 left-0 right-0 h-2 bg-primary/20" />
       
       <div className="animate-fade-up max-w-4xl">
-        {/* Logo */}
-        <div className="mb-8">
-          <Logo size="large" />
-        </div>
+        <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 text-foreground">
+          Lennart Svensson
+        </h1>
+        <p className="font-display text-xl md:text-2xl text-primary mb-6">
+          Konditorivaror
+        </p>
 
-        <p className="text-muted-foreground italic text-lg mb-8">
+        <p className="text-muted-foreground text-lg mb-8">
           Svenskt konditorhantverk sedan 1953
         </p>
 
