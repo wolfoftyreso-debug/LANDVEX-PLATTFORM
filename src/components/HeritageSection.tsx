@@ -56,7 +56,7 @@ const HeritageSection = () => {
   }, []);
 
   return (
-    <section id="gallery" className="bg-secondary/30 py-24 px-6">
+    <section className="bg-secondary/30 py-24 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Heritage Hero */}
         <div
@@ -105,6 +105,7 @@ const HeritageSection = () => {
 
         {/* Cookies Grid */}
         <div
+          id="gallery"
           ref={cookiesRef}
           className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8"
         >
