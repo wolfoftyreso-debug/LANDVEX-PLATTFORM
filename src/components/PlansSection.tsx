@@ -2,50 +2,38 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Starter",
-    subtitle: "Abonnemang",
+    name: "Liten",
     kgPerWeek: "3 kg",
     priceWeekExclVat: "1 350",
-    priceWeekInclVat: "1 687,50",
     priceMonthExclVat: "5 400",
-    priceMonthInclVat: "6 750",
     features: [
       "3 kg kakor per vecka",
       "Veckoleverans",
       "Företagsfaktura",
-      "Flexibelt upplägg",
     ],
     featured: false,
   },
   {
-    name: "Standard",
-    subtitle: "Abonnemang",
+    name: "Mellan",
     kgPerWeek: "5 kg",
     priceWeekExclVat: "2 250",
-    priceWeekInclVat: "2 812,50",
     priceMonthExclVat: "9 000",
-    priceMonthInclVat: "11 250",
     features: [
       "5 kg kakor per vecka",
       "Veckoleverans",
-      "Prioriterad hantering",
       "Företagsfaktura",
     ],
     featured: true,
   },
   {
-    name: "Pro / Office Plus",
-    subtitle: "Abonnemang",
+    name: "Stor",
     kgPerWeek: "10 kg",
     priceWeekExclVat: "4 500",
-    priceWeekInclVat: "5 625",
     priceMonthExclVat: "18 000",
-    priceMonthInclVat: "22 500",
     features: [
       "10 kg kakor per vecka",
       "Veckoleverans",
-      "Personlig kontakt",
-      "Anpassade sortiment",
+      "Företagsfaktura",
     ],
     featured: false,
   },
@@ -88,7 +76,7 @@ const PlansSection = () => {
               {/* Plan header */}
               <div className="text-center mb-6 pb-6 border-b border-border">
                 <p className="text-muted-foreground text-sm uppercase tracking-wider mb-1">
-                  {plan.subtitle}
+                  Abonnemang
                 </p>
                 <h3 className="font-display text-3xl font-semibold text-foreground italic">
                   {plan.name}
@@ -102,15 +90,12 @@ const PlansSection = () => {
                 </div>
                 <div>
                   <span className="font-display text-3xl font-bold text-primary">
-                    {plan.priceMonthInclVat}
+                    {plan.priceMonthExclVat}
                   </span>
-                  <span className="text-muted-foreground ml-1">kr/mån</span>
-                </div>
-                <div className="text-muted-foreground text-xs">
-                  ({plan.priceMonthExclVat} kr exkl. moms)
+                  <span className="text-muted-foreground ml-1">kr/mån exkl. moms</span>
                 </div>
                 <div className="text-muted-foreground text-xs border-t border-border pt-2 mt-2">
-                  Veckopris: {plan.priceWeekInclVat} kr inkl. moms
+                  Veckopris: {plan.priceWeekExclVat} kr exkl. moms
                 </div>
               </div>
 
