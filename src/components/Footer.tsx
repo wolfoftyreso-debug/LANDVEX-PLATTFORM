@@ -21,7 +21,7 @@ const Footer = () => {
           <a href="#" className="hover:text-primary transition-colors">
             Om konditoriet
           </a>
-          <a href="#" className="hover:text-primary transition-colors">
+          <a href="#gallery" className="hover:text-primary transition-colors">
             Vårt sortiment
           </a>
           <a href="#" className="hover:text-primary transition-colors">
