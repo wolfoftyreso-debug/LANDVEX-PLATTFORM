@@ -60,7 +60,7 @@ const AccountMenu = () => {
             <>
               <DropdownMenuItem
                 onClick={() => handleOpenAuth("signup")}
-                className="cursor-pointer font-bold border-2 border-red-600 rounded-md mx-1 my-1"
+                className="cursor-pointer font-bold border-2 border-red-600 rounded-md mx-1 my-1 hover:bg-red-600/30 focus:bg-red-600/30"
               >
                 Skapa konto
               </DropdownMenuItem>
