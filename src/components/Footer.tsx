@@ -11,7 +11,7 @@ const Footer = () => {
             Konditorivaror
           </p>
           <p className="text-muted-foreground">
-            "Äkta hantverk sedan 1974"
+            Äkta svenskt konditorhantverk
           </p>
         </div>
 
