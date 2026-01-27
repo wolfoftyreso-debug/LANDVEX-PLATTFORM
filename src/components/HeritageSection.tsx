@@ -36,17 +36,13 @@ const HeritageSection = () => {
 
     const heroObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setHeroVisible(true);
-        }
+        setHeroVisible(entry.isIntersecting);
       });
     }, observerOptions);
 
     const cookiesObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setCookiesVisible(true);
-        }
+        setCookiesVisible(entry.isIntersecting);
       });
     }, observerOptions);
 
