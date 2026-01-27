@@ -45,7 +45,7 @@ const PlansSection = () => {
           <div className="divider-ornament mb-6">
             <span className="ornament">✦</span>
           </div>
-          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4 italic">
+          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4">
             Våra Abonnemang
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -62,9 +62,6 @@ const PlansSection = () => {
             >
               {/* Plan header */}
               <div className="text-center mb-6 pb-6 border-b border-border">
-                <p className="text-muted-foreground text-sm uppercase tracking-wider mb-1">
-                  Abonnemang
-                </p>
                 <h3 className="font-display text-3xl font-semibold text-foreground">
                   {plan.name}
                 </h3>
