@@ -107,7 +107,7 @@ const HeritageSection = () => {
         <div
           id="gallery"
           ref={cookiesRef}
-          className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 scroll-mt-24"
         >
           {cookies.map((cookie, index) => (
             <div
