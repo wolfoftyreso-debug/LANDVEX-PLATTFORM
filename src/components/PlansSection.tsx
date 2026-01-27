@@ -104,7 +104,7 @@ const PlansSection = () => {
   const isLoading = productsLoading || cartLoading || checkoutLoading;
 
   return (
-    <section id="plans" className="py-24 px-6 bg-background">
+    <section id="abonnemang" className="py-24 px-6 bg-background">
       <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-16">
