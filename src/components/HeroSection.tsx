@@ -13,6 +13,11 @@ const HeroSection = () => {
       <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
+        <img 
+          src={logoImage} 
+          alt="Lennart Svensson Konditorivaror" 
+          className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-8"
+        />
 
         <p className="text-muted-foreground text-lg mb-4">
           Svenskt konditorhantverk sedan 1953
