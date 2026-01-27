@@ -9,7 +9,8 @@ const HeroSection = () => {
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40"
         style={{ backgroundImage: `url(${heroBakeryImage})` }}
       />
-      <div className="pointer-events-none absolute inset-0 bg-background/60" />
+      {/* Keep contrast for text without washing out the image (can look like "empty" beige sides) */}
+      <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
         <img 
