@@ -5,7 +5,7 @@ const Footer = () => {
         {/* Main footer content */}
         <div className="text-center mb-12">
           <p className="font-display text-3xl font-semibold mb-2 text-foreground">
-            Lennart Svenssons
+            Lennart Svensson
           </p>
           <p className="font-display text-xl text-primary mb-4">
             Konditorivaror
@@ -26,9 +26,6 @@ const Footer = () => {
           </a>
           <a href="#" className="hover:text-primary transition-colors">
             Kontakta oss
-          </a>
-          <a href="#" className="hover:text-primary transition-colors">
-            Allmänna villkor
           </a>
         </div>
 
