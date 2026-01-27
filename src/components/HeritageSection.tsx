@@ -61,7 +61,7 @@ const HeritageSection = () => {
         {/* Heritage Hero */}
         <div
           ref={heroRef}
-          className={`transition-all duration-[1500ms] ease-out ${
+          className={`transition-all duration-[2500ms] ease-out ${
             heroVisible
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-16"
