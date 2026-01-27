@@ -3,7 +3,7 @@ import heroBakeryImage from "@/assets/hero-bakery.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 overflow-hidden">
+    <section className="relative flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 overflow-hidden w-screen -ml-[calc((100vw-100%)/2)]">
       {/* Background image with opacity */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-40"
