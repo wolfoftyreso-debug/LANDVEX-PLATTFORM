@@ -30,8 +30,8 @@ const HeritageSection = () => {
 
   useEffect(() => {
     const observerOptions = {
-      threshold: 0.2,
-      rootMargin: "0px 0px -50px 0px",
+      threshold: 0.1,
+      rootMargin: "0px 0px -100px 0px",
     };
 
     const heroObserver = new IntersectionObserver((entries) => {
@@ -65,10 +65,10 @@ const HeritageSection = () => {
         {/* Heritage Hero */}
         <div
           ref={heroRef}
-          className={`transition-all duration-1000 ease-out ${
+          className={`transition-all duration-[1500ms] ease-out ${
             heroVisible
               ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-12"
+              : "opacity-0 translate-y-16"
           }`}
         >
           {/* Image */}
