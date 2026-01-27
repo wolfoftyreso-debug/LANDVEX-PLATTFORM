@@ -2,7 +2,7 @@ import logoImage from "@/assets/logo.png";
 
 const HeroSection = () => {
   return (
-    <section className="hero-gradient min-h-screen flex flex-col justify-center items-center text-center px-6 py-20 pt-32 relative">
+    <section className="hero-gradient flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 relative">
       {/* Decorative top border */}
       <div className="absolute top-0 left-0 right-0 h-2 bg-primary/20" />
       
@@ -10,7 +10,7 @@ const HeroSection = () => {
         <img 
           src={logoImage} 
           alt="Lennart Svensson Konditorivaror" 
-          className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-48"
+          className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-8"
         />
 
         <p className="text-muted-foreground text-lg mb-8">
@@ -42,7 +42,7 @@ const HeroSection = () => {
       </div>
 
       {/* Bottom ornament */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-primary/40 font-display text-2xl">
+      <div className="mt-8 text-primary/40 font-display text-2xl">
         ❦
       </div>
     </section>
