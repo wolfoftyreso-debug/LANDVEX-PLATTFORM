@@ -13,12 +13,12 @@ const cookies = [
   {
     name: "Kolasnitten",
     image: kolasnittImage,
-    description: "Den klassiska kolakakan med fyllig, smörig kolasmak som smälter i munnen. Spröd på ytan, mjuk inuti.",
+    description: "Den klassiska kolakakan med fyllig, smörig kolasmak som smälter i munnen. Spröd på ytan, seg i mitten.",
   },
   {
     name: "Chokladsnitten",
     image: chokladsnittImage,
-    description: "En chokladälskares favorit – perfekt balans mellan sötma och rik chokladsmak. Krispig på kanterna, mjuk i mitten.",
+    description: "En chokladälskares favorit – perfekt balans mellan sötma och rik chokladsmak. Krispig på kanterna, seg i mitten.",
   },
 ];
 
