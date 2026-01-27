@@ -105,7 +105,7 @@ const Account = () => {
         });
       } else {
         // Navigate to confirmation page after successful save
-        navigate("/account/confirmation");
+        navigate("/account/confirmation", { state: { justSaved: true } });
       }
     } finally {
       setIsSaving(false);
