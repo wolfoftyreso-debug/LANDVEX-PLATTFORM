@@ -17,6 +17,12 @@ const authSchema = z.object({
   password: z.string().min(6, { message: "Lösenordet måste vara minst 6 tecken" }).max(100),
 });
 
+const emailSchema = z.object({
+  email: z.string().trim().email({ message: "Ogiltig e-postadress" }).max(255),
+});
+
+type AuthMode = "login" | "signup" | "forgot";
+
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,16 +30,54 @@ interface AuthDialogProps {
   onModeChange: (mode: "login" | "signup") => void;
 }
 
-const AuthDialog = ({ open, onOpenChange, mode, onModeChange }: AuthDialogProps) => {
+const AuthDialog = ({ open, onOpenChange, mode: initialMode, onModeChange }: AuthDialogProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [internalMode, setInternalMode] = useState<AuthMode>(initialMode);
+  const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
+
+  // Sync internal mode with external mode prop
+  const mode = internalMode === "forgot" ? "forgot" : initialMode;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (internalMode === "forgot") {
+      const validation = emailSchema.safeParse({ email });
+      if (!validation.success) {
+        toast({
+          title: "Fel",
+          description: validation.error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const { error } = await resetPassword(email);
+        if (error) {
+          toast({
+            title: "Kunde inte skicka återställningslänk",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "E-post skickad!",
+            description: "Kolla din inkorg för att återställa ditt lösenord.",
+          });
+          onOpenChange(false);
+          resetForm();
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     const validation = authSchema.safeParse({ email, password });
     if (!validation.success) {
       toast({
@@ -47,7 +91,7 @@ const AuthDialog = ({ open, onOpenChange, mode, onModeChange }: AuthDialogProps)
     setIsSubmitting(true);
 
     try {
-      if (mode === "signup") {
+      if (initialMode === "signup") {
         const { error } = await signUp(email, password);
         if (error) {
           toast({
@@ -88,14 +132,33 @@ const AuthDialog = ({ open, onOpenChange, mode, onModeChange }: AuthDialogProps)
   const resetForm = () => {
     setEmail("");
     setPassword("");
+    setInternalMode(initialMode);
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      resetForm();
+    }
+    onOpenChange(newOpen);
+  };
+
+  const getTitle = () => {
+    if (internalMode === "forgot") return "Glömt lösenord";
+    return initialMode === "signup" ? "Skapa konto" : "Logga in";
+  };
+
+  const getSubmitText = () => {
+    if (isSubmitting) return "Laddar...";
+    if (internalMode === "forgot") return "Skicka återställningslänk";
+    return initialMode === "signup" ? "Skapa konto" : "Logga in";
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="bg-background border border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl text-foreground">
-            {mode === "signup" ? "Skapa konto" : "Logga in"}
+            {getTitle()}
           </DialogTitle>
         </DialogHeader>
         
@@ -112,54 +175,83 @@ const AuthDialog = ({ open, onOpenChange, mode, onModeChange }: AuthDialogProps)
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="password">Lösenord</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          {internalMode !== "forgot" && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Lösenord</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          )}
 
           <Button
             type="submit"
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={isSubmitting}
           >
-            {isSubmitting
-              ? "Laddar..."
-              : mode === "signup"
-              ? "Skapa konto"
-              : "Logga in"}
+            {getSubmitText()}
           </Button>
         </form>
 
-        <div className="text-center mt-4">
-          {mode === "signup" ? (
+        <div className="text-center mt-4 space-y-2">
+          {internalMode === "forgot" ? (
             <p className="text-sm text-muted-foreground">
-              Har du redan ett konto?{" "}
               <button
                 type="button"
-                onClick={() => onModeChange("login")}
+                onClick={() => setInternalMode("login")}
                 className="text-primary hover:underline"
               >
-                Logga in
+                Tillbaka till inloggning
               </button>
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Har du inget konto?{" "}
-              <button
-                type="button"
-                onClick={() => onModeChange("signup")}
-                className="text-primary hover:underline"
-              >
-                Skapa konto
-              </button>
-            </p>
+            <>
+              {initialMode === "login" && (
+                <p className="text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setInternalMode("forgot")}
+                    className="text-primary hover:underline"
+                  >
+                    Glömt lösenord?
+                  </button>
+                </p>
+              )}
+              {initialMode === "signup" ? (
+                <p className="text-sm text-muted-foreground">
+                  Har du redan ett konto?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInternalMode("login");
+                      onModeChange("login");
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    Logga in
+                  </button>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Har du inget konto?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInternalMode("signup");
+                      onModeChange("signup");
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    Skapa konto
+                  </button>
+                </p>
+              )}
+            </>
           )}
         </div>
       </DialogContent>
