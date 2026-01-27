@@ -13,7 +13,7 @@ const HeroSection = () => {
           className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-8"
         />
 
-        <div className="w-40 h-px bg-primary/40 mx-auto my-4"></div>
+        <div className="w-40 h-px bg-primary/40 mx-auto mb-4 -mt-2"></div>
 
         <p className="text-muted-foreground text-lg mb-8">
           Svenskt konditorhantverk sedan 1953
