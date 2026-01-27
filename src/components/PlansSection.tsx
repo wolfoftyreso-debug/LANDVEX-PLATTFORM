@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Lilla",
+    name: "Liten",
     kgPerWeek: "3 kg",
     priceWeekExclVat: "1 350",
     employeeRecommendation: "1–10 anställda",
@@ -24,7 +24,7 @@ const plans = [
     ],
   },
   {
-    name: "Stora",
+    name: "Stor",
     kgPerWeek: "10 kg",
     priceWeekExclVat: "4 500",
     employeeRecommendation: "25+ anställda",
