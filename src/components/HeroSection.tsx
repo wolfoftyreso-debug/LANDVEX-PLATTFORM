@@ -3,13 +3,13 @@ import heroBakeryImage from "@/assets/hero-bakery.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative flex flex-col justify-center items-center text-center px-6 py-16 pt-20 pb-12 overflow-hidden w-screen -ml-[calc((100vw-100%)/2)]">
-      {/* Background image with opacity */}
+    <section className="relative flex flex-col justify-center items-center text-center py-16 pt-20 pb-12">
+      {/* Background image with opacity - full width */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-40"
+        className="absolute inset-0 left-[calc(-50vw+50%)] right-[calc(-50vw+50%)] bg-cover bg-center opacity-40"
         style={{ backgroundImage: `url(${heroBakeryImage})` }}
       />
-      <div className="absolute inset-0 bg-background/60" />
+      <div className="absolute inset-0 left-[calc(-50vw+50%)] right-[calc(-50vw+50%)] bg-background/60" />
       
       <div className="animate-fade-up max-w-4xl relative z-10">
         <img 
