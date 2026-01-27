@@ -12,18 +12,15 @@ import Header from "@/components/Header";
 import { LogOut, Save } from "lucide-react";
 
 const profileSchema = z.object({
-  company_name: z.string().trim().max(100, { message: "Företagsnamn får max vara 100 tecken" }).optional(),
   address: z.string().trim().max(500, { message: "Adress får max vara 500 tecken" }).optional(),
 });
 
 interface ProfileData {
-  company_name: string;
   address: string;
 }
 
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
-    company_name: "",
     address: "",
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +44,7 @@ const Account = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("company_name, address")
+        .select("address")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -60,7 +57,6 @@ const Account = () => {
         });
       } else if (data) {
         setProfile({
-          company_name: data.company_name || "",
           address: data.address || "",
         });
       }
@@ -88,7 +84,6 @@ const Account = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          company_name: profile.company_name || null,
           address: profile.address || null,
         })
         .eq("user_id", user!.id);
@@ -143,19 +138,14 @@ const Account = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="company_name">Företagsnamn / E-post</Label>
+                <Label htmlFor="email">E-post</Label>
                 <Input
-                  id="company_name"
-                  type="text"
-                  value={profile.company_name}
-                  onChange={(e) =>
-                    setProfile({ ...profile, company_name: e.target.value })
-                  }
-                  placeholder="Ditt företag eller e-postadress"
+                  id="email"
+                  type="email"
+                  value={user?.email || ""}
+                  disabled
+                  className="bg-muted"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Inloggad som: {user?.email}
-                </p>
               </div>
 
               <div className="space-y-2">
