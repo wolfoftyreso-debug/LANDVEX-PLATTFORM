@@ -1,1 +1,10 @@
 project_id = "teeojvlqulhghditoakc"
+
+[functions.generate-leads]
+verify_jwt = false
+
+[functions.research-company]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
