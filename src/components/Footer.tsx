@@ -9,11 +9,8 @@ const Footer = () => {
           <img 
             src={logoImage} 
             alt="Lennart Svensson Konditorivaror" 
-            className="h-24 md:h-32 w-auto mx-auto mb-4"
+            className="h-24 md:h-32 w-auto mx-auto"
           />
-          <p className="text-muted-foreground italic">
-            Äkta svenskt konditorhantverk
-          </p>
         </div>
 
 
