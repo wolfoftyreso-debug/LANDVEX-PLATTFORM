@@ -38,7 +38,7 @@ const FAQ = () => {
   return (
     <div className="bg-background text-foreground min-h-screen">
       <Header />
-      <main className="max-w-3xl mx-auto px-6 py-16">
+      <main className="max-w-3xl mx-auto px-6 pt-32 pb-16">
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-4">
           Vanliga frågor
         </h1>
