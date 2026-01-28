@@ -54,22 +54,20 @@ const AccountMenu = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="bg-background border border-border shadow-lg z-50 min-w-[160px]"
+          className="bg-background border border-border shadow-lg z-50 min-w-[160px] p-0"
         >
-          <div className="px-2 py-1.5">
-            <button
-              onClick={() => handleOpenAuth("signup")}
-              className="w-full px-2 py-1.5 text-left text-sm rounded-sm hover:bg-[rgba(220,38,38,0.3)] focus:bg-[rgba(220,38,38,0.3)] transition-colors"
-            >
-              Skapa konto
-            </button>
-          </div>
-          <DropdownMenuItem
+          <button
+            onClick={() => handleOpenAuth("signup")}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-[rgba(220,38,38,0.3)] focus:bg-[rgba(220,38,38,0.3)] transition-colors"
+          >
+            Skapa konto
+          </button>
+          <button
             onClick={() => handleOpenAuth("login")}
-            className="cursor-pointer hover:!bg-[rgba(220,38,38,0.3)] focus:!bg-[rgba(220,38,38,0.3)] hover:!text-black focus:!text-black"
+            className="w-full px-4 py-2 text-left text-sm hover:bg-[rgba(220,38,38,0.3)] focus:bg-[rgba(220,38,38,0.3)] hover:text-black focus:text-black transition-colors"
           >
             Logga in
-          </DropdownMenuItem>
+          </button>
         </DropdownMenuContent>
       </DropdownMenu>
 
