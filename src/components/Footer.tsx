@@ -1,15 +1,16 @@
+import logoImage from "@/assets/logo.png";
+
 const Footer = () => {
   return (
     <footer className="py-16 px-6 bg-card border-t border-border">
       <div className="max-w-5xl mx-auto">
         {/* Main footer content */}
         <div className="text-center mb-12">
-          <p className="font-display text-3xl font-semibold mb-2 text-foreground">
-            Lennart Svensson
-          </p>
-          <p className="font-display text-xl text-primary mb-4">
-            Konditorivaror
-          </p>
+          <img 
+            src={logoImage} 
+            alt="Lennart Svensson Konditorivaror" 
+            className="h-24 md:h-32 w-auto mx-auto mb-4"
+          />
           <p className="text-muted-foreground italic">
             Äkta svenskt konditorhantverk
           </p>
@@ -31,7 +32,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="text-center text-muted-foreground text-sm">
-          <p>© {new Date().getFullYear()} Lennart Svenssons Konditorivaror</p>
+          <p>© {new Date().getFullYear()} Lennart Svensson Konditorivaror</p>
           <p className="mt-1 italic">Alla rättigheter förbehållna</p>
         </div>
       </div>
