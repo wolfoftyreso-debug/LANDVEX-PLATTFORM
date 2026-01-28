@@ -9,12 +9,8 @@ import {
 
 const faqs = [
   {
-    question: "Hur beställer jag produkter?",
-    answer: "Du kan enkelt beställa genom att välja ett av våra abonnemang och fylla i dina uppgifter. Vi kontaktar dig sedan för att bekräfta din beställning."
-  },
-  {
     question: "Vilka leveransområden har ni?",
-    answer: "Vi levererar till företag och konditorier i hela Sverige. Kontakta oss för mer information om leverans till just ditt område."
+    answer: "Vi levererar till företag och konditorier i Storstockholm."
   },
   {
     question: "Hur ofta sker leveranserna?",
@@ -23,14 +19,6 @@ const faqs = [
   {
     question: "Kan jag ändra mitt abonnemang?",
     answer: "Ja, du kan när som helst ändra eller pausa ditt abonnemang genom att kontakta oss."
-  },
-  {
-    question: "Hur hanterar ni allergener?",
-    answer: "Alla våra produkter är tydligt märkta med innehållsförteckning. Kontakta oss om du har specifika frågor om allergener."
-  },
-  {
-    question: "Vad är er returpolicy?",
-    answer: "Vi strävar efter högsta kvalitet. Om du inte är nöjd med din leverans, kontakta oss inom 24 timmar så löser vi det."
   }
 ];
 
