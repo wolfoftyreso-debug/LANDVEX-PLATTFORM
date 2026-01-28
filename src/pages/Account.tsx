@@ -12,12 +12,14 @@ import { Save, Package } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 
 const profileSchema = z.object({
+  company_name: z.string().trim().max(100, { message: "Företagsnamn får max vara 100 tecken" }).optional(),
   street_address: z.string().trim().max(200, { message: "Gatuadress får max vara 200 tecken" }).optional(),
   postal_code: z.string().trim().max(10, { message: "Postnummer får max vara 10 tecken" }).optional(),
   city: z.string().trim().max(100, { message: "Ort får max vara 100 tecken" }).optional(),
 });
 
 interface ProfileData {
+  company_name: string;
   street_address: string;
   postal_code: string;
   city: string;
@@ -25,11 +27,13 @@ interface ProfileData {
 
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
+    company_name: "",
     street_address: "",
     postal_code: "",
     city: "",
   });
   const [originalProfile, setOriginalProfile] = useState<ProfileData>({
+    company_name: "",
     street_address: "",
     postal_code: "",
     city: "",
@@ -42,6 +46,7 @@ const Account = () => {
   const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
 
   const hasChanges = 
+    profile.company_name !== originalProfile.company_name ||
     profile.street_address !== originalProfile.street_address ||
     profile.postal_code !== originalProfile.postal_code ||
     profile.city !== originalProfile.city;
@@ -61,7 +66,7 @@ const Account = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("street_address, postal_code, city")
+        .select("company_name, street_address, postal_code, city")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -74,6 +79,7 @@ const Account = () => {
         });
       } else if (data) {
         const profileData = {
+          company_name: data.company_name || "",
           street_address: data.street_address || "",
           postal_code: data.postal_code || "",
           city: data.city || "",
@@ -105,6 +111,7 @@ const Account = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
+          company_name: profile.company_name || null,
           street_address: profile.street_address || null,
           postal_code: profile.postal_code || null,
           city: profile.city || null,
@@ -180,6 +187,19 @@ const Account = () => {
                   value={user?.email || ""}
                   disabled
                   className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Företagsnamn</Label>
+                <Input
+                  id="company_name"
+                  type="text"
+                  value={profile.company_name}
+                  onChange={(e) =>
+                    setProfile({ ...profile, company_name: e.target.value })
+                  }
+                  placeholder="Företagsnamn"
                 />
               </div>
 
