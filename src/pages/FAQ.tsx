@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
@@ -27,6 +29,13 @@ const FAQ = () => {
     <div className="bg-background text-foreground min-h-screen">
       <Header />
       <main className="max-w-3xl mx-auto px-6 pt-32 pb-16">
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
+        >
+          <ArrowLeft size={16} />
+          <span>Tillbaka till startsidan</span>
+        </Link>
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-4">
           Vanliga frågor
         </h1>
