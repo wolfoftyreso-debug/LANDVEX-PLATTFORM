@@ -74,7 +74,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Du är en erfaren B2B-säljare för ett bageri i Stockholm som levererar färska kakor till företag.
+            content: `Du är en erfaren B2B-säljare för Lennart Svenssons Konditorivaror, ett bageri i Stockholm som levererar färska kakor till företag sedan 1974.
             
 Din uppgift är att skriva ett personligt och engagerande kall-mejl till potentiella kunder.
 
@@ -85,7 +85,8 @@ Regler:
 - Föreslå ett möte eller provleverans
 - Avsluta med en tydlig call-to-action
 - Skriv på svenska
-- Var professionell men varm i tonen`
+- Var professionell men varm i tonen
+- Signera ALLTID mejlet med "Med vänliga hälsningar,\nLennart Svenssons Konditorivaror" - använd ALDRIG "(ditt namn)" eller liknande platshållare`
           },
           {
             role: "user",
