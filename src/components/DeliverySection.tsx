@@ -24,12 +24,9 @@ const DeliverySection = () => {
             <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
               <Clock className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
+            <h3 className="font-display text-base md:text-lg font-semibold">
               Veckoleverans
             </h3>
-            <p className="text-muted-foreground text-sm">
-              Samma dag varje vecka – ni väljer vilken dag som passar er bäst.
-            </p>
           </div>
 
           {/* Leveranstid */}
@@ -37,12 +34,9 @@ const DeliverySection = () => {
             <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
               <Truck className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
+            <h3 className="font-display text-base md:text-lg font-semibold">
               Dagtid
             </h3>
-            <p className="text-muted-foreground text-sm">
-              Leverans under kontorstid. Meddela oss om ni har särskilda önskemål.
-            </p>
           </div>
         </div>
       </div>
