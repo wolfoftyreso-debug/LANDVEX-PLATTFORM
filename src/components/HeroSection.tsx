@@ -6,8 +6,10 @@ const HeroSection = () => {
       <div className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40" style={{
       backgroundImage: `url(${heroBakeryImage})`
     }} />
-      {/* Fade-out gradient at bottom */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-70% to-background" />
+      {/* Fade-out gradient at bottom - exact background color for seamless blend */}
+      <div className="pointer-events-none absolute inset-0" style={{
+        background: 'linear-gradient(to bottom, transparent 60%, hsl(38 25% 96%) 100%)'
+      }} />
       {/* Keep contrast for text without washing out the image */}
       <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
