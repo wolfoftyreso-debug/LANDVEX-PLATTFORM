@@ -74,7 +74,7 @@ const PlansSection = () => {
     setSelectedPlan(plan.name);
 
     try {
-      // Clear any existing cart items first for a clean checkout
+      // Clear any existing cart items first for a clean order
       clearCart();
 
       await addItem({
@@ -86,18 +86,11 @@ const PlansSection = () => {
         selectedOptions: variant.selectedOptions || [],
       });
 
-      // Small delay to ensure cart is created
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const checkoutUrl = useCartStore.getState().getCheckoutUrl();
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
-        toast.success("Omdirigerar till betalning...");
-      } else {
-        toast.error("Kunde inte skapa checkout");
-      }
+      toast.success(`${plan.name} tillagt i varukorgen`, {
+        description: "Klicka på varukorgen för att gå till betalning",
+      });
     } catch (error) {
-      console.error('Checkout error:', error);
+      console.error('Add to cart error:', error);
       toast.error("Något gick fel");
     } finally {
       setCheckoutLoading(false);
