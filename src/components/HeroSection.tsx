@@ -7,7 +7,7 @@ const HeroSection = () => {
       backgroundImage: `url(${heroBakeryImage})`
     }} />
       {/* Fade-out gradient at bottom */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-70% to-background" />
       {/* Keep contrast for text without washing out the image */}
       <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
