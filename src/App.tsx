@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Account from "./pages/Account";
 import AccountConfirmation from "./pages/AccountConfirmation";
 import Contact from "./pages/Contact";
+import Admin from "./pages/Admin";
 import { useCartSync } from "./hooks/useCartSync";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ function AppContent() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/account" element={<Account />} />
         <Route path="/account/confirmation" element={<AccountConfirmation />} />
+        <Route path="/admin" element={<Admin />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
