@@ -7,7 +7,8 @@ import { AdminStats } from "@/components/admin/AdminStats";
 import { OrdersTable } from "@/components/admin/OrdersTable";
 import { CustomersTable } from "@/components/admin/CustomersTable";
 import { PaymentsTable } from "@/components/admin/PaymentsTable";
-import { Package, Users, CreditCard, LogOut, ArrowLeft } from "lucide-react";
+import { LeadsGenerator } from "@/components/admin/LeadsGenerator";
+import { Package, Users, CreditCard, LogOut, ArrowLeft, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Admin() {
@@ -99,6 +100,10 @@ export default function Admin() {
                 <CreditCard className="h-4 w-4" />
                 Betalningar
               </TabsTrigger>
+              <TabsTrigger value="leads" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Leads
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="orders">
@@ -111,6 +116,10 @@ export default function Admin() {
 
             <TabsContent value="payments">
               <PaymentsTable />
+            </TabsContent>
+
+            <TabsContent value="leads">
+              <LeadsGenerator />
             </TabsContent>
           </Tabs>
         </div>
