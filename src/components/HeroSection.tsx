@@ -1,7 +1,7 @@
 import logoImage from "@/assets/logo.png";
 import heroBakeryImage from "@/assets/hero-bakery-wide.jpg";
 const HeroSection = () => {
-  return <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[70vh] pb-0 mb-0">
+  return <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[85vh] pb-0 mb-0">
       {/* Background image */}
       <div className="pointer-events-none absolute inset-0 bg-cover bg-center" style={{
         backgroundImage: `url(${heroBakeryImage})`,
