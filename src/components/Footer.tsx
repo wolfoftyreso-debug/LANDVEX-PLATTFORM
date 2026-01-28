@@ -25,7 +25,7 @@ const Footer = () => {
           <a href="#gallery" className="hover:text-primary transition-colors">
             Vårt sortiment
           </a>
-          <a href="#" className="hover:text-primary transition-colors">
+          <a href="/contact" className="hover:text-primary transition-colors">
             Kontakta oss
           </a>
         </div>
