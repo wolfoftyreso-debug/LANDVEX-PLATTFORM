@@ -208,15 +208,58 @@ export const useCartStore = create<CartStore>()(
       getCheckoutUrl: () => get().checkoutUrl,
 
       syncCart: async () => {
-        const { cartId, isSyncing, clearCart } = get();
+        const { cartId, isSyncing, clearCart, items } = get();
         if (!cartId || isSyncing) return;
 
         set({ isSyncing: true });
         try {
           const data = await storefrontApiRequest(CART_QUERY, { id: cartId });
-          if (!data) return;
+          if (!data) {
+            set({ isSyncing: false });
+            return;
+          }
+          
           const cart = data?.data?.cart;
-          if (!cart || cart.totalQuantity === 0) clearCart();
+          
+          // Cart doesn't exist or is empty - clear local state
+          if (!cart || cart.totalQuantity === 0) {
+            clearCart();
+            return;
+          }
+
+          // Sync local items with Shopify cart
+          const shopifyLines = cart.lines?.edges || [];
+          
+          // Build a map of Shopify line items by variant ID
+          const shopifyItemsMap = new Map<string, { lineId: string; quantity: number }>();
+          for (const edge of shopifyLines) {
+            const variantId = edge.node.merchandise.id;
+            shopifyItemsMap.set(variantId, {
+              lineId: edge.node.id,
+              quantity: edge.node.quantity
+            });
+          }
+
+          // Update local items to match Shopify state
+          const syncedItems = items
+            .filter(item => shopifyItemsMap.has(item.variantId))
+            .map(item => {
+              const shopifyItem = shopifyItemsMap.get(item.variantId)!;
+              return {
+                ...item,
+                lineId: shopifyItem.lineId,
+                quantity: shopifyItem.quantity
+              };
+            });
+
+          // Update checkout URL if available
+          const checkoutUrl = cart.checkoutUrl ? formatCheckoutUrl(cart.checkoutUrl) : get().checkoutUrl;
+
+          if (syncedItems.length === 0) {
+            clearCart();
+          } else {
+            set({ items: syncedItems, checkoutUrl });
+          }
         } catch (error) {
           console.error('Failed to sync cart with Shopify:', error);
         } finally {

@@ -53,7 +53,7 @@ const PlansSection = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
-  const { addItem, getCheckoutUrl, isLoading: cartLoading } = useCartStore();
+  const { addItem, getCheckoutUrl, clearCart, isLoading: cartLoading } = useCartStore();
 
   const handleSelectPlan = async (plan: typeof planDetails[0]) => {
     // Find the matching Shopify product
@@ -74,6 +74,9 @@ const PlansSection = () => {
     setSelectedPlan(plan.name);
 
     try {
+      // Clear any existing cart items first for a clean checkout
+      clearCart();
+
       await addItem({
         product: shopifyProduct,
         variantId: variant.id,
