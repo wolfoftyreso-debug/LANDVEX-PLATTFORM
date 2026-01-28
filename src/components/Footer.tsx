@@ -16,22 +16,22 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 const Footer = () => {
   return (
-    <footer className="py-16 px-6 bg-card border-t border-border">
+    <footer className="py-8 px-6 bg-card border-t border-border">
       <div className="max-w-5xl mx-auto">
         {/* Main footer content */}
-        <div className="text-center mb-12">
-          <img alt="Lennart Svensson Konditorivaror" className="h-32 md:h-44 w-auto mx-auto" src="/lovable-uploads/4f472058-fa74-4c33-9c68-5e8f75f90b24.png" />
+        <div className="text-center mb-6">
+          <img alt="Lennart Svensson Konditorivaror" className="h-24 md:h-32 w-auto mx-auto" src="/lovable-uploads/4f472058-fa74-4c33-9c68-5e8f75f90b24.png" />
         </div>
 
         {/* Social Media */}
-        <div className="flex justify-center items-center gap-6 mb-12">
+        <div className="flex justify-center items-center gap-6 mb-6">
           <a 
             href="https://instagram.com/konditorivaror" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
           >
-            <Instagram size={20} />
+            <Instagram size={18} />
             <span className="text-sm">@konditorivaror</span>
           </a>
           <a 
@@ -40,13 +40,13 @@ const Footer = () => {
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
           >
-            <TikTokIcon className="w-5 h-5" />
+            <TikTokIcon className="w-[18px] h-[18px]" />
             <span className="text-sm">@konditorivaror</span>
           </a>
         </div>
 
         {/* Links */}
-        <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground mb-12">
+        <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground mb-6">
           <a href="#gallery" className="hover:text-primary transition-colors">
             Vårt sortiment
           </a>
@@ -56,9 +56,9 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="text-center text-muted-foreground text-sm">
+        <div className="text-center text-muted-foreground text-xs">
           <p>© {new Date().getFullYear()} Lennart Svensson Konditorivaror</p>
-          <p className="mt-1 italic">Alla rättigheter förbehållna</p>
+          <p className="mt-0.5 italic">Alla rättigheter förbehållna</p>
         </div>
       </div>
     </footer>
