@@ -12,9 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, ArrowLeft } from "lucide-react";
 
 const contactSchema = z.object({
-  name: z.string().trim().min(1, "Namn krävs").max(100, "Max 100 tecken"),
   email: z.string().trim().email("Ogiltig e-postadress").max(255, "Max 255 tecken"),
-  company: z.string().trim().max(100, "Max 100 tecken").optional(),
+  company: z.string().trim().min(1, "Företag krävs").max(100, "Max 100 tecken"),
   message: z.string().trim().min(1, "Meddelande krävs").max(2000, "Max 2000 tecken"),
 });
 
@@ -23,7 +22,6 @@ type ContactForm = z.infer<typeof contactSchema>;
 const Contact = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<ContactForm>({
-    name: "",
     email: "",
     company: "",
     message: "",
@@ -45,9 +43,8 @@ const Contact = () => {
     try {
       const { error } = await supabase.functions.invoke("send-contact-email", {
         body: {
-          name: form.name,
           email: form.email,
-          company: form.company || "",
+          company: form.company,
           message: form.message,
         },
       });
@@ -110,13 +107,13 @@ const Contact = () => {
           ) : (
             <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-6 md:p-8 space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="name">Namn *</Label>
+                <Label htmlFor="company">Företag *</Label>
                 <Input
-                  id="name"
+                  id="company"
                   type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Namn"
+                  value={form.company}
+                  onChange={(e) => setForm({ ...form, company: e.target.value })}
+                  placeholder="Företagsnamn"
                   required
                 />
               </div>
@@ -130,17 +127,6 @@ const Contact = () => {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="din@epost.se"
                   required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="company">Företag</Label>
-                <Input
-                  id="company"
-                  type="text"
-                  value={form.company}
-                  onChange={(e) => setForm({ ...form, company: e.target.value })}
-                  placeholder="Ditt företag (valfritt)"
                 />
               </div>
 
