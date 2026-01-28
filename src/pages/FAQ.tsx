@@ -18,7 +18,7 @@ const faqs = [
   },
   {
     question: "Kan jag ändra mitt abonnemang?",
-    answer: "Ja, du kan när som helst ändra eller pausa ditt abonnemang genom att kontakta oss."
+    answer: "Ja, du kan när som helst ändra eller pausa ditt abonnemang genom att logga in på Mitt konto."
   }
 ];
 
