@@ -11,20 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 
 const profileSchema = z.object({
-  display_name: z.string().trim().max(100, { message: "Namn får max vara 100 tecken" }).optional(),
   phone: z.string().trim().max(20, { message: "Telefonnummer får max vara 20 tecken" }).optional(),
   address: z.string().trim().max(500, { message: "Adress får max vara 500 tecken" }).optional(),
 });
 
 interface ProfileData {
-  display_name: string;
   phone: string;
   address: string;
 }
 
 const Profile = () => {
   const [profile, setProfile] = useState<ProfileData>({
-    display_name: "",
     phone: "",
     address: "",
   });
@@ -49,7 +46,7 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, phone, address")
+        .select("phone, address")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -62,7 +59,6 @@ const Profile = () => {
         });
       } else if (data) {
         setProfile({
-          display_name: data.display_name || "",
           phone: data.phone || "",
           address: data.address || "",
         });
@@ -91,7 +87,6 @@ const Profile = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          display_name: profile.display_name || null,
           phone: profile.phone || null,
           address: profile.address || null,
         })
@@ -137,19 +132,6 @@ const Profile = () => {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="display_name">Namn</Label>
-                <Input
-                  id="display_name"
-                  type="text"
-                  value={profile.display_name}
-                  onChange={(e) =>
-                    setProfile({ ...profile, display_name: e.target.value })
-                  }
-                  placeholder="Ditt namn"
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefon</Label>
                 <Input

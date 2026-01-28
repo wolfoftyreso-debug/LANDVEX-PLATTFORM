@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
-  kontaktperson: z.string().trim().max(100).optional(),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
   telefon: z.string().trim().max(20).optional(),
   adress: z.string().trim().max(200).optional(),
@@ -24,7 +23,6 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     företag: "",
-    kontaktperson: "",
     epost: "",
     telefon: "",
     adress: "",
@@ -50,14 +48,11 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
         if (data) {
           setFormData((prev) => ({
             ...prev,
-            kontaktperson: data.display_name || prev.kontaktperson,
             telefon: data.phone || prev.telefon,
             epost: user.email || prev.epost,
-            // Parse address if it exists (format: "gatuadress, postnummer ort")
             adress: data.address?.split(",")[0]?.trim() || prev.adress,
           }));
         } else {
-          // At least fill in email
           setFormData((prev) => ({
             ...prev,
             epost: user.email || prev.epost,
@@ -98,7 +93,6 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
         .update({
           address: fullAddress,
           phone: formData.telefon || null,
-          display_name: formData.kontaktperson || null,
         })
         .eq("user_id", user.id);
     }
@@ -174,20 +168,6 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
         {errors.företag && (
           <p className="text-destructive text-sm mt-1">{errors.företag}</p>
         )}
-      </div>
-
-      {/* Kontaktperson */}
-      <div>
-        <label className="block mb-2 font-semibold text-foreground">
-          Kontaktperson
-        </label>
-        <input
-          type="text"
-          name="kontaktperson"
-          value={formData.kontaktperson}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-sm bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
       </div>
 
       {/* E-post & Telefon */}
