@@ -116,7 +116,7 @@ const Contact = () => {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ditt namn"
+                  placeholder="Namn"
                   required
                 />
               </div>
