@@ -178,12 +178,9 @@ const PlansSection = () => {
 
         {/* Satisfaction guarantee */}
         <div className="mt-8 md:mt-12 text-center">
-          <div className="inline-flex items-center gap-2 md:gap-3 bg-card px-4 md:px-6 py-2 md:py-3 rounded-sm border border-border">
-            <Check className="w-4 h-4 md:w-5 md:h-5 text-primary flex-shrink-0" />
-            <span className="text-xs md:text-base text-foreground font-medium">
-              100% Nöjd-garanti
-            </span>
-          </div>
+          <p className="font-display text-sm md:text-xl italic text-muted-foreground">
+            — Alltid med fullständig nöjdhetsgaranti —
+          </p>
         </div>
 
       </div>
