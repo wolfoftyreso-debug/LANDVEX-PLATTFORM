@@ -23,7 +23,7 @@ const HeroSection = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="#plans" className="btn-classic inline-block px-10 py-4 text-lg rounded-sm">
+          <a href="#abonnemang" className="btn-classic inline-block px-10 py-4 text-lg rounded-sm">
             Starta Prenumeration
           </a>
           <a href="#gallery" className="inline-block px-10 py-4 text-lg rounded-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
