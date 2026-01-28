@@ -1,4 +1,5 @@
 import AccountMenu from "./AccountMenu";
+import CartDrawer from "./CartDrawer";
 
 const Header = () => {
   return (
@@ -11,7 +12,10 @@ const Header = () => {
             src="/lovable-uploads/bc36fcd7-0c6f-48d2-9921-4323413739c7.png"
           />
         </a>
-        <AccountMenu />
+        <div className="flex items-center gap-3">
+          <CartDrawer />
+          <AccountMenu />
+        </div>
       </div>
     </header>
   );
