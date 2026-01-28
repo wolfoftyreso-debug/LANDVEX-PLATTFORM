@@ -54,7 +54,7 @@ const AccountMenu = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="bg-background border border-border shadow-lg z-50 min-w-[160px] p-0"
+          className="bg-background border border-border shadow-lg z-50 p-0 w-[var(--radix-dropdown-menu-trigger-width)]"
         >
           <button
             onClick={() => handleOpenAuth("signup")}
