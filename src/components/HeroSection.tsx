@@ -2,11 +2,13 @@ import logoImage from "@/assets/logo.png";
 import heroBakeryImage from "@/assets/hero-bakery-wide.jpg";
 const HeroSection = () => {
   return <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[70vh]">
-      {/* Background image with opacity (doesn't affect content) */}
+      {/* Background image with fade-out gradient at bottom */}
       <div className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40" style={{
       backgroundImage: `url(${heroBakeryImage})`
     }} />
-      {/* Keep contrast for text without washing out the image (can look like "empty" beige sides) */}
+      {/* Fade-out gradient at bottom */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+      {/* Keep contrast for text without washing out the image */}
       <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
