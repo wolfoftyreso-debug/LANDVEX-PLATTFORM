@@ -3,12 +3,28 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
+// Validate Stockholm postal codes (100 00 - 199 99)
+const isStockholmPostalCode = (postalCode: string) => {
+  const cleaned = postalCode.replace(/\s/g, "");
+  if (!/^\d{5}$/.test(cleaned)) return false;
+  const num = parseInt(cleaned, 10);
+  return num >= 10000 && num <= 19999;
+};
+
 const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
   telefon: z.string().trim().max(20).optional(),
   adress: z.string().trim().max(200).optional(),
-  postnummer: z.string().trim().max(10).optional(),
+  postnummer: z
+    .string()
+    .trim()
+    .min(1, "Fyll i postnummer för leverans")
+    .max(10)
+    .refine(
+      (val) => isStockholmPostalCode(val),
+      { message: "Vi levererar endast inom Storstockholm (100 00 – 199 99)" }
+    ),
   stad: z.string().trim().max(100).optional(),
   abonnemang: z.string().min(1, "Välj ett abonnemang"),
   kommentarer: z.string().trim().max(1000).optional(),
@@ -219,15 +235,19 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 font-semibold text-foreground">
-            Postnummer
+            Postnummer <span className="text-primary">*</span>
           </label>
           <input
             type="text"
             name="postnummer"
+            placeholder="t.ex. 114 32"
             value={formData.postnummer}
             onChange={handleChange}
             className="w-full px-4 py-3 rounded-sm bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
+          {errors.postnummer && (
+            <p className="text-destructive text-sm mt-1">{errors.postnummer}</p>
+          )}
         </div>
         <div>
           <label className="block mb-2 font-semibold text-foreground">
