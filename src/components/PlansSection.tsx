@@ -176,12 +176,6 @@ const PlansSection = () => {
           ))}
         </div>
 
-        {/* Satisfaction guarantee */}
-        <div className="mt-8 md:mt-12 text-center">
-          <p className="font-display text-sm md:text-xl italic text-muted-foreground">
-            Alltid med fullständig nöjdhetsgaranti
-          </p>
-        </div>
 
       </div>
     </section>
