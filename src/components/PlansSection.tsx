@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Loader2, Crown } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
@@ -123,16 +123,6 @@ const PlansSection = () => {
                   : ''
               }`}
             >
-              {/* Premium badge */}
-              {plan.isPremium && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                  <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-950 px-2 md:px-4 py-0.5 md:py-1 rounded-full text-[8px] md:text-xs font-bold flex items-center gap-1 shadow-lg">
-                    <Crown className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
-                    <span className="hidden md:inline">Mest populär</span>
-                    <span className="md:hidden">Populär</span>
-                  </div>
-                </div>
-              )}
 
               {/* Plan header */}
               <div className={`text-center mb-3 md:mb-6 pb-3 md:pb-6 border-b ${plan.isPremium ? 'border-amber-400/50' : 'border-border'}`}>
