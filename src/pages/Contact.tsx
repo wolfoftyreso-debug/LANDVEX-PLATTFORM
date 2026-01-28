@@ -69,16 +69,17 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 pt-24 pb-16 px-4">
+      <div className="px-6 pt-32">
+        <button
+          onClick={() => navigate("/")}
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ArrowLeft size={16} />
+          <span>Tillbaka till startsidan</span>
+        </button>
+      </div>
+      <main className="flex-1 pt-8 pb-16 px-4">
         <div className="max-w-xl mx-auto">
-          {/* Back link */}
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Tillbaka till startsidan
-          </button>
 
           {/* Header */}
           <div className="text-center mb-10">
