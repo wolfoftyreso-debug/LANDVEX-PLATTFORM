@@ -2,27 +2,16 @@ import { Truck, Clock, MapPin } from "lucide-react";
 
 const DeliverySection = () => {
   return (
-    <section className="py-12 md:py-20 px-4 md:px-6 bg-card">
+    <section className="py-8 md:py-12 px-4 md:px-6 bg-card">
       <div className="max-w-4xl mx-auto">
-        {/* Section header */}
-        <div className="text-center mb-10 md:mb-14">
-          <div className="w-16 md:w-24 h-px bg-primary/40 mx-auto mb-4 md:mb-6"></div>
-          <h2 className="font-display text-2xl md:text-4xl font-semibold mb-3">
-            Leverans
-          </h2>
-          <p className="text-muted-foreground text-sm md:text-lg">
-            Färska kakor direkt till ert kontor – varje vecka
-          </p>
-        </div>
-
         {/* Info cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Leveransområde */}
-          <div className="text-center p-6">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-primary" />
+          <div className="text-center p-4">
+            <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-lg md:text-xl font-semibold mb-2">
+            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
               Storstockholm
             </h3>
             <p className="text-muted-foreground text-sm">
@@ -31,11 +20,11 @@ const DeliverySection = () => {
           </div>
 
           {/* Leveransdag */}
-          <div className="text-center p-6">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-primary" />
+          <div className="text-center p-4">
+            <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-lg md:text-xl font-semibold mb-2">
+            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
               Veckoleverans
             </h3>
             <p className="text-muted-foreground text-sm">
@@ -44,11 +33,11 @@ const DeliverySection = () => {
           </div>
 
           {/* Leveranstid */}
-          <div className="text-center p-6">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <Truck className="w-6 h-6 text-primary" />
+          <div className="text-center p-4">
+            <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+              <Truck className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-lg md:text-xl font-semibold mb-2">
+            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
               Dagtid
             </h3>
             <p className="text-muted-foreground text-sm">
