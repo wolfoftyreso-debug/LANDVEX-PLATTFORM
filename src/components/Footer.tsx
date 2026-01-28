@@ -1,16 +1,10 @@
 import logoImage from "@/assets/logo.png";
-
 const Footer = () => {
-  return (
-    <footer className="py-16 px-6 bg-card border-t border-border">
+  return <footer className="py-16 px-6 bg-card border-t border-border">
       <div className="max-w-5xl mx-auto">
         {/* Main footer content */}
         <div className="text-center mb-12">
-          <img 
-            src={logoImage} 
-            alt="Lennart Svensson Konditorivaror" 
-            className="h-24 md:h-32 w-auto mx-auto"
-          />
+          <img alt="Lennart Svensson Konditorivaror" className="h-24 md:h-32 w-auto mx-auto" src="/lovable-uploads/4f472058-fa74-4c33-9c68-5e8f75f90b24.png" />
         </div>
 
 
@@ -30,8 +24,6 @@ const Footer = () => {
           <p className="mt-1 italic">Alla rättigheter förbehållna</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
