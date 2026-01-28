@@ -8,7 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import { Save } from "lucide-react";
+import { Save, Package } from "lucide-react";
+import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 
 const profileSchema = z.object({
   street_address: z.string().trim().max(200, { message: "Gatuadress får max vara 200 tecken" }).optional(),
@@ -38,6 +39,7 @@ const Account = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
 
   const hasChanges = 
     profile.street_address !== originalProfile.street_address ||
@@ -239,7 +241,38 @@ const Account = () => {
             </form>
           </div>
 
-          {/* Sign out link */}
+          {/* Subscription Section */}
+          <div className="bg-card border border-border rounded-lg p-6 md:p-8 shadow-sm mb-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Package className="h-5 w-5 text-primary" />
+              <h2 className="font-serif text-xl">Mitt abonnemang</h2>
+            </div>
+
+            {productsLoading ? (
+              <p className="text-muted-foreground text-sm">Laddar abonnemang...</p>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm">
+                  Du har för närvarande inget aktivt abonnemang.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/");
+                    setTimeout(() => {
+                      const element = document.getElementById("abonnemang");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }, 100);
+                  }}
+                  className="w-full"
+                >
+                  Beställ abonnemang
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="text-center mt-6">
             <button
               type="button"
