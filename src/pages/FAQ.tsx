@@ -19,6 +19,10 @@ const faqs = [
     answer: "Vi levererar en gång i veckan, samma dag varje vecka, så du alltid har färska bakverk till dina gäster och anställda."
   },
   {
+    question: "Vilken tid levererar ni?",
+    answer: "Vi levererar under dagtid. Har du särskilda önskemål om tid eller annat kan du ange det i din beställning eller kontakta oss via mejl."
+  },
+  {
     question: "Kan jag ändra mitt abonnemang?",
     answer: "Ja, du kan när som helst ändra eller pausa ditt abonnemang genom att logga in på Mitt konto."
   }
