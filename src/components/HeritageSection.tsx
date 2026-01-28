@@ -56,7 +56,7 @@ const HeritageSection = () => {
   }, []);
 
   return (
-    <section className="bg-secondary/30 py-24 px-6">
+    <section className="bg-background py-24 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Heritage Hero */}
         <div
