@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Loader2, Crown, Gift } from "lucide-react";
+import { Check, Loader2, Crown } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
@@ -44,7 +44,6 @@ const planDetails = [
     ],
     shopifyHandle: "stor-kakabonnemang-10-kg-vecka",
     isPremium: true,
-    exclusiveOffer: "Första månaden -20%",
   },
 ];
 
@@ -143,14 +142,6 @@ const PlansSection = () => {
                 <p className="text-muted-foreground text-[10px] md:text-sm mt-1 md:mt-2 leading-tight">
                   {plan.employeeRecommendation}
                 </p>
-                
-                {/* Exclusive offer badge */}
-                {plan.isPremium && plan.exclusiveOffer && (
-                  <div className="mt-2 md:mt-3 inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[8px] md:text-xs font-semibold">
-                    <Gift className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                    {plan.exclusiveOffer}
-                  </div>
-                )}
               </div>
 
               {/* Price info */}
