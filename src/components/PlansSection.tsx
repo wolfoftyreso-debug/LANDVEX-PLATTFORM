@@ -117,7 +117,7 @@ const PlansSection = () => {
           {planDetails.map((plan, index) => (
             <div
               key={index}
-              className={`relative bg-card p-3 md:p-8 card-classic rounded-sm ${
+              className={`relative bg-card p-3 md:p-8 card-classic rounded-sm flex flex-col ${
                 plan.isPremium 
                   ? 'ring-2 ring-amber-500 shadow-[0_0_20px_rgba(217,164,32,0.3)]' 
                   : ''
@@ -148,7 +148,7 @@ const PlansSection = () => {
               </div>
 
               {/* Features - hidden on mobile */}
-              <ul className="hidden md:block space-y-3 mb-8">
+              <ul className="hidden md:block space-y-3 mb-8 flex-grow">
                 {plan.features.map((feature, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
@@ -157,7 +157,7 @@ const PlansSection = () => {
                 ))}
               </ul>
 
-              {/* CTA Button */}
+              {/* CTA Button - always at bottom */}
               <button
                 onClick={() => handleSelectPlan(plan)}
                 disabled={isLoading}
