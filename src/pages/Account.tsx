@@ -11,10 +11,26 @@ import Header from "@/components/Header";
 import { Save, Package } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 
+// Validate Stockholm postal codes (100 00 - 199 99)
+const isStockholmPostalCode = (postalCode: string) => {
+  if (!postalCode || postalCode.trim() === "") return true; // Allow empty
+  const cleaned = postalCode.replace(/\s/g, "");
+  if (!/^\d{5}$/.test(cleaned)) return false;
+  const num = parseInt(cleaned, 10);
+  return num >= 10000 && num <= 19999;
+};
+
 const profileSchema = z.object({
   company_name: z.string().trim().max(100, { message: "Företagsnamn får max vara 100 tecken" }).optional(),
   street_address: z.string().trim().max(200, { message: "Gatuadress får max vara 200 tecken" }).optional(),
-  postal_code: z.string().trim().max(10, { message: "Postnummer får max vara 10 tecken" }).optional(),
+  postal_code: z
+    .string()
+    .trim()
+    .max(10, { message: "Postnummer får max vara 10 tecken" })
+    .refine((val) => isStockholmPostalCode(val), {
+      message: "Vi levererar endast inom Storstockholm (100 00 – 199 99)",
+    })
+    .optional(),
   city: z.string().trim().max(100, { message: "Ort får max vara 100 tecken" }).optional(),
 });
 
@@ -24,6 +40,18 @@ interface ProfileData {
   postal_code: string;
   city: string;
 }
+
+const getPostalCodeError = (postalCode: string) => {
+  if (!postalCode || postalCode.trim() === "") return null;
+  const cleaned = postalCode.replace(/\s/g, "");
+  if (cleaned.length < 5) return null; // Don't show error while typing
+  if (!/^\d{5}$/.test(cleaned)) return "Ange ett giltigt postnummer (5 siffror)";
+  const num = parseInt(cleaned, 10);
+  if (num < 10000 || num > 19999) {
+    return "Vi levererar endast inom Storstockholm (100 00 – 199 99)";
+  }
+  return null;
+};
 
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
@@ -219,7 +247,7 @@ const Account = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Input
                       id="postal_code"
                       type="text"
@@ -228,7 +256,13 @@ const Account = () => {
                         setProfile({ ...profile, postal_code: e.target.value })
                       }
                       placeholder="Postnummer"
+                      className={getPostalCodeError(profile.postal_code) ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {getPostalCodeError(profile.postal_code) && (
+                      <p className="text-destructive text-xs">
+                        {getPostalCodeError(profile.postal_code)}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Input

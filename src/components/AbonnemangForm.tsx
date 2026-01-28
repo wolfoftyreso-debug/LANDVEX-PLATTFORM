@@ -11,6 +11,19 @@ const isStockholmPostalCode = (postalCode: string) => {
   return num >= 10000 && num <= 19999;
 };
 
+// Get error message for postal code (for real-time validation display)
+const getPostalCodeError = (postalCode: string) => {
+  if (!postalCode || postalCode.trim() === "") return null;
+  const cleaned = postalCode.replace(/\s/g, "");
+  if (cleaned.length < 5) return null; // Don't show error while typing
+  if (!/^\d{5}$/.test(cleaned)) return "Ange ett giltigt postnummer (5 siffror)";
+  const num = parseInt(cleaned, 10);
+  if (num < 10000 || num > 19999) {
+    return "Vi levererar endast inom Storstockholm (100 00 – 199 99)";
+  }
+  return null;
+};
+
 const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
@@ -243,10 +256,16 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
             placeholder="t.ex. 114 32"
             value={formData.postnummer}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-sm bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className={`w-full px-4 py-3 rounded-sm bg-background border text-foreground focus:outline-none focus:ring-2 ${
+              getPostalCodeError(formData.postnummer) 
+                ? "border-destructive focus:ring-destructive/30" 
+                : "border-border focus:ring-primary/30"
+            }`}
           />
-          {errors.postnummer && (
-            <p className="text-destructive text-sm mt-1">{errors.postnummer}</p>
+          {(errors.postnummer || getPostalCodeError(formData.postnummer)) && (
+            <p className="text-destructive text-sm mt-1">
+              {errors.postnummer || getPostalCodeError(formData.postnummer)}
+            </p>
           )}
         </div>
         <div>
