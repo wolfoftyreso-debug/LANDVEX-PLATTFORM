@@ -18,11 +18,6 @@ const Footer = () => {
   return (
     <footer className="py-8 px-6 bg-card border-t border-border">
       <div className="max-w-5xl mx-auto">
-        {/* Main footer content */}
-        <div className="text-center mb-6">
-          <img alt="Lennart Svensson Konditorivaror" className="h-24 md:h-32 w-auto mx-auto" src="/lovable-uploads/4f472058-fa74-4c33-9c68-5e8f75f90b24.png" />
-        </div>
-
         {/* Social Media */}
         <div className="flex justify-center items-center gap-6 mb-6">
           <a 
