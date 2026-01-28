@@ -28,7 +28,7 @@ const DeliverySection = () => {
               Veckoleverans
             </h3>
             <p className="text-muted-foreground text-sm">
-              Samma dag varje vecka
+              Kakorna levereras samma dag varje vecka
             </p>
           </div>
 
@@ -41,7 +41,7 @@ const DeliverySection = () => {
               Dagtid
             </h3>
             <p className="text-muted-foreground text-sm">
-              Levereras under dagtid
+              Kakorna levereras alltid under dagtid
             </p>
           </div>
         </div>
