@@ -9,6 +9,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Account from "./pages/Account";
 import AccountConfirmation from "./pages/AccountConfirmation";
+import Contact from "./pages/Contact";
 import { useCartSync } from "./hooks/useCartSync";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ function AppContent() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/account" element={<Account />} />
