@@ -1,17 +1,14 @@
 import logoImage from "@/assets/logo.png";
 import heroBakeryImage from "@/assets/hero-bakery-wide.jpg";
 const HeroSection = () => {
-  return <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[70vh]">
-      {/* Background image with fade-out gradient at bottom */}
-      <div className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40" style={{
-      backgroundImage: `url(${heroBakeryImage})`
-    }} />
-      {/* Fade-out gradient at bottom - exact background color for seamless blend */}
-      <div className="pointer-events-none absolute inset-0" style={{
-        background: 'linear-gradient(to bottom, transparent 60%, hsl(38 25% 96%) 100%)'
+  return <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip flex flex-col justify-center items-center text-center min-h-[70vh] pb-0 mb-0">
+      {/* Background image */}
+      <div className="pointer-events-none absolute inset-0 bg-cover bg-center" style={{
+        backgroundImage: `url(${heroBakeryImage})`,
+        opacity: 0.4,
+        maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)'
       }} />
-      {/* Keep contrast for text without washing out the image */}
-      <div className="pointer-events-none absolute inset-0 bg-background/25" />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
         <img alt="Lennart Svensson Konditorivaror" className="h-56 md:h-72 lg:h-80 w-auto mx-auto mb-1 mt-8" src="/lovable-uploads/8658a13b-f1d4-45db-b92b-3e22abb6ee1b.png" />
