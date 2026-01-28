@@ -6,8 +6,8 @@ const HeroSection = () => {
       <div className="pointer-events-none absolute inset-0 bg-cover bg-center" style={{
         backgroundImage: `url(${heroBakeryImage})`,
         opacity: 0.4,
-        maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)'
+        maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)'
       }} />
       
       <div className="animate-fade-up max-w-4xl relative z-10 px-6 py-16">
