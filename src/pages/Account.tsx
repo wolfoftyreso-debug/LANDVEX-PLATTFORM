@@ -28,11 +28,21 @@ const Account = () => {
     postal_code: "",
     city: "",
   });
+  const [originalProfile, setOriginalProfile] = useState<ProfileData>({
+    street_address: "",
+    postal_code: "",
+    city: "",
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const hasChanges = 
+    profile.street_address !== originalProfile.street_address ||
+    profile.postal_code !== originalProfile.postal_code ||
+    profile.city !== originalProfile.city;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -61,11 +71,13 @@ const Account = () => {
           variant: "destructive",
         });
       } else if (data) {
-        setProfile({
+        const profileData = {
           street_address: data.street_address || "",
           postal_code: data.postal_code || "",
           city: data.city || "",
-        });
+        };
+        setProfile(profileData);
+        setOriginalProfile(profileData);
       }
     } finally {
       setIsLoading(false);
@@ -214,14 +226,16 @@ const Account = () => {
                 </p>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                disabled={isSaving}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Sparar..." : "Spara ändringar"}
-              </Button>
+              {hasChanges && (
+                <Button
+                  type="submit"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isSaving}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving ? "Sparar..." : "Spara ändringar"}
+                </Button>
+              )}
             </form>
           </div>
 
