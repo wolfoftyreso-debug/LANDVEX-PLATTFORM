@@ -14,11 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          total_orders: number | null
+          total_spent: number | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
           currency: string
           customer_email: string
+          customer_id: string | null
           customer_name: string | null
           id: string
           items: Json
@@ -32,6 +69,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email: string
+          customer_id?: string | null
           customer_name?: string | null
           id?: string
           items?: Json
@@ -45,6 +83,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string
+          customer_id?: string | null
           customer_name?: string | null
           id?: string
           items?: Json
@@ -54,7 +93,56 @@ export type Database = {
           total_amount?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          order_id: string | null
+          payment_method: string | null
+          shopify_payment_id: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          shopify_payment_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          shopify_payment_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
