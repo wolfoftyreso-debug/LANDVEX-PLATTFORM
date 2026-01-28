@@ -119,7 +119,7 @@ const PlansSection = () => {
               key={index}
               className={`relative bg-card p-3 md:p-8 card-classic rounded-sm flex flex-col ${
                 plan.isPremium 
-                  ? 'ring-2 ring-amber-500 shadow-[0_0_20px_rgba(217,164,32,0.3)]' 
+                  ? 'ring-2 ring-amber-500 hover:ring-2 hover:ring-amber-500 shadow-[0_0_20px_rgba(217,164,32,0.3)] hover:shadow-[0_0_30px_rgba(217,164,32,0.4)]' 
                   : ''
               }`}
             >
