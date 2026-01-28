@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: "Hur ofta sker leveranserna?",
-    answer: "Leveransfrekvensen beror på vilket abonnemang du väljer. Vi erbjuder vecko-, varannan vecka- och månadsleveranser."
+    answer: "Vi levererar en gång i veckan, samma dag varje vecka, så du alltid har färska bakverk till dina gäster och anställda."
   },
   {
     question: "Kan jag ändra mitt abonnemang?",
