@@ -53,6 +53,9 @@ const Footer = () => {
           <a href="/contact" className="hover:text-primary transition-colors">
             Kontakta oss
           </a>
+          <a href="/faq" className="hover:text-primary transition-colors">
+            FAQ
+          </a>
         </div>
 
         {/* Copyright */}
