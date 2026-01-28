@@ -10,7 +10,7 @@ import {
 const faqs = [
   {
     question: "Vilka leveransområden har ni?",
-    answer: "Vi levererar till företag och konditorier i Storstockholm."
+    answer: "Vi levererar till alla typer av företag i Storstockholm – restauranger, caféer, konditorier, hotell, kontor och andra verksamheter som vill bjuda sina gäster och anställda på kvalitetsfika."
   },
   {
     question: "Hur ofta sker leveranserna?",
