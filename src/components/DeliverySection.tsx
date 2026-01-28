@@ -24,9 +24,12 @@ const DeliverySection = () => {
             <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
               <Clock className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-base md:text-lg font-semibold">
-              Samma dag varje vecka
+            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
+              Veckoleverans
             </h3>
+            <p className="text-muted-foreground text-sm">
+              Samma dag varje vecka
+            </p>
           </div>
 
           {/* Leveranstid */}
@@ -34,9 +37,12 @@ const DeliverySection = () => {
             <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
               <Truck className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="font-display text-base md:text-lg font-semibold">
-              Levereras under dagtid
+            <h3 className="font-display text-base md:text-lg font-semibold mb-1">
+              Dagtid
             </h3>
+            <p className="text-muted-foreground text-sm">
+              Levereras under dagtid
+            </p>
           </div>
         </div>
       </div>
