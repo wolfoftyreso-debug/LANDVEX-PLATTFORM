@@ -19,9 +19,6 @@ const Footer = () => {
 
         {/* Links */}
         <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground mb-12">
-          <a href="#" className="hover:text-primary transition-colors">
-            Om konditoriet
-          </a>
           <a href="#gallery" className="hover:text-primary transition-colors">
             Vårt sortiment
           </a>
