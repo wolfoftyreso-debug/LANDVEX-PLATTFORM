@@ -25,7 +25,7 @@ const DeliverySection = () => {
               <Clock className="w-5 h-5 text-primary" />
             </div>
             <h3 className="font-display text-base md:text-lg font-semibold">
-              Veckoleverans
+              Samma dag varje vecka
             </h3>
           </div>
 
@@ -35,7 +35,7 @@ const DeliverySection = () => {
               <Truck className="w-5 h-5 text-primary" />
             </div>
             <h3 className="font-display text-base md:text-lg font-semibold">
-              Dagtid
+              Levereras under dagtid
             </h3>
           </div>
         </div>
