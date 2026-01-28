@@ -1,9 +1,5 @@
-import { useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { useState } from "react";
+import { Check, Loader2, Crown, Gift } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
@@ -20,6 +16,7 @@ const planDetails = [
       "Betala direkt eller med Klarna",
     ],
     shopifyHandle: "liten-kakabonnemang-3-kg-vecka",
+    isPremium: false,
   },
   {
     name: "Mellan",
@@ -32,6 +29,7 @@ const planDetails = [
       "Betala direkt eller med Klarna",
     ],
     shopifyHandle: "mellan-kakabonnemang-5-kg-vecka",
+    isPremium: false,
   },
   {
     name: "Stor",
@@ -42,18 +40,21 @@ const planDetails = [
       "10 kg kakor per vecka",
       "Veckoleverans",
       "Betala direkt eller med Klarna",
+      "Gratis provlåda vid start",
+      "Prioriterad kundtjänst",
     ],
     shopifyHandle: "stor-kakabonnemang-10-kg-vecka",
+    isPremium: true,
+    exclusiveOffer: "Första månaden -20%",
   },
 ];
 
 const PlansSection = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>("");
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
-  const { addItem, getCheckoutUrl, clearCart, isLoading: cartLoading } = useCartStore();
+  const { addItem, clearCart, isLoading: cartLoading } = useCartStore();
 
   const handleSelectPlan = async (plan: typeof planDetails[0]) => {
     // Find the matching Shopify product
@@ -118,16 +119,39 @@ const PlansSection = () => {
           {planDetails.map((plan, index) => (
             <div
               key={index}
-              className="relative bg-card p-3 md:p-8 card-classic rounded-sm"
+              className={`relative bg-card p-3 md:p-8 card-classic rounded-sm ${
+                plan.isPremium 
+                  ? 'ring-2 ring-amber-500 shadow-[0_0_20px_rgba(217,164,32,0.3)]' 
+                  : ''
+              }`}
             >
+              {/* Premium badge */}
+              {plan.isPremium && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-950 px-2 md:px-4 py-0.5 md:py-1 rounded-full text-[8px] md:text-xs font-bold flex items-center gap-1 shadow-lg">
+                    <Crown className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
+                    <span className="hidden md:inline">Mest populär</span>
+                    <span className="md:hidden">Populär</span>
+                  </div>
+                </div>
+              )}
+
               {/* Plan header */}
-              <div className="text-center mb-3 md:mb-6 pb-3 md:pb-6 border-b border-border">
-                <h3 className="font-display text-base md:text-3xl font-semibold text-foreground">
+              <div className={`text-center mb-3 md:mb-6 pb-3 md:pb-6 border-b ${plan.isPremium ? 'border-amber-400/50' : 'border-border'}`}>
+                <h3 className={`font-display text-base md:text-3xl font-semibold ${plan.isPremium ? 'text-amber-700' : 'text-foreground'}`}>
                   {plan.name}
                 </h3>
                 <p className="text-muted-foreground text-[10px] md:text-sm mt-1 md:mt-2 leading-tight">
                   {plan.employeeRecommendation}
                 </p>
+                
+                {/* Exclusive offer badge */}
+                {plan.isPremium && plan.exclusiveOffer && (
+                  <div className="mt-2 md:mt-3 inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[8px] md:text-xs font-semibold">
+                    <Gift className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                    {plan.exclusiveOffer}
+                  </div>
+                )}
               </div>
 
               {/* Price info */}
