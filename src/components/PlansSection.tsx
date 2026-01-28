@@ -104,15 +104,15 @@ const PlansSection = () => {
   const isLoading = productsLoading || cartLoading || checkoutLoading;
 
   return (
-    <section id="abonnemang" className="py-24 px-6 bg-background">
+    <section id="abonnemang" className="py-12 md:py-24 px-2 md:px-6 bg-background">
       <div className="max-w-5xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-16">
-          <div className="w-24 h-px bg-primary/40 mx-auto mb-6"></div>
-          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-4">
+        <div className="text-center mb-8 md:mb-16">
+          <div className="w-16 md:w-24 h-px bg-primary/40 mx-auto mb-4 md:mb-6"></div>
+          <h2 className="font-display text-2xl md:text-5xl font-semibold mb-2 md:mb-4">
             Våra Abonnemang
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
             Välj det abonnemang som passar ert företag bäst
           </p>
         </div>
@@ -122,33 +122,33 @@ const PlansSection = () => {
           {planDetails.map((plan, index) => (
             <div
               key={index}
-              className="relative bg-card p-8 card-classic rounded-sm"
+              className="relative bg-card p-3 md:p-8 card-classic rounded-sm"
             >
               {/* Plan header */}
-              <div className="text-center mb-6 pb-6 border-b border-border">
-                <h3 className="font-display text-3xl font-semibold text-foreground">
+              <div className="text-center mb-3 md:mb-6 pb-3 md:pb-6 border-b border-border">
+                <h3 className="font-display text-base md:text-3xl font-semibold text-foreground">
                   {plan.name}
                 </h3>
-                <p className="text-muted-foreground text-sm mt-2">
-                  Rekommenderas för {plan.employeeRecommendation}
+                <p className="text-muted-foreground text-[10px] md:text-sm mt-1 md:mt-2 leading-tight">
+                  {plan.employeeRecommendation}
                 </p>
               </div>
 
               {/* Price info */}
-              <div className="text-center mb-6 space-y-2">
-                <div className="text-muted-foreground text-sm">
+              <div className="text-center mb-3 md:mb-6 space-y-1 md:space-y-2">
+                <div className="text-muted-foreground text-[10px] md:text-sm">
                   {plan.kgPerWeek}/vecka
                 </div>
                 <div>
-                  <span className="font-display text-3xl font-bold text-primary">
+                  <span className="font-display text-sm md:text-3xl font-bold text-primary">
                     {plan.priceWeekExclVat}
                   </span>
-                  <span className="text-muted-foreground ml-1">kr/vecka exkl. moms</span>
+                  <span className="text-muted-foreground text-[8px] md:text-base ml-0.5 md:ml-1">kr/v</span>
                 </div>
               </div>
 
-              {/* Features */}
-              <ul className="space-y-3 mb-8">
+              {/* Features - hidden on mobile */}
+              <ul className="hidden md:block space-y-3 mb-8">
                 {plan.features.map((feature, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
@@ -161,15 +161,15 @@ const PlansSection = () => {
               <button
                 onClick={() => handleSelectPlan(plan)}
                 disabled={isLoading}
-                className="block w-full text-center py-3 px-6 rounded-sm font-semibold transition-all duration-300 btn-classic disabled:opacity-50"
+                className="block w-full text-center py-1.5 md:py-3 px-2 md:px-6 rounded-sm text-[10px] md:text-base font-semibold transition-all duration-300 btn-classic disabled:opacity-50"
               >
                 {isLoading && selectedPlan === plan.name ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Laddar...
+                  <span className="flex items-center justify-center gap-1 md:gap-2">
+                    <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" />
+                    <span className="hidden md:inline">Laddar...</span>
                   </span>
                 ) : (
-                  "Beställ nu"
+                  "Beställ"
                 )}
               </button>
             </div>
