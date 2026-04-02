@@ -34,7 +34,7 @@ const planDetails = [
   {
     name: "Stor",
     kgPerWeek: "10 kg",
-    priceWeekExclVat: "4 500",
+    priceWeekExclVat: "4 000",
     employeeRecommendation: "25+ anställda",
     features: [
       "10 kg kakor per vecka",
