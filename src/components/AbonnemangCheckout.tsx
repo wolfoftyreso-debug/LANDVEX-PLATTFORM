@@ -22,7 +22,7 @@ const plans: Record<string, Plan> = {
   },
   "Stor": { 
     kg: 10, 
-    pricePerKg: 450, 
+    pricePerKg: 400, 
     shopifyLink: "#" 
   },
 };
