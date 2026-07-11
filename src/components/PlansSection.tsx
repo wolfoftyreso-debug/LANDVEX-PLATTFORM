@@ -67,7 +67,7 @@ const PlansSection = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("company_name, phone, street_address, postal_code")
+        .select("company_name, phone, street_address, postal_code, city")
         .eq("user_id", user.id)
         .maybeSingle();
       setForm((prev) => ({
@@ -77,6 +77,7 @@ const PlansSection = () => {
         telefon: prev.telefon || data?.phone || "",
         adress: prev.adress || data?.street_address || "",
         postnummer: prev.postnummer || data?.postal_code || "",
+        stad: prev.stad || data?.city || "",
       }));
     })();
   }, [user, showForm]);
