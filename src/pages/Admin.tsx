@@ -18,6 +18,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const [state, setState] = useState<AuthState>("loading");
   const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     const check = async (session: any) => {
