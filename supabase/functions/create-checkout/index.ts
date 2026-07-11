@@ -181,6 +181,16 @@ Deno.serve(async (req) => {
         },
       } as any);
 
+      await insertOrder({
+        method: "card",
+        b,
+        cleaned,
+        monthlyAmountOre,
+        stripeSessionId: session.id,
+        stripeSubscriptionId: null,
+        stripeCustomerId: customer.id,
+      });
+
       return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
