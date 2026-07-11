@@ -100,8 +100,56 @@ const Account = () => {
 
     if (user) {
       fetchProfile();
+      fetchSubscription();
     }
   }, [user, authLoading, navigate]);
+
+  const fetchSubscription = async () => {
+    if (!user) return;
+    try {
+      const env = hasPaymentsConfigured() ? getStripeEnvironment() : "sandbox";
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("id, status, kg_per_week, monthly_amount, current_period_end, cancel_at_period_end, collection_method")
+        .eq("user_id", user.id)
+        .eq("environment", env)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setSubscription((data as SubscriptionRow | null) ?? null);
+    } catch (e) {
+      console.error("fetchSubscription error:", e);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!hasPaymentsConfigured()) {
+      toast({ title: "Betalningar inte konfigurerade", variant: "destructive" });
+      return;
+    }
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-portal-session", {
+        body: {
+          return_url: `${window.location.origin}/account`,
+          environment: getStripeEnvironment(),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const url = (data as any)?.url;
+      if (!url) throw new Error("Ingen portal-URL mottagen");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({
+        title: "Kunde inte öppna kundportalen",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
