@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Loader2, CreditCard, FileText } from "lucide-react";
-import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import {
   storefrontApiRequest,
   CART_CREATE_MUTATION,
@@ -11,7 +10,6 @@ import { toast } from "sonner";
 const PRICE_PER_KG = 325;
 const KG_PER_EMPLOYEE = 0.3;
 
-// Map recommended kg to the closest available Shopify subscription plan
 const availablePlans = [
   { kg: 3, handle: "liten-kakabonnemang-3-kg-vecka", name: "Liten" },
   { kg: 5, handle: "mellan-kakabonnemang-5-kg-vecka", name: "Mellan" },
@@ -23,16 +21,45 @@ const pickPlan = (kg: number) => {
   return match || availablePlans[availablePlans.length - 1];
 };
 
+const PRODUCT_BY_HANDLE_QUERY = `
+  query ProductByHandle($handle: String!) {
+    productByHandle(handle: $handle) {
+      id
+      title
+      handle
+      variants(first: 1) {
+        edges {
+          node {
+            id
+            availableForSale
+          }
+        }
+      }
+      sellingPlanGroups(first: 5) {
+        edges {
+          node {
+            name
+            sellingPlans(first: 10) {
+              edges {
+                node {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 type PaymentMethod = "card" | "invoice";
 
 const PlansSection = () => {
   const [employees, setEmployees] = useState(10);
   const [loadingMethod, setLoadingMethod] = useState<PaymentMethod | null>(null);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-
-  const { products, isLoading: productsLoading } = useShopifyProducts(
-    "product_type:Abonnemang"
-  );
 
   const recommendedKg = useMemo(
     () => Math.max(1, Math.round(employees * KG_PER_EMPLOYEE)),
@@ -42,30 +69,36 @@ const PlansSection = () => {
 
   const handleStart = async (method: PaymentMethod) => {
     const plan = pickPlan(recommendedKg);
-    const shopifyProduct = products.find((p) => p.node.handle === plan.handle);
-
-    if (!shopifyProduct) {
-      toast.error("Kunde inte hitta produkten");
-      return;
-    }
-    const variant = shopifyProduct.node.variants.edges[0]?.node;
-    if (!variant) {
-      toast.error("Ingen variant tillgänglig");
-      return;
-    }
-
-    const sellingPlanId =
-      shopifyProduct.node.sellingPlanGroups?.edges?.[0]?.node?.sellingPlans?.edges?.[0]?.node?.id;
-
-    if (!sellingPlanId) {
-      toast.error(
-        "Ingen abonnemangsplan hittades i Shopify. Kontrollera att Appstle-planen är kopplad till produkten."
-      );
-      return;
-    }
-
     setLoadingMethod(method);
+
     try {
+      const productData = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, {
+        handle: plan.handle,
+      });
+
+      const product = productData?.data?.productByHandle;
+      if (!product) {
+        toast.error(`Kunde inte hitta produkten "${plan.handle}" i Shopify.`);
+        return;
+      }
+
+      const variant = product.variants?.edges?.[0]?.node;
+      if (!variant?.id) {
+        toast.error("Ingen variant tillgänglig på produkten.");
+        return;
+      }
+
+      const sellingPlanId =
+        product.sellingPlanGroups?.edges?.[0]?.node?.sellingPlans?.edges?.[0]?.node?.id;
+
+      if (!sellingPlanId) {
+        toast.error(
+          "Ingen Appstle-abonnemangsplan hittades. Aktivera Storefront-behörigheten 'unauthenticated_read_selling_plans' och koppla en Appstle-plan till produkten.",
+          { duration: 10000 }
+        );
+        return;
+      }
+
       const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
         input: {
           lines: [
@@ -90,7 +123,7 @@ const PlansSection = () => {
       const errors = data?.data?.cartCreate?.userErrors || [];
       if (errors.length > 0) {
         console.error("Cart creation failed:", errors);
-        toast.error("Kunde inte skapa checkout");
+        toast.error("Kunde inte skapa checkout: " + errors[0].message);
         return;
       }
 
@@ -103,11 +136,12 @@ const PlansSection = () => {
       window.open(formatCheckoutUrl(checkoutUrl), "_blank");
     } catch (e) {
       console.error(e);
-      toast.error("Något gick fel");
+      toast.error("Något gick fel vid checkout");
     } finally {
       setLoadingMethod(null);
     }
   };
+
 
   const isBusy = productsLoading || loadingMethod !== null;
 
