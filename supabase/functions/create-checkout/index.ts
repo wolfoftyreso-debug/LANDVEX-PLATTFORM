@@ -223,6 +223,17 @@ Deno.serve(async (req) => {
       },
     } as any);
 
+    await insertOrder({
+      method: "invoice",
+      b,
+      cleaned,
+      monthlyAmountOre,
+      stripeSessionId: null,
+      stripeSubscriptionId: subscription.id,
+      stripeCustomerId: customer.id,
+    });
+
+
     return new Response(
       JSON.stringify({
         invoice: true,
