@@ -24,13 +24,13 @@ const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
   telefon: z.string().trim().max(30).optional(),
-  adress: z.string().trim().max(200).optional(),
+  adress: z.string().trim().min(1, "Fyll i leveransadress").max(200),
   postnummer: z
     .string()
     .trim()
     .min(1, "Fyll i postnummer")
     .refine(isStockholmPostalCode, "Vi levererar endast inom Storstockholm (100 00 – 199 99)"),
-  stad: z.string().trim().max(100).optional(),
+  stad: z.string().trim().min(1, "Fyll i stad").max(100),
   kommentarer: z.string().trim().max(1000).optional(),
 });
 
