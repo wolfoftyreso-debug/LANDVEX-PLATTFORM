@@ -371,16 +371,23 @@ const PlansSection = () => {
               </div>
 
               <div>
-                <label className="block mb-1.5 text-sm font-semibold">Leveransadress</label>
+                <label className="block mb-1.5 text-sm font-semibold">
+                  Leveransadress <span className="text-primary">*</span>
+                </label>
                 <input
                   name="adress"
+                  placeholder="Gatuadress, t.ex. Kungsgatan 12"
                   value={form.adress}
                   onChange={handleChange}
+                  aria-invalid={!!errors.adress}
                   className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
+                {errors.adress && (
+                  <p className="text-destructive text-xs mt-1">{errors.adress}</p>
+                )}
               </div>
 
-              <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1.5 text-sm font-semibold">
                     Postnummer <span className="text-primary">*</span>
@@ -397,8 +404,24 @@ const PlansSection = () => {
                     <p className="text-destructive text-xs mt-1">{errors.postnummer}</p>
                   )}
                   <p className="text-muted-foreground text-xs mt-1">
-                    Beställningen kan endast fortsätta för postnummer inom Storstockholm.
+                    Endast postnummer inom Storstockholm.
                   </p>
+                </div>
+                <div>
+                  <label className="block mb-1.5 text-sm font-semibold">
+                    Stad <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    name="stad"
+                    placeholder="t.ex. Stockholm"
+                    value={form.stad}
+                    onChange={handleChange}
+                    aria-invalid={!!errors.stad}
+                    className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  {errors.stad && (
+                    <p className="text-destructive text-xs mt-1">{errors.stad}</p>
+                  )}
                 </div>
               </div>
 
