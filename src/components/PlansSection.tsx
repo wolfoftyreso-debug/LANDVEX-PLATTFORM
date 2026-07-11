@@ -122,7 +122,7 @@ const PlansSection = () => {
         postal_code: result.data.postnummer,
         city: "Storstockholm",
         comments: result.data.kommentarer ?? "",
-        return_url: `${window.location.origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        return_url: `${window.location.origin}/order-confirmation?session_id={CHECKOUT_SESSION_ID}&method=card&kg=${recommendedKg}&email=${encodeURIComponent(result.data.epost)}`,
         environment: getStripeEnvironment(),
       };
 
@@ -134,7 +134,8 @@ const PlansSection = () => {
         if (!(data as any)?.clientSecret) throw new Error("Kunde inte skapa checkout-session");
         setClientSecret((data as any).clientSecret);
       } else {
-        setSubmitted("invoice");
+        window.location.href = `/order-confirmation?method=invoice&kg=${recommendedKg}&email=${encodeURIComponent(result.data.epost)}`;
+        return;
       }
     } catch (err: any) {
       console.error(err);
