@@ -12,14 +12,14 @@ import AccountConfirmation from "./pages/AccountConfirmation";
 import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import FAQ from "./pages/FAQ";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
-
-  
   return (
     <BrowserRouter>
+      <PaymentTestModeBanner />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/contact" element={<Contact />} />
