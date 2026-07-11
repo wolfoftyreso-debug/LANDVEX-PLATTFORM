@@ -1,5 +1,55 @@
 import { z } from "npm:zod@3.23.8";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+async function insertOrder(row: {
+  method: "card" | "invoice";
+  b: any;
+  cleaned: string;
+  monthlyAmountOre: number;
+  stripeSessionId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripeCustomerId: string;
+}) {
+  const { b, method, cleaned, monthlyAmountOre } = row;
+  const orderNumber = `ABO-${Date.now().toString(36).toUpperCase()}`;
+  const totalKr = monthlyAmountOre / 100;
+  const { error } = await supabaseAdmin.from("orders").insert({
+    order_number: orderNumber,
+    customer_email: b.email,
+    customer_name: b.company,
+    total_amount: totalKr,
+    currency: "SEK",
+    status: method === "invoice" ? "invoiced" : "pending",
+    items: [
+      {
+        typ: "Kakabonnemang",
+        betalning: method === "card" ? "Kort (månadsvis)" : "Faktura (månadsvis)",
+        antal_anställda: b.employees,
+        kg_per_vecka: b.kg_per_week,
+        pris_per_månad_exkl_moms: totalKr,
+        valuta: "SEK",
+        leverans: {
+          adress: b.address,
+          postnummer: cleaned,
+          stad: "Storstockholm",
+        },
+        telefon: b.phone,
+        kommentarer: b.comments,
+        stripe_session_id: row.stripeSessionId ?? null,
+        stripe_subscription_id: row.stripeSubscriptionId ?? null,
+        stripe_customer_id: row.stripeCustomerId,
+      },
+    ],
+  });
+  if (error) console.error("Order insert failed:", error);
+}
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
