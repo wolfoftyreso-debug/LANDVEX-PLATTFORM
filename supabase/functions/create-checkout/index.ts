@@ -204,12 +204,14 @@ Deno.serve(async (req) => {
           description: `Kakabonnemang – ${b.kg_per_week} kg/vecka`,
           metadata: {
             company: b.company,
+            customer_email: b.email,
             kg_per_week: String(b.kg_per_week),
             employees: String(b.employees),
           },
         },
         metadata: {
           company: b.company,
+          customer_email: b.email,
           kg_per_week: String(b.kg_per_week),
         },
       } as any);
@@ -251,6 +253,7 @@ Deno.serve(async (req) => {
       description: `Kakabonnemang – ${b.kg_per_week} kg/vecka`,
       metadata: {
         company: b.company,
+        customer_email: b.email,
         kg_per_week: String(b.kg_per_week),
         employees: String(b.employees),
       },

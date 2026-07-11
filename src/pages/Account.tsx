@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
 import Header from "@/components/Header";
-import { Save, Package } from "lucide-react";
+import { Save, Package, ExternalLink } from "lucide-react";
 
 
 // Validate Stockholm postal codes (100 00 - 199 99)
