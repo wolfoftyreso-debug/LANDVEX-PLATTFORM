@@ -159,7 +159,7 @@ const PlansSection = () => {
               Slutför betalning
             </h2>
             <p className="text-muted-foreground text-sm">
-              {recommendedKg} kg/vecka · {monthlyPrice.toLocaleString("sv-SE")} kr/månad (exkl. moms)
+              {recommendedKg} kg/vecka · {monthlyPrice.toLocaleString("sv-SE")} kr/månad (ink moms)
             </p>
           </div>
           <div className="bg-card border border-border rounded-sm p-4 md:p-6">
@@ -256,7 +256,7 @@ const PlansSection = () => {
                     {monthlyPrice.toLocaleString("sv-SE")} kr
                   </div>
                   <div className="text-muted-foreground text-xs mt-1">
-                    exklusive moms · {weeklyPrice.toLocaleString("sv-SE")} kr/vecka
+                    ink moms · {weeklyPrice.toLocaleString("sv-SE")} kr/vecka
                   </div>
                 </div>
 
@@ -281,7 +281,7 @@ const PlansSection = () => {
                   </span>
                 </div>
                 <div className="text-muted-foreground text-xs">
-                  exklusive moms · {employees} {employees === 1 ? "anställd" : "anställda"}
+                  ink moms · {employees} {employees === 1 ? "anställd" : "anställda"}
                 </div>
               </div>
 
@@ -466,7 +466,7 @@ const PlansSection = () => {
                 </button>
               </div>
               <p className="text-center text-muted-foreground text-xs">
-                Alla priser exklusive moms. Moms (25%) läggs på vid betalning.
+                Alla priser inklusive moms (25%).
               </p>
             </form>
           )}
