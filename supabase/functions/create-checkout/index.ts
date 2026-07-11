@@ -7,6 +7,25 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+async function sendOrderEmail(payload: Record<string, unknown>) {
+  try {
+    const res = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-email`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+    if (!res.ok) console.error("send-order-email failed:", res.status, await res.text());
+  } catch (e) {
+    console.error("send-order-email error:", e);
+  }
+}
+
 async function insertOrder(row: {
   method: "card" | "invoice";
   b: any;
@@ -48,6 +67,20 @@ async function insertOrder(row: {
     ],
   });
   if (error) console.error("Order insert failed:", error);
+
+  await sendOrderEmail({
+    order_number: orderNumber,
+    customer_email: b.email,
+    customer_name: b.company,
+    kg_per_week: b.kg_per_week,
+    employees: b.employees,
+    monthly_amount_sek: totalKr,
+    method,
+    address: b.address ?? "",
+    postal_code: cleaned,
+    phone: b.phone ?? "",
+    comments: b.comments ?? "",
+  });
 }
 
 
