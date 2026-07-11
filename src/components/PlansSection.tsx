@@ -256,7 +256,7 @@ const PlansSection = () => {
                     {monthlyPrice.toLocaleString("sv-SE")} kr
                   </div>
                   <div className="text-muted-foreground text-xs mt-1">
-                    ink moms · {weeklyPrice.toLocaleString("sv-SE")} kr/vecka
+                    ink moms
                   </div>
                 </div>
 
