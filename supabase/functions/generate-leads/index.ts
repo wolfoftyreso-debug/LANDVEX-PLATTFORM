@@ -2,19 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const STORSTOCKHOLM = [
+  "Stockholm", "Solna", "Sundbyberg", "Täby", "Danderyd", "Lidingö",
+  "Nacka", "Sollentuna", "Järfälla", "Upplands Väsby", "Huddinge",
+  "Botkyrka", "Haninge", "Tyresö", "Nynäshamn", "Vallentuna", "Vaxholm",
+  "Österåker", "Ekerö", "Salem", "Nykvarn", "Södertälje",
+];
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -27,35 +31,29 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Du är en B2B-säljexpert som identifierar potentiella kunder för ett bageri som levererar färska kakor till företag i Storstockholm. 
-            
-Generera en lista med 15 verkliga eller realistiska företag i Storstockholmsområdet som skulle vara bra kunder för veckovisa kakleveranser. 
-Fokusera på:
-- Kontor med 10+ anställda
-- Hotell och restauranger
-- Caféer och fik
-- Eventlokaler
-- Coworking-spaces
-- Större företag med personalrum/fika
+            content: `Du är B2B-säljare för Lennart Svenssons Konditorivaror, ett bageri i Stockholm som levererar färska handgjorda kakor på abonnemang till företag.
 
-För varje företag, ange:
-- Företagsnamn
-- Bransch
-- Uppskattat antal anställda
-- Stadsdel i Stockholm
-- Varför de är en bra kund (kort)`
+Din uppgift: identifiera potentiella B2B-kunder i STORSTOCKHOLM.
+
+ABSOLUTA REGLER:
+- Endast företag inom följande kommuner räknas som Storstockholm:
+${STORSTOCKHOLM.map((k) => `  • ${k}`).join("\n")}
+- Företag utanför Storstockholm får ALDRIG genereras.
+- Använd endast verifierbar, realistisk information. Hitta inte på fakta.
+- Fokusera på kontor 10+ anställda, hotell, restauranger, coworking, eventlokaler, större företag med personalrum/fika.
+- Variera bransch och kommun – inte bara innerstaden.`,
           },
           {
             role: "user",
-            content: "Generera 15 potentiella B2B-kunder för kakleveranser i Storstockholm."
-          }
+            content: "Generera 15 potentiella B2B-kunder för kakabonnemang i Storstockholm.",
+          },
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "generate_leads",
-              description: "Returnerar en lista med potentiella B2B-kunder",
+              description: "Returnerar en lista med potentiella B2B-kunder i Storstockholm",
               parameters: {
                 type: "object",
                 properties: {
@@ -64,38 +62,39 @@ För varje företag, ange:
                     items: {
                       type: "object",
                       properties: {
-                        company_name: { type: "string", description: "Företagets namn" },
-                        industry: { type: "string", description: "Bransch" },
-                        employee_count: { type: "number", description: "Antal anställda" },
-                        district: { type: "string", description: "Stadsdel i Stockholm" },
-                        reason: { type: "string", description: "Varför de är en bra kund" }
+                        company_name: { type: "string" },
+                        industry: { type: "string" },
+                        employee_count: { type: "number" },
+                        district: {
+                          type: "string",
+                          description: "Kommun i Storstockholm (t.ex. Solna, Nacka, Södertälje)",
+                        },
+                        reason: { type: "string" },
                       },
                       required: ["company_name", "industry", "employee_count", "district", "reason"],
-                      additionalProperties: false
-                    }
-                  }
+                      additionalProperties: false,
+                    },
+                  },
                 },
                 required: ["leads"],
-                additionalProperties: false
-              }
-            }
-          }
+                additionalProperties: false,
+              },
+            },
+          },
         ],
-        tool_choice: { type: "function", function: { name: "generate_leads" } }
+        tool_choice: { type: "function", function: { name: "generate_leads" } },
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit överskriden, försök igen senare." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Krediter slut, vänligen fyll på." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
@@ -104,24 +103,26 @@ För varje företag, ange:
     }
 
     const data = await response.json();
-    
-    // Extract the tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "generate_leads") {
       throw new Error("Unexpected AI response format");
     }
+    const parsed = JSON.parse(toolCall.function.arguments);
 
-    const leads = JSON.parse(toolCall.function.arguments);
+    // Extra säkerhet: filtrera bort allt utanför Storstockholm
+    const allowed = new Set(STORSTOCKHOLM.map((s) => s.toLowerCase()));
+    const leads = (parsed.leads || []).filter((l: any) =>
+      allowed.has(String(l.district || "").toLowerCase().trim()),
+    );
 
-    return new Response(JSON.stringify(leads), {
+    return new Response(JSON.stringify({ leads }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error generating leads:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
