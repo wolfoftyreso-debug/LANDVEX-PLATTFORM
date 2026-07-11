@@ -1,5 +1,4 @@
 import AccountMenu from "./AccountMenu";
-import CartDrawer from "./CartDrawer";
 
 const Header = () => {
   return (
@@ -13,7 +12,6 @@ const Header = () => {
           />
         </a>
         <div className="flex items-center gap-3">
-          <CartDrawer />
           <AccountMenu />
         </div>
       </div>
