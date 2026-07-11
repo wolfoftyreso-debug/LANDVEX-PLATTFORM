@@ -28,6 +28,7 @@ type PaymentMethod = "card" | "invoice";
 const PlansSection = () => {
   const [employees, setEmployees] = useState(10);
   const [loadingMethod, setLoadingMethod] = useState<PaymentMethod | null>(null);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
   const { products, isLoading: productsLoading } = useShopifyProducts(
     "product_type:Abonnemang"
@@ -163,40 +164,60 @@ const PlansSection = () => {
               <div className="text-muted-foreground text-xs mt-1">exklusive moms</div>
             </div>
 
-            {/* Two CTAs — pick payment method, then straight to Shopify checkout */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {!showPaymentOptions ? (
               <button
-                onClick={() => handleStart("card")}
+                onClick={() => setShowPaymentOptions(true)}
                 disabled={isBusy}
-                className="btn-classic py-4 px-4 text-base rounded-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn-classic w-full py-4 text-base md:text-lg rounded-sm disabled:opacity-50 mt-2"
               >
-                {loadingMethod === "card" ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5" />
-                    <span>Automatiskt varje månad</span>
-                  </>
-                )}
+                Starta abonnemang
               </button>
-              <button
-                onClick={() => handleStart("invoice")}
-                disabled={isBusy}
-                className="py-4 px-4 text-base rounded-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loadingMethod === "invoice" ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <FileText className="w-5 h-5" />
-                    <span>Månadsfaktura</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Du slutför beställningen säkert hos Shopify.
-            </p>
+            ) : (
+              <div className="animate-fade-in space-y-3 pt-2">
+                <p className="text-muted-foreground text-sm">
+                  Välj betalningsmetod
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleStart("card")}
+                    disabled={isBusy}
+                    className="btn-classic py-4 px-4 text-base rounded-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loadingMethod === "card" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5" />
+                        <span>Automatiskt varje månad</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleStart("invoice")}
+                    disabled={isBusy}
+                    className="py-4 px-4 text-base rounded-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loadingMethod === "invoice" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5" />
+                        <span>Månadsfaktura</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowPaymentOptions(false)}
+                  className="text-muted-foreground text-xs underline hover:text-foreground"
+                >
+                  ← Tillbaka
+                </button>
+                <p className="text-muted-foreground text-xs">
+                  Du slutför beställningen säkert hos Shopify.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
