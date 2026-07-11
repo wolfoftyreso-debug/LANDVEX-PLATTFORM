@@ -8,7 +8,7 @@ import { OrdersTable } from "@/components/admin/OrdersTable";
 import { CustomersTable } from "@/components/admin/CustomersTable";
 import { PaymentsTable } from "@/components/admin/PaymentsTable";
 import { LeadsGenerator } from "@/components/admin/LeadsGenerator";
-import { AuthDialog } from "@/components/AuthDialog";
+import AuthDialog from "@/components/AuthDialog";
 import { Package, Users, CreditCard, LogOut, ArrowLeft, Sparkles, Lock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
