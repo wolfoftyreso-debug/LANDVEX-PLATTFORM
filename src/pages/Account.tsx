@@ -54,6 +54,16 @@ const getPostalCodeError = (postalCode: string) => {
   return null;
 };
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  kg_per_week: number | null;
+  monthly_amount: number | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  collection_method: string | null;
+}
+
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
     company_name: "",
@@ -69,6 +79,8 @@ const Account = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
