@@ -7,7 +7,9 @@ import { z } from "zod";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
 
-const PRICE_PER_KG = 325;
+const PRICE_PER_KG_EXKL = 325; // exkl. moms, används för Stripe/faktura
+const VAT_RATE = 0.25;
+const PRICE_PER_KG = PRICE_PER_KG_EXKL * (1 + VAT_RATE); // 406,25 kr ink moms – visas för kunden
 const KG_PER_EMPLOYEE = 0.3;
 const WEEKS_PER_MONTH = 4;
 
