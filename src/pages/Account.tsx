@@ -363,26 +363,90 @@ const Account = () => {
               <h2 className="font-serif text-xl">Mitt abonnemang</h2>
             </div>
 
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Du har för närvarande inget aktivt abonnemang.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigate("/");
-                  setTimeout(() => {
-                    const element = document.getElementById("abonnemang");
-                    if (element) {
-                      element.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }, 100);
-                }}
-                className="w-full"
-              >
-                Beställ abonnemang
-              </Button>
-            </div>
+            {subscription ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-widest">
+                      Ditt abonnemang
+                    </div>
+                    <div className="font-serif text-2xl font-semibold text-foreground">
+                      {subscription.kg_per_week ?? "—"} kg / vecka
+                    </div>
+                    {subscription.monthly_amount && (
+                      <div className="text-muted-foreground text-sm">
+                        {Math.round(subscription.monthly_amount * 1.25).toLocaleString("sv-SE")} kr/mån ink moms
+                        {" · "}
+                        {subscription.collection_method === "send_invoice" ? "Faktura" : "Kort"}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-sm border ${
+                      subscription.cancel_at_period_end
+                        ? "border-destructive/40 text-destructive"
+                        : subscription.status === "past_due"
+                        ? "border-amber-500/40 text-amber-700"
+                        : "border-primary/40 text-primary"
+                    }`}
+                  >
+                    {subscription.cancel_at_period_end
+                      ? "Avslutas vid periodens slut"
+                      : subscription.status === "active"
+                      ? "Aktiv"
+                      : subscription.status === "trialing"
+                      ? "Provperiod"
+                      : subscription.status === "past_due"
+                      ? "Obetald – Stripe försöker igen"
+                      : subscription.status === "canceled"
+                      ? "Avslutad"
+                      : subscription.status}
+                  </span>
+                </div>
+
+                {subscription.current_period_end && (
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.cancel_at_period_end || subscription.status === "canceled"
+                      ? "Sista leveransperiod till: "
+                      : "Nästa förnyelse: "}
+                    {new Date(subscription.current_period_end).toLocaleDateString("sv-SE")}
+                  </p>
+                )}
+
+                <Button
+                  onClick={handleManageSubscription}
+                  disabled={openingPortal}
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {openingPortal ? "Öppnar kundportal..." : "Hantera abonnemang"}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Ändra kort, ladda ner fakturor eller säg upp — tillgång kvar till periodens slut.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm">
+                  Du har för närvarande inget aktivt abonnemang.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/");
+                    setTimeout(() => {
+                      const element = document.getElementById("abonnemang");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }, 100);
+                  }}
+                  className="w-full"
+                >
+                  Beställ abonnemang
+                </Button>
+              </div>
+            )}
           </div>
           <div className="text-center mt-6">
             <button
