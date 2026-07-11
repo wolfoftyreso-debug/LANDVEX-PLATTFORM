@@ -1,7 +1,11 @@
 import { useState, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard, FileText } from "lucide-react";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
-import { useCartStore } from "@/stores/cartStore";
+import {
+  storefrontApiRequest,
+  CART_CREATE_MUTATION,
+  formatCheckoutUrl,
+} from "@/lib/shopify";
 import { toast } from "sonner";
 
 const PRICE_PER_KG = 325;
@@ -19,12 +23,15 @@ const pickPlan = (kg: number) => {
   return match || availablePlans[availablePlans.length - 1];
 };
 
+type PaymentMethod = "card" | "invoice";
+
 const PlansSection = () => {
   const [employees, setEmployees] = useState(10);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [loadingMethod, setLoadingMethod] = useState<PaymentMethod | null>(null);
 
-  const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
-  const { addItem, clearCart, isLoading: cartLoading } = useCartStore();
+  const { products, isLoading: productsLoading } = useShopifyProducts(
+    "product_type:Abonnemang"
+  );
 
   const recommendedKg = useMemo(
     () => Math.max(1, Math.round(employees * KG_PER_EMPLOYEE)),
@@ -32,7 +39,7 @@ const PlansSection = () => {
   );
   const weeklyPrice = recommendedKg * PRICE_PER_KG;
 
-  const handleStart = async () => {
+  const handleStart = async (method: PaymentMethod) => {
     const plan = pickPlan(recommendedKg);
     const shopifyProduct = products.find((p) => p.node.handle === plan.handle);
 
@@ -46,29 +53,46 @@ const PlansSection = () => {
       return;
     }
 
-    setCheckoutLoading(true);
+    setLoadingMethod(method);
     try {
-      clearCart();
-      await addItem({
-        product: shopifyProduct,
-        variantId: variant.id,
-        variantTitle: variant.title,
-        price: variant.price,
-        quantity: 1,
-        selectedOptions: variant.selectedOptions || [],
+      const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
+        input: {
+          lines: [{ quantity: 1, merchandiseId: variant.id }],
+          attributes: [
+            { key: "Antal anställda", value: String(employees) },
+            { key: "Rekommenderad mängd", value: `${recommendedKg} kg/vecka` },
+            { key: "Veckopris (exkl. moms)", value: `${weeklyPrice} kr` },
+            {
+              key: "Önskad betalningsmetod",
+              value: method === "card" ? "Automatiskt kort varje månad" : "Månadsfaktura",
+            },
+          ],
+        },
       });
-      toast.success(`Abonnemang tillagt (${plan.name} – ${plan.kg} kg/vecka)`, {
-        description: "Klicka på varukorgen för att gå till betalning",
-      });
+
+      const errors = data?.data?.cartCreate?.userErrors || [];
+      if (errors.length > 0) {
+        console.error("Cart creation failed:", errors);
+        toast.error("Kunde inte skapa checkout");
+        return;
+      }
+
+      const checkoutUrl = data?.data?.cartCreate?.cart?.checkoutUrl;
+      if (!checkoutUrl) {
+        toast.error("Ingen checkout-länk mottagen");
+        return;
+      }
+
+      window.open(formatCheckoutUrl(checkoutUrl), "_blank");
     } catch (e) {
       console.error(e);
       toast.error("Något gick fel");
     } finally {
-      setCheckoutLoading(false);
+      setLoadingMethod(null);
     }
   };
 
-  const isLoading = productsLoading || cartLoading || checkoutLoading;
+  const isBusy = productsLoading || loadingMethod !== null;
 
   return (
     <section id="abonnemang" className="py-16 md:py-28 px-6 bg-background">
@@ -139,20 +163,40 @@ const PlansSection = () => {
               <div className="text-muted-foreground text-xs mt-1">exklusive moms</div>
             </div>
 
-            <button
-              onClick={handleStart}
-              disabled={isLoading}
-              className="btn-classic w-full py-4 text-base md:text-lg rounded-sm disabled:opacity-50 mt-4"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
+            {/* Two CTAs — pick payment method, then straight to Shopify checkout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => handleStart("card")}
+                disabled={isBusy}
+                className="btn-classic py-4 px-4 text-base rounded-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loadingMethod === "card" ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Laddar...
-                </span>
-              ) : (
-                "Starta abonnemang"
-              )}
-            </button>
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5" />
+                    <span>Automatiskt varje månad</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => handleStart("invoice")}
+                disabled={isBusy}
+                className="py-4 px-4 text-base rounded-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loadingMethod === "invoice" ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <FileText className="w-5 h-5" />
+                    <span>Månadsfaktura</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Du slutför beställningen säkert hos Shopify.
+            </p>
           </div>
         </div>
       </div>

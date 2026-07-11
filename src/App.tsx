@@ -12,12 +12,11 @@ import AccountConfirmation from "./pages/AccountConfirmation";
 import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import FAQ from "./pages/FAQ";
-import { useCartSync } from "./hooks/useCartSync";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
-  useCartSync();
+
   
   return (
     <BrowserRouter>
