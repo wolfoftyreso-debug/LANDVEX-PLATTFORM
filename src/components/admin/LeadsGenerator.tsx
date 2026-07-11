@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, Building2, Users, MapPin, Mail, Search, Copy, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, RefreshCw, Building2, Users, MapPin, Mail, Search, Copy, Check, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,7 +35,51 @@ export function LeadsGenerator() {
   const [researchingLead, setResearchingLead] = useState<string | null>(null);
   const [emailDialog, setEmailDialog] = useState<ResearchResult | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState("");
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setRecipient("");
+  }, [emailDialog?.company_name]);
+
+  const sendEmail = async () => {
+    if (!emailDialog || !recipient) return;
+    setSending(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-outreach-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            to_email: recipient,
+            to_name: emailDialog.company_name,
+            subject: emailDialog.email.subject,
+            body: emailDialog.email.body,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Kunde inte skicka mejl");
+      toast({
+        title: "Mejl skickat!",
+        description: `Skickat från konditorivaror@gmail.com till ${recipient}`,
+      });
+      setEmailDialog(null);
+    } catch (err) {
+      toast({
+        title: "Fel vid utskick",
+        description: err instanceof Error ? err.message : "Okänt fel",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const generateLeads = async () => {
     setIsLoading(true);
@@ -318,6 +363,32 @@ export function LeadsGenerator() {
                     </ul>
                   </div>
                 )}
+
+                <div className="pt-4 border-t space-y-2">
+                  <label className="text-sm font-medium">Skicka till (mottagarens mejl):</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="kontakt@företag.se"
+                      value={recipient}
+                      onChange={(e) => setRecipient(e.target.value)}
+                      disabled={sending}
+                    />
+                    <Button
+                      onClick={sendEmail}
+                      disabled={sending || !recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)}
+                    >
+                      {sending ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Skickar...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" /> Skicka mejl</>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Skickas från <strong>konditorivaror@gmail.com</strong> som Tiffany.
+                  </p>
+                </div>
               </div>
             </div>
           )}
