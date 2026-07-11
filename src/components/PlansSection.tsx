@@ -143,7 +143,7 @@ const PlansSection = () => {
   };
 
 
-  const isBusy = productsLoading || loadingMethod !== null;
+  const isBusy = loadingMethod !== null;
 
   return (
     <section id="abonnemang" className="py-16 md:py-28 px-6 bg-background">
