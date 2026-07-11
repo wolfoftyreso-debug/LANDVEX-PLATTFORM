@@ -43,6 +43,21 @@ export interface ShopifyProduct {
         };
       }>;
     };
+    sellingPlanGroups?: {
+      edges: Array<{
+        node: {
+          name: string;
+          sellingPlans: {
+            edges: Array<{
+              node: {
+                id: string;
+                name: string;
+              };
+            }>;
+          };
+        };
+      }>;
+    };
     options: Array<{
       name: string;
       values: string[];
@@ -121,6 +136,21 @@ export const STOREFRONT_PRODUCTS_QUERY = `
                 selectedOptions {
                   name
                   value
+                }
+              }
+            }
+          }
+          sellingPlanGroups(first: 5) {
+            edges {
+              node {
+                name
+                sellingPlans(first: 10) {
+                  edges {
+                    node {
+                      id
+                      name
+                    }
+                  }
                 }
               }
             }

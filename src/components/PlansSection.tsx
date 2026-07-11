@@ -54,11 +54,27 @@ const PlansSection = () => {
       return;
     }
 
+    const sellingPlanId =
+      shopifyProduct.node.sellingPlanGroups?.edges?.[0]?.node?.sellingPlans?.edges?.[0]?.node?.id;
+
+    if (!sellingPlanId) {
+      toast.error(
+        "Ingen abonnemangsplan hittades i Shopify. Kontrollera att Appstle-planen är kopplad till produkten."
+      );
+      return;
+    }
+
     setLoadingMethod(method);
     try {
       const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
         input: {
-          lines: [{ quantity: 1, merchandiseId: variant.id }],
+          lines: [
+            {
+              quantity: 1,
+              merchandiseId: variant.id,
+              sellingPlanId,
+            },
+          ],
           attributes: [
             { key: "Antal anställda", value: String(employees) },
             { key: "Rekommenderad mängd", value: `${recommendedKg} kg/vecka` },
