@@ -35,7 +35,51 @@ export function LeadsGenerator() {
   const [researchingLead, setResearchingLead] = useState<string | null>(null);
   const [emailDialog, setEmailDialog] = useState<ResearchResult | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState("");
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setRecipient("");
+  }, [emailDialog?.company_name]);
+
+  const sendEmail = async () => {
+    if (!emailDialog || !recipient) return;
+    setSending(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-outreach-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            to_email: recipient,
+            to_name: emailDialog.company_name,
+            subject: emailDialog.email.subject,
+            body: emailDialog.email.body,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Kunde inte skicka mejl");
+      toast({
+        title: "Mejl skickat!",
+        description: `Skickat från konditorivaror@gmail.com till ${recipient}`,
+      });
+      setEmailDialog(null);
+    } catch (err) {
+      toast({
+        title: "Fel vid utskick",
+        description: err instanceof Error ? err.message : "Okänt fel",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const generateLeads = async () => {
     setIsLoading(true);
