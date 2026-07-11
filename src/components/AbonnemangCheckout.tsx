@@ -12,12 +12,12 @@ interface AbonnemangCheckoutProps {
 const plans: Record<string, Plan> = {
   "Liten": { 
     kg: 3, 
-    pricePerKg: 300, 
+    pricePerKg: 325, 
     shopifyLink: "#" // Replace with actual Shopify link
   },
   "Mellan": { 
     kg: 5, 
-    pricePerKg: 300, 
+    pricePerKg: 325, 
     shopifyLink: "#" 
   },
   "Stor": { 
