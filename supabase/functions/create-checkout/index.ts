@@ -56,7 +56,7 @@ async function insertOrder(row: {
         leverans: {
           adress: b.address,
           postnummer: cleaned,
-          stad: "Storstockholm",
+          stad: b.city,
         },
         telefon: b.phone,
         kommentarer: b.comments,
