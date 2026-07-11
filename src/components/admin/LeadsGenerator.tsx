@@ -363,6 +363,32 @@ export function LeadsGenerator() {
                     </ul>
                   </div>
                 )}
+
+                <div className="pt-4 border-t space-y-2">
+                  <label className="text-sm font-medium">Skicka till (mottagarens mejl):</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="kontakt@företag.se"
+                      value={recipient}
+                      onChange={(e) => setRecipient(e.target.value)}
+                      disabled={sending}
+                    />
+                    <Button
+                      onClick={sendEmail}
+                      disabled={sending || !recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)}
+                    >
+                      {sending ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Skickar...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" /> Skicka mejl</>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Skickas från <strong>konditorivaror@gmail.com</strong> som Tiffany.
+                  </p>
+                </div>
               </div>
             </div>
           )}
