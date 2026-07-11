@@ -7,7 +7,9 @@ import { z } from "zod";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
 
-const PRICE_PER_KG = 325;
+const PRICE_PER_KG_EXKL = 325; // exkl. moms, används för Stripe/faktura
+const VAT_RATE = 0.25;
+const PRICE_PER_KG = PRICE_PER_KG_EXKL * (1 + VAT_RATE); // 406,25 kr ink moms – visas för kunden
 const KG_PER_EMPLOYEE = 0.3;
 const WEEKS_PER_MONTH = 4;
 
@@ -157,7 +159,7 @@ const PlansSection = () => {
               Slutför betalning
             </h2>
             <p className="text-muted-foreground text-sm">
-              {recommendedKg} kg/vecka · {monthlyPrice.toLocaleString("sv-SE")} kr/månad (exkl. moms)
+              {recommendedKg} kg/vecka · {monthlyPrice.toLocaleString("sv-SE")} kr/månad (ink moms)
             </p>
           </div>
           <div className="bg-card border border-border rounded-sm p-4 md:p-6">
@@ -254,7 +256,7 @@ const PlansSection = () => {
                     {monthlyPrice.toLocaleString("sv-SE")} kr
                   </div>
                   <div className="text-muted-foreground text-xs mt-1">
-                    exklusive moms · {weeklyPrice.toLocaleString("sv-SE")} kr/vecka
+                    ink moms · {weeklyPrice.toLocaleString("sv-SE")} kr/vecka
                   </div>
                 </div>
 
@@ -279,7 +281,7 @@ const PlansSection = () => {
                   </span>
                 </div>
                 <div className="text-muted-foreground text-xs">
-                  exklusive moms · {employees} {employees === 1 ? "anställd" : "anställda"}
+                  ink moms · {employees} {employees === 1 ? "anställd" : "anställda"}
                 </div>
               </div>
 
@@ -464,7 +466,7 @@ const PlansSection = () => {
                 </button>
               </div>
               <p className="text-center text-muted-foreground text-xs">
-                Alla priser exklusive moms. Moms (25%) läggs på vid betalning.
+                Alla priser inklusive moms (25%).
               </p>
             </form>
           )}
