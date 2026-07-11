@@ -93,6 +93,7 @@ export function OrdersTable() {
             <TableRow>
               <TableHead>Ordernummer</TableHead>
               <TableHead>Kund</TableHead>
+              <TableHead>Leveransadress</TableHead>
               <TableHead>Datum</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Belopp</TableHead>
@@ -101,33 +102,57 @@ export function OrdersTable() {
           <TableBody>
             {filteredOrders?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Inga ordrar hittades
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders?.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.customer_name || "—"}</div>
-                      <div className="text-sm text-muted-foreground">{order.customer_email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(order.created_at), "d MMM yyyy, HH:mm", { locale: sv })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusColors[order.status] || ""}>
-                      {statusLabels[order.status] || order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {Number(order.total_amount).toLocaleString("sv-SE")} {order.currency}
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredOrders?.map((order) => {
+                const item = Array.isArray(order.items) ? order.items[0] : null;
+                const lev = item?.leverans;
+                const phone = item?.telefon;
+                const comments = item?.kommentarer;
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium align-top">{order.order_number}</TableCell>
+                    <TableCell className="align-top">
+                      <div>
+                        <div className="font-medium">{order.customer_name || "—"}</div>
+                        <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                        {phone && <div className="text-sm text-muted-foreground">{phone}</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {lev ? (
+                        <div className="text-sm">
+                          <div>{lev.adress || "—"}</div>
+                          <div className="text-muted-foreground">
+                            {[lev.postnummer, lev.stad].filter(Boolean).join(" ")}
+                          </div>
+                          {comments && (
+                            <div className="text-xs text-muted-foreground mt-1 italic">
+                              "{comments}"
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {format(new Date(order.created_at), "d MMM yyyy, HH:mm", { locale: sv })}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Badge variant="outline" className={statusColors[order.status] || ""}>
+                        {statusLabels[order.status] || order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium align-top">
+                      {Number(order.total_amount).toLocaleString("sv-SE")} {order.currency}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

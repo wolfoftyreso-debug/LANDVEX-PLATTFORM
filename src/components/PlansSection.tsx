@@ -24,13 +24,13 @@ const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
   telefon: z.string().trim().max(30).optional(),
-  adress: z.string().trim().max(200).optional(),
+  adress: z.string().trim().min(1, "Fyll i leveransadress").max(200),
   postnummer: z
     .string()
     .trim()
     .min(1, "Fyll i postnummer")
     .refine(isStockholmPostalCode, "Vi levererar endast inom Storstockholm (100 00 – 199 99)"),
-  stad: z.string().trim().max(100).optional(),
+  stad: z.string().trim().min(1, "Fyll i stad").max(100),
   kommentarer: z.string().trim().max(1000).optional(),
 });
 
@@ -67,7 +67,7 @@ const PlansSection = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("company_name, phone, street_address, postal_code")
+        .select("company_name, phone, street_address, postal_code, city")
         .eq("user_id", user.id)
         .maybeSingle();
       setForm((prev) => ({
@@ -77,6 +77,7 @@ const PlansSection = () => {
         telefon: prev.telefon || data?.phone || "",
         adress: prev.adress || data?.street_address || "",
         postnummer: prev.postnummer || data?.postal_code || "",
+        stad: prev.stad || data?.city || "",
       }));
     })();
   }, [user, showForm]);
@@ -118,9 +119,9 @@ const PlansSection = () => {
         company: result.data.företag,
         email: result.data.epost,
         phone: result.data.telefon ?? "",
-        address: result.data.adress ?? "",
+        address: result.data.adress,
         postal_code: result.data.postnummer,
-        city: "Storstockholm",
+        city: result.data.stad,
         comments: result.data.kommentarer ?? "",
         return_url: `${window.location.origin}/order-confirmation?session_id={CHECKOUT_SESSION_ID}&method=card&kg=${recommendedKg}&email=${encodeURIComponent(result.data.epost)}`,
         environment: getStripeEnvironment(),
@@ -371,16 +372,23 @@ const PlansSection = () => {
               </div>
 
               <div>
-                <label className="block mb-1.5 text-sm font-semibold">Leveransadress</label>
+                <label className="block mb-1.5 text-sm font-semibold">
+                  Leveransadress <span className="text-primary">*</span>
+                </label>
                 <input
                   name="adress"
+                  placeholder="Gatuadress, t.ex. Kungsgatan 12"
                   value={form.adress}
                   onChange={handleChange}
+                  aria-invalid={!!errors.adress}
                   className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
+                {errors.adress && (
+                  <p className="text-destructive text-xs mt-1">{errors.adress}</p>
+                )}
               </div>
 
-              <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1.5 text-sm font-semibold">
                     Postnummer <span className="text-primary">*</span>
@@ -397,8 +405,24 @@ const PlansSection = () => {
                     <p className="text-destructive text-xs mt-1">{errors.postnummer}</p>
                   )}
                   <p className="text-muted-foreground text-xs mt-1">
-                    Beställningen kan endast fortsätta för postnummer inom Storstockholm.
+                    Endast postnummer inom Storstockholm.
                   </p>
+                </div>
+                <div>
+                  <label className="block mb-1.5 text-sm font-semibold">
+                    Stad <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    name="stad"
+                    placeholder="t.ex. Stockholm"
+                    value={form.stad}
+                    onChange={handleChange}
+                    aria-invalid={!!errors.stad}
+                    className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  {errors.stad && (
+                    <p className="text-destructive text-xs mt-1">{errors.stad}</p>
+                  )}
                 </div>
               </div>
 
