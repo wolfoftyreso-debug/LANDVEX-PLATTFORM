@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Save, Package } from "lucide-react";
-import { useShopifyProducts } from "@/hooks/useShopifyProducts";
+
 
 // Validate Stockholm postal codes (100 00 - 199 99)
 const isStockholmPostalCode = (postalCode: string) => {
@@ -71,7 +71,7 @@ const Account = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { products, isLoading: productsLoading } = useShopifyProducts("product_type:Abonnemang");
+  
 
   const hasChanges = 
     profile.company_name !== originalProfile.company_name ||
@@ -302,30 +302,26 @@ const Account = () => {
               <h2 className="font-serif text-xl">Mitt abonnemang</h2>
             </div>
 
-            {productsLoading ? (
-              <p className="text-muted-foreground text-sm">Laddar abonnemang...</p>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-muted-foreground text-sm">
-                  Du har för närvarande inget aktivt abonnemang.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    navigate("/");
-                    setTimeout(() => {
-                      const element = document.getElementById("abonnemang");
-                      if (element) {
-                        element.scrollIntoView({ behavior: "smooth" });
-                      }
-                    }, 100);
-                  }}
-                  className="w-full"
-                >
-                  Beställ abonnemang
-                </Button>
-              </div>
-            )}
+            <div className="space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Du har för närvarande inget aktivt abonnemang.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigate("/");
+                  setTimeout(() => {
+                    const element = document.getElementById("abonnemang");
+                    if (element) {
+                      element.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }, 100);
+                }}
+                className="w-full"
+              >
+                Beställ abonnemang
+              </Button>
+            </div>
           </div>
           <div className="text-center mt-6">
             <button
