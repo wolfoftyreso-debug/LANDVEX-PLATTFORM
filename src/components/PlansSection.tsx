@@ -18,6 +18,8 @@ const isStockholmPostalCode = (postalCode: string) => {
   return num >= 10000 && num <= 19999;
 };
 
+const stockholmDeliveryMessage = "Vi levererar endast till företag inom Storstockholm.";
+
 const formSchema = z.object({
   företag: z.string().trim().min(1, "Fyll i företagsnamn").max(100),
   epost: z.string().trim().email("Ange en giltig e-postadress").max(255),
@@ -65,7 +67,7 @@ const PlansSection = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("company_name, phone, street_address, postal_code, city")
+        .select("company_name, phone, street_address, postal_code")
         .eq("user_id", user.id)
         .maybeSingle();
       setForm((prev) => ({
@@ -75,7 +77,6 @@ const PlansSection = () => {
         telefon: prev.telefon || data?.phone || "",
         adress: prev.adress || data?.street_address || "",
         postnummer: prev.postnummer || data?.postal_code || "",
-        stad: prev.stad || data?.city || "",
       }));
     })();
   }, [user, showForm]);
@@ -86,6 +87,9 @@ const PlansSection = () => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+    if (name === "postnummer" && errors.postnummer) {
+      setErrors((p) => ({ ...p, postnummer: "" }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,7 +120,7 @@ const PlansSection = () => {
         phone: result.data.telefon ?? "",
         address: result.data.adress ?? "",
         postal_code: result.data.postnummer,
-        city: result.data.stad ?? "",
+        city: "Storstockholm",
         comments: result.data.kommentarer ?? "",
         return_url: `${window.location.origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         environment: getStripeEnvironment(),
@@ -318,6 +322,10 @@ const PlansSection = () => {
                 </div>
               </div>
 
+              <div className="border border-primary/30 bg-primary/5 px-4 py-3 rounded-sm text-sm text-foreground">
+                {stockholmDeliveryMessage} Ange postnummer 100 00–199 99 för att gå vidare.
+              </div>
+
               <div>
                 <label className="block mb-1.5 text-sm font-semibold">
                   Företagsnamn <span className="text-primary">*</span>
@@ -371,7 +379,7 @@ const PlansSection = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <div>
                   <label className="block mb-1.5 text-sm font-semibold">
                     Postnummer <span className="text-primary">*</span>
@@ -381,20 +389,15 @@ const PlansSection = () => {
                     placeholder="t.ex. 114 32"
                     value={form.postnummer}
                     onChange={handleChange}
+                    aria-invalid={!!errors.postnummer}
                     className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                   {errors.postnummer && (
                     <p className="text-destructive text-xs mt-1">{errors.postnummer}</p>
                   )}
-                </div>
-                <div>
-                  <label className="block mb-1.5 text-sm font-semibold">Stad</label>
-                  <input
-                    name="stad"
-                    value={form.stad}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Beställningen kan endast fortsätta för postnummer inom Storstockholm.
+                  </p>
                 </div>
               </div>
 
