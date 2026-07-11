@@ -186,6 +186,66 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          collection_method: string | null
+          company_name: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          customer_email: string
+          environment: string
+          id: string
+          kg_per_week: number | null
+          monthly_amount: number | null
+          price_id: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          collection_method?: string | null
+          company_name?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email: string
+          environment?: string
+          id?: string
+          kg_per_week?: number | null
+          monthly_amount?: number | null
+          price_id?: string | null
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          collection_method?: string | null
+          company_name?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email?: string
+          environment?: string
+          id?: string
+          kg_per_week?: number | null
+          monthly_amount?: number | null
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -212,6 +272,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_kaka_subscription: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
