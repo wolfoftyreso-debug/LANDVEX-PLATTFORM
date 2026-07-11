@@ -12,6 +12,7 @@ import AccountConfirmation from "./pages/AccountConfirmation";
 import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import FAQ from "./pages/FAQ";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function AppContent() {
         <Route path="/account" element={<Account />} />
         <Route path="/account/confirmation" element={<AccountConfirmation />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/order-confirmation" element={<OrderConfirmation />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
