@@ -414,6 +414,16 @@ const Account = () => {
                 )}
 
                 <Button
+                  onClick={() => navigate("/account/change-subscription")}
+                  variant="outline"
+                  className="w-full"
+                  disabled={subscription.cancel_at_period_end || subscription.status === "canceled"}
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Ändra kg/vecka
+                </Button>
+
+                <Button
                   onClick={handleManageSubscription}
                   disabled={openingPortal}
                   className="w-full"
