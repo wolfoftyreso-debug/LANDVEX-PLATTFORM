@@ -77,7 +77,7 @@ export default function Admin() {
             </div>
           </div>
         </div>
-        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} mode={authMode} onModeChange={setAuthMode} />
       </>
     );
   }
