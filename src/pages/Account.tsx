@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
 import Header from "@/components/Header";
-import { Save, Package } from "lucide-react";
+import { Save, Package, ExternalLink } from "lucide-react";
 
 
 // Validate Stockholm postal codes (100 00 - 199 99)
@@ -53,6 +54,16 @@ const getPostalCodeError = (postalCode: string) => {
   return null;
 };
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  kg_per_week: number | null;
+  monthly_amount: number | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  collection_method: string | null;
+}
+
 const Account = () => {
   const [profile, setProfile] = useState<ProfileData>({
     company_name: "",
@@ -68,6 +79,8 @@ const Account = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,8 +100,56 @@ const Account = () => {
 
     if (user) {
       fetchProfile();
+      fetchSubscription();
     }
   }, [user, authLoading, navigate]);
+
+  const fetchSubscription = async () => {
+    if (!user) return;
+    try {
+      const env = hasPaymentsConfigured() ? getStripeEnvironment() : "sandbox";
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("id, status, kg_per_week, monthly_amount, current_period_end, cancel_at_period_end, collection_method")
+        .eq("user_id", user.id)
+        .eq("environment", env)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setSubscription((data as SubscriptionRow | null) ?? null);
+    } catch (e) {
+      console.error("fetchSubscription error:", e);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!hasPaymentsConfigured()) {
+      toast({ title: "Betalningar inte konfigurerade", variant: "destructive" });
+      return;
+    }
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-portal-session", {
+        body: {
+          return_url: `${window.location.origin}/account`,
+          environment: getStripeEnvironment(),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const url = (data as any)?.url;
+      if (!url) throw new Error("Ingen portal-URL mottagen");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({
+        title: "Kunde inte öppna kundportalen",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -302,26 +363,90 @@ const Account = () => {
               <h2 className="font-serif text-xl">Mitt abonnemang</h2>
             </div>
 
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Du har för närvarande inget aktivt abonnemang.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigate("/");
-                  setTimeout(() => {
-                    const element = document.getElementById("abonnemang");
-                    if (element) {
-                      element.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }, 100);
-                }}
-                className="w-full"
-              >
-                Beställ abonnemang
-              </Button>
-            </div>
+            {subscription ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-widest">
+                      Ditt abonnemang
+                    </div>
+                    <div className="font-serif text-2xl font-semibold text-foreground">
+                      {subscription.kg_per_week ?? "—"} kg / vecka
+                    </div>
+                    {subscription.monthly_amount && (
+                      <div className="text-muted-foreground text-sm">
+                        {Math.round(subscription.monthly_amount * 1.25).toLocaleString("sv-SE")} kr/mån ink moms
+                        {" · "}
+                        {subscription.collection_method === "send_invoice" ? "Faktura" : "Kort"}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-sm border ${
+                      subscription.cancel_at_period_end
+                        ? "border-destructive/40 text-destructive"
+                        : subscription.status === "past_due"
+                        ? "border-amber-500/40 text-amber-700"
+                        : "border-primary/40 text-primary"
+                    }`}
+                  >
+                    {subscription.cancel_at_period_end
+                      ? "Avslutas vid periodens slut"
+                      : subscription.status === "active"
+                      ? "Aktiv"
+                      : subscription.status === "trialing"
+                      ? "Provperiod"
+                      : subscription.status === "past_due"
+                      ? "Obetald – Stripe försöker igen"
+                      : subscription.status === "canceled"
+                      ? "Avslutad"
+                      : subscription.status}
+                  </span>
+                </div>
+
+                {subscription.current_period_end && (
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.cancel_at_period_end || subscription.status === "canceled"
+                      ? "Sista leveransperiod till: "
+                      : "Nästa förnyelse: "}
+                    {new Date(subscription.current_period_end).toLocaleDateString("sv-SE")}
+                  </p>
+                )}
+
+                <Button
+                  onClick={handleManageSubscription}
+                  disabled={openingPortal}
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {openingPortal ? "Öppnar kundportal..." : "Hantera abonnemang"}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Ändra kort, ladda ner fakturor eller säg upp — tillgång kvar till periodens slut.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm">
+                  Du har för närvarande inget aktivt abonnemang.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/");
+                    setTimeout(() => {
+                      const element = document.getElementById("abonnemang");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }, 100);
+                  }}
+                  className="w-full"
+                >
+                  Beställ abonnemang
+                </Button>
+              </div>
+            )}
           </div>
           <div className="text-center mt-6">
             <button
