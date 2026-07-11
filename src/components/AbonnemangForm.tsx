@@ -294,8 +294,8 @@ const AbonnemangForm = ({ selectedPlan, onClose }: AbonnemangFormProps) => {
           className="w-full px-4 py-3 rounded-sm bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           <option value="">Välj abonnemang</option>
-          <option value="Liten (3 kg/vecka)">Liten – 3 kg/vecka – 900 kr</option>
-          <option value="Mellan (5 kg/vecka)">Mellan – 5 kg/vecka – 1 500 kr</option>
+          <option value="Liten (3 kg/vecka)">Liten – 3 kg/vecka – 975 kr</option>
+          <option value="Mellan (5 kg/vecka)">Mellan – 5 kg/vecka – 1 625 kr</option>
           <option value="Stor (10 kg/vecka)">Stor – 10 kg/vecka – 4 000 kr</option>
         </select>
         {errors.abonnemang && (

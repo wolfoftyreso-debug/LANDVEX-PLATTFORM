@@ -8,7 +8,7 @@ const planDetails = [
   {
     name: "Liten",
     kgPerWeek: "3 kg",
-    priceWeekExclVat: "900",
+    priceWeekExclVat: "975",
     employeeRecommendation: "1–10 anställda",
     features: [
       "3 kg kakor per vecka",
@@ -21,7 +21,7 @@ const planDetails = [
   {
     name: "Mellan",
     kgPerWeek: "5 kg",
-    priceWeekExclVat: "1 500",
+    priceWeekExclVat: "1 625",
     employeeRecommendation: "10–25 anställda",
     features: [
       "5 kg kakor per vecka",
