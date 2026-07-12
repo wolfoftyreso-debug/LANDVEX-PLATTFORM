@@ -206,6 +206,33 @@ const PlansSection = () => {
 
     setSubmitting(true);
     try {
+      // Auto-create account for guests, then sign in
+      if (!user && form.password) {
+        const { data: accData, error: accErr } = await supabase.functions.invoke("create-account", {
+          body: {
+            email: result.data.epost,
+            password: form.password,
+            company: result.data.företag,
+            phone: result.data.telefon ?? "",
+          },
+        });
+        if (accErr) throw accErr;
+        if ((accData as any)?.error) throw new Error((accData as any).error);
+
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: result.data.epost,
+          password: form.password,
+        });
+        if (signInErr) {
+          if ((accData as any)?.existed) {
+            throw new Error(
+              "Ett konto finns redan för denna e-post. Fel lösenord — logga in eller använd 'Glömt lösenord'.",
+            );
+          }
+          throw signInErr;
+        }
+      }
+
       const body = {
         method,
         employees,
