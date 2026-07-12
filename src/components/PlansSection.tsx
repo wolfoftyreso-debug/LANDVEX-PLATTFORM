@@ -143,10 +143,17 @@ const PlansSection = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    setForm((p) => {
+      const next = { ...p, [name]: value };
+      if (name === "postnummer") {
+        const suggested = cityFromPostalCode(value);
+        if (suggested) next.stad = suggested;
+      }
+      return next;
+    });
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
-    if (name === "postnummer" && errors.postnummer) {
-      setErrors((p) => ({ ...p, postnummer: "" }));
+    if (name === "postnummer") {
+      setErrors((p) => ({ ...p, postnummer: "", stad: "" }));
     }
   };
 
