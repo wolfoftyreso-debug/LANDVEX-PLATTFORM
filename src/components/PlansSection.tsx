@@ -58,6 +58,7 @@ const PlansSection = () => {
   const [submitted, setSubmitted] = useState<null | "card" | "invoice">(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const [form, setForm] = useState({
     företag: "",
     epost: "",
