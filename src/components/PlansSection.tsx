@@ -86,6 +86,7 @@ const formSchema = z.object({
     .refine(isStockholmPostalCode, "Vi levererar endast inom Storstockholm (100 00 – 199 99)"),
   stad: z.string().trim().min(1, "Fyll i stad").max(100),
   kommentarer: z.string().trim().max(1000).optional(),
+  password: z.string().max(100).optional(),
 });
 
 type Method = "card" | "invoice";
