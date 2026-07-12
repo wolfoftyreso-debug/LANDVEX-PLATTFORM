@@ -90,7 +90,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const PRICE_PER_KG_ORE = 32500; // 325 kr in öre
+// TEMP TEST: 1 kr/kg (sätt tillbaka till 32500 efter testet)
+const PRICE_PER_KG_ORE = 100; // 1 kr in öre
 const WEEKS_PER_MONTH = 4;
 
 const BodySchema = z.object({
