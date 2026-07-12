@@ -144,19 +144,6 @@ Deno.serve(async (req) => {
     // Monthly amount in öre = kg × 4 veckor × 325 kr
     const monthlyAmountOre = Math.round(b.kg_per_week * WEEKS_PER_MONTH * PRICE_PER_KG_ORE);
 
-    // Resolve product via existing price lookup_key
-    const prices = await stripe.prices.list({ lookup_keys: ["kakabonnemang_dynamic"], limit: 1 });
-    if (!prices.data.length) {
-      return new Response(JSON.stringify({ error: "Produkt inte konfigurerad" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const productId =
-      typeof prices.data[0].product === "string"
-        ? prices.data[0].product
-        : prices.data[0].product.id;
-
     // Find or create customer
     const existing = await stripe.customers.list({ email: b.email, limit: 1 });
     const customer =
@@ -193,7 +180,11 @@ Deno.serve(async (req) => {
             quantity: 1,
             price_data: {
               currency: "sek",
-              product: productId,
+              product_data: {
+                name: "Kakabonnemang",
+                description: "Månatligt kakabonnemang för företag inom Storstockholm.",
+                tax_code: "txcd_40060003",
+              },
               recurring: { interval: "month" },
               unit_amount: monthlyAmountOre,
             } as any,
@@ -242,7 +233,11 @@ Deno.serve(async (req) => {
         {
           price_data: {
             currency: "sek",
-            product: productId,
+            product_data: {
+              name: "Kakabonnemang",
+              description: "Månatligt kakabonnemang för företag inom Storstockholm.",
+              tax_code: "txcd_40060003",
+            },
             recurring: { interval: "month" },
             unit_amount: monthlyAmountOre,
             tax_behavior: "exclusive",
