@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.submit-order]
 verify_jwt = false
 
+[functions.create-account]
+verify_jwt = false
+
 [functions.create-checkout]
 verify_jwt = false
 

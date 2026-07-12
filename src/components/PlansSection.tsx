@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -86,6 +86,7 @@ const formSchema = z.object({
     .refine(isStockholmPostalCode, "Vi levererar endast inom Storstockholm (100 00 – 199 99)"),
   stad: z.string().trim().min(1, "Fyll i stad").max(100),
   kommentarer: z.string().trim().max(1000).optional(),
+  password: z.string().max(100).optional(),
 });
 
 type Method = "card" | "invoice";
@@ -100,6 +101,7 @@ const PlansSection = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [cityOpen, setCityOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     företag: "",
     epost: "",
@@ -108,6 +110,7 @@ const PlansSection = () => {
     postnummer: "",
     stad: "",
     kommentarer: "",
+    password: "",
   });
 
   const filteredCities = useMemo(() => {
@@ -187,6 +190,15 @@ const PlansSection = () => {
       return;
     }
 
+    // Password required for guests (auto-create account)
+    if (!user) {
+      const pw = form.password || "";
+      if (pw.length < 8) {
+        setErrors((prev) => ({ ...prev, password: "Lösenordet måste vara minst 8 tecken" }));
+        return;
+      }
+    }
+
     if (!hasPaymentsConfigured()) {
       toast.error("Betalningar är inte konfigurerade ännu.");
       return;
@@ -194,6 +206,33 @@ const PlansSection = () => {
 
     setSubmitting(true);
     try {
+      // Auto-create account for guests, then sign in
+      if (!user && form.password) {
+        const { data: accData, error: accErr } = await supabase.functions.invoke("create-account", {
+          body: {
+            email: result.data.epost,
+            password: form.password,
+            company: result.data.företag,
+            phone: result.data.telefon ?? "",
+          },
+        });
+        if (accErr) throw accErr;
+        if ((accData as any)?.error) throw new Error((accData as any).error);
+
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: result.data.epost,
+          password: form.password,
+        });
+        if (signInErr) {
+          if ((accData as any)?.existed) {
+            throw new Error(
+              "Ett konto finns redan för denna e-post. Fel lösenord — logga in eller använd 'Glömt lösenord'.",
+            );
+          }
+          throw signInErr;
+        }
+      }
+
       const body = {
         method,
         employees,
@@ -452,6 +491,58 @@ const PlansSection = () => {
                   />
                 </div>
               </div>
+
+              {!user && (
+                <div className="relative overflow-hidden rounded-sm border border-primary/40 bg-gradient-to-br from-primary/[0.06] via-background to-primary/[0.03] p-5 md:p-6 shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+                  <div className="relative flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center border border-primary/30">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-display text-lg md:text-xl font-semibold text-foreground leading-tight">
+                        Ditt konto skapas automatiskt
+                      </div>
+                      <p className="text-muted-foreground text-xs md:text-sm mt-1 leading-relaxed">
+                        Välj ett lösenord så loggar vi in dig direkt. Hantera ditt abonnemang, ändra leveranser och se fakturor i "Mitt konto" när som helst.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="block mb-1.5 text-sm font-semibold text-foreground">
+                    Välj lösenord <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={handleChange}
+                      placeholder="Minst 8 tecken"
+                      autoComplete="new-password"
+                      aria-invalid={!!errors.password}
+                      className="w-full pl-10 pr-11 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? "Dölj lösenord" : "Visa lösenord"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.password ? (
+                    <p className="text-destructive text-xs mt-1.5">{errors.password}</p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs mt-1.5">
+                      Använd minst 8 tecken. Vi rekommenderar en blandning av bokstäver och siffror.
+                    </p>
+                  )}
+                </div>
+              )}
+
 
               <div>
                 <label className="block mb-1.5 text-sm font-semibold">
