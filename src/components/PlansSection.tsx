@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
