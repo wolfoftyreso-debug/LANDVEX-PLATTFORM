@@ -190,6 +190,15 @@ const PlansSection = () => {
       return;
     }
 
+    // Password required for guests (auto-create account)
+    if (!user) {
+      const pw = form.password || "";
+      if (pw.length < 8) {
+        setErrors((prev) => ({ ...prev, password: "Lösenordet måste vara minst 8 tecken" }));
+        return;
+      }
+    }
+
     if (!hasPaymentsConfigured()) {
       toast.error("Betalningar är inte konfigurerade ännu.");
       return;
