@@ -18,6 +18,49 @@ const STORSTOCKHOLM_CITIES = [
   "Bromma", "Ekerö", "Upplands-Bro",
 ];
 
+// Map första 3 siffrorna i postnummer → kommun/ort inom Storstockholm.
+const POSTAL_PREFIX_TO_CITY: Record<string, string> = {
+  "100": "Stockholm", "101": "Stockholm", "102": "Stockholm", "103": "Stockholm",
+  "104": "Stockholm", "105": "Stockholm", "106": "Stockholm", "107": "Stockholm",
+  "108": "Stockholm", "110": "Stockholm", "111": "Stockholm", "112": "Stockholm",
+  "113": "Stockholm", "114": "Stockholm", "115": "Stockholm", "116": "Stockholm",
+  "117": "Stockholm", "118": "Stockholm", "119": "Stockholm", "120": "Stockholm",
+  "121": "Stockholm", "122": "Stockholm", "123": "Stockholm", "124": "Stockholm",
+  "125": "Stockholm", "126": "Stockholm", "127": "Stockholm", "128": "Stockholm",
+  "129": "Stockholm",
+  "131": "Nacka", "132": "Nacka", "133": "Nacka", "138": "Nacka",
+  "134": "Värmdö", "139": "Värmdö",
+  "135": "Tyresö",
+  "136": "Haninge", "137": "Haninge",
+  "141": "Huddinge", "142": "Huddinge", "143": "Huddinge",
+  "144": "Salem",
+  "145": "Botkyrka", "146": "Botkyrka", "147": "Botkyrka",
+  "148": "Nynäshamn", "149": "Nynäshamn",
+  "150": "Södertälje", "151": "Södertälje", "152": "Södertälje", "153": "Södertälje",
+  "155": "Nykvarn",
+  "168": "Bromma", "169": "Bromma",
+  "170": "Solna", "171": "Solna", "173": "Solna",
+  "172": "Sundbyberg", "174": "Sundbyberg",
+  "175": "Järfälla", "176": "Järfälla", "177": "Järfälla",
+  "178": "Ekerö", "179": "Ekerö",
+  "181": "Lidingö",
+  "182": "Danderyd",
+  "183": "Täby", "187": "Täby",
+  "184": "Österåker",
+  "185": "Vaxholm",
+  "186": "Vallentuna",
+  "191": "Sollentuna", "192": "Sollentuna",
+  "193": "Sigtuna", "195": "Sigtuna",
+  "194": "Upplands Väsby",
+  "196": "Upplands-Bro", "197": "Upplands-Bro",
+};
+
+const cityFromPostalCode = (postalCode: string): string | null => {
+  const cleaned = postalCode.replace(/\s/g, "");
+  if (!/^\d{5}$/.test(cleaned)) return null;
+  return POSTAL_PREFIX_TO_CITY[cleaned.slice(0, 3)] ?? null;
+};
+
 const PRICE_PER_KG_EXKL = 325; // exkl. moms, används för Stripe/faktura
 const VAT_RATE = 0.25;
 const PRICE_PER_KG = PRICE_PER_KG_EXKL * (1 + VAT_RATE); // 406,25 kr ink moms – visas för kunden
