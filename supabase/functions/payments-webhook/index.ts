@@ -99,6 +99,25 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   if (email) {
     await ensureUser(email, session.metadata?.company);
   }
+
+  // Markera ordern som betald genom att matcha stripe_session_id i items[0].
+  const paid = session.payment_status === "paid" || session.status === "complete";
+  if (paid && session.id) {
+    const { data: rows, error: selErr } = await supabase
+      .from("orders")
+      .select("id, items, status")
+      .contains("items", [{ stripe_session_id: session.id }]);
+    if (selErr) console.error("orders select failed:", selErr);
+    if (rows?.length) {
+      for (const row of rows) {
+        if (row.status === "paid") continue;
+        await supabase
+          .from("orders")
+          .update({ status: "paid", updated_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+    }
+  }
 }
 
 Deno.serve(async (req) => {
