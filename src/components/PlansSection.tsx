@@ -1,11 +1,22 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, CheckCircle2, CreditCard, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+const STORSTOCKHOLM_CITIES = [
+  "Stockholm", "Solna", "Sundbyberg", "Nacka", "Lidingö", "Danderyd",
+  "Täby", "Sollentuna", "Järfälla", "Upplands Väsby", "Sigtuna",
+  "Vallentuna", "Österåker", "Vaxholm", "Värmdö", "Tyresö", "Haninge",
+  "Nynäshamn", "Botkyrka", "Salem", "Södertälje", "Nykvarn", "Huddinge",
+  "Bromma", "Ekerö", "Upplands-Bro",
+];
 
 const PRICE_PER_KG_EXKL = 325; // exkl. moms, används för Stripe/faktura
 const VAT_RATE = 0.25;
