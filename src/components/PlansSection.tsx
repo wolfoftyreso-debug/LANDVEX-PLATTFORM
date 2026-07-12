@@ -101,6 +101,7 @@ const PlansSection = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [cityOpen, setCityOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     företag: "",
     epost: "",
@@ -109,6 +110,7 @@ const PlansSection = () => {
     postnummer: "",
     stad: "",
     kommentarer: "",
+    password: "",
   });
 
   const filteredCities = useMemo(() => {
