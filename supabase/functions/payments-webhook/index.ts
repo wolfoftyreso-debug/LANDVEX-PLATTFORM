@@ -103,19 +103,25 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   // Markera ordern som betald genom att matcha stripe_session_id i items[0].
   const paid = session.payment_status === "paid" || session.status === "complete";
   if (paid && session.id) {
+    // Match by scanning recent pending orders for this session id inside items[0]
     const { data: rows, error: selErr } = await supabase
       .from("orders")
       .select("id, items, status")
-      .contains("items", [{ stripe_session_id: session.id }]);
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(50);
     if (selErr) console.error("orders select failed:", selErr);
-    if (rows?.length) {
-      for (const row of rows) {
-        if (row.status === "paid") continue;
-        await supabase
-          .from("orders")
-          .update({ status: "paid", updated_at: new Date().toISOString() })
-          .eq("id", row.id);
-      }
+    const match = rows?.find((r: any) =>
+      Array.isArray(r.items) && r.items.some((it: any) => it?.stripe_session_id === session.id)
+    );
+    if (match) {
+      const { error: updErr } = await supabase
+        .from("orders")
+        .update({ status: "paid", updated_at: new Date().toISOString() })
+        .eq("id", match.id);
+      if (updErr) console.error("orders update failed:", updErr);
+    } else {
+      console.log("No pending order matched session", session.id);
     }
   }
 }
