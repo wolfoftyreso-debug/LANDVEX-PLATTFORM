@@ -1,11 +1,22 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, CheckCircle2, CreditCard, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, CreditCard, FileText, ChevronsUpDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+const STORSTOCKHOLM_CITIES = [
+  "Stockholm", "Solna", "Sundbyberg", "Nacka", "Lidingö", "Danderyd",
+  "Täby", "Sollentuna", "Järfälla", "Upplands Väsby", "Sigtuna",
+  "Vallentuna", "Österåker", "Vaxholm", "Värmdö", "Tyresö", "Haninge",
+  "Nynäshamn", "Botkyrka", "Salem", "Södertälje", "Nykvarn", "Huddinge",
+  "Bromma", "Ekerö", "Upplands-Bro",
+];
 
 const PRICE_PER_KG_EXKL = 325; // exkl. moms, används för Stripe/faktura
 const VAT_RATE = 0.25;
@@ -47,6 +58,7 @@ const PlansSection = () => {
   const [submitted, setSubmitted] = useState<null | "card" | "invoice">(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const [form, setForm] = useState({
     företag: "",
     epost: "",
@@ -414,14 +426,47 @@ const PlansSection = () => {
                   <label className="block mb-1.5 text-sm font-semibold">
                     Stad <span className="text-primary">*</span>
                   </label>
-                  <input
-                    name="stad"
-                    placeholder="t.ex. Stockholm"
-                    value={form.stad}
-                    onChange={handleChange}
-                    aria-invalid={!!errors.stad}
-                    className="w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
+                  <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        role="combobox"
+                        aria-expanded={cityOpen}
+                        aria-invalid={!!errors.stad}
+                        className={cn(
+                          "w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 flex items-center justify-between text-left",
+                          !form.stad && "text-muted-foreground"
+                        )}
+                      >
+                        {form.stad || "Välj stad..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Sök stad..." />
+                        <CommandList>
+                          <CommandEmpty>Ingen stad hittades.</CommandEmpty>
+                          <CommandGroup>
+                            {STORSTOCKHOLM_CITIES.map((city) => (
+                              <CommandItem
+                                key={city}
+                                value={city}
+                                onSelect={(v) => {
+                                  setForm((f) => ({ ...f, stad: v }));
+                                  setErrors((e) => ({ ...e, stad: "" }));
+                                  setCityOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.stad === city ? "opacity-100" : "opacity-0")} />
+                                {city}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {errors.stad && (
                     <p className="text-destructive text-xs mt-1">{errors.stad}</p>
                   )}
