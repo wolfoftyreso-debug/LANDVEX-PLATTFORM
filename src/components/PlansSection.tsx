@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { getStripeEnvironment, hasPaymentsConfigured } from "@/lib/stripe";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
 const STORSTOCKHOLM_CITIES = [
@@ -112,6 +110,14 @@ const PlansSection = () => {
     kommentarer: "",
   });
 
+  const filteredCities = useMemo(() => {
+    const query = form.stad.trim().toLocaleLowerCase("sv-SE");
+    if (!query) return STORSTOCKHOLM_CITIES;
+    return STORSTOCKHOLM_CITIES.filter((city) =>
+      city.toLocaleLowerCase("sv-SE").includes(query)
+    );
+  }, [form.stad]);
+
   const recommendedKg = useMemo(
     () => Math.max(1, Math.round(employees * KG_PER_EMPLOYEE)),
     [employees]
@@ -127,17 +133,29 @@ const PlansSection = () => {
         .select("company_name, phone, street_address, postal_code, city")
         .eq("user_id", user.id)
         .maybeSingle();
-      setForm((prev) => ({
-        ...prev,
-        företag: prev.företag || data?.company_name || "",
-        epost: prev.epost || user.email || "",
-        telefon: prev.telefon || data?.phone || "",
-        adress: prev.adress || data?.street_address || "",
-        postnummer: prev.postnummer || data?.postal_code || "",
-        stad: prev.stad || data?.city || "",
-      }));
+      setForm((prev) => {
+        const postalCode = prev.postnummer || data?.postal_code || "";
+        const suggestedCity = cityFromPostalCode(postalCode);
+
+        return {
+          ...prev,
+          företag: prev.företag || data?.company_name || "",
+          epost: prev.epost || user.email || "",
+          telefon: prev.telefon || data?.phone || "",
+          adress: prev.adress || data?.street_address || "",
+          postnummer: postalCode,
+          stad: suggestedCity || prev.stad || data?.city || "",
+        };
+      });
     })();
   }, [user, showForm]);
+
+  useEffect(() => {
+    const suggestedCity = cityFromPostalCode(form.postnummer);
+    if (!suggestedCity || form.stad === suggestedCity) return;
+    setForm((prev) => ({ ...prev, stad: suggestedCity }));
+    setErrors((prev) => ({ ...prev, stad: "", postnummer: "" }));
+  }, [form.postnummer, form.stad]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -476,47 +494,71 @@ const PlansSection = () => {
                   <label className="block mb-1.5 text-sm font-semibold">
                     Stad <span className="text-primary">*</span>
                   </label>
-                  <Popover open={cityOpen} onOpenChange={setCityOpen}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
+                  <div className="relative">
+                    <div className="relative">
+                      <input
+                        name="stad"
                         role="combobox"
                         aria-expanded={cityOpen}
+                        aria-controls="city-options"
+                        aria-autocomplete="list"
                         aria-invalid={!!errors.stad}
-                        className={cn(
-                          "w-full px-4 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 flex items-center justify-between text-left",
-                          !form.stad && "text-muted-foreground"
-                        )}
+                        placeholder="Sök eller välj stad..."
+                        value={form.stad}
+                        onFocus={() => setCityOpen(true)}
+                        onBlur={() => window.setTimeout(() => setCityOpen(false), 120)}
+                        onChange={(e) => {
+                          handleChange(e);
+                          setCityOpen(true);
+                        }}
+                        className="w-full px-4 py-3 pr-10 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Visa städer"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setCityOpen((open) => !open)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        {form.stad || "Välj stad..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <ChevronsUpDown className="h-4 w-4" />
                       </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Sök stad..." />
-                        <CommandList>
-                          <CommandEmpty>Ingen stad hittades.</CommandEmpty>
-                          <CommandGroup>
-                            {STORSTOCKHOLM_CITIES.map((city) => (
-                              <CommandItem
-                                key={city}
-                                value={city}
-                                onSelect={(v) => {
-                                  setForm((f) => ({ ...f, stad: v }));
-                                  setErrors((e) => ({ ...e, stad: "" }));
-                                  setCityOpen(false);
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.stad === city ? "opacity-100" : "opacity-0")} />
-                                {city}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                    {cityOpen && (
+                      <div
+                        id="city-options"
+                        role="listbox"
+                        className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-sm border border-border bg-popover shadow-md"
+                      >
+                        {filteredCities.length > 0 ? (
+                          filteredCities.map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              role="option"
+                              aria-selected={form.stad === city}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setForm((f) => ({ ...f, stad: city }));
+                                setErrors((e) => ({ ...e, stad: "" }));
+                                setCityOpen(false);
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground",
+                                form.stad === city && "bg-accent text-accent-foreground"
+                              )}
+                            >
+                              <Check className={cn("h-4 w-4", form.stad === city ? "opacity-100" : "opacity-0")} />
+                              <span>{city}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">
+                            Ingen stad hittades.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {errors.stad && (
                     <p className="text-destructive text-xs mt-1">{errors.stad}</p>
                   )}
