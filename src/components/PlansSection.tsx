@@ -492,6 +492,58 @@ const PlansSection = () => {
                 </div>
               </div>
 
+              {!user && (
+                <div className="relative overflow-hidden rounded-sm border border-primary/40 bg-gradient-to-br from-primary/[0.06] via-background to-primary/[0.03] p-5 md:p-6 shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+                  <div className="relative flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center border border-primary/30">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-display text-lg md:text-xl font-semibold text-foreground leading-tight">
+                        Ditt konto skapas automatiskt
+                      </div>
+                      <p className="text-muted-foreground text-xs md:text-sm mt-1 leading-relaxed">
+                        Välj ett lösenord så loggar vi in dig direkt. Hantera ditt abonnemang, ändra leveranser och se fakturor i "Mitt konto" när som helst.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="block mb-1.5 text-sm font-semibold text-foreground">
+                    Välj lösenord <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={handleChange}
+                      placeholder="Minst 8 tecken"
+                      autoComplete="new-password"
+                      aria-invalid={!!errors.password}
+                      className="w-full pl-10 pr-11 py-3 rounded-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? "Dölj lösenord" : "Visa lösenord"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.password ? (
+                    <p className="text-destructive text-xs mt-1.5">{errors.password}</p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs mt-1.5">
+                      Använd minst 8 tecken. Vi rekommenderar en blandning av bokstäver och siffror.
+                    </p>
+                  )}
+                </div>
+              )}
+
+
               <div>
                 <label className="block mb-1.5 text-sm font-semibold">
                   Leveransadress <span className="text-primary">*</span>
