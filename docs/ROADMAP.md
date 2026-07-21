@@ -56,11 +56,17 @@ preserving the architecture rules in `docs/ARCHITECTURE.md`.
 
 ## Phase 2 — Payments & Logistics
 
-- [ ] Payments module: checkout on accepted offers, escrow-style capture/release,
-      payouts, multi-currency
-- [ ] Logistics module (independent): transport booking, pickup, tracking, delivery
-      confirmation, insurance, labels; first provider integrations
-- [ ] Dispute handling in Administration
+- [x] Payments module v1: every order gets a payment record; the customer
+      secures funds in escrow (`pay_order_escrow`), release happens
+      automatically on approved completion, admins can refund during disputes.
+      Provider abstraction in place ('manual' today) — wire in Stripe/PSP next
+- [x] Logistics module v1 (independent — references orders by plain UUID, no
+      FK into marketplace tables): transport requests with pickup/delivery,
+      insurance flag, status tracking (requested → booked → picked up →
+      in transit → delivered) and notifications; provider integrations next
+- [ ] PSP integration (Stripe) behind the payment provider abstraction
+- [ ] Logistics provider integrations + shipping labels
+- [ ] Dispute handling workflow in Administration (refund function exists)
 
 ## Phase 3 — Scale & self-hosting
 

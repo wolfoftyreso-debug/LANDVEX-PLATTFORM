@@ -15,8 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { listCompanies } from "@/modules/companies/api";
+import type { CompanySort } from "@/modules/companies/types";
 import { listCategories, listVerticals } from "@/modules/marketplace/api";
-import { COUNTRIES } from "@/modules/core/countries";
+import { COUNTRIES, LANGUAGES } from "@/modules/core/countries";
 import { Building2, Search } from "lucide-react";
 
 const ALL = "all";
@@ -27,6 +28,8 @@ export default function Companies() {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState(ALL);
   const [categoryId, setCategoryId] = useState(ALL);
+  const [language, setLanguage] = useState(ALL);
+  const [sort, setSort] = useState<CompanySort>("trust");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const { data: verticals } = useQuery({
@@ -45,12 +48,14 @@ export default function Companies() {
   });
 
   const { data: companies, isLoading } = useQuery({
-    queryKey: ["companies", search, country, categoryId, verifiedOnly],
+    queryKey: ["companies", search, country, categoryId, language, sort, verifiedOnly],
     queryFn: () =>
       listCompanies({
         search: search || undefined,
         country: country === ALL ? undefined : country,
         categoryId: categoryId === ALL ? undefined : categoryId,
+        language: language === ALL ? undefined : language,
+        sort,
         verifiedOnly,
       }),
   });
@@ -120,15 +125,44 @@ export default function Companies() {
             </SelectContent>
           </Select>
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <Checkbox
-            id="verified"
-            checked={verifiedOnly}
-            onCheckedChange={(v) => setVerifiedOnly(v === true)}
-          />
-          <Label htmlFor="verified" className="text-sm font-normal">
-            Verified companies only
-          </Label>
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="verified"
+              checked={verifiedOnly}
+              onCheckedChange={(v) => setVerifiedOnly(v === true)}
+            />
+            <Label htmlFor="verified" className="text-sm font-normal">
+              Verified companies only
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-normal text-muted-foreground">Language</Label>
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Any language</SelectItem>
+                {LANGUAGES.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-normal text-muted-foreground">Sort by</Label>
+            <Select value={sort} onValueChange={(v) => setSort(v as CompanySort)}>
+              <SelectTrigger className="h-8 w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="trust">Trust score</SelectItem>
+                <SelectItem value="rating">Rating</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Results */}

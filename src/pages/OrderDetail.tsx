@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import SiteLayout from "@/components/layout/SiteLayout";
 import EmptyState from "@/components/marketplace/EmptyState";
+import PaymentCard from "@/components/marketplace/PaymentCard";
+import LogisticsCard from "@/components/marketplace/LogisticsCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -257,6 +259,14 @@ export default function OrderDetail() {
               </Button>
             )}
         </div>
+
+        {/* Payment (escrow) */}
+        {(isCustomer || isCompanySide) && (
+          <PaymentCard order={order} isCustomer={isCustomer} />
+        )}
+
+        {/* Transport */}
+        {(isCustomer || isCompanySide) && <LogisticsCard order={order} />}
 
         {/* Review */}
         {isCustomer && order.status === "completed" && !hasReview && (

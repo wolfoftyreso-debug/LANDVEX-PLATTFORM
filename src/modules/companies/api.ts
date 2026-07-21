@@ -20,10 +20,17 @@ export function slugify(name: string): string {
 export async function listCompanies(
   filters: CompanyFilters = {},
 ): Promise<Company[]> {
+  const sortColumn =
+    filters.sort === "rating"
+      ? "rating_avg"
+      : filters.sort === "newest"
+        ? "created_at"
+        : "trust_score";
+
   let query = db
     .from("companies")
     .select("*")
-    .order("trust_score", { ascending: false })
+    .order(sortColumn, { ascending: false })
     .limit(60);
 
   if (filters.country) query = query.eq("country", filters.country);

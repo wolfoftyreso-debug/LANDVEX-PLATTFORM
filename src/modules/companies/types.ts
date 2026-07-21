@@ -57,6 +57,8 @@ export interface CompanyServiceRow {
   categories?: { id: string; name: string; slug: string; vertical_id: string };
 }
 
+export type CompanySort = "trust" | "rating" | "newest";
+
 export interface CompanyFilters {
   search?: string;
   country?: string;
@@ -65,6 +67,7 @@ export interface CompanyFilters {
   verifiedOnly?: boolean;
   minRating?: number;
   language?: string;
+  sort?: CompanySort;
 }
 
 export type CompanyInput = Pick<
