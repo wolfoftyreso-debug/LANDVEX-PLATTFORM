@@ -59,9 +59,9 @@ export default function Landing() {
             <span className="text-primary">verified</span> professional services
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-lg text-muted-foreground">
-            Get quotes from trusted construction companies and car workshops
-            across Europe. Compare trust scores, reviews and verification levels
-            — then hire with confidence.
+            Get quotes from trusted construction companies, car workshops,
+            bakeries and manufacturers across Europe. Compare trust scores,
+            reviews and verification levels — then hire with confidence.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/rfq/new")}>
@@ -79,7 +79,7 @@ export default function Landing() {
       <section className="container mx-auto px-4 py-16">
         <h2 className="text-center text-2xl font-bold md:text-3xl">Marketplaces</h2>
         <p className="mt-2 text-center text-muted-foreground">
-          Two verticals today — the platform is built to host many more.
+          Services and production — the platform is built to host many more verticals.
         </p>
         <div className="mx-auto mt-8 grid max-w-4xl gap-6 md:grid-cols-2">
           {VERTICALS.map((v) => (

@@ -71,10 +71,13 @@ preserving the architecture rules in `docs/ARCHITECTURE.md`.
 
 ## Phase 4+ — New verticals
 
-Enable additional verticals purely through configuration: manufacturing, industrial
-suppliers, agriculture, logistics, legal, accounting, healthcare, consultants,
-freelancers, property services, cleaning, security, renewable energy, installation
-services.
+Enable additional verticals purely through configuration. Already live beyond
+Phase 1: **Bakery & Food Production** (custom, recurring, wholesale and private
+label orders) and **Manufacturing** (CNC, fabrication, molding, prototyping,
+textiles, assembly) — both added as data + UI config only, with zero core
+changes. Remaining candidates: industrial suppliers, agriculture, logistics,
+legal, accounting, healthcare, consultants, freelancers, property services,
+cleaning, security, renewable energy, installation services.
 
 **Definition of done for the architecture:** adding a vertical requires zero changes
 to core engine code.

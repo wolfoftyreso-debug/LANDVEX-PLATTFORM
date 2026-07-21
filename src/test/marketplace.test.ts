@@ -36,8 +36,13 @@ describe("countries and languages", () => {
 });
 
 describe("vertical configuration (generic marketplace engine)", () => {
-  it("ships the two Phase 1 verticals", () => {
-    expect(VERTICALS.map((v) => v.slug)).toEqual(["construction", "automotive"]);
+  it("ships the Phase 1 verticals plus production verticals", () => {
+    expect(VERTICALS.map((v) => v.slug)).toEqual([
+      "construction",
+      "automotive",
+      "food-production",
+      "manufacturing",
+    ]);
   });
 
   it("automotive RFQs require a registration number", () => {
@@ -46,6 +51,20 @@ describe("vertical configuration (generic marketplace engine)", () => {
       (f) => f.key === "registration_number",
     );
     expect(reg?.required).toBe(true);
+  });
+
+  it("food production RFQs require order type and quantity", () => {
+    const food = verticalConfig("food-production");
+    const required = food?.metadataFields
+      .filter((f) => f.required)
+      .map((f) => f.key);
+    expect(required).toEqual(["order_type", "quantity"]);
+  });
+
+  it("manufacturing RFQs require a quantity", () => {
+    const manufacturing = verticalConfig("manufacturing");
+    const qty = manufacturing?.metadataFields.find((f) => f.key === "quantity");
+    expect(qty?.required).toBe(true);
   });
 
   it("every vertical declares a metadata schema version", () => {

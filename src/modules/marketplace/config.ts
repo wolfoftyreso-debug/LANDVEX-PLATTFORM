@@ -1,7 +1,7 @@
 // Vertical UI configuration.
 // The marketplace engine is generic — each vertical contributes its own
 // presentation and RFQ metadata schema here. Categories live in the database.
-import { HardHat, Car, type LucideIcon } from "lucide-react";
+import { HardHat, Car, Croissant, Factory, type LucideIcon } from "lucide-react";
 
 export interface MetadataField {
   key: string;
@@ -90,6 +90,93 @@ export const VERTICALS: VerticalUiConfig[] = [
       {
         key: "desired_completion_date",
         label: "Desired completion date",
+        type: "date",
+      },
+    ],
+  },
+  {
+    slug: "food-production",
+    label: "Bakery & Food",
+    tagline:
+      "Order from verified bakeries, confectioneries and food producers — one-off, recurring or wholesale.",
+    icon: Croissant,
+    rfqTitlePlaceholder: "e.g. 200 cinnamon buns weekly for our café",
+    metadataSchemaVersion: 1,
+    metadataFields: [
+      {
+        key: "order_type",
+        label: "Order type",
+        type: "select",
+        options: [
+          { value: "one_off", label: "One-off order" },
+          { value: "recurring", label: "Recurring delivery" },
+          { value: "wholesale", label: "Wholesale / B2B" },
+          { value: "private_label", label: "Private label production" },
+        ],
+        required: true,
+      },
+      {
+        key: "quantity",
+        label: "Quantity / volume",
+        type: "text",
+        placeholder: "e.g. 200 pcs per week, 50 kg per month",
+        required: true,
+      },
+      {
+        key: "delivery_date",
+        label: "First delivery date",
+        type: "date",
+      },
+      {
+        key: "dietary_requirements",
+        label: "Allergens & dietary requirements",
+        type: "textarea",
+        placeholder: "e.g. gluten-free, nut-free facility, vegan, halal…",
+      },
+    ],
+  },
+  {
+    slug: "manufacturing",
+    label: "Manufacturing",
+    tagline:
+      "Custom production from verified workshops and factories — prototypes to serial manufacturing.",
+    icon: Factory,
+    rfqTitlePlaceholder: "e.g. 500 anodized aluminium brackets, CNC milled",
+    metadataSchemaVersion: 1,
+    metadataFields: [
+      {
+        key: "quantity",
+        label: "Quantity",
+        type: "text",
+        placeholder: "e.g. 1 prototype + 500 series",
+        required: true,
+      },
+      {
+        key: "material",
+        label: "Material",
+        type: "text",
+        placeholder: "e.g. 6061 aluminium, oak, ABS, stainless 316",
+      },
+      {
+        key: "drawings_available",
+        label: "Technical drawings available?",
+        type: "select",
+        options: [
+          { value: "cad", label: "Yes — CAD files" },
+          { value: "pdf", label: "Yes — PDF drawings" },
+          { value: "sketch", label: "Only sketches / photos" },
+          { value: "none", label: "No — need design help" },
+        ],
+      },
+      {
+        key: "tolerances",
+        label: "Tolerances & specifications",
+        type: "textarea",
+        placeholder: "Critical dimensions, finish, standards (ISO/EN)…",
+      },
+      {
+        key: "delivery_date",
+        label: "Required delivery date",
         type: "date",
       },
     ],

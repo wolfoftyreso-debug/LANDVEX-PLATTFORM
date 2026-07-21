@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationsBell from "@/components/marketplace/NotificationsBell";
+import { VERTICALS } from "@/modules/marketplace/config";
 import type { ReactNode } from "react";
 
 function Logo() {
@@ -143,8 +144,16 @@ export function SiteFooter() {
         <div>
           <h4 className="mb-3 text-sm font-semibold">Marketplaces</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/companies?vertical=construction" className="hover:text-foreground">Construction</Link></li>
-            <li><Link to="/companies?vertical=automotive" className="hover:text-foreground">Automotive</Link></li>
+            {VERTICALS.map((v) => (
+              <li key={v.slug}>
+                <Link
+                  to={`/companies?vertical=${v.slug}`}
+                  className="hover:text-foreground"
+                >
+                  {v.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
