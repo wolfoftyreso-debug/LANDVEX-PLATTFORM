@@ -3,49 +3,43 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import Landing from "./pages/Landing";
+import Companies from "./pages/Companies";
+import CompanyProfile from "./pages/CompanyProfile";
+import CompanyRegister from "./pages/CompanyRegister";
+import RfqNew from "./pages/RfqNew";
+import RfqBrowse from "./pages/RfqBrowse";
+import RfqDetail from "./pages/RfqDetail";
+import OrderDetail from "./pages/OrderDetail";
+import Dashboard from "./pages/Dashboard";
+import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Profile from "./pages/Profile";
-import Account from "./pages/Account";
-import AccountConfirmation from "./pages/AccountConfirmation";
-import Contact from "./pages/Contact";
-import Admin from "./pages/Admin";
-import FAQ from "./pages/FAQ";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import ChangeSubscription from "./pages/ChangeSubscription";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-function AppContent() {
-  return (
-    <BrowserRouter>
-      <PaymentTestModeBanner />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/account/confirmation" element={<AccountConfirmation />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/order-confirmation" element={<OrderConfirmation />} />
-        <Route path="/account/change-subscription" element={<ChangeSubscription />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppContent />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/companies" element={<Companies />} />
+          <Route path="/company/register" element={<CompanyRegister />} />
+          <Route path="/company/:slug" element={<CompanyProfile />} />
+          <Route path="/rfq/new" element={<RfqNew />} />
+          <Route path="/rfq/:id" element={<RfqDetail />} />
+          <Route path="/rfqs" element={<RfqBrowse />} />
+          <Route path="/order/:id" element={<OrderDetail />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

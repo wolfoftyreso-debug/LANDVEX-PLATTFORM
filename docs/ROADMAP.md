@@ -6,33 +6,42 @@ preserving the architecture rules in `docs/ARCHITECTURE.md`.
 
 ## Phase 0 — Foundation (repurpose the codebase)
 
-- [ ] Establish vision & architecture docs (this change)
-- [ ] Remove/retire legacy e-commerce pages, edge functions and tables not relevant
-      to the marketplace
-- [ ] Introduce module-oriented source layout (`src/modules/<context>/…`) with
-      domain/application/infrastructure separation
-- [ ] Set up the vertical configuration model (categories, metadata schemas per
-      vertical) — construction and automotive as first entries
-- [ ] Database migrations for core contexts: identity, companies, verification,
-      rfq, offers, orders, reviews
-- [ ] RBAC roles: customer, company member, company admin, moderator, platform admin
-- [ ] Audit logging for all state-changing actions
-- [ ] i18n scaffolding (multi-language) and money type (multi-currency)
+- [x] Establish vision & architecture docs
+- [x] Remove/retire legacy e-commerce pages and components (edge functions and
+      legacy tables remain to be retired once data is archived)
+- [x] Introduce module-oriented source layout (`src/modules/<context>/…`)
+- [x] Set up the vertical configuration model (categories in DB, metadata schemas
+      per vertical in `src/modules/marketplace/config.ts`) — construction and
+      automotive as first entries
+- [x] Database migrations for core contexts: companies, verification, rfq,
+      offers, orders, reviews, messaging, notifications
+- [x] RBAC v1 via RLS policies (customer, company member/owner, admin);
+      moderator/platform-admin back office remains
+- [x] Audit log table + `accept_offer` writes audit entries; extend to all
+      state-changing actions
+- [ ] i18n scaffolding (multi-language); multi-currency money handling is in
+      place on RFQs/offers/orders
 
 ## Phase 1a — Construction Marketplace (MVP)
 
-- [ ] Company registration and standardized profile (all profile fields, logo/cover
-      via Media module)
-- [ ] Permanent SEO-friendly company URLs (`/company/<slug>`) with structured data
-- [ ] Company search with country/region/city/category/rating/language filters
-- [ ] RFQ flow: customer posts description, images, address, budget, deadline,
-      preferred language
-- [ ] RFQ matching → companies receive matching RFQs (Notifications module)
-- [ ] Offers: companies submit quotations; customer accepts → Order created
-- [ ] Messaging between customer and company
-- [ ] Order completion → verified customer review (all review dimensions)
-- [ ] Verification v1: identity + VAT checks, Bronze/Silver levels
-- [ ] Trust Score v1: verification, reviews, response metrics
+- [x] Company registration and standardized profile (profile fields, services,
+      portfolio; logo/cover upload via media buckets)
+- [x] Permanent SEO-friendly company URLs (`/company/<slug>`); structured data
+      markup remains
+- [x] Company search with country/category/rating/verified filters (region/city
+      and language filters remain)
+- [x] RFQ flow: customer posts description, images, address, budget, deadline,
+      preferred language + vertical-specific metadata
+- [ ] RFQ matching → notifications to matching companies (companies browse the
+      open-request inbox today; push/email matching remains)
+- [x] Offers: companies submit quotations; customer accepts → Order created
+      (transactional `accept_offer`)
+- [ ] Messaging UI between customer and company (schema + RLS are in place)
+- [x] Order completion → verified customer review (all review dimensions)
+- [ ] Verification v1 back office: identity + VAT approval workflow
+      (request tables, levels and badges are in place)
+- [x] Trust Score v1: verification, reviews, completed projects, response metrics
+      — continuously recalculated by database triggers
 
 ## Phase 1b — Automotive Marketplace
 
