@@ -23,6 +23,7 @@ import {
   submitOffer,
 } from "@/modules/offers/api";
 import { getMyCompany } from "@/modules/companies/api";
+import { getOrCreateConversation } from "@/modules/messaging/api";
 import { verticalConfig } from "@/modules/marketplace/config";
 import { countryName, languageName } from "@/modules/core/countries";
 import { formatMoney } from "@/modules/core/types";
@@ -33,6 +34,7 @@ import {
   CalendarDays,
   FileQuestion,
   MapPin,
+  MessagesSquare,
   Send,
   Wallet,
   CheckCircle2,
@@ -95,6 +97,18 @@ export default function RfqDetail() {
       toast.success("Offer accepted — your order has been created.");
       navigate(`/order/${orderId}`);
     },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const message = useMutation({
+    mutationFn: (companyId: string) =>
+      getOrCreateConversation({
+        companyId,
+        customerId: rfq!.customer_id,
+        rfqId: rfq!.id,
+      }),
+    onSuccess: (conversation) =>
+      navigate(`/messages?conversation=${conversation.id}`),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -272,15 +286,25 @@ export default function RfqDetail() {
                     <p className="mt-3 text-sm text-muted-foreground">{offer.description}</p>
                     <div className="mt-4 flex items-center justify-between">
                       <Badge variant="outline" className="capitalize">{offer.status}</Badge>
-                      {offer.status === "submitted" && rfq.status === "published" && (
+                      <div className="flex gap-2">
                         <Button
-                          onClick={() => accept.mutate(offer.id)}
-                          disabled={accept.isPending}
+                          variant="outline"
+                          onClick={() => message.mutate(offer.company_id)}
+                          disabled={message.isPending}
                         >
-                          <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                          Accept offer
+                          <MessagesSquare className="mr-1.5 h-4 w-4" />
+                          Message
                         </Button>
-                      )}
+                        {offer.status === "submitted" && rfq.status === "published" && (
+                          <Button
+                            onClick={() => accept.mutate(offer.id)}
+                            disabled={accept.isPending}
+                          >
+                            <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                            Accept offer
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -342,6 +366,19 @@ export default function RfqDetail() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {myCompany && !isOwner && (
+          <div className="mt-4 flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => message.mutate(myCompany.id)}
+              disabled={message.isPending}
+            >
+              <MessagesSquare className="mr-1.5 h-4 w-4" />
+              Message the customer
+            </Button>
+          </div>
         )}
 
         {myOffer && !isOwner && (

@@ -12,12 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { getOrder, updateOrderStatus } from "@/modules/orders/api";
 import { getMyCompany } from "@/modules/companies/api";
+import { getOrCreateConversation } from "@/modules/messaging/api";
 import { createReview } from "@/modules/reviews/api";
 import { formatMoney } from "@/modules/core/types";
 import type { OrderStatus } from "@/modules/core/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Package, Star } from "lucide-react";
+import { MessagesSquare, Package, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const STATUS_FLOW: OrderStatus[] = ["created", "in_progress", "delivered", "completed"];
@@ -61,6 +63,7 @@ function StarPicker({
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -97,6 +100,19 @@ export default function OrderDetail() {
       toast.success("Order status updated.");
       queryClient.invalidateQueries({ queryKey: ["order", id] });
     },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const message = useMutation({
+    mutationFn: () =>
+      getOrCreateConversation({
+        companyId: order!.company_id,
+        customerId: order!.customer_id,
+        rfqId: order!.rfq_id,
+        orderId: order!.id,
+      }),
+    onSuccess: (conversation) =>
+      navigate(`/messages?conversation=${conversation.id}`),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -205,6 +221,16 @@ export default function OrderDetail() {
 
         {/* Actions */}
         <div className="mt-6 flex flex-wrap gap-3">
+          {(isCustomer || isCompanySide) && (
+            <Button
+              variant="outline"
+              onClick={() => message.mutate()}
+              disabled={message.isPending}
+            >
+              <MessagesSquare className="mr-1.5 h-4 w-4" />
+              {isCustomer ? "Message the company" : "Message the customer"}
+            </Button>
+          )}
           {isCompanySide && order.status === "created" && (
             <Button onClick={() => setStatus.mutate("in_progress")} disabled={setStatus.isPending}>
               Start work

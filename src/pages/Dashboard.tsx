@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import SiteLayout from "@/components/layout/SiteLayout";
 import RfqCard from "@/components/marketplace/RfqCard";
 import EmptyState from "@/components/marketplace/EmptyState";
+import VerificationCard from "@/components/marketplace/VerificationCard";
 import { TrustScoreBadge, VerificationBadge } from "@/components/marketplace/badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,17 +94,28 @@ export default function Dashboard() {
                   <TrustScoreBadge score={Number(myCompany.trust_score)} />
                   <VerificationBadge level={myCompany.verification_level} />
                 </div>
-                <Link
-                  to={`/company/${myCompany.slug}`}
-                  className="text-sm text-primary hover:underline"
-                >
-                  View public profile
-                </Link>
+                <div className="flex gap-3 text-sm">
+                  <Link
+                    to={`/company/${myCompany.slug}`}
+                    className="text-primary hover:underline"
+                  >
+                    View public profile
+                  </Link>
+                  <Link to="/company/edit" className="text-primary hover:underline">
+                    Edit profile
+                  </Link>
+                </div>
               </div>
             </div>
             <Button variant="outline" onClick={() => navigate("/rfqs")}>
               Browse open requests <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
+          </div>
+        )}
+
+        {myCompany && (
+          <div className="mt-4">
+            <VerificationCard company={myCompany} />
           </div>
         )}
 

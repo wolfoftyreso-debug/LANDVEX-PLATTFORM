@@ -32,14 +32,17 @@ preserving the architecture rules in `docs/ARCHITECTURE.md`.
       and language filters remain)
 - [x] RFQ flow: customer posts description, images, address, budget, deadline,
       preferred language + vertical-specific metadata
-- [ ] RFQ matching → notifications to matching companies (companies browse the
-      open-request inbox today; push/email matching remains)
+- [x] RFQ matching → in-app notifications to companies whose services and
+      country coverage match (email/push channels remain)
 - [x] Offers: companies submit quotations; customer accepts → Order created
       (transactional `accept_offer`)
-- [ ] Messaging UI between customer and company (schema + RLS are in place)
+- [x] Messaging between customer and company (/messages, threads started from
+      RFQ and order pages, new-message notifications)
 - [x] Order completion → verified customer review (all review dimensions)
-- [ ] Verification v1 back office: identity + VAT approval workflow
-      (request tables, levels and badges are in place)
+- [x] Verification v1: companies apply for the next level from the dashboard;
+      admin back office (/admin) approves/rejects via transactional
+      `review_verification()` which updates level, trust score and notifies
+      the company
 - [x] Trust Score v1: verification, reviews, completed projects, response metrics
       — continuously recalculated by database triggers
 

@@ -1,13 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Building2, FileText, LayoutDashboard, LogOut, Menu } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessagesSquare,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NotificationsBell from "@/components/marketplace/NotificationsBell";
 import type { ReactNode } from "react";
 
 function Logo() {
@@ -47,6 +55,15 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              <NotificationsBell />
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Messages"
+                onClick={() => navigate("/messages")}
+              >
+                <MessagesSquare className="h-5 w-5" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
                 <LayoutDashboard className="mr-1.5 h-4 w-4" />
                 Dashboard

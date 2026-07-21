@@ -12,6 +12,9 @@ import RfqBrowse from "./pages/RfqBrowse";
 import RfqDetail from "./pages/RfqDetail";
 import OrderDetail from "./pages/OrderDetail";
 import Dashboard from "./pages/Dashboard";
+import Messages from "./pages/Messages";
+import CompanyEdit from "./pages/CompanyEdit";
+import AdminBackOffice from "./pages/AdminBackOffice";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -28,12 +31,15 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/company/register" element={<CompanyRegister />} />
+          <Route path="/company/edit" element={<CompanyEdit />} />
           <Route path="/company/:slug" element={<CompanyProfile />} />
           <Route path="/rfq/new" element={<RfqNew />} />
           <Route path="/rfq/:id" element={<RfqDetail />} />
           <Route path="/rfqs" element={<RfqBrowse />} />
           <Route path="/order/:id" element={<OrderDetail />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/admin" element={<AdminBackOffice />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
