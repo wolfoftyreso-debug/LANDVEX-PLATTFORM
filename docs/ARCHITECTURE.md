@@ -1,3 +1,5 @@
+> **SUPERSEDED (July 2026):** This document describes the pre-1.1 broad-marketplace direction. The authoritative foundation is now `CLAUDE.md` (Foundation Prompt v1.1 — verified LT→SE subcontracting, Sections 1–8). Where this document conflicts with CLAUDE.md, CLAUDE.md wins. Kept for historical context only.
+
 # Baltic Bridge — Architecture
 
 ## Guiding qualities

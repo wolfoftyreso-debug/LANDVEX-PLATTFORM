@@ -1,70 +1,147 @@
-# Baltic Bridge — Project Foundation
+# BALTIC BRIDGE — Foundation Prompt (Phase 0–1)
 
-This repository is being developed into **Baltic Bridge**, a B2B and B2C marketplace
-connecting customers with verified companies across Europe. The long-term vision is to
-become the *Alibaba of European services*, starting with **construction** and
-**automotive repair**.
+**Version:** 1.1 · July 2026 · AWS edition
+**How to use:** Save this file as `CLAUDE.md` in the repo root (or paste as the first message to your coding assistant). Sections 1–8 are the **build order**. Appendix A is long-term context only — it is *not* a build order, and nothing in it overrides Sections 1–8.
 
-> The current codebase originates from an earlier e-commerce project (Vite + React +
-> shadcn/ui + Supabase). All new work must move the project toward the Baltic Bridge
-> vision described here and in `docs/`.
+---
 
-## Non-negotiable platform qualities
+## 1. What you are building
 
-Every architectural decision must preserve these properties. The platform is designed
-from day one to be:
+Baltic Bridge is a **verified cross-border subcontracting marketplace**. Launch corridor: **Lithuania → Sweden**. Launch trade group: **welders and industrial fitters**, offered as *entreprenad* (contracted work packages), not staffing.
 
-- **API First** — every capability is exposed through a documented API before any UI consumes it
-- **Cloud Native** — containerized, stateless services, externalized configuration
-- **Multi-tenant** — verticals (construction, automotive, …) share one platform core
-- **Modular** — bounded modules with explicit contracts (see module map below)
-- **Scalable** — must support millions of users without fundamental redesign
-- **Self-hosted** — no hard dependency on a single proprietary PaaS
-- **Production ready** — tests, observability, audit logging, GDPR compliance
-- **Event driven** — modules communicate through domain events, not direct coupling
+The product is **not** the marketplace UI — it is the **verification and compliance engine**: proving, with documents and an audit trail, that a Baltic supplier is fully compliant for work in Sweden (F-skatt, A1, posted-worker notification, ID06, insurance, collective-agreement status, welding certifications). Buyers pay to make beställaransvar risk disappear. Everything else is plumbing around that.
 
-## Marketplace principle
+The first users are **our own ops team** running a concierge model: they onboard suppliers, review documents, and broker the first deals manually. The software must make *them* fast before it makes anyone else self-serve.
 
-Baltic Bridge **never performs the work**. It connects:
+## 2. Stage discipline — read before writing any code
 
-`Customers → Verified companies → Payment → Logistics → Reviews → Long-term trust`
+- Build for the **first 50 suppliers and 20 buyers**, not millions of users. Correctness and auditability over throughput.
+- **Modular monolith.** One deployable. No microservices, no Kubernetes, no CQRS, no message broker, no event bus, no GraphQL, no Elasticsearch, no Redis, no multi-tenant white-labeling.
+- If a task seems to require anything in the "Out of scope" list (Section 7), **stop and ask** instead of building it.
+- Future verticals are **data, not code**: categories, requirement catalogues and metadata live in tables. Never hard-code "welding" into module logic.
+- Prefer boring, well-documented choices. Every dependency must earn its place; ask before adding any that is not in Section 3.
 
-## Core modules
+## 3. Tech stack (fixed — do not substitute)
 
-Identity · Authentication · Users · Companies · Reviews · Messaging · RFQ · Offers ·
-Orders · Payments · Logistics · Media · Notifications · Search · Trust Engine ·
-Verification · Administration · Analytics · API Gateway
+Target environment: the company's existing **AWS organization**. All resources live in **`eu-north-1` (Stockholm)** for GDPR data residency.
 
-The **marketplace engine is generic**; each vertical defines its own categories,
-metadata, workflows and filters. New verticals (manufacturing, legal, cleaning, …)
-must be enable-able without changing the core. The **Logistics module is independent**
-from the marketplace.
+| Concern | Choice | Notes |
+|---|---|---|
+| Language | TypeScript end-to-end | strict mode |
+| App | Next.js (App Router), single monolith | one container image (standalone output); serves UI + `/api/v1` REST routes |
+| Database | Amazon RDS for PostgreSQL 16 | single `db.t4g`-class instance to start; PITR on; Multi-AZ when revenue justifies it; Drizzle ORM + drizzle-kit migrations |
+| Search | Postgres full-text (`tsvector`) + trigram | no OpenSearch |
+| Auth | Auth.js — email magic link + password | roles: `admin`, `ops`, `supplier`, `buyer` (RBAC); not Cognito |
+| Files | Amazon S3, private buckets | presigned URLs (≤ 15 min); SSE-S3; separate versioned `documents` bucket for verification evidence; LocalStack or MinIO in dev |
+| Email | Single `EmailProvider` interface | Amazon SES adapter (eu-north-1) as first implementation |
+| Jobs/cron | `pg-boss` (Postgres-backed queue) inside the app container | expiry checks, notifications; EventBridge Scheduler may hit HTTP cron endpoints, but no Lambda/SQS job fabric |
+| Secrets/config | SSM Parameter Store + Secrets Manager | injected at deploy; no secrets in repo or env files |
+| i18n | `next-intl` — `sv`, `en`, `lt` | all user-facing strings via i18n from day one |
+| Validation | Zod schemas shared client/server | |
+| Logging | pino → stdout → CloudWatch Logs; `/healthz` endpoint | CloudWatch alarms on 5xx rate and job-queue depth; optional Sentry |
+| Testing | Vitest (unit) + Playwright (e2e) | see Section 8 |
+| Deploy | One ECS Fargate service (or App Runner) behind ALB + CloudFront; images in ECR | GitHub Actions with OIDC role: lint → typecheck → test → build → deploy |
+| DNS/TLS | Route 53 + ACM | |
+| IaC | Follow the existing infra convention (Terraform or CDK) | scope: VPC wiring, RDS, S3, ECS/App Runner, SES, alarms — nothing more |
 
-## Technical principles
+Money is stored as `{ amount_minor: integer, currency: 'EUR' | 'SEK' }`. No FX conversion logic.
 
-Domain Driven Design (DDD) · Clean Architecture · CQRS where appropriate ·
-Event-driven communication · REST + GraphQL · OpenAPI documentation · PostgreSQL ·
-Redis · Object storage for media · OpenSearch/Elasticsearch full-text search ·
-Docker + Kubernetes · CI/CD · Infrastructure as Code · RBAC · Audit logging ·
-Multi-language · Multi-currency · GDPR · Monitoring and observability.
+**AWS discipline:** existing infrastructure is leverage, not license. Phase 0–1 is still **one deployable container + RDS + S3 + SES** — no Lambda sprawl, no SQS/EventBridge event fabric, no DynamoDB, no Step Functions, no EKS. (Exception: if the org already operates a shared ECS/EKS cluster with a platform team, deploy the same single container there — the principle is one deployable, not a specific orchestrator.) The `outbox_events` table stays in Postgres; fanning it out to EventBridge is a Phase 2+ decision.
 
-## Key documents
+## 4. Architecture rules
 
-| Document | Purpose |
-|---|---|
-| `docs/VISION.md` | Product vision, marketplace principles, future verticals |
-| `docs/ARCHITECTURE.md` | Module map, technical principles, event-driven design, deployment |
-| `docs/DOMAIN-MODEL.md` | Entities: company profiles, trust score, reviews, RFQ/offers, verification levels |
-| `docs/ROADMAP.md` | Phased plan from current codebase to Phase 1 marketplaces |
+1. **Module layout:** `src/modules/<name>/{domain,service,repo,api,ui}`. Modules: `identity`, `companies`, `verification`, `documents`, `capacity`, `rfq`, `offers`, `messaging`, `notifications`, `audit`, `admin`, `search`, `catalog` (trades/categories/requirement definitions).
+2. **Boundaries:** a module never touches another module's tables. Cross-module calls go through exported service interfaces.
+3. **Domain events, monolith-style:** state changes append to an `outbox_events` table in the same transaction (`event_type`, `payload`, `occurred_at`, `processed_at`). A single in-process dispatcher (pg-boss) fans out to subscribers (notifications, search indexing, audit). This preserves later service extraction without a broker today.
+4. **Audit everything:** every mutation writes `audit_events` (actor, entity, action, before/after JSON diff, timestamp, request id). Verification decisions and offer submissions are legally sensitive — the audit trail is a feature, not overhead.
+5. **API:** REST under `/api/v1`, OpenAPI spec generated from Zod schemas. Cursor pagination. Idempotency keys on all POST endpoints that create records.
+6. **GDPR:** mark PII columns in schema comments; soft-delete + scheduled purge job; per-user data export endpoint; EU-hosted infrastructure only (`eu-north-1`); document retention policy configurable per document type.
+7. **Security baseline:** RBAC checks in the service layer (not only UI), rate limiting on public endpoints, malware scanning on the documents bucket (GuardDuty Malware Protection for S3; scan-hook stub until enabled), signed URLs expire ≤ 15 min.
 
-Read these before designing or implementing any feature. When a requirement conflicts
-with the current codebase, the vision documents win.
+## 5. Build order — four milestones, in sequence
 
-## Working conventions
+Do not start a milestone before the previous one's Definition of Done is met.
 
-- TypeScript everywhere; strict typing at module boundaries
-- Company pages are SEO-friendly with permanent URLs: `balticbridge.com/company/<slug>`
-- Only verified customers may leave reviews
-- Trust scores are calculated automatically and continuously updated (see Trust Engine in `docs/DOMAIN-MODEL.md`)
-- Verification levels: Bronze → Silver → Gold → Platinum (harder to obtain, higher visibility)
-- Run `npm run test` and `npm run lint` before committing
+### M1 — Ops backbone: Supplier CRM + Verification Engine *(the moat — build first)*
+
+Internal tool for `admin`/`ops` roles.
+
+**Entities:** `Company`, `Contact`, `Worker`, `Document`, `RequirementDefinition`, `VerificationCase`, `VerificationItem`.
+
+**Requirement catalogue** (seed data, corridor `LT→SE`, service type `entreprenad`, trade `welding/fitting` — stored as data so new corridors are seeds, not code):
+
+1. Company registry extract (LT Registrų centras)
+2. Swedish F-skatt approval (Skatteverket) — approval date required
+3. VAT registration status
+4. A1 certificate **per posted worker** (Sodra), with validity dates
+5. Posted-worker notification receipt (Arbetsmiljöverket, utstationeringsregistret) — per assignment
+6. ID06 status **per worker**
+7. Liability insurance (ansvarsförsäkring) — insurer, coverage amount, expiry
+8. Collective-agreement status — enum: `member / hängavtal / none`, with evidence upload
+9. Welder qualifications **per worker** — ISO 9606-1 (process, validity); company EN 1090 EXC class where applicable
+10. Reference projects — minimum two, with contactable references
+
+**Behavior:**
+
+- Each `VerificationItem` links a requirement to evidence: status `missing → submitted → in_review → approved / rejected`, plus `expired`; reviewer, decision note, and document(s) attached. Some requirements are company-level, some worker-level, some assignment-level — model the `scope` explicitly.
+- `VerificationCase` state machine: `draft → in_review → verified → suspended | expired`. Company badge derives **only** from case state. Cover the state machine and expiry logic with unit tests.
+- **Binary verification.** A company is `Verified` for a corridor or it is not. **Do not build bronze/silver/gold tiers, trust scores, or any linkage between verification and paid visibility.** Verification integrity is the brand; it is never for sale.
+- **Expiry engine:** nightly job flags documents expiring in 30/14/3 days → creates ops tasks + supplier emails; a lapsed critical document automatically moves the case to `expired` and hides the badge. Test this.
+- **Admin UI:** verification kanban (cases by state), document review queue with inline file preview, company 360° view (profile, workers, documents, history), ops task list.
+
+**DoD:** ops can onboard a real Lithuanian supplier, upload and review all ten requirement types, verify the company, and see the badge flip automatically when a document expires (simulated clock in tests).
+
+### M2 — Public layer: verified profiles + SEO
+
+- Public page per company at permanent URL `/company/<slug>`: description, services, location, languages, year founded, headcount — plus a **"Verified for work in Sweden"** panel showing *only platform-verified facts* (org nr, F-skatt ✓ + date, insurance ✓ + coverage, collective-agreement status, certifications held). No self-reported ratings, no vanity metrics.
+- **Capacity listings:** supplier (or ops on their behalf) posts available teams: trade, headcount, certifications, earliest start, weeks available, base location. Shown on profile and in search.
+- Search/browse: trade, corridor, verified-only filter, earliest start, language — Postgres FTS + filters.
+- SEO: SSR, meta/OG tags, JSON-LD `Organization`, `sitemap.xml`, `hreflang` for sv/en/lt. Slugs permanent; renames create redirects.
+- Supplier self-service portal (thin): edit profile, upload documents into their verification case, manage capacity listings.
+
+**DoD:** an unauthenticated buyer can find a verified welding team and understand exactly what "verified" means; Lighthouse SEO ≥ 90 on profile pages.
+
+### M3 — Demand: RFQ intake, matching, offers
+
+- **Buyer RFQ form** (public + logged-in): title, description, site address, trade, headcount needed, start date, duration, working language, attachments (drawings/photos), budget (optional). Buyer account auto-created on submit (email verification).
+- **Ops-driven matching as a first-class feature** (concierge, not an afterthought): ops qualifies the RFQ, selects candidate suppliers, dispatches it. Auto-matching is a later optimization — do not build it now.
+- **Offers:** supplier responds with rate model (`hourly` or `fixed`), price, team composition (named workers → their cert status shows automatically), earliest start, validity date. The buyer's comparison view shows each offer **with a verification snapshot frozen at submission time** (audit requirement).
+- **RFQ lifecycle:** `new → qualified → dispatched → offers_in → accepted | lost | expired`. On `accepted`, ops records the deal: contract value, success-fee %, invoiced manually — **no payment processing in-platform**.
+- **Messaging:** one thread per RFQ–supplier pair; email notifications with deep links; attachments supported.
+
+**DoD:** a real RFQ can go from buyer submission to an accepted offer with the full audit trail, and ops can export deal data for invoicing.
+
+### M4 — Hardening
+
+Complete i18n coverage; Playwright e2e on the three critical flows (verify supplier / publish profile / RFQ-to-accepted-offer); RDS point-in-time recovery + automated snapshots, plus a weekly logical `pg_dump` to S3 and a **tested** restore runbook; rate limiting tuned; seed + demo data set; deployment runbook; basic ops dashboard (cases by state, expiring documents, open RFQs, time-to-match).
+
+## 6. Data model sketch
+
+`users`, `roles`, `companies`, `company_slugs`, `contacts`, `workers`, `documents`, `requirement_definitions`, `verification_cases`, `verification_items`, `capacity_listings`, `trades`, `corridors`, `rfqs`, `rfq_dispatches`, `offers`, `offer_team_members`, `deals`, `message_threads`, `messages`, `notifications`, `outbox_events`, `audit_events`, `ops_tasks`.
+
+Conventions: UUID v7 PKs, `created_at`/`updated_at` everywhere, soft delete (`deleted_at`) on PII-bearing tables, enums as Postgres enums, all files referenced by object-storage key + checksum + uploaded_by.
+
+## 7. Explicitly out of scope — do not build in Phase 0–1
+
+Payments, escrow or invoicing automation · review/rating engine (ops collects structured references manually) · trust-score algorithms · bronze/silver/gold tiers · automotive vertical · B2C flows · logistics module · auto-matching · GraphQL · EKS/Kubernetes · OpenSearch/Elasticsearch · Redis · Lambda/SQS/EventBridge event fabric · DynamoDB · Step Functions · Cognito · mobile apps · AI features (quote analysis, translation) · multi-currency conversion · white-label/multi-tenant theming.
+
+If asked to build any of these, refer back to this section and confirm with the product owner first.
+
+## 8. Working agreement for the coding assistant
+
+1. Work in small increments mapped to the milestones; propose a short plan per work session before writing code.
+2. Ask before adding any dependency, service, or infrastructure not listed in Section 3.
+3. Migrations are append-only and reviewed; never edit an applied migration.
+4. Mandatory unit tests: verification state machine, expiry engine, RBAC guards, offer snapshot freezing.
+5. Never weaken or bypass `audit_events` writes, even in "quick fixes".
+6. Keep module boundaries intact; if a feature seems to need cross-module table access, redesign the interface instead.
+7. All user-facing text goes through i18n keys — no hard-coded strings.
+8. When the vision in Appendix A conflicts with Sections 1–8, Sections 1–8 win.
+
+---
+
+## Appendix A — Long-term vision (context only, not a build order)
+
+Baltic Bridge's ambition is to become Europe's most trusted marketplace for professional services and industrial capacity — "the verified bridge" between markets, starting Baltics→Nordics. Over time this can grow to: additional corridors (PL→SE, LT→NO, …); additional trades and verticals (manufacturing/components, construction specialties, automotive services, industrial suppliers, cleaning, installation, and more); a payments layer (escrow, milestone payments, success-fee automation); an integrated logistics module (transport booking, tracking, insurance); a review system fed only by verified completed deals; supplier subscriptions and enterprise APIs (ERP-connected capacity feeds); and eventually a generic marketplace engine where each vertical is configuration — its own categories, requirement catalogues, workflows and filters — on a shared core.
+
+The architectural choices above exist to keep that path open cheaply: strict module boundaries and the outbox event log allow later extraction into services; the requirement catalogue and trade/corridor tables make new verticals seed data; the audit and verification primitives generalize to any regulated cross-border trade. But none of it is built until the current corridor proves paying demand. **Sequence is the strategy: verify → match → transact → expand.**
