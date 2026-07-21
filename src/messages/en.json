@@ -1,0 +1,107 @@
+{
+  "common": {
+    "appName": "Baltic Bridge",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "none": "None",
+    "notSet": "Not set",
+    "actions": "Actions"
+  },
+  "home": {
+    "tagline": "Verified cross-border subcontracting — Lithuania to Sweden",
+    "description": "Baltic Bridge proves, with documents and an audit trail, that a Baltic supplier is fully compliant for work in Sweden. Internal ops tool — Phase 0–1.",
+    "goToAdmin": "Open ops console"
+  },
+  "auth": {
+    "title": "Sign in to Baltic Bridge",
+    "subtitle": "Internal ops console. Use your team credentials.",
+    "invalidCredentials": "Wrong email or password."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "verification": "Verification",
+    "reviewQueue": "Review queue",
+    "companies": "Companies",
+    "tasks": "Tasks"
+  },
+  "dashboard": {
+    "title": "Ops dashboard",
+    "casesByState": "Verification cases",
+    "openTasks": "Open ops tasks",
+    "companies": "Companies",
+    "expiringSoon": "Documents expiring within 30 days"
+  },
+  "caseState": {
+    "draft": "Draft",
+    "in_review": "In review",
+    "verified": "Verified",
+    "suspended": "Suspended",
+    "expired": "Expired"
+  },
+  "itemStatus": {
+    "missing": "Missing",
+    "submitted": "Submitted",
+    "in_review": "In review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "expired": "Expired"
+  },
+  "verification": {
+    "kanbanTitle": "Verification kanban",
+    "caseTitle": "Verification case",
+    "openCase": "Open verification case",
+    "sendToReview": "Send to review",
+    "markVerified": "Mark verified",
+    "suspend": "Suspend",
+    "reopenReview": "Re-open review",
+    "backToDraft": "Back to draft",
+    "requirement": "Requirement",
+    "scope": "Scope",
+    "validUntil": "Valid until",
+    "decisionNote": "Decision note",
+    "approve": "Approve",
+    "reject": "Reject",
+    "markSubmitted": "Mark submitted",
+    "startReview": "Start review",
+    "resubmit": "Request resubmission",
+    "worker": "Worker",
+    "verifiedBadge": "Verified for work in Sweden",
+    "notVerified": "Not verified",
+    "queueTitle": "Document review queue",
+    "queueEmpty": "Nothing waiting for review.",
+    "scopeCompany": "Company",
+    "scopeWorker": "Worker",
+    "scopeAssignment": "Assignment"
+  },
+  "companies": {
+    "title": "Companies",
+    "newCompany": "New company",
+    "name": "Company name",
+    "country": "Country",
+    "registrationNumber": "Registration number",
+    "vatNumber": "VAT number",
+    "city": "City",
+    "profile": "Profile",
+    "contacts": "Contacts",
+    "workers": "Workers",
+    "documents": "Documents",
+    "addWorker": "Add worker",
+    "workerName": "Worker name",
+    "tradeRole": "Trade role",
+    "verificationCase": "Verification case",
+    "noCase": "No verification case yet.",
+    "empty": "No companies yet. Onboard the first supplier."
+  },
+  "tasks": {
+    "title": "Ops tasks",
+    "empty": "No open tasks.",
+    "done": "Done",
+    "due": "Due"
+  }
+}

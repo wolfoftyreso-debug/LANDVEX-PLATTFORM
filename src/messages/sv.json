@@ -1,0 +1,107 @@
+{
+  "common": {
+    "appName": "Baltic Bridge",
+    "signIn": "Logga in",
+    "signOut": "Logga ut",
+    "email": "E-post",
+    "password": "Lösenord",
+    "save": "Spara",
+    "create": "Skapa",
+    "cancel": "Avbryt",
+    "loading": "Laddar…",
+    "none": "Ingen",
+    "notSet": "Ej angivet",
+    "actions": "Åtgärder"
+  },
+  "home": {
+    "tagline": "Verifierad gränsöverskridande entreprenad — Litauen till Sverige",
+    "description": "Baltic Bridge bevisar, med dokument och revisionsspår, att en baltisk leverantör uppfyller alla krav för arbete i Sverige. Internt ops-verktyg — Fas 0–1.",
+    "goToAdmin": "Öppna ops-konsolen"
+  },
+  "auth": {
+    "title": "Logga in på Baltic Bridge",
+    "subtitle": "Intern ops-konsol. Använd dina teamuppgifter.",
+    "invalidCredentials": "Fel e-post eller lösenord."
+  },
+  "nav": {
+    "dashboard": "Översikt",
+    "verification": "Verifiering",
+    "reviewQueue": "Granskningskö",
+    "companies": "Företag",
+    "tasks": "Uppgifter"
+  },
+  "dashboard": {
+    "title": "Ops-översikt",
+    "casesByState": "Verifieringsärenden",
+    "openTasks": "Öppna ops-uppgifter",
+    "companies": "Företag",
+    "expiringSoon": "Dokument som löper ut inom 30 dagar"
+  },
+  "caseState": {
+    "draft": "Utkast",
+    "in_review": "Under granskning",
+    "verified": "Verifierad",
+    "suspended": "Avstängd",
+    "expired": "Utgången"
+  },
+  "itemStatus": {
+    "missing": "Saknas",
+    "submitted": "Inskickad",
+    "in_review": "Granskas",
+    "approved": "Godkänd",
+    "rejected": "Avslagen",
+    "expired": "Utgången"
+  },
+  "verification": {
+    "kanbanTitle": "Verifieringskanban",
+    "caseTitle": "Verifieringsärende",
+    "openCase": "Öppna verifieringsärende",
+    "sendToReview": "Skicka till granskning",
+    "markVerified": "Markera som verifierad",
+    "suspend": "Stäng av",
+    "reopenReview": "Återuppta granskning",
+    "backToDraft": "Tillbaka till utkast",
+    "requirement": "Krav",
+    "scope": "Nivå",
+    "validUntil": "Giltigt till",
+    "decisionNote": "Beslutsanteckning",
+    "approve": "Godkänn",
+    "reject": "Avslå",
+    "markSubmitted": "Markera som inskickad",
+    "startReview": "Börja granska",
+    "resubmit": "Begär komplettering",
+    "worker": "Arbetare",
+    "verifiedBadge": "Verifierad för arbete i Sverige",
+    "notVerified": "Ej verifierad",
+    "queueTitle": "Granskningskö för dokument",
+    "queueEmpty": "Inget väntar på granskning.",
+    "scopeCompany": "Företag",
+    "scopeWorker": "Arbetare",
+    "scopeAssignment": "Uppdrag"
+  },
+  "companies": {
+    "title": "Företag",
+    "newCompany": "Nytt företag",
+    "name": "Företagsnamn",
+    "country": "Land",
+    "registrationNumber": "Registreringsnummer",
+    "vatNumber": "Momsregistreringsnummer",
+    "city": "Stad",
+    "profile": "Profil",
+    "contacts": "Kontakter",
+    "workers": "Arbetare",
+    "documents": "Dokument",
+    "addWorker": "Lägg till arbetare",
+    "workerName": "Namn",
+    "tradeRole": "Yrkesroll",
+    "verificationCase": "Verifieringsärende",
+    "noCase": "Inget verifieringsärende ännu.",
+    "empty": "Inga företag ännu. Onboarda den första leverantören."
+  },
+  "tasks": {
+    "title": "Ops-uppgifter",
+    "empty": "Inga öppna uppgifter.",
+    "done": "Klar",
+    "due": "Förfaller"
+  }
+}

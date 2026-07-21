@@ -1,0 +1,107 @@
+{
+  "common": {
+    "appName": "Baltic Bridge",
+    "signIn": "Prisijungti",
+    "signOut": "Atsijungti",
+    "email": "El. paštas",
+    "password": "Slaptažodis",
+    "save": "Išsaugoti",
+    "create": "Sukurti",
+    "cancel": "Atšaukti",
+    "loading": "Kraunama…",
+    "none": "Nėra",
+    "notSet": "Nenustatyta",
+    "actions": "Veiksmai"
+  },
+  "home": {
+    "tagline": "Patikrinta tarpvalstybinė subranga — iš Lietuvos į Švediją",
+    "description": "Baltic Bridge dokumentais ir audito seka įrodo, kad Baltijos tiekėjas visiškai atitinka darbo Švedijoje reikalavimus. Vidinis ops įrankis — 0–1 fazė.",
+    "goToAdmin": "Atidaryti ops konsolę"
+  },
+  "auth": {
+    "title": "Prisijunkite prie Baltic Bridge",
+    "subtitle": "Vidinė ops konsolė. Naudokite komandos prisijungimus.",
+    "invalidCredentials": "Neteisingas el. paštas arba slaptažodis."
+  },
+  "nav": {
+    "dashboard": "Apžvalga",
+    "verification": "Patikra",
+    "reviewQueue": "Peržiūros eilė",
+    "companies": "Įmonės",
+    "tasks": "Užduotys"
+  },
+  "dashboard": {
+    "title": "Ops apžvalga",
+    "casesByState": "Patikros bylos",
+    "openTasks": "Atviros ops užduotys",
+    "companies": "Įmonės",
+    "expiringSoon": "Dokumentai, kurių galiojimas baigiasi per 30 dienų"
+  },
+  "caseState": {
+    "draft": "Juodraštis",
+    "in_review": "Peržiūrima",
+    "verified": "Patikrinta",
+    "suspended": "Sustabdyta",
+    "expired": "Nebegalioja"
+  },
+  "itemStatus": {
+    "missing": "Trūksta",
+    "submitted": "Pateikta",
+    "in_review": "Peržiūrima",
+    "approved": "Patvirtinta",
+    "rejected": "Atmesta",
+    "expired": "Nebegalioja"
+  },
+  "verification": {
+    "kanbanTitle": "Patikros kanban",
+    "caseTitle": "Patikros byla",
+    "openCase": "Atidaryti patikros bylą",
+    "sendToReview": "Siųsti peržiūrai",
+    "markVerified": "Pažymėti kaip patikrintą",
+    "suspend": "Sustabdyti",
+    "reopenReview": "Atnaujinti peržiūrą",
+    "backToDraft": "Grąžinti į juodraštį",
+    "requirement": "Reikalavimas",
+    "scope": "Lygis",
+    "validUntil": "Galioja iki",
+    "decisionNote": "Sprendimo pastaba",
+    "approve": "Patvirtinti",
+    "reject": "Atmesti",
+    "markSubmitted": "Pažymėti kaip pateiktą",
+    "startReview": "Pradėti peržiūrą",
+    "resubmit": "Prašyti pateikti iš naujo",
+    "worker": "Darbuotojas",
+    "verifiedBadge": "Patikrinta darbui Švedijoje",
+    "notVerified": "Nepatikrinta",
+    "queueTitle": "Dokumentų peržiūros eilė",
+    "queueEmpty": "Peržiūros laukiančių nėra.",
+    "scopeCompany": "Įmonė",
+    "scopeWorker": "Darbuotojas",
+    "scopeAssignment": "Užsakymas"
+  },
+  "companies": {
+    "title": "Įmonės",
+    "newCompany": "Nauja įmonė",
+    "name": "Įmonės pavadinimas",
+    "country": "Šalis",
+    "registrationNumber": "Registracijos numeris",
+    "vatNumber": "PVM kodas",
+    "city": "Miestas",
+    "profile": "Profilis",
+    "contacts": "Kontaktai",
+    "workers": "Darbuotojai",
+    "documents": "Dokumentai",
+    "addWorker": "Pridėti darbuotoją",
+    "workerName": "Vardas",
+    "tradeRole": "Specialybė",
+    "verificationCase": "Patikros byla",
+    "noCase": "Patikros bylos dar nėra.",
+    "empty": "Įmonių dar nėra. Priregistruokite pirmą tiekėją."
+  },
+  "tasks": {
+    "title": "Ops užduotys",
+    "empty": "Atvirų užduočių nėra.",
+    "done": "Atlikta",
+    "due": "Terminas"
+  }
+}

@@ -1,0 +1,221 @@
+/* Baltic Bridge ops console — plain CSS, no UI framework (Section 2:
+   every dependency must earn its place). */
+
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --text: #14202e;
+  --muted: #5b6b7c;
+  --border: #d9e1e8;
+  --primary: #123f6d;
+  --primary-contrast: #ffffff;
+  --success: #157347;
+  --warning: #b58a1b;
+  --danger: #b02a37;
+  --radius: 8px;
+  font-size: 15px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1 { font-size: 1.6rem; margin: 0 0 0.25rem; }
+h2 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+h3 { font-size: 1rem; margin: 0 0 0.5rem; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  padding: 1.25rem 1rem;
+}
+.sidebar .brand {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--primary-contrast);
+  display: block;
+  margin-bottom: 1.5rem;
+}
+.sidebar nav a {
+  display: block;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.15rem;
+}
+.sidebar nav a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+}
+
+.main {
+  padding: 1.5rem 2rem;
+  max-width: 1200px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+.topbar .muted { color: var(--muted); font-size: 0.85rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+.grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 900px) {
+  .grid.cols-4, .grid.cols-5 { grid-template-columns: 1fr 1fr; }
+  .layout { grid-template-columns: 1fr; }
+}
+
+.stat {
+  text-align: center;
+}
+.stat .value { font-size: 1.8rem; font-weight: 800; }
+.stat .label { color: var(--muted); font-size: 0.8rem; }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+}
+.badge.verified, .badge.approved { background: #e6f4ec; color: var(--success); border-color: #bfe3cf; }
+.badge.in_review, .badge.submitted { background: #fdf6e3; color: var(--warning); border-color: #f0e0b0; }
+.badge.expired, .badge.rejected, .badge.suspended { background: #fbe9eb; color: var(--danger); border-color: #f2c6cb; }
+
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+@media (max-width: 1000px) { .kanban { grid-template-columns: 1fr 1fr; } }
+.kanban .column {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+.kanban .column h3 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; }
+.kanban .item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg);
+  font-size: 0.9rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+th, td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+
+form.inline { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: end; }
+label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.2rem; }
+input, select, textarea {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+button, .button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-contrast);
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.1); }
+button.secondary {
+  background: var(--surface);
+  color: var(--primary);
+}
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.muted { color: var(--muted); }
+.mt { margin-top: 1rem; }
+
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+.auth-card form { display: grid; gap: 0.75rem; }
+
+.hero {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+.hero .inner { max-width: 640px; }
+.hero h1 { font-size: 2.2rem; }
+.hero p { color: var(--muted); font-size: 1.05rem; }
