@@ -1,0 +1,104 @@
+# CLAUDE.md — LANDVEX Opportunity Engine
+
+Handoff från konceptfas till produktionsutveckling. Denna fil läses
+automatiskt av Claude Code och är den auktoritativa projektkontexten.
+
+## Vad detta är
+
+Location intelligence-tjänst som analyserar en plats innan någon
+investerar. Levererar ett förklarbart **Opportunity Score (0–100)** med
+faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
+branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
+datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
+
+## Nuläge: v0.1 — klar, testad, körbar
+
+- Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
+  Lambda, ECS och lokalt.
+- 7 branschprofiler + generisk (frisor, elektriker, gym, restaurang,
+  cafe, bygg, tandlakare) — **helt datadrivna** i `engine/verticals.py`.
+- ~35 signaler med normalisering (saturating/linear/inverse/band) i
+  `engine/signals.py`.
+- Riskmotor, rekommendationslogik, svenska narrativ och mönsterinsikter
+  (t.ex. "arbete för ytterligare 2 elektriker", caféets morgon/
+  eftermiddags-obalans) i `engine/scoring.py` + `engine/explain.py`.
+- Datakällslager med Resolver-kedja: verklig källa vinner per signal,
+  MockSource (deterministisk, platsseedad) som fallback.
+- API: `api/main.py` (FastAPI, produktion) och `api/dev_server.py`
+  (stdlib, noll beroenden).
+- **All data är ännu mockad.** Varje rapport redovisar `data_coverage`
+  och bär caveats tills riktiga källor kopplats in.
+
+## Kommandon
+
+```bash
+python3 -m tests.test_scoring      # testsvit (8 tester, utan pytest)
+python3 demo.py                    # exempelrapporter frisör/elektriker/café
+python3 -m api.dev_server          # dev-API utan beroenden, port 8000
+pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
+```
+
+## Arkitekturprinciper — bevara dessa
+
+1. **Vertikaler är data, inte kod.** Ny bransch = ny `VerticalProfile` +
+   ev. narrativmall. Inga motorändringar.
+2. **`engine/` förblir beroendefri.** Externa bibliotek hör hemma i
+   `api/`, adaptrar och infra — aldrig i kärnan.
+3. **Förklarbarhet före prediktion.** Varje faktor ska kunna förklaras
+   med en svensk mening och råvärden. Utlova inte
+   "överlevnadssannolikhet" förrän utfallsdata finns (v2/v3).
+4. **Ärlig datatäckning.** Mock märks alltid `source="mock"`;
+   `data_coverage` ska aldrig fejkas.
+5. **Determinism.** Samma plats + vertikal → samma rapport
+   (viktigt för test, cache och förtroende).
+6. Identifierare utan å/ä/ö (`frisor`, `tandlakare`); narrativ och
+   etiketter på svenska. Tester ska förbli körbara utan pytest.
+
+## Produktionsbacklog (prioriterad)
+
+1. **SCB-adapter** — öppna API:er (befolkning, inkomst, ålder, hushåll
+   på DeSO/rutnät). Implementera `ScbSource.fetch()` i
+   `engine/datasources/adapters.py`. Gratis, ingen licens → börja här.
+2. **Persistens** — Aurora PostgreSQL + PostGIS: platser, rapporter,
+   signalcache med TTL per källa.
+3. **Isokroner** — AWS Location Service (Routes) för verklig
+   "inom X minuter"-radie i stället för dagens approximation.
+4. **Bygglovs-/detaljplansadapter** — kommunala öppna data eller
+   aggregator (`building_permits`, `detail_plans`, `development_m2`).
+5. **Konkurrensadapter** — Google Places + recensionsdata →
+   `competitors`-extras, `competition_pressure`, `provider_gap` på
+   verklig data.
+6. **IaC med CDK** — API Gateway + Lambda (Mangum) eller ECS Fargate,
+   Secrets Manager, EventBridge-ingestion, S3-datalake.
+   Se `infra/aws-notes.md`.
+7. **CI** — kör testsviten + lint på varje PR (inga beroenden krävs).
+8. **Auth & multitenancy** — API-nycklar/Cognito för
+   plattformsintegration.
+9. **Rörelsedata** (licens, t.ex. Telia Crowd Insights) — sist p.g.a.
+   avtalsledtid; `flow_*`, `foot_traffic`, `target_match_pct`.
+10. **Frontend-rapportvy** — S3 + CloudFront.
+11. **Utfallslogging från dag 1** — etableringar + faktiskt utfall är
+    träningsdatan för v2 (viktkalibrering) och v3 (ERP-modell i
+    SageMaker).
+
+## Filkarta
+
+```
+engine/            kärnmotor (stdlib-only)
+  models.py        Location, SignalValue, FactorScore, OpportunityReport
+  signals.py       signalkatalog + normalize()
+  verticals.py     branschprofiler (vikter) + RISK_SIGNALS
+  scoring.py       analyze() – huvudingången
+  explain.py       narrativ + pattern_insights()
+  datasources/     base.py (Resolver), mock.py, adapters.py (stubbar)
+api/               main.py (FastAPI) + dev_server.py (stdlib)
+tests/             test_scoring.py (körbar som modul)
+infra/             aws-notes.md (deploymentblueprint)
+ARCHITECTURE.md    designbeslut, dataflöde, roadmap
+```
+
+## Kända begränsningar v0.1
+
+Mockdata överallt; radie utan riktig isokron; ingen persistens, auth
+eller rate limiting; rekommendationstexter formulerade som
+beslutsunderlag — inte garantier. Det är avsiktligt och dokumenterat.
