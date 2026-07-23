@@ -60,10 +60,14 @@ optional FastAPI/Mangum/psycopg only where deployed.
 ### Data footprint
 22 industries · 21 occupations · 42 signals (normalization catalog makes
 scores comparable across countries) · 10 segments · 12 product types ·
-5 indices + Contradiction Index · **16 markets / 218 regions** (Sweden 60
-municipalities + DE, US, ES, PL, FR, IT, NL, BE, AT, PT, DK, FI, NO, IE,
-CZ). Only Sweden has a real-source adapter; all other markets run on
-labeled simulated data ("calibrated=false" surfaced in UI).
+5 indices + Contradiction Index · **16 markets / 238 regions — US FIRST:
+the USA is the default market everywhere (60 metro regions, the largest
+in the system), followed by SE (40) + DE, ES, PL, FR, IT, NL, BE, AT,
+PT, DK, FI, NO, IE, CZ.** Establishment-plan amounts are converted to
+each market's currency via documented standard FX rates (local cost
+levels honestly flagged as uncalibrated). Only Sweden has a real-source
+adapter; all other markets run on labeled simulated data
+("calibrated=false" surfaced in UI).
 
 ### Commercial layer (enforced in the API, not just displayed)
 - Plans: **Free (0)**, **Pro (SEK 4,900/mo list price)**, **Enterprise

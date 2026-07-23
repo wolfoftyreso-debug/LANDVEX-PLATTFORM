@@ -20,7 +20,7 @@ def test_segments_are_valid_data():
 
 
 def test_segment_analysis_contract():
-    res = segment_analysis("0180")                        # Stockholm
+    res = segment_analysis("0180", market="se")                        # Stockholm
     assert res["kommun"] == "Stockholm" and res["befolkning"] > 0
     assert len(res["segment"]) == len(SEGMENTS)
     index = [s["index_mot_marknadssnitt"] for s in res["segment"]]
@@ -33,11 +33,11 @@ def test_segment_analysis_contract():
         if SEGMENTS[s["segment_id"]].mode != "index":
             assert s["antal_uppskattat"] is not None and s["antal_uppskattat"] >= 0
     assert "estimates" in res["caveats_en"][0]       # ärlighet
-    assert segment_analysis("0180") == res                # determinism
+    assert segment_analysis("0180", market="se") == res                # determinism
 
 
 def test_segment_map_contract():
-    res = segment_map("djuragare")
+    res = segment_map("djuragare", market="se")
     assert res["label_en"] == "Pet owners"
     assert len(res["regioner"]) == 40 and len(res["heatmap"]) == 40
     antal = [r["antal_uppskattat"] for r in res["regioner"]]

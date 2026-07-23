@@ -23,7 +23,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.scb import _haversine_km
-from .markets import get_market, plural_region_label
+from .markets import DEFAULT_MARKET, get_market, plural_region_label
 from .models import Location
 from .profile import BusinessProfile
 from .scoring import analyze
@@ -232,7 +232,7 @@ def _band(score: float) -> str:
 def scan(profile: BusinessProfile, resolver: Resolver | None = None,
          candidates: list[tuple[str, str, float, float]] | None = None,
          top_n: int = 5, level: str = "oversikt",
-         market: str = "se") -> dict[str, Any]:
+         market: str = DEFAULT_MARKET) -> dict[str, Any]:
     """Analyserar kandidatorter mot profilen. Returnerar JSON-redo dict."""
     if level not in SCAN_LEVELS:
         raise ValueError(f"Unknown scan level: {level}. "

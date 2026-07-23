@@ -32,7 +32,7 @@ from typing import Any
 from .datasources.base import Resolver
 from .gaps import gap_analysis
 from .installed_base import service_analysis, service_demand_map
-from .markets import MARKETS, get_market
+from .markets import DEFAULT_MARKET, MARKETS, get_market
 from .plan import establishment_plan
 from .models import Location
 from .profile import BusinessProfile
@@ -356,7 +356,7 @@ class Query:
     kommun: tuple | None = None            # (code, name, lat, lon)
     segment_id: str | None = None
     product_id: str | None = None
-    region_market: str = "se"              # market the region belongs to
+    region_market: str = DEFAULT_MARKET              # market the region belongs to
     market: str | None = None              # explicitly mentioned market
     group: str | None = None               # "eu" | "varlden"
     occupation_id: str | None = None
@@ -633,7 +633,7 @@ def _rows_bristyrken(query: Query, resolver) -> dict[str, Any]:
 
 
 def _rows_nationell(query: Query, resolver) -> dict[str, Any]:
-    market = query.market or "se"
+    market = query.market or DEFAULT_MARKET
     res = national_map(query.occupation_id, query.target_year,
                        resolver=resolver, market=market)
     rows = [{
@@ -726,7 +726,7 @@ def _rows_land_ranking(query: Query, resolver) -> dict[str, Any]:
 def _rows_basta_lage(query: Query, resolver) -> dict[str, Any]:
     res = scan(BusinessProfile(vertical_id=query.vertical_id),
                resolver=resolver, top_n=query.top_n,
-               market=query.market or "se")
+               market=query.market or DEFAULT_MARKET)
     rows = [{
         "typ": "hotspot", "id": h["kommun_kod"], "label_en": h["lage_en"],
         "score": h["opportunity_score"], "trend": h["market_momentum"]["direction"],
@@ -751,7 +751,7 @@ def _rows_basta_lage(query: Query, resolver) -> dict[str, Any]:
 
 
 def _rows_gap(query: Query, resolver) -> dict[str, Any]:
-    res = gap_analysis(query.vertical_id, market=query.market or "se",
+    res = gap_analysis(query.vertical_id, market=query.market or DEFAULT_MARKET,
                        resolver=resolver, top_n=query.top_n)
     rows = [{
         "typ": "obalans", "id": e["kommun_kod"], "label_en": e["kommun"],
@@ -796,7 +796,7 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
                                f"{p['lokal']['storlek_m2'][1]} m²",
                     "narrativ_en": p["lokal"]["hyreslage_en"]}},
         {"typ": "plan", "id": "investering",
-         "label_en": "Investment (kSEK)",
+         "label_en": f"Investment (k{p.get('currency', 'SEK')})",
          "score": inv["totalt"][1], "trend": None,
          "detalj": {"startkapital": f"{inv['startkapital'][0]}–{inv['startkapital'][1]}",
                     "utrustning": f"{inv['utrustning'][0]}–{inv['utrustning'][1]}",
@@ -809,7 +809,8 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
          "detalj": {"narrativ_en": p["personal"]["notis_en"],
                     "motivering_en": [
                         f"{y['label_en']} ({y['medellon_tkr_manad']} "
-                        f"kSEK/month): {y['rekryteringslage_en']}"
+                        f"k{p.get('currency', 'SEK')}/month): "
+                        f"{y['rekryteringslage_en']}"
                         for y in p["personal"]["yrken"]] or
                         ["Staffing according to selected team size."]}},
         {"typ": "plan", "id": "ekonomi",
@@ -836,7 +837,8 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
         "svar_en": f"Establishment plan for {p['vertical_label_en'].lower()} "
                    f"in {p['kommun']}: score {int(p['opportunity_score'])}"
                    f"/100, total investment {inv['totalt'][0]}–"
-                   f"{inv['totalt'][1]} kSEK (rule of thumb). Next steps: "
+                   f"{inv['totalt'][1]} k{p.get('currency', 'SEK')} "
+                   f"(rule of thumb). Next steps: "
                    f"{' · '.join(p['nasta_steg_en'][:3])}.",
         "rader": rows,
         "forslag_en": [f"How risky is it to start "
@@ -846,7 +848,7 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
 
 
 def _rows_service_karta(query: Query, resolver) -> dict[str, Any]:
-    res = service_demand_map(query.product_id, market=query.market or "se",
+    res = service_demand_map(query.product_id, market=query.market or DEFAULT_MARKET,
                              resolver=resolver)
     rows = [{
         "typ": "servicebehov", "id": r["kommun_kod"], "label_en": r["kommun"],
@@ -940,7 +942,7 @@ def _rows_malgrupper(query: Query, resolver) -> dict[str, Any]:
 
 
 def _rows_segment_karta(query: Query, resolver) -> dict[str, Any]:
-    res = segment_map(query.segment_id, market=query.market or "se",
+    res = segment_map(query.segment_id, market=query.market or DEFAULT_MARKET,
                       resolver=resolver)
     rows = [{
         "typ": "segment_region", "id": r["kommun_kod"],

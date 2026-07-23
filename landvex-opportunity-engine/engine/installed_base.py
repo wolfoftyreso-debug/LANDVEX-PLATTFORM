@@ -32,7 +32,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.mock import MockSource
-from .markets import get_market, get_region
+from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .signals import CATALOG, normalize
 from .verticals import VERTICALS
@@ -276,7 +276,7 @@ _ANTAGANDEN = [
 ]
 
 
-def service_analysis(kommun_kod: str, market: str = "se",
+def service_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
                      target_year: int = 2031,
                      resolver: Resolver | None = None) -> dict[str, Any]:
     """Servicebehovsprofil för en region: alla produkttyper."""
@@ -320,7 +320,7 @@ def service_analysis(kommun_kod: str, market: str = "se",
             "antaganden_en": list(_ANTAGANDEN)}
 
 
-def service_demand_map(product_id: str, market: str = "se",
+def service_demand_map(product_id: str, market: str = DEFAULT_MARKET,
                        target_year: int = 2031,
                        resolver: Resolver | None = None,
                        top_n: int = 5) -> dict[str, Any]:

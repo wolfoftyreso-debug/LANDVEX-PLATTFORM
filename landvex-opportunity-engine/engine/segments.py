@@ -21,7 +21,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.mock import MockSource
-from .markets import get_market, get_region
+from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .verticals import VERTICALS
 
@@ -133,7 +133,7 @@ _BAND_SV = {"mycket_over_snittet": "well above average",
             "langt_under_snittet": "far below average"}
 
 
-def segment_analysis(kommun_kod: str, market: str = "se",
+def segment_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
                      resolver: Resolver | None = None) -> dict[str, Any]:
     """Målgruppsprofil för en region: alla segment med antal och index."""
     mkt = get_market(market)
@@ -182,7 +182,7 @@ def segment_analysis(kommun_kod: str, market: str = "se",
     }
 
 
-def segment_map(segment_id: str, market: str = "se",
+def segment_map(segment_id: str, market: str = DEFAULT_MARKET,
                 resolver: Resolver | None = None,
                 top_n: int = 5) -> dict[str, Any]:
     """Segmentkarta: var på marknaden finns segmentet – antal + index."""

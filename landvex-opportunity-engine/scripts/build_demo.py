@@ -31,31 +31,31 @@ from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
                               occupation_catalog)
 
 FRAGOR = [
-    "What are the five biggest business opportunities in Örebro right now?",
-    "What are the three biggest business opportunities in Gothenburg?",
-    "Where in Europe is the shortage of electricians greatest?",
-    "Where in the world is the shortage of carpenters greatest?",
-    "Where is the best place to start a plumbing company in Germany?",
-    "Which country is best for a Swedish carpenter to move to?",
-    "Which occupations will be missing most in Umeå over the next five years?",
-    "Which occupations are missing most in Berlin?",
-    "Which US state will need the most nurses over the next ten years?",
-    "Where in Sweden is the need for nurses greatest?",
+    "What are the five biggest business opportunities in Dallas right now?",
+    "What are the three biggest business opportunities in Seattle?",
+    "Which US metro region will need the most nurses over the next ten years?",
+    "Where in the US is the shortage of electricians greatest?",
     "Where should I open a café?",
-    "How risky is it to start a gym in Solna?",
+    "How risky is it to start a gym in Miami?",
     "Where is the imbalance greatest for car repair shops?",
-    "Create an establishment plan for a car repair shop in Skellefteå.",
-    "Where in Sweden are there the most pet owners?",
-    "What do the target groups look like in Umeå?",
+    "Create an establishment plan for a car repair shop in Austin.",
+    "Where in the US are there the most pet owners?",
+    "What do the target groups look like in Boston?",
     "Which region has the most heat pumps approaching replacement age?",
     "Where is the best place to start a company servicing EV chargers?",
-    "What does the service demand look like in Umeå?",
+    "What does the service demand look like in Denver?",
     "Where will the need for refrigeration technicians increase over the next five years?",
+    "Where in Europe is the shortage of electricians greatest?",
+    "Where in the world is the shortage of carpenters greatest?",
+    "Which country is best for an American electrician to move to?",
+    "Where in Sweden is the need for nurses greatest?",
+    "Which occupations are missing most in Stockholm?",
+    "Where is the best place to start a plumbing company in Germany?",
 ]
 # Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
 # data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
 # alla vertikaler och alla yrken för demomarknaderna.
-DEMO_MARKETS = ("se", "de")
+DEMO_MARKETS = ("us", "se")
 
 
 def _strip(f: dict) -> dict:
@@ -154,24 +154,24 @@ async function api(path, body) {
       forslag_en: Object.keys(D.ask) };
   }
   if (path === "/v1/scan") {
-    const r = D.scans[`${body.market || "se"}:${(body.profile || {}).vertical_id}`];
+    const r = D.scans[`${body.market || "us"}:${(body.profile || {}).vertical_id}`];
     if (!r) throw new Error(DEMOFEL);
     const kopia = JSON.parse(JSON.stringify(r));
     kopia.caveats_en.unshift("Demo: industry and market drive the precomputed sweep – the other profile fields do not affect this result.");
     return kopia;
   }
   if (path.startsWith("/v1/workforce/map")) {
-    const r = D.wf_maps[`${qp(path, "market") || "se"}:${qp(path, "occupation_id")}`];
+    const r = D.wf_maps[`${qp(path, "market") || "us"}:${qp(path, "occupation_id")}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/workforce/forecast") {
-    const r = D.forecasts[`${body.market || "se"}:${body.kommun_kod}:${(body.occupation_ids || [])[0]}`];
+    const r = D.forecasts[`${body.market || "us"}:${body.kommun_kod}:${(body.occupation_ids || [])[0]}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/workforce/simulate") {
-    const r = D.simulate[`${body.market || "se"}:${body.kommun_kod}:${body.occupation_id}`];
+    const r = D.simulate[`${body.market || "us"}:${body.kommun_kod}:${body.occupation_id}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
@@ -179,23 +179,23 @@ async function api(path, body) {
   if (path === "/health") return D.health;
   if (path === "/v1/catalog") return D.catalog;
   if (path === "/v1/gaps") {
-    const r = D.gaps[`${body.market || "se"}:${body.vertical}`];
+    const r = D.gaps[`${body.market || "us"}:${body.vertical}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/indices") return D.index_catalog;
   if (path.startsWith("/v1/indices/map")) {
-    const r = D.index_maps[`${qp(path, "market") || "se"}:${qp(path, "index_id")}`];
+    const r = D.index_maps[`${qp(path, "market") || "us"}:${qp(path, "index_id")}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/indices/assess") {
-    const r = D.assessments[`${body.market || "se"}:${body.kommun_kod}`];
+    const r = D.assessments[`${body.market || "us"}:${body.kommun_kod}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/plan") {
-    const r = D.plans[`${body.market || "se"}:${body.kommun_kod}:${body.vertical}`];
+    const r = D.plans[`${body.market || "us"}:${body.kommun_kod}:${body.vertical}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }

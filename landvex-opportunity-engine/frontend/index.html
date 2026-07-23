@@ -269,18 +269,39 @@
 // Projektion: plattkarta med letterbox – bbox styrs av marknaden.
 const W = 560, H = 1000;
 const SE_BOX = [55.0, 69.5, 10.5, 24.5];
-let PROJ = { k: 1, ox: 0, oy: 0, box: SE_BOX };
+const US_BOX = [24.0, 50.0, -125.0, -66.0];
+let PROJ = { k: 1, ox: 0, oy: 0, box: US_BOX };
+const px = lon => PROJ.ox + (lon - PROJ.box[2]) * PROJ.k;
+const py = lat => PROJ.oy + (PROJ.box[1] - lat) * PROJ.k;
+// Illustrativa landkonturer (lat,lon) – ej kartografiska.
+const KONTUR_US = [
+  [48.4, -124.7], [46.2, -124.0], [42.0, -124.4], [40.4, -124.4],
+  [38.9, -123.7], [36.6, -121.9], [34.45, -120.5], [33.7, -118.3],
+  [32.55, -117.1], [32.7, -114.7], [31.33, -111.0], [31.78, -106.5],
+  [29.6, -104.4], [29.3, -100.9], [26.1, -97.2], [27.8, -97.0],
+  [29.7, -93.8], [29.2, -90.1], [30.4, -87.3], [29.7, -85.4],
+  [28.0, -82.8], [25.2, -80.7], [25.9, -80.1], [28.5, -80.6],
+  [30.7, -81.4], [32.0, -80.8], [33.9, -77.9], [35.25, -75.5],
+  [36.9, -75.9], [38.9, -74.9], [40.5, -74.0], [41.3, -71.9],
+  [41.7, -70.0], [43.1, -70.7], [44.8, -66.9], [47.4, -69.2],
+  [45.0, -71.5], [45.0, -74.7], [43.6, -76.5], [42.9, -78.9],
+  [42.3, -83.1], [45.8, -84.7], [46.5, -87.4], [46.8, -92.1],
+  [49.0, -95.15], [49.0, -123.05], [48.4, -124.7],
+];
 function setBox(b) {
   const dLat = b[1] - b[0], dLon = b[3] - b[2];
   const k = Math.min((W - 60) / dLon, (H - 60) / dLat);
   PROJ = { k, ox: (W - k * dLon) / 2, oy: (H - k * dLat) / 2, box: b };
-  const seKontur = b.join() === SE_BOX.join();
+  const land = b.join() === US_BOX.join() ? KONTUR_US
+             : b.join() === SE_BOX.join() ? KONTUR : null;
   const kontur = document.getElementById("kontur");
-  if (kontur) kontur.style.display = seKontur ? "" : "none";
+  if (!kontur) return;
+  if (land) {
+    kontur.setAttribute("d", "M" + land.map(([la, lo]) =>
+      `${px(lo).toFixed(1)},${py(la).toFixed(1)}`).join(" L") + " Z");
+    kontur.style.display = "";
+  } else kontur.style.display = "none";
 }
-const px = lon => PROJ.ox + (lon - PROJ.box[2]) * PROJ.k;
-const py = lat => PROJ.oy + (PROJ.box[1] - lat) * PROJ.k;
-setBox(SE_BOX);
 const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)",
                orange: "var(--orange)" };
 const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)",
@@ -316,9 +337,7 @@ function applyVB() {
     c.setAttribute("r", Math.max(6, +c.dataset.r * Math.pow(scale, 0.7))));
 }
 function initKarta() {
-  $("kontur").setAttribute("d",
-    "M" + KONTUR.map(([la, lo]) => `${px(lo).toFixed(1)},${py(la).toFixed(1)}`)
-                .join(" L") + " Z");
+  setBox(US_BOX);   // USA-först: USA är startvyn
   const svg = $("karta");
   svg.addEventListener("wheel", e => {
     e.preventDefault();
@@ -429,7 +448,7 @@ function lasProfil() {
 
 function ritaKarta(res) {
   tomKarta();
-  setBox(res.bbox || SE_BOX);
+  setBox(res.bbox || US_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   const hotspotNycklar = new Set(res.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
   const r = res.level === "detaljerad" ? 4.5 : 7;
@@ -546,19 +565,20 @@ function ritaHotspots(res) {
 
 function planHTML(p) {
   const inv = p.investering_tkr, eko = p.ekonomi;
+  const val = "k" + (p.currency || "SEK");
   return `
           <div class="driver"><span>Premises</span><span>${p.lokal.storlek_m2[0]}–${p.lokal.storlek_m2[1]} m²</span></div>
           <p class="motiv">${esc(p.lokal.hyreslage_en)}</p>
-          <div class="driver"><span>Start-up capital</span><span>${inv.startkapital[0]}–${inv.startkapital[1]} kSEK</span></div>
-          <div class="driver"><span>Equipment</span><span>${inv.utrustning[0]}–${inv.utrustning[1]} kSEK</span></div>
-          <div class="driver"><span><b>Total investment</b></span><span><b>${inv.totalt[0]}–${inv.totalt[1]} kSEK</b></span></div>
+          <div class="driver"><span>Start-up capital</span><span>${inv.startkapital[0]}–${inv.startkapital[1]} ${val}</span></div>
+          <div class="driver"><span>Equipment</span><span>${inv.utrustning[0]}–${inv.utrustning[1]} ${val}</span></div>
+          <div class="driver"><span><b>Total investment</b></span><span><b>${inv.totalt[0]}–${inv.totalt[1]} ${val}</b></span></div>
           ${eko.status === "ej_kalibrerad"
             ? `<p class="roi-notis">${esc(eko.notis_en)}</p>`
-            : `<div class="driver"><span>Revenue scenario</span><span>${eko.omsattningsscenario_tkr_ar} kSEK/yr</span></div>
-               <div class="driver"><span>Operating margin (standard estimate)</span><span>${eko.rorelseresultat_tkr_ar[0]}–${eko.rorelseresultat_tkr_ar[1]} kSEK/yr</span></div>
+            : `<div class="driver"><span>Revenue scenario</span><span>${eko.omsattningsscenario_tkr_ar} ${val}/yr</span></div>
+               <div class="driver"><span>Operating margin (standard estimate)</span><span>${eko.rorelseresultat_tkr_ar[0]}–${eko.rorelseresultat_tkr_ar[1]} ${val}/yr</span></div>
                <div class="driver"><span>Payback period</span><span>${eko.aterbetalningstid_ar ? eko.aterbetalningstid_ar[0] + "–" + eko.aterbetalningstid_ar[1] + " yrs" : "not computable"}</span></div>
                <p class="roi-notis">${esc(eko.notis_en)}</p>`}
-          ${p.personal.yrken.map(y => `<p class="motiv"><b>${esc(y.label_en)}</b> (${y.medellon_tkr_manad} kSEK/mo): ${esc(y.rekryteringslage_en)}</p>`).join("")}
+          ${p.personal.yrken.map(y => `<p class="motiv"><b>${esc(y.label_en)}</b> (${y.medellon_tkr_manad} ${val}/mo): ${esc(y.rekryteringslage_en)}</p>`).join("")}
           <p class="motiv">${esc(p.personal.notis_en)}</p>
           <p class="motiv"><b>Financing:</b> ${p.finansiering.map(f => esc(f.alternativ_en)).join(" · ")}</p>
           <p class="motiv"><b>Suppliers:</b> ${p.leverantorer_en.map(esc).join(" · ")}</p>
@@ -633,7 +653,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
 
 function ritaKompKarta(res) {
   tomKarta();
-  setBox(res.bbox || SE_BOX);
+  setBox(res.bbox || US_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   for (const k of res.kommuner) {
     laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
@@ -744,9 +764,9 @@ $("prognostisera").onclick = async () => {
 
 // ── Fråga Landvex ────────────────────────────────────────────────────
 const EXEMPEL = [
-  "What are the five biggest business opportunities in Örebro right now?",
-  "Where in Europe is the shortage of electricians greatest?",
-  "Which US state will need the most nurses over the next ten years?",
+  "What are the five biggest business opportunities in Dallas right now?",
+  "Where in the US is the shortage of electricians greatest?",
+  "Which US metro region will need the most nurses over the next ten years?",
   "Where should I open a café?",
   "Where is the imbalance greatest for car repair shops?",
   "Which region has the most heat pumps approaching replacement age?",
@@ -811,7 +831,7 @@ function ritaSvar(res) {
 
   tomKarta();
   const karta = res.karta;
-  setBox((karta && karta.bbox) || SE_BOX);
+  setBox((karta && karta.bbox) || US_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   if (karta && karta.typ === "efterfragan") {
     for (const k of karta.kommuner)
@@ -867,7 +887,7 @@ $("fragaText").addEventListener("keydown", e => {
 
 // ── Inställningar (localStorage) ─────────────────────────────────────
 const INSTALL = Object.assign(
-  { marknad: "se", malar: "2035", topN: 5, nyckel: "" },
+  { marknad: "us", malar: "2035", topN: 5, nyckel: "" },
   JSON.parse(localStorage.getItem("landvex_settings") || "{}"));
 
 function visaOmSystemet() {
@@ -1031,7 +1051,7 @@ async function guideKor() {
     } else if (guide.flode === "obalans") {
       const res = await api("/v1/gaps", { vertical: sv("bransch"),
                                           market: marknad, top_n: INSTALL.topN });
-      tomKarta(); setBox(res.bbox || SE_BOX);
+      tomKarta(); setBox(res.bbox || US_BOX);
       vb = { x: 0, y: 0, w: W, h: H }; applyVB();
       for (const h of res.heatmap)
         laggPunkt(h.lat, h.lon, h.band, 7,
@@ -1097,8 +1117,8 @@ $("instSpara").onclick = () => {
 };
 
 // ── Paket & priser ───────────────────────────────────────────────────
-const pris = p => p ? `${p.SEK.toLocaleString("en-US")} SEK/mo` +
-  ` <small style="color:var(--muted)">· €${p.EUR} · $${p.USD}</small>` : "Custom quote";
+const pris = p => p ? `$${p.USD.toLocaleString("en-US")}/mo` +
+  ` <small style="color:var(--muted)">· €${p.EUR} · ${p.SEK.toLocaleString("en-US")} SEK</small>` : "Custom quote";
 
 async function visaPaket() {
   const wrap = $("hotspots");
@@ -1168,7 +1188,7 @@ $("ritaIndex").onclick = async () => {
     const res = await api(`/v1/indices/map?index_id=${$("indexVal").value}` +
                           `&market=${$("marknadIndex").value}`);
     tomKarta();
-    setBox(res.bbox || SE_BOX);
+    setBox(res.bbox || US_BOX);
     vb = { x: 0, y: 0, w: W, h: H }; applyVB();
     for (const r of res.heatmap)
       laggPunkt(r.lat, r.lon, r.band, 7,

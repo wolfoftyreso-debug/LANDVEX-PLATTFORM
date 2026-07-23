@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .markets import get_market, get_region
+from .markets import DEFAULT_MARKET, FX_PER_SEK, get_market, get_region
 from .models import Location
 from .profile import BusinessProfile
 from .risk import assess
@@ -138,7 +138,7 @@ _FINANSIERING_SV = [
 
 
 def establishment_plan(kommun_kod: str, vertical_id: str,
-                       market: str = "se", team_size: str = "2-5",
+                       market: str = DEFAULT_MARKET, team_size: str = "2-5",
                        budget_band: str = "500k-2m",
                        resolver: Resolver | None = None) -> dict[str, Any]:
     """Konkret etableringsplan för vertikal + region. JSON-redo dict."""
@@ -170,8 +170,10 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
                  "Rent level around the national average.")
 
     # Investering: startkapital + utrustning (schabloner).
-    start_lo, start_hi = STARTUP_TKR[vertical_id]
-    utr_lo, utr_hi = spec.utrustning_tkr
+    fx = FX_PER_SEK[mkt.currency]
+    start_lo, start_hi = (max(0, round(v * fx))
+                          for v in STARTUP_TKR[vertical_id])
+    utr_lo, utr_hi = (round(v * fx) for v in spec.utrustning_tkr)
     tot_lo, tot_hi = start_lo + utr_lo, start_hi + utr_hi
 
     # Personal: verkligt rekryteringsläge från Workforce-motorn.
@@ -185,7 +187,8 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
         personal_yrken.append({"occupation_id": occ_id,
                                "label_en": OCCUPATIONS[occ_id].label_en,
                                "medellon_tkr_manad":
-                                   OCCUPATIONS[occ_id].salary_tkr_month,
+                                   round(OCCUPATIONS[occ_id].salary_tkr_month
+                                         * fx, 1),
                                "rekryteringslage_en": laget})
 
     # Ekonomi: scenario + återbetalningstid, endast kalibrerad marknad.
@@ -227,12 +230,18 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
         "market": mkt.id, "market_label_en": mkt.label_en,
         "opportunity_score": report.opportunity_score,
         "risk_total": riskprofil["total_risk"],
+        "currency": mkt.currency,
         "lokal": {"storlek_m2": lokal_m2, "hyreslage_en": hyreslage},
         "investering_tkr": {"startkapital": [start_lo, start_hi],
                             "utrustning": [utr_lo, utr_hi],
                             "totalt": [tot_lo, tot_hi],
                             "notis_en": "Industry standard estimates – "
-                                        "actual amounts depend on quotes."},
+                                        "actual amounts depend on quotes."
+                                        + ("" if mkt.currency == "SEK" else
+                                           " Converted from Swedish "
+                                           "benchmarks at a standard rate – "
+                                           "local cost levels are not "
+                                           "calibrated yet.")},
         "finansiering": _FINANSIERING_SV,
         "personal": {"antal": persons, "team_size": team_size,
                      "yrken": personal_yrken,

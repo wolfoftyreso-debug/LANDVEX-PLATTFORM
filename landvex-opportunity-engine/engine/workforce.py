@@ -33,7 +33,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.mock import MockSource
-from .markets import (GROUP_BBOX, GROUP_LABEL_SV, MARKET_GROUPS,
+from .markets import (DEFAULT_MARKET, GROUP_BBOX, GROUP_LABEL_SV, MARKET_GROUPS,
                       get_market, get_region)
 from .models import Location
 from .signals import CATALOG, normalize
@@ -283,7 +283,7 @@ def _forecast_one(occ: Occupation, values: dict, horizon: int,
 def forecast(kommun_kod: str, target_year: int = 2035,
              occupation_ids: list[str] | None = None,
              resolver: Resolver | None = None,
-             market: str = "se") -> dict[str, Any]:
+             market: str = DEFAULT_MARKET) -> dict[str, Any]:
     """Kompetensprognos för en region, alla (eller valda) yrken."""
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
@@ -333,7 +333,7 @@ def forecast(kommun_kod: str, target_year: int = 2035,
 def simulate(kommun_kod: str, occupation_id: str,
              extra_places_per_year: float, target_year: int = 2035,
              resolver: Resolver | None = None,
-             market: str = "se") -> dict[str, Any]:
+             market: str = DEFAULT_MARKET) -> dict[str, Any]:
     """Utbildningssimulering: 'om vi startar X platser/år – vad händer?'"""
     if occupation_id not in OCCUPATIONS:
         raise ValueError(f"Unknown occupation: {occupation_id}")
@@ -366,7 +366,7 @@ def simulate(kommun_kod: str, occupation_id: str,
 
 def national_map(occupation_id: str, target_year: int = 2035,
                  resolver: Resolver | None = None,
-                 market: str = "se") -> dict[str, Any]:
+                 market: str = DEFAULT_MARKET) -> dict[str, Any]:
     """Marknadskarta: kompetensbalans per region för ett yrke."""
     if occupation_id not in OCCUPATIONS:
         raise ValueError(f"Unknown occupation: {occupation_id}")

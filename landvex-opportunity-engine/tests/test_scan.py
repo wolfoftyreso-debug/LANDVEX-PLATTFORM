@@ -58,7 +58,7 @@ def test_report_exposes_signals_and_risk_score():
 # ── Svepet ───────────────────────────────────────────────────────────
 
 def test_scan_ranks_and_bands():
-    res = scan(_profile(), top_n=5)
+    res = scan(_profile(), top_n=5, market="se")
     assert res["candidates_scanned"] == 40
     assert len(res["heatmap"]) == 40
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
@@ -70,12 +70,12 @@ def test_scan_ranks_and_bands():
 
 
 def test_scan_deterministic():
-    a, b = scan(_profile()), scan(_profile())
+    a, b = scan(_profile(), market="se"), scan(_profile(), market="se")
     assert a == b
 
 
 def test_decision_card_contract():
-    card = scan(_profile(), top_n=1)["hotspots"][0]
+    card = scan(_profile(), top_n=1, market="se")["hotspots"][0]
     for key in ("kommun", "opportunity_score", "rank_score", "confidence",
                 "risk_index", "risk_level", "market_momentum",
                 "competition_gap", "time_window_months", "drivers",
@@ -93,7 +93,7 @@ def test_decision_card_contract():
 
 
 def test_commute_filter():
-    res = scan(_profile(commute_km=100, home_lat=59.33, home_lon=18.06))
+    res = scan(_profile(commute_km=100, home_lat=59.33, home_lon=18.06), market="se")
     assert res["excluded"]["pendling"] > 0
     assert res["candidates_scanned"] < 40
     names = {h["kommun"] for h in res["heatmap"]}
@@ -102,7 +102,7 @@ def test_commute_filter():
 
 
 def test_environment_filter():
-    res = scan(_profile(environments=["turistort"]))
+    res = scan(_profile(environments=["turistort"]), market="se")
     assert all("turistort" in h["environment"] for h in res["hotspots"])
     assert res["excluded"]["miljo"] > 0
     # Värmekartan visar fortfarande hela svepet.
@@ -110,8 +110,8 @@ def test_environment_filter():
 
 
 def test_risk_tolerance_affects_ranking():
-    low = scan(_profile(risk_tolerance="lag"))
-    agg = scan(_profile(risk_tolerance="aggressiv"))
+    low = scan(_profile(risk_tolerance="lag"), market="se")
+    agg = scan(_profile(risk_tolerance="aggressiv"), market="se")
     by_kommun = {h["kommun"]: h["rank_score"] for h in low["hotspots"]}
     diffs = [h["rank_score"] - by_kommun[h["kommun"]]
              for h in agg["hotspots"] if h["kommun"] in by_kommun]
@@ -125,8 +125,8 @@ def test_risk_tolerance_affects_ranking():
 
 
 def test_detail_level_scans_five_points_per_kommun():
-    over = scan(_profile(), level="oversikt")
-    det = scan(_profile(), level="detaljerad")
+    over = scan(_profile(), level="oversikt", market="se")
+    det = scan(_profile(), level="detaljerad", market="se")
     assert over["candidates_scanned"] == 40
     assert det["candidates_scanned"] == 200
     assert det["kommuner_scanned"] == 40
@@ -135,9 +135,9 @@ def test_detail_level_scans_five_points_per_kommun():
     assert len(koder) == len(set(koder))
     assert all(h["punkt"] in dict.fromkeys(
         lbl for _, _, lbl in SCAN_LEVELS["detaljerad"]) for h in det["hotspots"])
-    assert scan(_profile(), level="detaljerad") == det   # determinism
+    assert scan(_profile(), level="detaljerad", market="se") == det   # determinism
     try:
-        scan(_profile(), level="ultra")
+        scan(_profile(), level="ultra", market="se")
     except ValueError:
         pass
     else:
@@ -149,7 +149,7 @@ def test_new_verticals_scan_and_have_schablons():
     assert set(scan_mod._REVENUE_PER_PERSON_TKR) == set(VERTICALS)
     assert set(scan_mod._STARTUP_TKR) == set(VERTICALS)
     for vid in ("bilverkstad", "veterinar", "lager"):
-        res = scan(profile_from_dict({"vertical_id": vid}), top_n=3)
+        res = scan(profile_from_dict({"vertical_id": vid}), top_n=3, market="se")
         assert len(res["hotspots"]) == 3, vid
         card = res["hotspots"][0]
         assert card["drivers"], vid

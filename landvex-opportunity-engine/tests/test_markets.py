@@ -11,10 +11,12 @@ from engine.workforce import forecast, global_map
 
 
 def test_markets_are_valid_data():
-    # USA + EU fullt utbyggt: minst 15 marknader, USA med 40 regioner.
+    # USA-först: USA är största marknaden med 60 metroregioner.
     assert {"se", "de", "us", "es", "pl", "fr", "it", "nl", "be", "at",
             "pt", "dk", "fi", "no", "ie", "cz"} == set(MARKETS)
-    assert len(MARKETS["us"].regions) == 40
+    assert len(MARKETS["us"].regions) == 60
+    assert len(MARKETS["us"].regions) == max(
+        len(m.regions) for m in MARKETS.values())   # USA störst
     assert sum(len(m.regions) for m in MARKETS.values()) >= 200
     codes = set()
     for m in MARKETS.values():
@@ -52,7 +54,7 @@ def test_scan_in_germany():
     # Ekonomischabloner är inte kalibrerade utanför Sverige – ärligt fält.
     assert card["economy_scenario"]["status"] == "ej_kalibrerad"
     # Svenska svepet påverkas inte.
-    se = scan(profile_from_dict({"vertical_id": "vvs"}), top_n=1)
+    se = scan(profile_from_dict({"vertical_id": "vvs"}), top_n=1, market="se")
     assert se["hotspots"][0]["economy_scenario"].get("status") != "ej_kalibrerad"
 
 

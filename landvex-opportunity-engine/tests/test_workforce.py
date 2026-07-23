@@ -23,7 +23,7 @@ def test_catalog_is_valid_data():
 
 
 def test_forecast_contract_and_honesty():
-    res = forecast("0180", target_year=2035)
+    res = forecast("0180", target_year=2035, market="se")
     assert res["kommun"] == "Stockholm"
     assert len(res["prognoser"]) == len(OCCUPATIONS)
     for f in res["prognoser"]:
@@ -42,7 +42,7 @@ def test_forecast_contract_and_honesty():
 
 
 def test_forecast_deterministic_and_validates():
-    assert forecast("0180") == forecast("0180")
+    assert forecast("0180", market="se") == forecast("0180", market="se")
     for bad in [("9999", 2035, None), ("0180", 2026, None),
                 ("0180", 2099, None), ("0180", 2035, ["rymdpilot"])]:
         try:
@@ -53,9 +53,9 @@ def test_forecast_deterministic_and_validates():
 
 
 def test_longer_horizon_widens_interval_and_lowers_confidence():
-    f30 = next(f for f in forecast("0180", 2030)["prognoser"]
+    f30 = next(f for f in forecast("0180", 2030, market="se")["prognoser"]
                if f["occupation_id"] == "elektriker")
-    f40 = next(f for f in forecast("0180", 2040)["prognoser"]
+    f40 = next(f for f in forecast("0180", 2040, market="se")["prognoser"]
                if f["occupation_id"] == "elektriker")
     rel30 = (f30["intervall"][1] - f30["intervall"][0]) / f30["behov_prognos"]
     rel40 = (f40["intervall"][1] - f40["intervall"][0]) / f40["behov_prognos"]
@@ -64,17 +64,17 @@ def test_longer_horizon_widens_interval_and_lowers_confidence():
 
 
 def test_simulation_reduces_gap():
-    base = simulate("0180", "elektriker", 0, 2035)
-    sim = simulate("0180", "elektriker", 200, 2035)
+    base = simulate("0180", "elektriker", 0, 2035, market="se")
+    sim = simulate("0180", "elektriker", 200, 2035, market="se")
     assert base["brist_med_atgard"] == base["brist_utan_atgard"]
     assert sim["brist_utan_atgard"] == base["brist_utan_atgard"]
     assert sim["brist_med_atgard"] < sim["brist_utan_atgard"]
     assert sim["minskning"] > 0
     # Massiv satsning bör nå balans före målåret.
-    big = simulate("0180", "elektriker", 5000, 2035)
+    big = simulate("0180", "elektriker", 5000, 2035, market="se")
     assert big["balansar"] is not None and big["balansar"] <= 2035
     try:
-        simulate("0180", "elektriker", -5, 2035)
+        simulate("0180", "elektriker", -5, 2035, market="se")
     except ValueError:
         pass
     else:
@@ -82,7 +82,7 @@ def test_simulation_reduces_gap():
 
 
 def test_national_map_bands():
-    res = national_map("sjukskoterska", 2035)
+    res = national_map("sjukskoterska", 2035, market="se")
     assert len(res["kommuner"]) == 40
     assert all(k["band"] in ("balans", "okande_brist", "kritisk_brist")
                for k in res["kommuner"])

@@ -27,7 +27,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.mock import MockSource
-from .markets import get_market, get_region
+from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .signals import CATALOG, normalize
 
@@ -174,7 +174,7 @@ _CAVEATS = [
 ]
 
 
-def city_assessment(kommun_kod: str, market: str = "se",
+def city_assessment(kommun_kod: str, market: str = DEFAULT_MARKET,
                     resolver: Resolver | None = None) -> dict[str, Any]:
     """Alla index för en stad – 'click any city'-vyn."""
     mkt = get_market(market)
@@ -195,7 +195,7 @@ def city_assessment(kommun_kod: str, market: str = "se",
             "caveats_en": list(_CAVEATS)}
 
 
-def index_map(index_id: str, market: str = "se",
+def index_map(index_id: str, market: str = DEFAULT_MARKET,
               resolver: Resolver | None = None,
               top_n: int = 5) -> dict[str, Any]:
     """Intelligence Map-lager: ett index över marknadens regioner."""

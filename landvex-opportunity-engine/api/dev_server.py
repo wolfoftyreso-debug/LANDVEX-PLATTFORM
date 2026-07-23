@@ -42,7 +42,7 @@ from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
-from engine.markets import market_catalog
+from engine.markets import DEFAULT_MARKET, market_catalog
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
@@ -285,7 +285,7 @@ class Handler(BaseHTTPRequestHandler):
                                            resolver=RESOLVER))
             if self.path == "/v1/indices/assess":
                 res = city_assessment(req["kommun_kod"],
-                                      market=req.get("market", "se"),
+                                      market=req.get("market", DEFAULT_MARKET),
                                       resolver=RESOLVER)
                 if self._live_locked():
                     for row in res["index"]:
@@ -299,22 +299,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, res)
             if self.path == "/v1/service/analyze":
                 return self._send(200, service_analysis(
-                    req["kommun_kod"], market=req.get("market", "se"),
+                    req["kommun_kod"], market=req.get("market", DEFAULT_MARKET),
                     target_year=int(req.get("target_year", 2031)),
                     resolver=RESOLVER))
             if self.path == "/v1/segments/analyze":
                 return self._send(200, segment_analysis(
-                    req["kommun_kod"], market=req.get("market", "se"),
+                    req["kommun_kod"], market=req.get("market", DEFAULT_MARKET),
                     resolver=RESOLVER))
             if self.path == "/v1/gaps":
                 return self._send(200, gap_analysis(
-                    req["vertical"], market=req.get("market", "se"),
+                    req["vertical"], market=req.get("market", DEFAULT_MARKET),
                     resolver=RESOLVER,
                     top_n=min(max(int(req.get("top_n", 5)), 1), 20)))
             if self.path == "/v1/plan":
                 return self._send(200, establishment_plan(
                     req["kommun_kod"], req["vertical"],
-                    market=req.get("market", "se"),
+                    market=req.get("market", DEFAULT_MARKET),
                     team_size=req.get("team_size", "2-5"),
                     budget_band=req.get("budget_band", "500k-2m"),
                     resolver=RESOLVER))
@@ -332,13 +332,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, wf_forecast(
                     req["kommun_kod"], int(req.get("target_year", 2035)),
                     req.get("occupation_ids"), resolver=RESOLVER,
-                    market=req.get("market", "se")))
+                    market=req.get("market", DEFAULT_MARKET)))
             if self.path == "/v1/workforce/simulate":
                 return self._send(200, wf_simulate(
                     req["kommun_kod"], req["occupation_id"],
                     float(req.get("extra_places_per_year", 0)),
                     int(req.get("target_year", 2035)), resolver=RESOLVER,
-                    market=req.get("market", "se")))
+                    market=req.get("market", DEFAULT_MARKET)))
             if self.path == "/v1/scan":
                 raw = req.get("profile")
                 if raw is None and req.get("profile_id"):
@@ -353,7 +353,7 @@ class Handler(BaseHTTPRequestHandler):
                 top_n = min(max(int(req.get("top_n", 5)), 1), 20)
                 return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n,
                                             level=req.get("level", "oversikt"),
-                                            market=req.get("market", "se")))
+                                            market=req.get("market", DEFAULT_MARKET)))
             self._send(404, {"error": "not found"})
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
             self._send(422, {"error": str(e)})

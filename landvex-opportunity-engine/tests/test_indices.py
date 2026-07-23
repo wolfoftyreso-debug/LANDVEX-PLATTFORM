@@ -23,7 +23,7 @@ def test_index_types_are_valid_data():
 
 
 def test_city_assessment_is_traceable():
-    res = city_assessment("0180")                     # Stockholm
+    res = city_assessment("0180", market="se")                     # Stockholm
     assert len(res["index"]) == 6
     for ix in res["index"]:
         assert 0 <= ix["varde"] <= 100
@@ -38,11 +38,11 @@ def test_city_assessment_is_traceable():
     roller = {d["roll"] for d in kontr["drivare"]}
     assert roller == {"officiellt_planerat", "observerat"}
     assert "quiXzoom" in res["caveats_en"][1]         # ärlig precisionsnot
-    assert city_assessment("0180") == res             # determinism
+    assert city_assessment("0180", market="se") == res             # determinism
 
 
 def test_index_map_contract():
-    res = index_map("infrastructure_risk")
+    res = index_map("infrastructure_risk", market="se")
     assert len(res["regioner"]) == 40
     varden = [r["varde"] for r in res["regioner"]]
     assert varden == sorted(varden, reverse=True)     # högst risk först

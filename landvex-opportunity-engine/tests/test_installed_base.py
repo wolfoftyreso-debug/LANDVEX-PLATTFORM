@@ -25,7 +25,7 @@ def test_product_types_are_valid_data():
 
 
 def test_service_analysis_contract():
-    res = service_analysis("0180")                       # Stockholm, 2031
+    res = service_analysis("0180", market="se")                       # Stockholm, 2031
     assert res["kommun"] == "Stockholm"
     assert len(res["produkter"]) == len(PRODUCT_TYPES)
     utbyten = [p["utbyten_till_malar"] for p in res["produkter"]]
@@ -38,11 +38,11 @@ def test_service_analysis_contract():
         # Kedjan är konsistent: utbyten ≤ bas, service ∝ bas/intervall.
         assert p["utbyten_till_malar"] <= p["installerad_bas"]
     assert "estimate" in res["antaganden_en"][0]     # ärlighet
-    assert service_analysis("0180") == res               # determinism
+    assert service_analysis("0180", market="se") == res               # determinism
 
 
 def test_service_map_contract_and_mismatch():
-    res = service_demand_map("varmepump_luft")
+    res = service_demand_map("varmepump_luft", market="se")
     assert len(res["regioner"]) == 40 and len(res["heatmap"]) == 40
     utbyten = [r["utbyten_till_malar"] for r in res["regioner"]]
     assert utbyten == sorted(utbyten, reverse=True)
@@ -53,7 +53,7 @@ def test_service_map_contract_and_mismatch():
             assert r["installerad_bas"] > 0
             assert r["teknikerlage"]["status"] == "brist"
     # Personbilar saknar modellerat serviceyrke – ärligt fält.
-    bil = service_demand_map("personbil")
+    bil = service_demand_map("personbil", market="se")
     assert bil["regioner"][0]["teknikerlage"]["status"] == "ej_modellerat"
     for bad in ("segway", ""):
         try:
@@ -81,7 +81,7 @@ def test_ask_service_intents_and_answers():
 
     res = ask("Vilken region har flest värmepumpar som närmar sig utbytesålder?")
     assert res["intent"] == "service_karta"
-    assert len(res["karta"]["heatmap"]) == 40
+    assert len(res["karta"]["heatmap"]) == 60      # US-först: default-marknad USA
     assert "estimate" in res["rader"][0]["detalj"]["installerad_bas"]
 
     res2 = ask("Hur ser servicebehovet ut i Umeå?")

@@ -31,7 +31,7 @@ from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
-from engine.markets import market_catalog
+from engine.markets import DEFAULT_MARKET, market_catalog
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
@@ -159,7 +159,7 @@ class ScanRequest(BaseModel):
     profile_id: str | None = None    # ... eller sparad profil
     top_n: int = Field(5, ge=1, le=20)
     level: str = "oversikt"
-    market: str = "se"
+    market: str = DEFAULT_MARKET
 
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
@@ -230,7 +230,7 @@ class ForecastRequest(BaseModel):
     kommun_kod: str
     target_year: int = 2035
     occupation_ids: list[str] | None = None
-    market: str = "se"
+    market: str = DEFAULT_MARKET
 
 
 class SimulateRequest(BaseModel):
@@ -238,7 +238,7 @@ class SimulateRequest(BaseModel):
     occupation_id: str
     extra_places_per_year: float = Field(..., ge=0)
     target_year: int = 2035
-    market: str = "se"
+    market: str = DEFAULT_MARKET
 
 
 class RiskRequest(BaseModel):
@@ -286,14 +286,14 @@ def compare_locations(req: CompareRequest):
 
 class GapRequest(BaseModel):
     vertical: str
-    market: str = "se"
+    market: str = DEFAULT_MARKET
     top_n: int = Field(5, ge=1, le=20)
 
 
 class PlanRequest(BaseModel):
     kommun_kod: str
     vertical: str
-    market: str = "se"
+    market: str = DEFAULT_MARKET
     team_size: str = "2-5"
     budget_band: str = "500k-2m"
 
@@ -320,12 +320,12 @@ def plan(req: PlanRequest):
 
 class SegmentAnalyzeRequest(BaseModel):
     kommun_kod: str
-    market: str = "se"
+    market: str = DEFAULT_MARKET
 
 
 class ServiceAnalyzeRequest(BaseModel):
     kommun_kod: str
-    market: str = "se"
+    market: str = DEFAULT_MARKET
     target_year: int = 2031
 
 
@@ -345,7 +345,7 @@ def service_analyze(req: ServiceAnalyzeRequest):
 
 
 @app.get("/v1/service/map")
-def service_map(product_id: str, market: str = "se",
+def service_map(product_id: str, market: str = DEFAULT_MARKET,
                 target_year: int = 2031):
     try:
         return service_demand_map(product_id, market=market,
@@ -369,7 +369,7 @@ def segments_analyze(req: SegmentAnalyzeRequest):
 
 
 @app.get("/v1/segments/map")
-def segments_map(segment_id: str, market: str = "se"):
+def segments_map(segment_id: str, market: str = DEFAULT_MARKET):
     try:
         return segment_map(segment_id, market=market, resolver=RESOLVER)
     except ValueError as e:
@@ -378,7 +378,7 @@ def segments_map(segment_id: str, market: str = "se"):
 
 class AssessRequest(BaseModel):
     kommun_kod: str
-    market: str = "se"
+    market: str = DEFAULT_MARKET
 
 
 @app.get("/v1/plans")
@@ -411,7 +411,7 @@ def indices(request: Request):
 
 
 @app.get("/v1/indices/map")
-def indices_map(request: Request, index_id: str, market: str = "se"):
+def indices_map(request: Request, index_id: str, market: str = DEFAULT_MARKET):
     from engine.indices import INDEX_TYPES
     ix = INDEX_TYPES.get(index_id)
     if ix and ix.niva == "live" and _live_locked(request):
@@ -479,7 +479,7 @@ def workforce_simulate(req: SimulateRequest):
 
 @app.get("/v1/workforce/map")
 def workforce_map(occupation_id: str, target_year: int = 2035,
-                  market: str = "se"):
+                  market: str = DEFAULT_MARKET):
     try:
         return national_map(occupation_id, target_year, resolver=RESOLVER,
                             market=market)

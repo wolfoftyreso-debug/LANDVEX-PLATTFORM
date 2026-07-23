@@ -12,7 +12,7 @@ from engine.workforce import OCCUPATIONS
 # ── Gap Analysis ─────────────────────────────────────────────────────
 
 def test_gap_contract_and_ranking():
-    res = gap_analysis("bilverkstad", top_n=5)
+    res = gap_analysis("bilverkstad", top_n=5, market="se")
     assert res["sammanfattning_en"]
     obal = res["obalanser"]
     assert len(obal) == 5
@@ -30,7 +30,7 @@ def test_gap_contract_and_ranking():
         assert e["narrativ_en"]
     assert len(res["heatmap"]) == 40
     assert res["caveats_en"]
-    assert gap_analysis("bilverkstad", top_n=5) == res     # determinism
+    assert gap_analysis("bilverkstad", top_n=5, market="se") == res     # determinism
 
 
 def test_gap_in_germany_and_validation():
@@ -57,7 +57,7 @@ def test_plan_data_covers_all_verticals():
 
 
 def test_plan_contract():
-    p = establishment_plan("2482", "bilverkstad")          # Skellefteå
+    p = establishment_plan("2482", "bilverkstad", market="se")          # Skellefteå
     assert p["kommun"] == "Skellefteå"
     for key in ("lokal", "investering_tkr", "finansiering", "personal",
                 "leverantorer_en", "ekonomi", "risker", "nasta_steg_en",
@@ -72,7 +72,7 @@ def test_plan_contract():
     assert len(p["risker"]) == 3
     assert p["personal"]["yrken"] and all(
         y["rekryteringslage_en"] for y in p["personal"]["yrken"])
-    assert establishment_plan("2482", "bilverkstad") == p  # determinism
+    assert establishment_plan("2482", "bilverkstad", market="se") == p  # determinism
 
 
 def test_plan_uncalibrated_market_is_honest():

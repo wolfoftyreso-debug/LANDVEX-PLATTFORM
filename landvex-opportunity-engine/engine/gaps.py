@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from .datasources.base import Resolver
-from .markets import get_market, plural_region_label
+from .markets import DEFAULT_MARKET, get_market, plural_region_label
 from .models import Location
 from .scan import momentum_of
 from .scoring import analyze
@@ -76,7 +76,7 @@ def _axes(report, vertical_id: str) -> tuple[float, float, list, list]:
             u_num / u_den if u_den else 0.5, d_rows, u_rows)
 
 
-def gap_analysis(vertical_id: str, market: str = "se",
+def gap_analysis(vertical_id: str, market: str = DEFAULT_MARKET,
                  resolver: Resolver | None = None,
                  top_n: int = 5) -> dict[str, Any]:
     """Rankar marknadens regioner efter obalans för en vertikal."""

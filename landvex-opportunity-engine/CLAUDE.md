@@ -258,6 +258,19 @@ OIDC.
   språken. ENGINE_VERSION 0.10.0. Interna id:n är oförändrade
   (vertical/occupation/band/status) – de är kontrakt, inte språk.
   Dokumentationen (CLAUDE.md m.fl.) är fortsatt svensk tills vidare.
+- **USA-först (v0.20):** USA är plattformens default-marknad överallt
+  – `DEFAULT_MARKET = "us"` i `engine/markets.py` styr motorer, API
+  och Ask-tolken (frågor utan geografi besvaras för USA). USA utbyggt
+  till 60 metroregioner (störst i systemet, 238 regioner totalt) och
+  ligger först i marknadskatalogen. Frontenden startar med USA-karta
+  (ny USA-kontur; konturval per bbox i `setBox`), inställningarnas
+  standardmarknad är USA och paketpriser visas USD-först.
+  Etableringsplaner konverterar belopp till marknadens valuta via
+  dokumenterade schablonkurser (`FX_PER_SEK`) med ärlig not om att
+  lokala kostnadslägen inte är kalibrerade; `currency`-fält i
+  plansvaret. Demon bakas USA+Sverige med US-first-frågor. Sverige
+  är fortsatt enda marknaden med verklig datakälla (SCB) – allt
+  annat är märkt simulerat.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

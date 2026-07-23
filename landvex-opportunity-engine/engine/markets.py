@@ -32,14 +32,20 @@ class Market:
     calibrated: bool = False   # ekonomischabloner kalibrerade för marknaden?
 
 
+DEFAULT_MARKET = "us"
+
+# Schablonkurser SEK -> lokal valuta (dokumenterad heuristik för
+# beloppskonvertering i planer – lokala kostnadslägen ej kalibrerade).
+FX_PER_SEK = {"SEK": 1.0, "USD": 0.095, "EUR": 0.088, "PLN": 0.38,
+              "DKK": 0.66, "NOK": 1.0, "CZK": 2.2}
+
+
+
 def _r(*rows):
     return tuple(rows)
 
 
 MARKETS: dict[str, Market] = {m.id: m for m in [
-    Market("se", "Sweden", "SEK", "municipality",
-           (55.0, 69.5, 10.5, 24.5), tuple(KOMMUNER), calibrated=True),
-
     Market("us", "USA", "USD", "metro region",
            (24.0, 50.0, -125.0, -66.0), _r(
         ("us-newyork", "New York", 40.71, -74.01),
@@ -81,7 +87,31 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("us-raleigh", "Raleigh", 35.78, -78.64),
         ("us-milwaukee", "Milwaukee", 43.04, -87.91),
         ("us-oklahomacity", "Oklahoma City", 35.47, -97.52),
-        ("us-neworleans", "New Orleans", 29.95, -90.07))),
+        ("us-neworleans", "New Orleans", 29.95, -90.07),
+        ("us-memphis", "Memphis", 35.15, -90.05),
+        ("us-louisville", "Louisville", 38.25, -85.76),
+        ("us-richmond", "Richmond", 37.54, -77.44),
+        ("us-buffalo", "Buffalo", 42.89, -78.88),
+        ("us-hartford", "Hartford", 41.76, -72.67),
+        ("us-providence", "Providence", 41.82, -71.41),
+        ("us-jacksonville", "Jacksonville", 30.33, -81.66),
+        ("us-virginiabeach", "Virginia Beach", 36.85, -75.98),
+        ("us-birmingham", "Birmingham", 33.52, -86.80),
+        ("us-tucson", "Tucson", 32.22, -110.97),
+        ("us-fresno", "Fresno", 36.74, -119.79),
+        ("us-omaha", "Omaha", 41.26, -95.93),
+        ("us-boise", "Boise", 43.62, -116.20),
+        ("us-desmoines", "Des Moines", 41.59, -93.62),
+        ("us-albuquerque", "Albuquerque", 35.08, -106.65),
+        ("us-elpaso", "El Paso", 31.76, -106.49),
+        ("us-tulsa", "Tulsa", 36.15, -95.99),
+        ("us-grandrapids", "Grand Rapids", 42.96, -85.66),
+        ("us-charleston", "Charleston", 32.78, -79.93),
+        ("us-spokane", "Spokane", 47.66, -117.43))),
+
+    Market("se", "Sweden", "SEK", "municipality",
+           (55.0, 69.5, 10.5, 24.5), tuple(KOMMUNER), calibrated=True),
+
 
     Market("de", "Germany", "EUR", "metro region",
            (47.0, 55.2, 5.5, 15.5), _r(
