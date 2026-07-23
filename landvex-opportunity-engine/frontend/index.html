@@ -13,10 +13,15 @@
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--bg); color: var(--text);
          font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display: flex; align-items: baseline; gap: 12px;
-           padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header { display: flex; align-items: center; gap: 12px;
+           padding: 10px 20px; border-bottom: 1px solid var(--line); }
   header h1 { font-size: 17px; letter-spacing: 2px; }
   header span { color: var(--muted); font-size: 12px; }
+  #tabs { margin-left: auto; display: flex; gap: 6px; }
+  .tab { width: auto; padding: 7px 16px; border-radius: 999px; cursor: pointer;
+         background: var(--panel2); color: var(--muted);
+         border: 1px solid var(--line); font-size: 13px; }
+  .tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .layout { display: grid; grid-template-columns: 300px 1fr 400px;
             gap: 0; height: calc(100vh - 51px); }
   @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; height: auto; } }
@@ -87,34 +92,59 @@
   .caveat { font-size: 11px; color: var(--muted); border-left: 3px solid var(--gul);
             padding-left: 8px; margin: 8px 0; }
   .roi-notis { font-size: 11px; color: var(--muted); font-style: italic; }
+  .sim { display: flex; gap: 6px; margin-top: 6px; }
+  .sim input { width: 90px; padding: 7px 9px; border-radius: 8px; font-size: 13px;
+               background: var(--panel2); color: var(--text);
+               border: 1px solid var(--line); }
+  .sim button { width: auto; padding: 7px 12px; cursor: pointer; }
+  .intervall { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
 <header>
-  <h1>LANDVEX</h1><span>Opportunity Engine · Analysera Sverige</span>
+  <h1>LANDVEX</h1><span id="undertitel">Opportunity Engine · Analysera Sverige</span>
+  <nav id="tabs">
+    <button class="tab on" data-mode="etab">Etablering</button>
+    <button class="tab" data-mode="komp">Kompetens</button>
+  </nav>
 </header>
 
 <div class="layout">
   <aside class="profil">
-    <h2>Min affärsprofil</h2>
-    <div id="formular"></div>
-    <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
-    <button id="analysera">Analysera Sverige</button>
+    <div id="vyEtab">
+      <h2>Min affärsprofil</h2>
+      <div id="formular"></div>
+      <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
+      <button id="analysera">Analysera Sverige</button>
+    </div>
+    <div id="vyKomp" style="display:none">
+      <h2>Kompetensprognos</h2>
+      <div class="falt"><label>Yrke</label><select id="yrke"></select></div>
+      <div class="falt"><label>Målår</label><select id="malar">
+        <option>2030</option><option selected>2035</option><option>2040</option>
+      </select></div>
+      <button id="prognostisera">Prognostisera Sverige</button>
+    </div>
     <div class="status" id="status">Bygg din profil och klicka på Analysera Sverige.</div>
   </aside>
 
   <main class="karta">
     <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Värmekarta Sverige"></svg>
-    <div class="legend">
+    <div class="legend" id="legendEtab">
       <div><i style="background:var(--gron)"></i>Score ≥ 70 · starka möjligheter</div>
       <div><i style="background:var(--gul)"></i>45–69 · normalläge</div>
       <div><i style="background:var(--rod)"></i>&lt; 45 · svagt underlag</div>
+    </div>
+    <div class="legend" id="legendKomp" style="display:none">
+      <div><i style="background:var(--gron)"></i>God balans</div>
+      <div><i style="background:var(--gul)"></i>Ökande brist</div>
+      <div><i style="background:var(--rod)"></i>Kritisk brist</div>
     </div>
     <div id="tooltip"></div>
   </main>
 
   <aside class="resultat">
-    <h2>Hotspots</h2>
+    <h2 id="resultatRubrik">Hotspots</h2>
     <div id="hotspots"><p class="motiv">Inga resultat ännu.</p></div>
     <div id="caveats"></div>
   </aside>
@@ -288,10 +318,147 @@ $("analysera").onclick = async () => {
   } finally { btn.disabled = false; }
 };
 
+// ── Kompetensläget (Workforce Intelligence) ─────────────────────────
+const KOMPFARG = { balans: "var(--gron)", okande_brist: "var(--gul)",
+                   kritisk_brist: "var(--rod)" };
+const BANDTEXT = { balans: "God balans", okande_brist: "Ökande brist",
+                   kritisk_brist: "Kritisk brist" };
+let MODE = "etab", senasteKarta = null;
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  MODE = t.dataset.mode;
+  document.querySelectorAll(".tab").forEach(x =>
+    x.classList.toggle("on", x === t));
+  $("vyEtab").style.display = MODE === "etab" ? "" : "none";
+  $("vyKomp").style.display = MODE === "komp" ? "" : "none";
+  $("legendEtab").style.display = MODE === "etab" ? "" : "none";
+  $("legendKomp").style.display = MODE === "komp" ? "" : "none";
+  $("resultatRubrik").textContent = MODE === "etab" ? "Hotspots" : "Störst brist";
+  $("undertitel").textContent = MODE === "etab"
+    ? "Opportunity Engine · Analysera Sverige"
+    : "Workforce Intelligence · Kompetensprognos";
+  $("karta").innerHTML = ""; $("hotspots").innerHTML =
+    "<p class='motiv'>Inga resultat ännu.</p>"; $("caveats").innerHTML = "";
+  $("status").textContent = MODE === "etab"
+    ? "Bygg din profil och klicka på Analysera Sverige."
+    : "Välj yrke och målår, klicka på Prognostisera Sverige.";
+});
+
+function ritaKompKarta(res) {
+  const svg = $("karta");
+  svg.innerHTML = "";
+  for (const k of res.kommuner) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", px(k.lon)); c.setAttribute("cy", py(k.lat));
+    c.setAttribute("r", 7);
+    c.setAttribute("fill", KOMPFARG[k.band]); c.setAttribute("class", "prick");
+    c.dataset.info = `${k.kommun} — brist ${k.brist} (${BANDTEXT[k.band].toLowerCase()})`;
+    c.dataset.kommun = k.kommun_kod;
+    c.addEventListener("mousemove", visaTooltip);
+    c.addEventListener("mouseleave", () => $("tooltip").style.display = "none");
+    c.addEventListener("click", () => visaKompKommun(k.kommun_kod, k.kommun));
+    svg.appendChild(c);
+  }
+}
+
+function ritaKompLista(res) {
+  const wrap = $("hotspots");
+  wrap.innerHTML = "";
+  for (const k of res.kommuner.slice(0, 8)) {
+    const div = document.createElement("div");
+    div.className = "kort"; div.dataset.kommun = k.kommun_kod;
+    div.innerHTML = `
+      <div class="rubrik">
+        <span class="plats">📍 ${esc(k.kommun)}</span>
+        <span class="score ${k.band === "balans" ? "s-gron" :
+          k.band === "okande_brist" ? "s-gul" : "s-rod"}">${k.brist}</span>
+      </div>
+      <p class="motiv">${BANDTEXT[k.band]} · behov ${k.behov_prognos} till
+        ${res.malar} · konfidens ${k.konfidens} (heuristik)</p>
+      <div class="detalj"><p class="motiv">Hämtar detaljer …</p></div>`;
+    div.onclick = () => visaKompKommun(k.kommun_kod, k.kommun);
+    wrap.appendChild(div);
+  }
+  $("caveats").innerHTML = res.caveats_sv
+    .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
+}
+
+async function visaKompKommun(kod, namn) {
+  valjKommun(kod);
+  const kort = document.querySelector(`.kort[data-kommun="${kod}"]`);
+  if (!kort) return;
+  kort.classList.add("open");
+  const detalj = kort.querySelector(".detalj");
+  const yrke = $("yrke").value, ar = +$("malar").value;
+  try {
+    const res = await api("/v1/workforce/forecast",
+      { kommun_kod: kod, target_year: ar, occupation_ids: [yrke] });
+    const f = res.prognoser[0];
+    detalj.innerHTML = `
+      <h4>Kompetensprognos ${ar} · ${esc(f.label_sv)}</h4>
+      <div class="metrik">
+        <div><b>${f.behov_nu}</b><span>Behov nu</span></div>
+        <div><b>${f.behov_prognos}</b><span>Behov ${ar}</span></div>
+        <div><b>${f.brist}</b><span>Brist</span></div>
+      </div>
+      <p class="intervall">Intervall ${f.intervall[0]}–${f.intervall[1]} ·
+        konfidens ${f.konfidens} (heuristik) ·
+        efterfrågetakt ${f.efterfragetakt_pct_ar} %/år</p>
+      <h4>Antaganden</h4>
+      ${f.antaganden.map(a => `<p class="motiv"><b>${esc(a.antagande_sv)}:</b>
+        ${esc(a.varde_sv)}</p>`).join("")}
+      <h4>Drivkrafter</h4>
+      ${f.drivare.map(d => `<div class="driver">
+        <span>${esc(d.label_sv)} (${esc(d.kalla)})</span>
+        <span class="${d.bidrag_pct_ar >= 0 ? "pos" : "neg"}">
+          ${d.bidrag_pct_ar >= 0 ? "+" : ""}${d.bidrag_pct_ar} %/år</span>
+      </div>`).join("")}
+      <h4>Simulera utbildning</h4>
+      <div class="sim">
+        <input type="number" min="0" value="30" id="simN_${kod}">
+        <button id="simBtn_${kod}">platser/år →</button>
+      </div>
+      <p class="motiv" id="simUt_${kod}"></p>`;
+    $("simBtn_" + kod).onclick = async (e) => {
+      e.stopPropagation();
+      const n = +$("simN_" + kod).value || 0;
+      const s = await api("/v1/workforce/simulate",
+        { kommun_kod: kod, occupation_id: yrke,
+          extra_places_per_year: n, target_year: ar });
+      $("simUt_" + kod).innerHTML =
+        `Med <b>${n}</b> extra platser/år: brist ${s.brist_utan_atgard} → ` +
+        `<b>${s.brist_med_atgard}</b> (−${s.minskning})` +
+        (s.balansar ? ` · balans nås ${s.balansar}` : ` · balans nås ej före ${ar}`);
+    };
+    detalj.querySelector(".sim input").onclick = e => e.stopPropagation();
+  } catch (err) {
+    detalj.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`;
+  }
+}
+
+$("prognostisera").onclick = async () => {
+  const btn = $("prognostisera"), st = $("status");
+  btn.disabled = true;
+  st.textContent = "Prognostiserar Sverige …";
+  try {
+    const res = await api(`/v1/workforce/map?occupation_id=${$("yrke").value}` +
+                          `&target_year=${$("malar").value}`);
+    senasteKarta = res;
+    ritaKompKarta(res); ritaKompLista(res);
+    const kritiska = res.kommuner.filter(k => k.band === "kritisk_brist").length;
+    st.textContent = `${res.kommuner.length} kommuner prognostiserade · ` +
+      `${kritiska} med kritisk brist på ${res.label_sv.toLowerCase()}.`;
+  } catch (e) {
+    st.textContent = "Fel: " + e.message;
+  } finally { btn.disabled = false; }
+};
+
 (async () => {
   try {
     OPTIONS = await api("/v1/profile-options");
     byggFormular();
+    for (const o of await api("/v1/workforce/occupations"))
+      $("yrke").add(new Option(o.label_sv, o.id));
   } catch (e) {
     $("status").textContent = "Kunde inte nå API:t: " + e.message;
   }

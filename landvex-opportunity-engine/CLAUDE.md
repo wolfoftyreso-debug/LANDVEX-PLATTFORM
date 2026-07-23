@@ -1,4 +1,4 @@
-# CLAUDE.md — LANDVEX Opportunity Engine
+# CLAUDE.md — LANDVEX Opportunity + Workforce Engine
 
 Handoff från konceptfas till produktionsutveckling. Denna fil läses
 automatiskt av Claude Code och är den auktoritativa projektkontexten.
@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.5 — kartöversikt, analysnivåer, 10 branscher
+## Nuläge: v0.6 — Workforce Intelligence Engine
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -71,6 +71,25 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   `/v1/profile-options`, värmekarta (SVG, grön/gul/röd, tooltip,
   klick markerar kommunens kort), hotspotpanel med hela beslutskortet.
   Serveras på `/` av både dev-servern och FastAPI.
+- **Workforce Intelligence (v0.6):** `engine/workforce.py` –
+  kompetensprognoser per kommun ("vilka yrken behöver samhället om
+  5–20 år?") för kommuner, regioner och utbildningsaktörer. Delar
+  datakällslager med Opportunity Engine. 13 yrken som ren data
+  (`OCCUPATIONS`: täthet/1000 inv, pensionstakt, utbildningsplatser,
+  efterfrågedrivare per signal). Transparent regelmodell:
+  behov × efterfrågetakt ur drivsignaler, årsvis bana med
+  pensionsavgångar + utbildningsinflöde. Varje prognos bär
+  **konfidensintervall** (växer med horisont, krymper med
+  datakvalitet), **konfidensnivå märkt heuristik**, explicit
+  **antagandelista** och caveats — aldrig absoluta sanningar.
+  Utbildningssimulering ("30 platser/år → ny bana + balansår"),
+  prioriterad utbildningslista med motiveringar, nationell bristkarta
+  (balans/ökande/kritisk per kommun). API: `GET /v1/workforce/
+  occupations`, `POST /v1/workforce/forecast`, `POST /v1/workforce/
+  simulate`, `GET /v1/workforce/map`. Frontend har flik
+  Etablering/Kompetens med prognoskarta, antaganden, drivkrafter och
+  simulering. Ny signal `population_total` (SCB-adaptern levererar
+  den på riktigt; mock som fallback).
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -81,6 +100,7 @@ python3 -m tests.test_scoring      # motortester (8 st, utan pytest)
 python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
 python3 -m tests.test_storage      # persistens/cachetester (7 st)
 python3 -m tests.test_scan         # profil- och sveptester (11 st)
+python3 -m tests.test_workforce    # kompetensprognostester (6 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -143,6 +163,9 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 14. **Finmaskigare svep** — från 40 kommuncentroider till DeSO/rutnät
     när geodata + isokroner finns; kontinuerlig omscanning via
     EventBridge så rekommendationer uppdateras när marknaden ändras.
+15. **Workforce-kalibrering** — ersätt yrkesschablonerna med SCB:s
+    yrkesregister (RAMS), Skolverkets utbildningsdata och AF:s
+    bristindex; utfallslogga prognoser mot faktisk utveckling.
 
 ## Filkarta
 
@@ -154,6 +177,7 @@ engine/            kärnmotor (stdlib-only)
   scoring.py       analyze() – huvudingången
   profile.py       BusinessProfile + PROFILE_OPTIONS
   scan.py          Sverigesvepet: profil → hotspots med beslutskort
+  workforce.py     kompetensprognoser, simulering, nationell bristkarta
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),

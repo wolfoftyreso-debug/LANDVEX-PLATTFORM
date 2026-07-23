@@ -58,10 +58,11 @@ class ScbSource(DataSource):
 
     name = "scb"
     SIGNALS = ("pop_growth_pct", "income_index", "age_20_45_share",
-               "share_65plus", "residential_density")
+               "share_65plus", "residential_density", "population_total")
     _QUALITY = {"pop_growth_pct": 0.7, "income_index": 0.7,
                 "age_20_45_share": 0.7, "share_65plus": 0.7,
-                "residential_density": 0.55}   # härledd via hushållssnitt
+                "residential_density": 0.55,   # härledd via hushållssnitt
+                "population_total": 0.9}       # exakt på kommunnivå
 
     def __init__(self, client: scb.ScbClient | None = None,
                  locator: scb.KommunLocator | None = None,
@@ -94,10 +95,12 @@ class ScbSource(DataSource):
         failures = 0
 
         if any(s in wanted for s in
-               ("pop_growth_pct", "age_20_45_share", "share_65plus")):
+               ("pop_growth_pct", "age_20_45_share", "share_65plus",
+                "population_total")):
             try:
                 sig, extra = scb.population_signals(self.client, kommun)
                 raw.update(sig)
+                raw["population_total"] = float(extra["folkmangd_kommun"])
                 extras.update(extra)
             except Exception:
                 failures += 1

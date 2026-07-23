@@ -47,6 +47,7 @@ def _s(id, label, unit, norm, p1=0.0, p2=1.0):
 CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     # ── Befolkning & köpkraft ─────────────────────────────────────────
     _s("pop_radius",        "Personer inom radie",          "pers",   "saturating", 6000),
+    _s("population_total",  "Befolkning (kommun)",          "pers",   "saturating", 80000),
     _s("pop_growth_pct",    "Befolkningstillväxt",          "%",      "linear", -2.0, 8.0),
     _s("income_index",      "Medelinkomst (rikssnitt=100)", "index",  "linear", 70, 130),
     _s("age_20_45_share",   "Andel 20–45 år",               "%",      "linear", 15, 45),

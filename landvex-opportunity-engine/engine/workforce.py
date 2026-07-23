@@ -1,0 +1,335 @@
+"""Workforce Intelligence Engine – kompetensprognoser per kommun.
+
+Besvarar: "Vilka yrken kommer den här kommunen att behöva – baserat
+på data, inte gissningar?" För kommuner, regioner, utbildningsaktörer
+och investerare. Delar datakällslager (Resolver/SCB/mock) med
+Opportunity Engine – samma signaler driver båda motorerna.
+
+Modellen är transparent och regelbaserad (samma filosofi som
+scoringmotorns v1 – ML kommer när utfallsdata finns):
+
+  behov_nu       = yrkestäthet (per 1000 inv, branschschablon) × befolkning
+  efterfrågetakt = viktad kombination av yrkets drivsignaler
+                   (byggtakt, exploatering, demografi, ...) – dokumenterad
+  behov_år(t)    = behov_nu × (1 + takt)^t
+  styrka_år(t+1) = styrka_år(t) × (1 − pensionstakt) + utbildningsinflöde
+  brist          = behov_horisont − styrka_horisont
+
+VIKTIGT (ärlighetsprincipen): resultat presenteras aldrig som absoluta
+sanningar. Varje prognos bär konfidensintervall (bredd växer med
+horisont och sjunker med datakvalitet), konfidensnivå (märkt
+heuristik) och en explicit antagandelista med de faktiska värden
+modellen använde. Teknikskiften, migration, konjunktur och politik
+ligger utanför modellen – det står i varje svar.
+
+Yrkeskatalogen är data: nytt yrke = ny rad, inga motorändringar.
+Schablonerna (täthet, pensionstakt, utbildningsplatser) kalibreras
+mot SCB:s yrkesregister och Skolverket i produktionsfasen.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from .datasources.base import Resolver
+from .datasources.mock import MockSource
+from .datasources.scb import KOMMUNER
+from .models import Location
+from .signals import CATALOG, normalize
+
+BASE_YEAR = 2026            # prognosens basår (dokumenterat antagande)
+MAX_HORIZON_YEARS = 20
+COMPLETION_RATE = 0.85      # examensgrad, schablon
+_DEFAULT_RESOLVER = Resolver([MockSource()])
+
+
+@dataclass(frozen=True)
+class Occupation:
+    id: str
+    label_sv: str
+    sector_sv: str
+    per_1000: float           # sysselsatta per 1000 invånare (schablon)
+    pension_rate: float       # årlig avgångstakt (schablon)
+    edu_per_100k: float       # utbildningsplatser/år per 100k inv (schablon)
+    drivers: tuple            # ((signal_id, vikt), ...) – efterfrågedrivare
+
+
+def _o(id, label, sector, per_1000, pension, edu, *drivers):
+    return Occupation(id, label, sector, per_1000, pension, edu, tuple(drivers))
+
+
+OCCUPATIONS: dict[str, Occupation] = {o.id: o for o in [
+    _o("elektriker", "Elektriker", "Bygg & installation", 3.8, 0.028, 6.0,
+       ("building_permits", 0.30), ("development_m2", 0.20),
+       ("infra_invest", 0.15), ("ev_per_capita", 0.15), ("pop_growth_pct", 0.20)),
+    _o("vvs_montor", "VVS-montör", "Bygg & installation", 2.0, 0.030, 3.0,
+       ("building_permits", 0.40), ("development_m2", 0.25),
+       ("infra_invest", 0.15), ("pop_growth_pct", 0.20)),
+    _o("snickare", "Snickare", "Bygg & installation", 6.5, 0.032, 8.0,
+       ("building_permits", 0.45), ("development_m2", 0.25), ("pop_growth_pct", 0.30)),
+    _o("betongarbetare", "Betongarbetare", "Anläggning", 1.2, 0.035, 1.5,
+       ("development_m2", 0.40), ("infra_invest", 0.35), ("detail_plans", 0.25)),
+    _o("plattsattare", "Plattsättare", "Bygg & installation", 0.8, 0.030, 1.0,
+       ("building_permits", 0.50), ("renovation_index", 0.30), ("pop_growth_pct", 0.20)),
+    _o("maskinforare", "Anläggningsmaskinförare", "Anläggning", 2.4, 0.034, 3.0,
+       ("infra_invest", 0.40), ("development_m2", 0.35), ("detail_plans", 0.25)),
+    _o("arkitekt", "Arkitekt", "Samhällsbyggnad", 1.1, 0.022, 1.2,
+       ("detail_plans", 0.40), ("development_m2", 0.35), ("pop_growth_pct", 0.25)),
+    _o("ingenjor_bygg", "Byggnadsingenjör", "Samhällsbyggnad", 3.0, 0.025, 4.0,
+       ("development_m2", 0.30), ("infra_invest", 0.30),
+       ("business_density", 0.20), ("detail_plans", 0.20)),
+    _o("larare", "Lärare (grundskola)", "Utbildning", 11.0, 0.030, 12.0,
+       ("families_share", 0.50), ("pop_growth_pct", 0.50)),
+    _o("forskollarare", "Förskollärare", "Utbildning", 5.5, 0.028, 7.0,
+       ("families_share", 0.60), ("pop_growth_pct", 0.40)),
+    _o("sjukskoterska", "Sjuksköterska", "Vård & omsorg", 11.5, 0.032, 13.0,
+       ("share_65plus", 0.55), ("pop_growth_pct", 0.45)),
+    _o("fastighetstekniker", "Fastighetstekniker", "Drift & fastighet", 1.8, 0.033, 2.0,
+       ("residential_density", 0.40), ("development_m2", 0.30), ("pop_growth_pct", 0.30)),
+    _o("drifttekniker", "Drifttekniker", "Drift & fastighet", 1.5, 0.030, 2.0,
+       ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
+]}
+
+
+def occupation_catalog() -> list[dict[str, Any]]:
+    return [{"id": o.id, "label_sv": o.label_sv, "sector_sv": o.sector_sv}
+            for o in OCCUPATIONS.values()]
+
+
+def _kommun(kommun_kod: str) -> tuple[str, str, float, float]:
+    for k in KOMMUNER:
+        if k[0] == kommun_kod:
+            return k
+    raise ValueError(f"Okänd kommunkod: {kommun_kod}. "
+                     f"Svepet täcker {len(KOMMUNER)} kommuner i denna version.")
+
+
+def _needed_signals(occ_ids: list[str]) -> list[str]:
+    need = {"population_total", "pop_growth_pct"}
+    for oid in occ_ids:
+        need.update(sid for sid, _ in OCCUPATIONS[oid].drivers)
+    return sorted(need)
+
+
+def _resolve(kommun_kod: str, occ_ids: list[str],
+             resolver: Resolver | None) -> tuple[dict, dict, tuple]:
+    kom = _kommun(kommun_kod)
+    res = resolver or _DEFAULT_RESOLVER
+    values, extras = res.resolve(Location(kom[2], kom[3], address=kom[1]),
+                                 "workforce", _needed_signals(occ_ids))
+    return values, extras, kom
+
+
+def _demand_growth(occ: Occupation, values: dict) -> tuple[float, list[dict]]:
+    """Årlig efterfrågetakt + per-drivare-redovisning (transparens)."""
+    parts, growth = [], 0.0
+    for sid, w in occ.drivers:
+        sv = values.get(sid)
+        if sv is None or sv.value is None:
+            continue
+        if sid == "pop_growth_pct":
+            g = max(-3.0, min(3.0, sv.value)) / 100.0
+        else:
+            # Normaliserad aktivitet kring neutralpunkt 0.5 → −2..+2 %/år.
+            g = (normalize(CATALOG[sid], sv.value) - 0.5) * 0.04
+        growth += w * g
+        parts.append({"signal_id": sid, "label_sv": CATALOG[sid].label_sv,
+                      "varde": sv.value, "enhet": CATALOG[sid].unit,
+                      "kalla": sv.source, "bidrag_pct_ar": round(100 * w * g, 2)})
+    return max(-0.02, min(0.06, growth)), parts
+
+
+def _trajectory(need_now: float, growth: float, pension: float,
+                edu_per_year: float, horizon: int) -> list[dict[str, float]]:
+    """Årsvis behov/styrka/gap. Antagande: balans vid basåret."""
+    workforce = need_now
+    out = []
+    for t in range(1, horizon + 1):
+        need = need_now * (1 + growth) ** t
+        workforce = workforce * (1 - pension) + edu_per_year
+        out.append({"ar": BASE_YEAR + t, "behov": round(need),
+                    "styrka": round(workforce), "gap": round(need - workforce)})
+    return out
+
+
+def _quality(values: dict, sids: list[str]) -> float:
+    qs = [values[s].quality for s in sids if s in values]
+    return sum(qs) / len(qs) if qs else 0.0
+
+
+def _confidence(quality: float, horizon: int) -> int:
+    """Heuristik: datakvalitet upp, horisont ner. INTE en sannolikhet."""
+    return int(round(100 * (0.30 + 0.45 * quality +
+                            0.25 * max(0.0, 1 - horizon / MAX_HORIZON_YEARS))))
+
+
+def _band(gap: float, need: float) -> str:
+    share = gap / need if need > 0 else 0.0
+    if share <= 0.05:
+        return "balans"
+    return "okande_brist" if share <= 0.15 else "kritisk_brist"
+
+
+_CAVEATS = [
+    "Prognosen är modellberäknad, inte en sanning: teknikskiften, migration, "
+    "konjunktur och politiska beslut ligger utanför modellen.",
+    "Yrkestäthet, pensionstakt och utbildningsplatser är branschschabloner "
+    "tills SCB:s yrkesregister och Skolverkets data kopplats in.",
+    "Konfidensnivån är en dokumenterad heuristik (datakvalitet × horisont), "
+    "inte en statistisk sannolikhet.",
+]
+
+
+def _forecast_one(occ: Occupation, values: dict, horizon: int,
+                  extra_places_per_year: float = 0.0) -> dict[str, Any]:
+    pop_sv = values.get("population_total")
+    if pop_sv is None or not pop_sv.value:
+        raise ValueError("Befolkningsunderlag saknas.")
+    pop = pop_sv.value
+    need_now = occ.per_1000 * pop / 1000.0
+    growth, driver_parts = _demand_growth(occ, values)
+    edu = (occ.edu_per_100k * pop / 100000.0 + extra_places_per_year) * COMPLETION_RATE
+    traj = _trajectory(need_now, growth, occ.pension_rate, edu, horizon)
+    last = traj[-1]
+    need_h, gap = last["behov"], last["gap"]
+
+    used = ["population_total"] + [p["signal_id"] for p in driver_parts]
+    q = _quality(values, used)
+    half = need_h * (0.06 + 0.012 * horizon + 0.18 * (1 - q))
+    assumptions = [
+        {"antagande_sv": "Basår och balansläge",
+         "varde_sv": f"Arbetsstyrkan antas motsvara behovet {BASE_YEAR}."},
+        {"antagande_sv": "Befolkning (kommun)",
+         "varde_sv": f"{int(pop)} invånare (källa: {pop_sv.source})."},
+        {"antagande_sv": "Efterfrågetakt",
+         "varde_sv": f"{round(100 * growth, 2)} %/år, härledd ur drivsignalerna nedan."},
+        {"antagande_sv": "Pensionsavgångar",
+         "varde_sv": f"{round(100 * occ.pension_rate, 1)} %/år (schablon)."},
+        {"antagande_sv": "Utbildningsinflöde",
+         "varde_sv": f"{round(edu)} examinerade/år "
+                     f"(schablon{', inkl. simulerade platser' if extra_places_per_year else ''}, "
+                     f"examensgrad {int(COMPLETION_RATE * 100)} %)."},
+    ]
+    return {
+        "occupation_id": occ.id, "label_sv": occ.label_sv,
+        "sector_sv": occ.sector_sv,
+        "behov_nu": round(need_now),
+        "behov_prognos": need_h,
+        "styrka_prognos": last["styrka"],
+        "brist": gap,
+        "intervall": [round(need_h - half), round(need_h + half)],
+        "konfidens": _confidence(q, horizon),
+        "band": _band(gap, need_h),
+        "efterfragetakt_pct_ar": round(100 * growth, 2),
+        "drivare": driver_parts,
+        "antaganden": assumptions,
+        "bana": traj,
+    }
+
+
+def forecast(kommun_kod: str, target_year: int = 2035,
+             occupation_ids: list[str] | None = None,
+             resolver: Resolver | None = None) -> dict[str, Any]:
+    """Kompetensprognos för en kommun, alla (eller valda) yrken."""
+    horizon = target_year - BASE_YEAR
+    if not 1 <= horizon <= MAX_HORIZON_YEARS:
+        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
+                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+    occ_ids = occupation_ids or list(OCCUPATIONS)
+    unknown = [o for o in occ_ids if o not in OCCUPATIONS]
+    if unknown:
+        raise ValueError(f"Okända yrken: {unknown}")
+    values, _, kom = _resolve(kommun_kod, occ_ids, resolver)
+
+    forecasts = [_forecast_one(OCCUPATIONS[oid], values, horizon)
+                 for oid in occ_ids]
+    forecasts.sort(key=lambda f: -f["brist"])
+
+    # Prioriterad utbildningslista: relativ brist väger tyngst,
+    # absolut volym bryter lika.
+    prio = sorted((f for f in forecasts if f["brist"] > 0),
+                  key=lambda f: (-(f["brist"] / max(f["behov_prognos"], 1)),
+                                 -f["brist"]))
+    priorities = [{
+        "rang": i,
+        "occupation_id": f["occupation_id"], "label_sv": f["label_sv"],
+        "brist": f["brist"], "band": f["band"],
+        "motivering_sv": (
+            f"Beräknad brist på {f['brist']} {f['label_sv'].lower()} till "
+            f"{target_year} ({f['band'].replace('_', ' ')}). Största drivkraft: "
+            f"{max(f['drivare'], key=lambda d: d['bidrag_pct_ar'])['label_sv'].lower()}."
+            if f["drivare"] else
+            f"Beräknad brist på {f['brist']} till {target_year}."),
+    } for i, f in enumerate(prio[:5], start=1)]
+
+    coverage = (sum(1 for s in values.values() if s.source != "mock") /
+                max(1, len(values)))
+    return {
+        "kommun": kom[1], "kommun_kod": kom[0],
+        "basar": BASE_YEAR, "malar": target_year,
+        "prognoser": forecasts,
+        "utbildningsprioriteringar": priorities,
+        "data_coverage": round(coverage, 2),
+        "caveats_sv": list(_CAVEATS),
+    }
+
+
+def simulate(kommun_kod: str, occupation_id: str,
+             extra_places_per_year: float, target_year: int = 2035,
+             resolver: Resolver | None = None) -> dict[str, Any]:
+    """Utbildningssimulering: 'om vi startar X platser/år – vad händer?'"""
+    if occupation_id not in OCCUPATIONS:
+        raise ValueError(f"Okänt yrke: {occupation_id}")
+    if extra_places_per_year < 0:
+        raise ValueError("Antal platser kan inte vara negativt.")
+    horizon = target_year - BASE_YEAR
+    if not 1 <= horizon <= MAX_HORIZON_YEARS:
+        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
+                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+    values, _, kom = _resolve(kommun_kod, [occupation_id], resolver)
+    occ = OCCUPATIONS[occupation_id]
+    base = _forecast_one(occ, values, horizon)
+    sim = _forecast_one(occ, values, horizon,
+                        extra_places_per_year=extra_places_per_year)
+    balanced = next((p["ar"] for p in sim["bana"] if p["gap"] <= 0), None)
+    return {
+        "kommun": kom[1], "kommun_kod": kom[0],
+        "occupation_id": occupation_id, "label_sv": occ.label_sv,
+        "malar": target_year,
+        "extra_platser_per_ar": extra_places_per_year,
+        "brist_utan_atgard": base["brist"],
+        "brist_med_atgard": sim["brist"],
+        "minskning": base["brist"] - sim["brist"],
+        "balansar": balanced,
+        "bana_utan": base["bana"], "bana_med": sim["bana"],
+        "konfidens": sim["konfidens"],
+        "caveats_sv": list(_CAVEATS),
+    }
+
+
+def national_map(occupation_id: str, target_year: int = 2035,
+                 resolver: Resolver | None = None) -> dict[str, Any]:
+    """Sverigekarta: kompetensbalans per kommun för ett yrke."""
+    if occupation_id not in OCCUPATIONS:
+        raise ValueError(f"Okänt yrke: {occupation_id}")
+    horizon = target_year - BASE_YEAR
+    if not 1 <= horizon <= MAX_HORIZON_YEARS:
+        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
+                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+    occ = OCCUPATIONS[occupation_id]
+    res = resolver or _DEFAULT_RESOLVER
+    needed = _needed_signals([occupation_id])
+    kommuner = []
+    for code, name, lat, lon in KOMMUNER:
+        values, _ = res.resolve(Location(lat, lon, address=name),
+                                "workforce", needed)
+        f = _forecast_one(occ, values, horizon)
+        kommuner.append({"kommun": name, "kommun_kod": code,
+                         "lat": lat, "lon": lon,
+                         "behov_prognos": f["behov_prognos"],
+                         "brist": f["brist"], "band": f["band"],
+                         "konfidens": f["konfidens"]})
+    kommuner.sort(key=lambda k: -k["brist"])
+    return {"occupation_id": occupation_id, "label_sv": occ.label_sv,
+            "basar": BASE_YEAR, "malar": target_year,
+            "kommuner": kommuner, "caveats_sv": list(_CAVEATS)}

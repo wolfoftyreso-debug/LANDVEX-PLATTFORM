@@ -11,6 +11,11 @@ Samma endpoints som produktions-API:t:
     GET  /v1/reports?limit=20  ·  GET /v1/reports/<id>
     POST /v1/analyze   {"lat":..,"lon":..,"vertical":"frisor","radius_minutes":10}
     POST /v1/scan      {"profile":{...}} eller {"profile_id":"..."}
+    GET  /v1/workforce/occupations
+    GET  /v1/workforce/map?occupation_id=elektriker&target_year=2035
+    POST /v1/workforce/forecast  {"kommun_kod":"0180","target_year":2035}
+    POST /v1/workforce/simulate  {"kommun_kod":"0180","occupation_id":"elektriker",
+                                  "extra_places_per_year":30}
 
 Endast för lokal utveckling/demo – i AWS körs api/main.py (FastAPI).
 """
@@ -33,6 +38,8 @@ from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
+from engine.workforce import (forecast as wf_forecast, national_map,
+                              occupation_catalog, simulate as wf_simulate)
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
@@ -74,6 +81,16 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/profile-options":
             return self._send(200, {**profile_options(),
                                     "scan_levels": SCAN_LEVEL_OPTIONS})
+        if parsed.path == "/v1/workforce/occupations":
+            return self._send(200, occupation_catalog())
+        if parsed.path == "/v1/workforce/map":
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, national_map(
+                    q.get("occupation_id", [""])[0],
+                    int(q.get("target_year", ["2035"])[0]), resolver=RESOLVER))
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/profiles":
             if STORE is None:
                 return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
@@ -122,6 +139,15 @@ class Handler(BaseHTTPRequestHandler):
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
+            if self.path == "/v1/workforce/forecast":
+                return self._send(200, wf_forecast(
+                    req["kommun_kod"], int(req.get("target_year", 2035)),
+                    req.get("occupation_ids"), resolver=RESOLVER))
+            if self.path == "/v1/workforce/simulate":
+                return self._send(200, wf_simulate(
+                    req["kommun_kod"], req["occupation_id"],
+                    float(req.get("extra_places_per_year", 0)),
+                    int(req.get("target_year", 2035)), resolver=RESOLVER))
             if self.path == "/v1/scan":
                 raw = req.get("profile")
                 if raw is None and req.get("profile_id"):

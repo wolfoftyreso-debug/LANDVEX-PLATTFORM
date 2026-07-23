@@ -52,6 +52,7 @@ class MockSource(DataSource):
 
         vals = {
             "pop_radius": pop,
+            "population_total": int(14000 + u * 180000 * rng.uniform(0.5, 1.5)),
             "pop_growth_pct": round(g, 1),
             "income_index": round(income, 1),
             "age_20_45_share": round(18 + u * 22 + rng.uniform(-4, 4), 1),

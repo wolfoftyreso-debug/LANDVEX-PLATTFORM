@@ -26,8 +26,10 @@ from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
+from engine.workforce import (forecast as wf_forecast, national_map,
+                              occupation_catalog, simulate as wf_simulate)
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.4.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.6.0")
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 # I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)
@@ -153,6 +155,51 @@ def scan_sweden(req: ScanRequest):
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level)
+
+
+class ForecastRequest(BaseModel):
+    kommun_kod: str
+    target_year: int = 2035
+    occupation_ids: list[str] | None = None
+
+
+class SimulateRequest(BaseModel):
+    kommun_kod: str
+    occupation_id: str
+    extra_places_per_year: float = Field(..., ge=0)
+    target_year: int = 2035
+
+
+@app.get("/v1/workforce/occupations")
+def workforce_occupations():
+    return occupation_catalog()
+
+
+@app.post("/v1/workforce/forecast")
+def workforce_forecast(req: ForecastRequest):
+    try:
+        return wf_forecast(req.kommun_kod, req.target_year,
+                           req.occupation_ids, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/workforce/simulate")
+def workforce_simulate(req: SimulateRequest):
+    try:
+        return wf_simulate(req.kommun_kod, req.occupation_id,
+                           req.extra_places_per_year, req.target_year,
+                           resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/workforce/map")
+def workforce_map(occupation_id: str, target_year: int = 2035):
+    try:
+        return national_map(occupation_id, target_year, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/reports")
