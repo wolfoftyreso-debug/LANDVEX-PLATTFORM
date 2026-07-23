@@ -26,11 +26,13 @@ from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
+from engine.markets import market_catalog
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
-from engine.workforce import (forecast as wf_forecast, national_map,
-                              occupation_catalog, simulate as wf_simulate)
+from engine.workforce import (forecast as wf_forecast, global_map,
+                              national_map, occupation_catalog,
+                              simulate as wf_simulate)
 
 app = FastAPI(title="LANDVEX Opportunity Engine", version="0.7.0")
 
@@ -95,6 +97,7 @@ class ScanRequest(BaseModel):
     profile_id: str | None = None    # ... eller sparad profil
     top_n: int = Field(5, ge=1, le=20)
     level: str = "oversikt"
+    market: str = "se"
 
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
@@ -155,15 +158,17 @@ def scan_sweden(req: ScanRequest):
                             detail=f"Okänd analysnivå: {req.level}.")
     try:
         p = profile_from_dict(raw)
+        return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level,
+                    market=req.market)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level)
 
 
 class ForecastRequest(BaseModel):
     kommun_kod: str
     target_year: int = 2035
     occupation_ids: list[str] | None = None
+    market: str = "se"
 
 
 class SimulateRequest(BaseModel):
@@ -171,6 +176,7 @@ class SimulateRequest(BaseModel):
     occupation_id: str
     extra_places_per_year: float = Field(..., ge=0)
     target_year: int = 2035
+    market: str = "se"
 
 
 class RiskRequest(BaseModel):
@@ -216,6 +222,11 @@ def compare_locations(req: CompareRequest):
         raise HTTPException(status_code=422, detail=str(e))
 
 
+@app.get("/v1/markets")
+def markets():
+    return market_catalog()
+
+
 @app.get("/v1/workforce/occupations")
 def workforce_occupations():
     return occupation_catalog()
@@ -225,7 +236,8 @@ def workforce_occupations():
 def workforce_forecast(req: ForecastRequest):
     try:
         return wf_forecast(req.kommun_kod, req.target_year,
-                           req.occupation_ids, resolver=RESOLVER)
+                           req.occupation_ids, resolver=RESOLVER,
+                           market=req.market)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -235,15 +247,27 @@ def workforce_simulate(req: SimulateRequest):
     try:
         return wf_simulate(req.kommun_kod, req.occupation_id,
                            req.extra_places_per_year, req.target_year,
-                           resolver=RESOLVER)
+                           resolver=RESOLVER, market=req.market)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/workforce/map")
-def workforce_map(occupation_id: str, target_year: int = 2035):
+def workforce_map(occupation_id: str, target_year: int = 2035,
+                  market: str = "se"):
     try:
-        return national_map(occupation_id, target_year, resolver=RESOLVER)
+        return national_map(occupation_id, target_year, resolver=RESOLVER,
+                            market=market)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/workforce/global-map")
+def workforce_global_map(occupation_id: str, target_year: int = 2035,
+                         group: str = "eu"):
+    try:
+        return global_map(occupation_id, target_year, group=group,
+                          resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

@@ -41,11 +41,13 @@ from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
+from engine.markets import market_catalog
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
-from engine.workforce import (forecast as wf_forecast, national_map,
-                              occupation_catalog, simulate as wf_simulate)
+from engine.workforce import (forecast as wf_forecast, global_map,
+                              national_map, occupation_catalog,
+                              simulate as wf_simulate)
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
@@ -87,6 +89,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/profile-options":
             return self._send(200, {**profile_options(),
                                     "scan_levels": SCAN_LEVEL_OPTIONS})
+        if parsed.path == "/v1/markets":
+            return self._send(200, market_catalog())
         if parsed.path == "/v1/workforce/occupations":
             return self._send(200, occupation_catalog())
         if parsed.path == "/v1/workforce/map":
@@ -94,7 +98,17 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 return self._send(200, national_map(
                     q.get("occupation_id", [""])[0],
-                    int(q.get("target_year", ["2035"])[0]), resolver=RESOLVER))
+                    int(q.get("target_year", ["2035"])[0]), resolver=RESOLVER,
+                    market=q.get("market", ["se"])[0]))
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
+        if parsed.path == "/v1/workforce/global-map":
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, global_map(
+                    q.get("occupation_id", [""])[0],
+                    int(q.get("target_year", ["2035"])[0]),
+                    group=q.get("group", ["eu"])[0], resolver=RESOLVER))
             except ValueError as e:
                 return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/profiles":
@@ -161,12 +175,14 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/workforce/forecast":
                 return self._send(200, wf_forecast(
                     req["kommun_kod"], int(req.get("target_year", 2035)),
-                    req.get("occupation_ids"), resolver=RESOLVER))
+                    req.get("occupation_ids"), resolver=RESOLVER,
+                    market=req.get("market", "se")))
             if self.path == "/v1/workforce/simulate":
                 return self._send(200, wf_simulate(
                     req["kommun_kod"], req["occupation_id"],
                     float(req.get("extra_places_per_year", 0)),
-                    int(req.get("target_year", 2035)), resolver=RESOLVER))
+                    int(req.get("target_year", 2035)), resolver=RESOLVER,
+                    market=req.get("market", "se")))
             if self.path == "/v1/scan":
                 raw = req.get("profile")
                 if raw is None and req.get("profile_id"):
@@ -180,7 +196,8 @@ class Handler(BaseHTTPRequestHandler):
                 p = profile_from_dict(raw)
                 top_n = min(max(int(req.get("top_n", 5)), 1), 20)
                 return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n,
-                                            level=req.get("level", "oversikt")))
+                                            level=req.get("level", "oversikt"),
+                                            market=req.get("market", "se")))
             self._send(404, {"error": "not found"})
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
             self._send(422, {"error": str(e)})

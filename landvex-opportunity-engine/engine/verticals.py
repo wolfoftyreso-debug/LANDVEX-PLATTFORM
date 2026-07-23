@@ -101,6 +101,17 @@ VERTICALS: dict[str, VerticalProfile] = {p.id: p for p in [
         _f("vardutbud", "Övrigt vårdutbud", 0.18, ("care_supply", 1.0)),
     )),
 
+    VerticalProfile("vvs", "VVS-företag", (
+        _f("fastighetsbestand", "Fastighetsbestånd", 0.24,
+           ("detached_homes", 0.6), ("avg_building_age", 0.4)),
+        _f("byggaktivitet", "Bygg- & renoveringsaktivitet", 0.28,
+           ("building_permits", 0.6), ("renovation_index", 0.4)),
+        _f("exploatering", "Exploateringar", 0.14, ("development_m2", 1.0)),
+        _f("marknadsutrymme", "Marknadsutrymme", 0.22,
+           ("provider_gap", 0.7), ("competition_pressure", 0.3)),
+        _f("kopkraft", "Köpkraft", 0.12, ("income_index", 1.0)),
+    )),
+
     VerticalProfile("bilverkstad", "Bilverkstad", (
         _f("bilbestand", "Bilbestånd & fordonsålder", 0.26,
            ("cars_per_1000", 0.6), ("avg_car_age", 0.4)),

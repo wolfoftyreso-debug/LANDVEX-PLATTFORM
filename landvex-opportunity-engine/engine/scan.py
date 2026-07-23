@@ -22,7 +22,8 @@ from __future__ import annotations
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.scb import KOMMUNER, _haversine_km
+from .datasources.scb import _haversine_km
+from .markets import get_market
 from .models import Location
 from .profile import BusinessProfile
 from .scoring import analyze
@@ -51,12 +52,13 @@ _MOMENTUM_SIGNALS = ("pop_growth_pct", "building_permits", "detail_plans",
 _REVENUE_PER_PERSON_TKR = {
     "frisor": 700, "elektriker": 1400, "gym": 900, "restaurang": 950,
     "cafe": 800, "bygg": 1800, "tandlakare": 1600, "bilverkstad": 1200,
-    "veterinar": 1300, "lager": 1500, "generisk": 1000}
+    "veterinar": 1300, "lager": 1500, "vvs": 1450, "generisk": 1000}
 _STARTUP_TKR = {
     "frisor": (150, 600), "elektriker": (100, 500), "gym": (1500, 6000),
     "restaurang": (800, 4000), "cafe": (400, 1500), "bygg": (200, 1000),
     "tandlakare": (1500, 5000), "bilverkstad": (500, 2500),
-    "veterinar": (800, 3000), "lager": (1000, 10000), "generisk": (300, 2000)}
+    "veterinar": (800, 3000), "lager": (1000, 10000),
+    "vvs": (150, 600), "generisk": (300, 2000)}
 _TEAM_PERSONS = {"1": 1, "2-5": 3, "5-20": 10, "20-50": 30, "50+": 60}
 _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
                "2-5m": (2000, 5000), "5-10m": (5000, 10000),
@@ -214,12 +216,14 @@ def _band(score: float) -> str:
 
 def scan(profile: BusinessProfile, resolver: Resolver | None = None,
          candidates: list[tuple[str, str, float, float]] | None = None,
-         top_n: int = 5, level: str = "oversikt") -> dict[str, Any]:
+         top_n: int = 5, level: str = "oversikt",
+         market: str = "se") -> dict[str, Any]:
     """Analyserar kandidatorter mot profilen. Returnerar JSON-redo dict."""
     if level not in SCAN_LEVELS:
         raise ValueError(f"Okänd analysnivå: {level}. "
                          f"Tillgängliga: {', '.join(SCAN_LEVELS)}")
-    cands = candidates if candidates is not None else KOMMUNER
+    mkt = get_market(market)
+    cands = candidates if candidates is not None else list(mkt.regions)
     excluded = {"pendling": 0, "miljo": 0}
 
     if profile.commute_km is not None:
@@ -295,15 +299,21 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
             "motivering_sv": [f.narrative_sv for f in top_factors] + r.insights_sv,
             "factors": [{"id": f.id, "label_sv": f.label_sv, "score": f.score}
                         for f in r.factors],
-            "economy_scenario": _economy_scenario(profile, r.opportunity_score),
+            "economy_scenario": (
+                _economy_scenario(profile, r.opportunity_score)
+                if mkt.calibrated else
+                {"status": "ej_kalibrerad",
+                 "notis_sv": f"Ekonomischablonerna är inte kalibrerade för "
+                             f"{mkt.label_sv} ännu – redovisas inte."}),
             "expected_roi": dict(_ROI_UNAVAILABLE),
             "data_coverage": r.data_coverage,
             "next_steps_sv": list(_NEXT_STEPS_SV),
         })
 
     caveats = [
-        "Sverigesvepet omfattar i denna version 40 större kommuner – "
-        "fler kandidatorter och finmaskigare rutnät kommer med geodatafasen.",
+        f"Svepet i {mkt.label_sv} omfattar {len(mkt.regions)} "
+        f"{mkt.region_label_sv}er i denna version – fler kandidatorter och "
+        f"finmaskigare rutnät kommer med geodatafasen.",
         "Rankjustering och tidsfönster är dokumenterade heuristiker, "
         "inte prediktioner.",
     ]
@@ -314,6 +324,8 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
     return {
         "profile": profile.to_dict(),
         "vertical_label_sv": VERTICALS[profile.vertical_id].label_sv,
+        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "bbox": list(mkt.bbox),
         "level": level,
         "candidates_scanned": len(heatmap),
         "kommuner_scanned": len(cands),

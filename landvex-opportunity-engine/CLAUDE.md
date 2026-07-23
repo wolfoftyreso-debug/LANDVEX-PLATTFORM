@@ -5,13 +5,17 @@ automatiskt av Claude Code och är den auktoritativa projektkontexten.
 
 ## Vad detta är
 
-Location intelligence-tjänst som analyserar en plats innan någon
-investerar. Levererar ett förklarbart **Opportunity Score (0–100)** med
-faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
-branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
-datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
+**Globalt beslutsstöd för framtida arbetskrafts- och affärsbehov** –
+Sverige är första marknaden, inte hela systemet. Varje land analyseras
+med samma modell men lokala datakällor; signalkatalogen äger
+normaliseringen, vilket gör **Opportunity Score (0–100) jämförbart
+över länder**. Systemet svarar inte "var finns jobben idag?" utan
+"var uppstår behoven innan alla andra ser dem" – med förklarbar
+faktornedbrytning, konfidens och antaganden i varje svar.
+Målgrupper: privatpersoner, företag, investerare, kommuner/regioner,
+utbildningsaktörer och myndigheter – på samma plattform och databas.
 
-## Nuläge: v0.8 — "Fråga Landvex" som startsida
+## Nuläge: v0.9 — global marknadsmodell
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -121,6 +125,20 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   grön) + `trend` (stigande/stabil/minskande) och
   `pensionsavgangar`. Yrkeskatalogen bär `medellon_tkr_manad` och
   `automationsrisk_schablon` (schabloner, märkta).
+- **Global marknadsmodell (v0.9):** `engine/markets.py` – marknader
+  som data: SE (40 kommuner, SCB, kalibrerad) + DE/US/ES/PL/FR
+  (region-frön, mock tills lokala adaptrar som Destatis/Eurostat/
+  Census kopplas – redovisas ärligt i caveats). Alla motorer tar
+  `market`-parameter; `global_map()` + landsranking för
+  flerlandsfrågor (grupperna `eu`, `varlden`). Ekonomischabloner
+  redovisas bara på kalibrerade marknader (`ej_kalibrerad` annars).
+  Frågetolken förstår länder ("i Tyskland"), grupper ("i Europa"),
+  utländska regioner ("i Berlin") och flytta-frågor (landsranking
+  med regelverkscaveat). Kartan byter projektion per marknad (bbox);
+  Sverigekonturen visas bara för SE. Ny bransch: `vvs`.
+- **Multi-horisont (v0.9):** varje workforce-prognos bär `milstolpar`
+  på 1/3/5/10/20 års sikt (strategisk planering), utöver valfritt
+  målår och årsvis bana.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -134,6 +152,7 @@ python3 -m tests.test_scan         # profil- och sveptester (11 st)
 python3 -m tests.test_workforce    # kompetensprognostester (6 st)
 python3 -m tests.test_risk_compare # risk- och jämförelsetester (7 st)
 python3 -m tests.test_ask          # NL-tolk och svarstester (12 st)
+python3 -m tests.test_markets      # marknads- och globaltester (7 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -199,6 +218,10 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 15. **Workforce-kalibrering** — ersätt yrkesschablonerna med SCB:s
     yrkesregister (RAMS), Skolverkets utbildningsdata och AF:s
     bristindex; utfallslogga prognoser mot faktisk utveckling.
+16. **Internationella adaptrar** — Eurostat (EU-bred bas), Destatis
+    (DE), INE (ES), GUS (PL), INSEE (FR), US Census/BLS (US) i samma
+    Resolver-mönster som SCB; kalibrera ekonomischabloner och
+    yrkestätheter per marknad; utöka regionlistorna.
 
 ## Filkarta
 
@@ -214,6 +237,7 @@ engine/            kärnmotor (stdlib-only)
   risk.py          riskdimensioner med narrativ + åtgärdsförslag
   compare.py       jämför 2–4 platser: faktormatris + rekommendation
   ask.py           Fråga Landvex: svensk NL-tolk → motorroutning
+  markets.py       marknader som data (SE/DE/US/ES/PL/FR) + grupper
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),

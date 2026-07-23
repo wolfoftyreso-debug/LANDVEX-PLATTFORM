@@ -33,7 +33,8 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.mock import MockSource
-from .datasources.scb import KOMMUNER
+from .markets import (GROUP_BBOX, GROUP_LABEL_SV, MARKET_GROUPS,
+                      get_market, get_region)
 from .models import Location
 from .signals import CATALOG, normalize
 
@@ -101,14 +102,6 @@ def occupation_catalog() -> list[dict[str, Any]]:
             for o in OCCUPATIONS.values()]
 
 
-def _kommun(kommun_kod: str) -> tuple[str, str, float, float]:
-    for k in KOMMUNER:
-        if k[0] == kommun_kod:
-            return k
-    raise ValueError(f"Okänd kommunkod: {kommun_kod}. "
-                     f"Svepet täcker {len(KOMMUNER)} kommuner i denna version.")
-
-
 def _needed_signals(occ_ids: list[str]) -> list[str]:
     need = {"population_total", "pop_growth_pct"}
     for oid in occ_ids:
@@ -116,13 +109,13 @@ def _needed_signals(occ_ids: list[str]) -> list[str]:
     return sorted(need)
 
 
-def _resolve(kommun_kod: str, occ_ids: list[str],
-             resolver: Resolver | None) -> tuple[dict, dict, tuple]:
-    kom = _kommun(kommun_kod)
+def _resolve(region_kod: str, occ_ids: list[str],
+             resolver: Resolver | None, market: str) -> tuple[dict, dict, tuple]:
+    reg = get_region(market, region_kod)
     res = resolver or _DEFAULT_RESOLVER
-    values, extras = res.resolve(Location(kom[2], kom[3], address=kom[1]),
+    values, extras = res.resolve(Location(reg[2], reg[3], address=reg[1]),
                                  "workforce", _needed_signals(occ_ids))
-    return values, extras, kom
+    return values, extras, reg
 
 
 def _demand_growth(occ: Occupation, values: dict) -> tuple[float, list[dict]]:
@@ -210,8 +203,15 @@ def _forecast_one(occ: Occupation, values: dict, horizon: int,
     need_now = occ.per_1000 * pop / 1000.0
     growth, driver_parts = _demand_growth(occ, values)
     edu = (occ.edu_per_100k * pop / 100000.0 + extra_places_per_year) * COMPLETION_RATE
-    traj = _trajectory(need_now, growth, occ.pension_rate, edu, horizon)
+    # Full 20-årsbana beräknas alltid → milstolpar på 1/3/5/10/20 år
+    # (strategisk planering); bana/brist rapporteras för valt målår.
+    full = _trajectory(need_now, growth, occ.pension_rate, edu,
+                       MAX_HORIZON_YEARS)
+    traj = full[:horizon]
     last = traj[-1]
+    milestones = [{"horisont_ar": h, "ar": full[h - 1]["ar"],
+                   "behov": full[h - 1]["behov"], "gap": full[h - 1]["gap"]}
+                  for h in (1, 3, 5, 10, 20)]
     need_h, gap = last["behov"], last["gap"]
 
     used = ["population_total"] + [p["signal_id"] for p in driver_parts]
@@ -250,13 +250,15 @@ def _forecast_one(occ: Occupation, values: dict, horizon: int,
         "drivare": driver_parts,
         "antaganden": assumptions,
         "bana": traj,
+        "milstolpar": milestones,
     }
 
 
 def forecast(kommun_kod: str, target_year: int = 2035,
              occupation_ids: list[str] | None = None,
-             resolver: Resolver | None = None) -> dict[str, Any]:
-    """Kompetensprognos för en kommun, alla (eller valda) yrken."""
+             resolver: Resolver | None = None,
+             market: str = "se") -> dict[str, Any]:
+    """Kompetensprognos för en region, alla (eller valda) yrken."""
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
         raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
@@ -265,7 +267,7 @@ def forecast(kommun_kod: str, target_year: int = 2035,
     unknown = [o for o in occ_ids if o not in OCCUPATIONS]
     if unknown:
         raise ValueError(f"Okända yrken: {unknown}")
-    values, _, kom = _resolve(kommun_kod, occ_ids, resolver)
+    values, _, kom = _resolve(kommun_kod, occ_ids, resolver, market)
 
     forecasts = [_forecast_one(OCCUPATIONS[oid], values, horizon)
                  for oid in occ_ids]
@@ -290,8 +292,10 @@ def forecast(kommun_kod: str, target_year: int = 2035,
 
     coverage = (sum(1 for s in values.values() if s.source != "mock") /
                 max(1, len(values)))
+    mkt = get_market(market)
     return {
         "kommun": kom[1], "kommun_kod": kom[0],
+        "market": mkt.id, "market_label_sv": mkt.label_sv,
         "basar": BASE_YEAR, "malar": target_year,
         "prognoser": forecasts,
         "utbildningsprioriteringar": priorities,
@@ -302,7 +306,8 @@ def forecast(kommun_kod: str, target_year: int = 2035,
 
 def simulate(kommun_kod: str, occupation_id: str,
              extra_places_per_year: float, target_year: int = 2035,
-             resolver: Resolver | None = None) -> dict[str, Any]:
+             resolver: Resolver | None = None,
+             market: str = "se") -> dict[str, Any]:
     """Utbildningssimulering: 'om vi startar X platser/år – vad händer?'"""
     if occupation_id not in OCCUPATIONS:
         raise ValueError(f"Okänt yrke: {occupation_id}")
@@ -312,7 +317,7 @@ def simulate(kommun_kod: str, occupation_id: str,
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
         raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
                          f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
-    values, _, kom = _resolve(kommun_kod, [occupation_id], resolver)
+    values, _, kom = _resolve(kommun_kod, [occupation_id], resolver, market)
     occ = OCCUPATIONS[occupation_id]
     base = _forecast_one(occ, values, horizon)
     sim = _forecast_one(occ, values, horizon,
@@ -334,23 +339,26 @@ def simulate(kommun_kod: str, occupation_id: str,
 
 
 def national_map(occupation_id: str, target_year: int = 2035,
-                 resolver: Resolver | None = None) -> dict[str, Any]:
-    """Sverigekarta: kompetensbalans per kommun för ett yrke."""
+                 resolver: Resolver | None = None,
+                 market: str = "se") -> dict[str, Any]:
+    """Marknadskarta: kompetensbalans per region för ett yrke."""
     if occupation_id not in OCCUPATIONS:
         raise ValueError(f"Okänt yrke: {occupation_id}")
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
         raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
                          f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+    mkt = get_market(market)
     occ = OCCUPATIONS[occupation_id]
     res = resolver or _DEFAULT_RESOLVER
     needed = _needed_signals([occupation_id])
     kommuner = []
-    for code, name, lat, lon in KOMMUNER:
+    for code, name, lat, lon in mkt.regions:
         values, _ = res.resolve(Location(lat, lon, address=name),
                                 "workforce", needed)
         f = _forecast_one(occ, values, horizon)
         kommuner.append({"kommun": name, "kommun_kod": code,
+                         "market": mkt.id, "market_label_sv": mkt.label_sv,
                          "lat": lat, "lon": lon,
                          "behov_prognos": f["behov_prognos"],
                          "brist": f["brist"], "band": f["band"],
@@ -359,5 +367,49 @@ def national_map(occupation_id: str, target_year: int = 2035,
                          "konfidens": f["konfidens"]})
     kommuner.sort(key=lambda k: -k["brist"])
     return {"occupation_id": occupation_id, "label_sv": occ.label_sv,
+            "market": mkt.id, "market_label_sv": mkt.label_sv,
+            "bbox": list(mkt.bbox),
             "basar": BASE_YEAR, "malar": target_year,
             "kommuner": kommuner, "caveats_sv": list(_CAVEATS)}
+
+
+def global_map(occupation_id: str, target_year: int = 2035,
+               group: str = "eu",
+               resolver: Resolver | None = None) -> dict[str, Any]:
+    """Flerlandskarta: samma modell, alla marknader i gruppen.
+
+    Gemensam Opportunity Score över länder är möjlig eftersom
+    signalkatalogen äger normaliseringen – inte länderna.
+    """
+    if group not in MARKET_GROUPS:
+        raise ValueError(f"Okänd marknadsgrupp: {group}. "
+                         f"Tillgängliga: {', '.join(MARKET_GROUPS)}")
+    regions: list[dict[str, Any]] = []
+    for mid in MARKET_GROUPS[group]:
+        res = national_map(occupation_id, target_year,
+                           resolver=resolver, market=mid)
+        regions.extend(res["kommuner"])
+    regions.sort(key=lambda k: -k["brist"])
+
+    # Landsranking: genomsnittlig relativ brist per marknad.
+    per_market: dict[str, list[float]] = {}
+    for r in regions:
+        share = r["brist"] / max(r["behov_prognos"], 1)
+        per_market.setdefault(r["market"], []).append(share)
+    ranking = sorted(
+        ({"market": mid, "market_label_sv": get_market(mid).label_sv,
+          "snitt_brist_pct": round(100 * sum(sh) / len(sh), 1),
+          "regioner": len(sh)}
+         for mid, sh in per_market.items()),
+        key=lambda x: -x["snitt_brist_pct"])
+
+    occ = OCCUPATIONS[occupation_id]
+    return {"occupation_id": occupation_id, "label_sv": occ.label_sv,
+            "group": group, "group_label_sv": GROUP_LABEL_SV[group],
+            "bbox": list(GROUP_BBOX[group]),
+            "basar": BASE_YEAR, "malar": target_year,
+            "regioner": regions, "landsranking": ranking,
+            "caveats_sv": list(_CAVEATS) + [
+                "Endast Sverige har verkliga datakällor kopplade ännu – "
+                "övriga marknader körs på simulerad data tills lokala "
+                "adaptrar (Destatis, Eurostat, Census m.fl.) finns."]}

@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.scb import KOMMUNER
+from .markets import MARKETS, get_market
 from .models import Location
 from .profile import BusinessProfile
 from .risk import assess
@@ -34,7 +34,7 @@ from .scan import economy_scenario, scan
 from .scoring import analyze
 from .verticals import VERTICALS
 from .workforce import (BASE_YEAR, MAX_HORIZON_YEARS, OCCUPATIONS,
-                        forecast, national_map)
+                        forecast, global_map, national_map)
 
 # ── Entitetslexikon (svenska synonymer → id) ─────────────────────────
 
@@ -53,6 +53,24 @@ _VERTICAL_SYNONYMS: dict[str, str] = {
     "veterinär": "veterinar", "veterinärklinik": "veterinar",
     "djurklinik": "veterinar",
     "lager": "lager", "logistik": "lager", "logistikcenter": "lager",
+    "vvs-företag": "vvs", "vvs-firma": "vvs",
+}
+
+# Yrke → närmast motsvarande bransch (för "starta X"-kontext).
+_OCC_TO_VERTICAL = {"elektriker": "elektriker", "vvs_montor": "vvs",
+                    "snickare": "bygg"}
+
+_MARKET_SYNONYMS: dict[str, str] = {
+    "sverige": "se", "svensk": "se",
+    "tyskland": "de", "tysk": "de",
+    "usa": "us", "amerikansk": "us", "amerika": "us", "förenta staterna": "us",
+    "spanien": "es", "spansk": "es",
+    "polen": "pl", "polsk": "pl",
+    "frankrike": "fr", "fransk": "fr",
+}
+_GROUP_SYNONYMS: dict[str, str] = {
+    "europa": "eu", "europeisk": "eu", "eu": "eu",
+    "världen": "varlden", "globalt": "varlden", "internationellt": "varlden",
 }
 
 _OCCUPATION_SYNONYMS: dict[str, str] = {
@@ -78,7 +96,7 @@ _NUMBER_WORDS = {"en": 1, "ett": 1, "två": 2, "tre": 3, "fyra": 4,
                  "fem": 5, "sex": 6, "sju": 7, "åtta": 8, "nio": 9,
                  "tio": 10}
 
-_SHORTAGE_WORDS = ("brist", "saknas", "behov", "behövs", "efterfråg",
+_SHORTAGE_WORDS = ("brist", "saknas", "behov", "behöv", "efterfråg",
                    "yrke", "yrkesgrupp", "kompetens", "pension", "rekryter")
 _START_WORDS = ("starta", "öppna", "etablera", "affärsmöjlighet",
                 "möjligheter", "investera", "driva")
@@ -89,6 +107,9 @@ _RISK_WORDS = ("risk", "riskabelt", "riskfyllt", "farligt", "vågar")
 class Query:
     intent: str
     kommun: tuple | None = None            # (kod, namn, lat, lon)
+    region_market: str = "se"              # marknad regionen tillhör
+    market: str | None = None              # explicit nämnd marknad
+    group: str | None = None               # "eu" | "varlden"
     occupation_id: str | None = None
     vertical_id: str | None = None
     top_n: int = 5
@@ -102,11 +123,12 @@ def _fold(s: str) -> str:
     return s.lower().replace("é", "e")
 
 
-def _find_kommun(q: str) -> tuple | None:
-    for k in KOMMUNER:
-        name = _fold(k[1])
-        if re.search(rf"\b{re.escape(name)}s?\b", q):
-            return k
+def _find_region(q: str) -> tuple[str, tuple] | None:
+    """Sök region i alla marknader. Returnerar (market_id, region)."""
+    for m in MARKETS.values():
+        for r in m.regions:
+            if re.search(rf"\b{re.escape(_fold(r[1]))}s?\b", q):
+                return m.id, r
     return None
 
 
@@ -152,18 +174,29 @@ def _find_year(q: str) -> int:
 
 def parse(question: str) -> Query:
     q = _fold(question.strip())
-    kommun = _find_kommun(q)
+    hit = _find_region(q)
+    region_market, kommun = hit if hit else ("se", None)
     occ = _find_in_lexicon(q, _OCCUPATION_SYNONYMS)
     vert = _find_in_lexicon(q, _VERTICAL_SYNONYMS)
-    # "elektriker" är både yrke och bransch – kontext avgör.
-    if occ and vert is None and occ in VERTICALS:
-        if any(w in q for w in _START_WORDS) or any(w in q for w in _RISK_WORDS):
-            vert, occ = occ, None
-    shortage = any(w in q for w in _SHORTAGE_WORDS)
+    market = _find_in_lexicon(q, _MARKET_SYNONYMS)
+    group = _find_in_lexicon(q, _GROUP_SYNONYMS)
     start = any(w in q for w in _START_WORDS)
     risky = any(w in q for w in _RISK_WORDS)
+    move = "flytta" in q
+    # Yrke i "starta/öppna"-kontext → motsvarande bransch.
+    if occ and vert is None and (start or risky) and occ in _OCC_TO_VERTICAL:
+        vert, occ = _OCC_TO_VERTICAL[occ], None
+    shortage = any(w in q for w in _SHORTAGE_WORDS)
+    # Träffar båda lexikonen ("VVS-företag"): startkontext → bransch,
+    # bristkontext → yrke.
+    if occ and vert:
+        if start and not shortage:
+            occ = None
+        elif shortage and not start:
+            vert = None
 
-    query = Query(intent="hjalp", kommun=kommun,
+    query = Query(intent="hjalp", kommun=kommun, region_market=region_market,
+                  market=market, group=group,
                   occupation_id=occ, vertical_id=vert,
                   top_n=_find_top_n(q), target_year=_find_year(q),
                   unmatched_kommun=None if kommun else _find_unmatched_kommun(q),
@@ -173,15 +206,17 @@ def parse(question: str) -> Query:
         query.intent = "okand_kommun"
     elif risky and vert and kommun:
         query.intent = "riskprofil"
-    elif occ and not kommun and (shortage or "var " in q + " " or q.startswith("var")):
+    elif occ and move:
+        query.intent = "land_ranking"
+    elif occ and group:
+        query.intent = "global_brist"
+    elif occ and not kommun and (shortage or q.startswith("var") or "var " in q):
         query.intent = "nationell_brist"
     elif kommun and (shortage or occ) and not start:
         query.intent = "bristyrken_kommun"
     elif vert and not kommun and start:
         query.intent = "basta_lage_vertikal"
-    elif kommun and start:
-        query.intent = "mojligheter_kommun"
-    elif kommun and vert:
+    elif kommun and (start or vert):
         query.intent = "mojligheter_kommun"
     return query
 
@@ -190,12 +225,13 @@ def parse(question: str) -> Query:
 
 _HELP = {
     "svar_sv": "Jag förstår frågor om affärsmöjligheter, kompetensbrist och "
-               "risk – kopplade till en kommun, ett yrke eller en bransch.",
+               "risk – kopplade till en region, ett yrke, en bransch eller "
+               "ett land (Sverige, Tyskland, USA, Spanien, Polen, Frankrike).",
     "forslag_sv": [
         "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
-        "Vilka yrkesgrupper saknas mest i Umeå de kommande fem åren?",
-        "Var i Sverige är behovet av elektriker störst?",
-        "Var ska jag öppna café?",
+        "Var i Europa är det störst brist på elektriker?",
+        "Var är det bäst att starta ett VVS-företag i Tyskland?",
+        "Vilket land är bäst för en svensk snickare att flytta till?",
         "Hur riskabelt är det att starta gym i Solna?",
     ],
 }
@@ -203,6 +239,7 @@ _HELP = {
 
 def _rows_mojligheter(query: Query, resolver) -> dict[str, Any]:
     kod, namn, lat, lon = query.kommun
+    mkt = get_market(query.region_market)
     loc = Location(lat, lon, address=namn)
     verts = ([query.vertical_id] if query.vertical_id
              else [v for v in VERTICALS if v != "generisk"])
@@ -210,8 +247,12 @@ def _rows_mojligheter(query: Query, resolver) -> dict[str, Any]:
     for vid in verts:
         r = analyze(loc, vid, resolver=resolver)
         rp = assess(loc, vid, resolver=resolver)
-        eko = economy_scenario(BusinessProfile(vertical_id=vid,
-                                               team_size="2-5"), r.opportunity_score)
+        eko = (economy_scenario(BusinessProfile(vertical_id=vid, team_size="2-5"),
+                                r.opportunity_score)
+               if mkt.calibrated else
+               {"status": "ej_kalibrerad",
+                "notis_sv": f"Ekonomischabloner ej kalibrerade för "
+                            f"{mkt.label_sv} ännu."})
         rows.append({
             "typ": "affarsmojlighet", "id": vid,
             "label_sv": VERTICALS[vid].label_sv,
@@ -242,7 +283,8 @@ def _rows_mojligheter(query: Query, resolver) -> dict[str, Any]:
 def _rows_bristyrken(query: Query, resolver) -> dict[str, Any]:
     kod, namn, *_ = query.kommun
     occ_ids = [query.occupation_id] if query.occupation_id else None
-    res = forecast(kod, query.target_year, occ_ids, resolver=resolver)
+    res = forecast(kod, query.target_year, occ_ids, resolver=resolver,
+                   market=query.region_market)
     rows = [{
         "typ": "bristyrke", "id": f["occupation_id"], "label_sv": f["label_sv"],
         "score": min(100, round(100 * f["brist"] / max(f["behov_prognos"], 1) * 4)),
@@ -270,8 +312,9 @@ def _rows_bristyrken(query: Query, resolver) -> dict[str, Any]:
 
 
 def _rows_nationell(query: Query, resolver) -> dict[str, Any]:
+    market = query.market or "se"
     res = national_map(query.occupation_id, query.target_year,
-                       resolver=resolver)
+                       resolver=resolver, market=market)
     rows = [{
         "typ": "kommun_brist", "id": k["kommun_kod"], "label_sv": k["kommun"],
         "score": min(100, round(100 * k["brist"] /
@@ -282,20 +325,85 @@ def _rows_nationell(query: Query, resolver) -> dict[str, Any]:
                    "konfidens": k["konfidens"]},
     } for k in res["kommuner"][:query.top_n]]
     return {
-        "svar_sv": f"Störst beräknat behov av "
-                   f"{res['label_sv'].lower()} till {query.target_year}: "
+        "svar_sv": f"Störst beräknat behov av {res['label_sv'].lower()} i "
+                   f"{res['market_label_sv']} till {query.target_year}: "
                    f"{', '.join(r['label_sv'] for r in rows[:3])}.",
         "rader": rows,
         "karta": {"typ": "efterfragan", "kommuner": res["kommuner"],
-                  "label_sv": res["label_sv"], "malar": res["malar"]},
+                  "bbox": res["bbox"], "label_sv": res["label_sv"],
+                  "malar": res["malar"]},
         "forslag_sv": [f"Vilka yrkesgrupper saknas mest i "
                        f"{rows[0]['label_sv']}?"],
     }
 
 
+def _rows_global(query: Query, resolver) -> dict[str, Any]:
+    res = global_map(query.occupation_id, query.target_year,
+                     group=query.group or "eu", resolver=resolver)
+    rows = [{
+        "typ": "region_brist", "id": k["kommun_kod"],
+        "label_sv": f"{k['kommun']} ({k['market_label_sv']})",
+        "score": min(100, round(100 * k["brist"] /
+                                max(k["behov_prognos"], 1) * 4)),
+        "brist": k["brist"], "efterfragan": k["efterfragan"],
+        "trend": k["trend"],
+        "detalj": {"behov_prognos": k["behov_prognos"],
+                   "konfidens": k["konfidens"]},
+    } for k in res["regioner"][:query.top_n]]
+    ranking = " · ".join(f"{r['market_label_sv']} {r['snitt_brist_pct']} %"
+                         for r in res["landsranking"])
+    return {
+        "svar_sv": f"Störst beräknat behov av {res['label_sv'].lower()} i "
+                   f"{res['group_label_sv']} till {query.target_year}: "
+                   f"{', '.join(r['label_sv'] for r in rows[:3])}. "
+                   f"Genomsnittlig relativ brist per land: {ranking}.",
+        "rader": rows,
+        "karta": {"typ": "efterfragan", "kommuner": res["regioner"],
+                  "bbox": res["bbox"], "label_sv": res["label_sv"],
+                  "malar": res["malar"]},
+        "forslag_sv": [f"Vilket land är bäst för en svensk "
+                       f"{res['label_sv'].lower()} att flytta till?"],
+        "caveats_sv": res["caveats_sv"][-1:],
+    }
+
+
+def _rows_land_ranking(query: Query, resolver) -> dict[str, Any]:
+    res = global_map(query.occupation_id, query.target_year,
+                     group="varlden", resolver=resolver)
+    occ_label = res["label_sv"].lower()
+    rows = []
+    for r in res["landsranking"]:
+        toppregion = next(k for k in res["regioner"]
+                          if k["market"] == r["market"])
+        rows.append({
+            "typ": "land", "id": r["market"],
+            "label_sv": r["market_label_sv"],
+            "score": min(100, round(r["snitt_brist_pct"] * 4)),
+            "trend": None,
+            "detalj": {"snitt_brist_pct": r["snitt_brist_pct"],
+                       "regioner_analyserade": r["regioner"],
+                       "starkaste_region": f"{toppregion['kommun']} "
+                                           f"(brist {toppregion['brist']})"},
+        })
+    return {
+        "svar_sv": f"Beräknat efterfrågeläge för {occ_label} per land till "
+                   f"{query.target_year} – starkast: {rows[0]['label_sv']} "
+                   f"(snittbrist {rows[0]['detalj']['snitt_brist_pct']} % av "
+                   f"behovet). Väg alltid in språk, legitimationskrav och "
+                   f"regelverk – det ligger utanför modellen.",
+        "rader": rows,
+        "karta": {"typ": "efterfragan", "kommuner": res["regioner"],
+                  "bbox": res["bbox"], "label_sv": res["label_sv"],
+                  "malar": res["malar"]},
+        "forslag_sv": [f"Var i Europa är det störst brist på {occ_label}?"],
+        "caveats_sv": res["caveats_sv"][-1:],
+    }
+
+
 def _rows_basta_lage(query: Query, resolver) -> dict[str, Any]:
     res = scan(BusinessProfile(vertical_id=query.vertical_id),
-               resolver=resolver, top_n=query.top_n)
+               resolver=resolver, top_n=query.top_n,
+               market=query.market or "se")
     rows = [{
         "typ": "hotspot", "id": h["kommun_kod"], "label_sv": h["lage_sv"],
         "score": h["opportunity_score"], "trend": h["market_momentum"]["direction"],
@@ -307,11 +415,12 @@ def _rows_basta_lage(query: Query, resolver) -> dict[str, Any]:
     } for h in res["hotspots"]]
     return {
         "svar_sv": f"Bästa lägena för {res['vertical_label_sv'].lower()} "
-                   f"enligt Sverigesvepet – toppkandidat "
+                   f"i {res['market_label_sv']} – toppkandidat "
                    f"{rows[0]['label_sv']} ({int(rows[0]['score'])}/100).",
         "rader": rows,
         "karta": {"typ": "heatmap", "heatmap": res["heatmap"],
-                  "hotspots": res["hotspots"], "level": res["level"]},
+                  "hotspots": res["hotspots"], "level": res["level"],
+                  "bbox": res["bbox"]},
         "forslag_sv": [f"Hur riskabelt är det att starta "
                        f"{res['vertical_label_sv'].lower()} i "
                        f"{rows[0]['label_sv'].split(',')[0]}?"],
@@ -344,11 +453,13 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
             "malar": query.target_year}
 
     if query.intent == "okand_kommun":
-        exempel = ", ".join(k[1] for k in KOMMUNER[:6])
+        se = get_market("se")
+        exempel = ", ".join(r[1] for r in se.regions[:6])
         return {**base,
                 "svar_sv": f"{query.unmatched_kommun} kommun ingår inte ännu – "
-                           f"kartunderlaget täcker {len(KOMMUNER)} större "
-                           f"kommuner i denna version (t.ex. {exempel}). "
+                           f"kartunderlaget täcker {len(se.regions)} större "
+                           f"svenska kommuner plus regioner i Tyskland, USA, "
+                           f"Spanien, Polen och Frankrike (t.ex. {exempel}). "
                            f"Fler tillkommer i geodatafasen.",
                 "caveats_sv": []}
     if query.intent == "hjalp":
@@ -357,6 +468,8 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
     handler = {"mojligheter_kommun": _rows_mojligheter,
                "bristyrken_kommun": _rows_bristyrken,
                "nationell_brist": _rows_nationell,
+               "global_brist": _rows_global,
+               "land_ranking": _rows_land_ranking,
                "basta_lage_vertikal": _rows_basta_lage,
                "riskprofil": _rows_risk}[query.intent]
     result = handler(query, resolver)

@@ -179,11 +179,21 @@
 
 <script>
 "use strict";
-// Projektion: enkel plattkarta över Sveriges bounding box.
-const BOX = { latMin: 55.0, latMax: 69.5, lonMin: 10.5, lonMax: 24.5 };
+// Projektion: plattkarta med letterbox – bbox styrs av marknaden.
 const W = 560, H = 1000;
-const px = lon => (lon - BOX.lonMin) / (BOX.lonMax - BOX.lonMin) * (W - 60) + 30;
-const py = lat => (BOX.latMax - lat) / (BOX.latMax - BOX.latMin) * (H - 60) + 30;
+const SE_BOX = [55.0, 69.5, 10.5, 24.5];
+let PROJ = { k: 1, ox: 0, oy: 0, box: SE_BOX };
+function setBox(b) {
+  const dLat = b[1] - b[0], dLon = b[3] - b[2];
+  const k = Math.min((W - 60) / dLon, (H - 60) / dLat);
+  PROJ = { k, ox: (W - k * dLon) / 2, oy: (H - k * dLat) / 2, box: b };
+  const seKontur = b.join() === SE_BOX.join();
+  const kontur = document.getElementById("kontur");
+  if (kontur) kontur.style.display = seKontur ? "" : "none";
+}
+const px = lon => PROJ.ox + (lon - PROJ.box[2]) * PROJ.k;
+const py = lat => PROJ.oy + (PROJ.box[1] - lat) * PROJ.k;
+setBox(SE_BOX);
 const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)",
                orange: "var(--orange)" };
 const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)",
@@ -327,6 +337,7 @@ function lasProfil() {
 
 function ritaKarta(res) {
   tomKarta();
+  setBox(res.bbox || SE_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   const hotspotNycklar = new Set(res.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
   const r = res.level === "detaljerad" ? 4.5 : 7;
@@ -476,6 +487,7 @@ const KOMPBAND = { balans: "gron", okande_brist: "gul", kritisk_brist: "rod" };
 
 function ritaKompKarta(res) {
   tomKarta();
+  setBox(res.bbox || SE_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   for (const k of res.kommuner) {
     laggPunkt(k.lat, k.lon, KOMPBAND[k.band], 7,
@@ -579,9 +591,10 @@ $("prognostisera").onclick = async () => {
 // ── Fråga Landvex ────────────────────────────────────────────────────
 const EXEMPEL = [
   "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
+  "Var i Europa är det störst brist på elektriker?",
+  "Var är det bäst att starta ett VVS-företag i Tyskland?",
+  "Vilket land är bäst för en svensk snickare att flytta till?",
   "Vilka yrkesgrupper saknas mest i Umeå de kommande fem åren?",
-  "Var i Sverige är behovet av elektriker störst?",
-  "Var ska jag öppna café?",
   "Hur riskabelt är det att starta gym i Solna?",
 ];
 
@@ -643,8 +656,9 @@ function ritaSvar(res) {
     .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
 
   tomKarta();
-  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   const karta = res.karta;
+  setBox((karta && karta.bbox) || SE_BOX);
+  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   if (karta && karta.typ === "efterfragan") {
     for (const k of karta.kommuner)
       laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
