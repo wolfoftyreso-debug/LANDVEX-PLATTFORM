@@ -193,6 +193,14 @@ OIDC.
   `/health` med motorversion + källstatus (felpausade adaptrar =
   degraderad), `/metrics?format=prometheus`, `GET /v1/audit`
   (admin). README.md är överlämningsdokumentet till AWS-/dev-teamet.
+- **USA + EU fullt utbyggt (v0.14):** 16 marknader / 218 regioner
+  (USA 40 storstadsregioner; EU: SE DE FR ES PL IT NL BE AT PT DK FI
+  NO IE CZ), 22 branscher, 21 yrken, 12 produkttyper, 10 segment,
+  målår 2028–2045 i menyerna. Allt datadrivet – varje nytt alternativ
+  fungerar genom hela kedjan (svep/gap/plan/prognos/service/fråga).
+  Endast Sverige har verkliga källor; övriga marknader mock tills
+  lokala adaptrar (backlog #16). Engelsk lokalisering (label_en-lager
+  för US-marknaden) är nästa språksteg – medvetet EJ påbörjat halvvägs.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

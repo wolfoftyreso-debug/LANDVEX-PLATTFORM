@@ -161,7 +161,9 @@ async function api(path, body) {
     html = html.replace(old_api, new_api)
     # Demon erbjuder bara val som har data: ett målår, låst simulering.
     html = html.replace(
-        '<option>2030</option><option selected>2035</option><option>2040</option>',
+        '<option>2028</option><option>2030</option><option>2032</option>'
+        '<option selected>2035</option><option>2038</option>'
+        '<option>2040</option><option>2045</option>',
         '<option selected>2035</option>')
     html = html.replace(
         '<input type="number" min="0" value="30" id="simN_${kod}">',

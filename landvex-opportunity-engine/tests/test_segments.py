@@ -45,7 +45,8 @@ def test_segment_map_contract():
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
     assert "veterinär" in res["sammanfattning_sv"].lower()
     de = segment_map("bilagare", market="de")
-    assert len(de["regioner"]) == 16
+    from engine.markets import MARKETS
+    assert len(de["regioner"]) == len(MARKETS["de"].regions)
     try:
         segment_map("rymdvarelser")
     except ValueError:

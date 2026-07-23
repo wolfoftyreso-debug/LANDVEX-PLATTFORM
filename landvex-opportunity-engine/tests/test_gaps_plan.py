@@ -35,7 +35,9 @@ def test_gap_contract_and_ranking():
 
 def test_gap_in_germany_and_validation():
     res = gap_analysis("vvs", market="de", top_n=3)
-    assert res["market"] == "de" and len(res["heatmap"]) == 16
+    from engine.markets import MARKETS
+    assert res["market"] == "de"
+    assert len(res["heatmap"]) == len(MARKETS["de"].regions)
     try:
         gap_analysis("rymdturism")
     except ValueError:

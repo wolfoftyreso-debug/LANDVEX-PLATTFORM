@@ -52,13 +52,22 @@ _MOMENTUM_SIGNALS = ("pop_growth_pct", "building_permits", "detail_plans",
 _REVENUE_PER_PERSON_TKR = {
     "frisor": 700, "elektriker": 1400, "gym": 900, "restaurang": 950,
     "cafe": 800, "bygg": 1800, "tandlakare": 1600, "bilverkstad": 1200,
-    "veterinar": 1300, "lager": 1500, "vvs": 1450, "generisk": 1000}
+    "veterinar": 1300, "lager": 1500, "vvs": 1450,
+    "forskola": 650, "apotek": 2200, "optiker": 1400, "bageri": 850,
+    "livsmedel": 4500, "aldreomsorg": 550, "stadfirma": 550,
+    "malare": 950, "laddinfra": 2000, "cykelverkstad": 900,
+    "generisk": 1000}
 _STARTUP_TKR = {
     "frisor": (150, 600), "elektriker": (100, 500), "gym": (1500, 6000),
     "restaurang": (800, 4000), "cafe": (400, 1500), "bygg": (200, 1000),
     "tandlakare": (1500, 5000), "bilverkstad": (500, 2500),
     "veterinar": (800, 3000), "lager": (1000, 10000),
-    "vvs": (150, 600), "generisk": (300, 2000)}
+    "vvs": (150, 600),
+    "forskola": (500, 2500), "apotek": (1500, 4000), "optiker": (600, 2000),
+    "bageri": (600, 2000), "livsmedel": (2000, 8000),
+    "aldreomsorg": (200, 1000), "stadfirma": (50, 300),
+    "malare": (100, 400), "laddinfra": (1000, 6000),
+    "cykelverkstad": (200, 800), "generisk": (300, 2000)}
 _TEAM_PERSONS = {"1": 1, "2-5": 3, "5-20": 10, "20-50": 30, "50+": 60}
 _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
                "2-5m": (2000, 5000), "5-10m": (5000, 10000),

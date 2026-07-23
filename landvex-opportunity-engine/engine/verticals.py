@@ -144,6 +144,95 @@ VERTICALS: dict[str, VerticalProfile] = {p.id: p for p in [
         _f("kostnadslage", "Kostnadsläge (hyra)", 0.18, ("rent_index", 1.0)),
     )),
 
+    VerticalProfile("forskola", "Förskola", (
+        _f("barnunderlag", "Barnunderlag", 0.32,
+           ("families_share", 0.7), ("pop_radius", 0.3)),
+        _f("tillvaxt", "Tillväxt", 0.18, ("pop_growth_pct", 1.0)),
+        _f("bostadstathet", "Bostadstäthet", 0.15, ("residential_density", 1.0)),
+        _f("utbud", "Utbud & platsbrist", 0.20,
+           ("provider_gap", 0.6), ("competition_pressure", 0.4)),
+        _f("tillganglighet", "Hämta/lämna-läge", 0.15,
+           ("parking_score", 0.5), ("transit_score", 0.5)),
+    )),
+
+    VerticalProfile("apotek", "Apotek", (
+        _f("upptagning", "Upptagningsområde", 0.25, ("pop_radius", 1.0)),
+        _f("aldre", "Äldre befolkning", 0.20, ("share_65plus", 1.0)),
+        _f("flode", "Kundflöde", 0.20, ("foot_traffic", 1.0)),
+        _f("vardutbud", "Närhet till vård", 0.15, ("care_supply", 1.0)),
+        _f("konkurrens", "Konkurrens", 0.20, ("competition_pressure", 1.0)),
+    )),
+
+    VerticalProfile("optiker", "Optiker", (
+        _f("upptagning", "Upptagningsområde", 0.25, ("pop_radius", 1.0)),
+        _f("aldre", "Äldre befolkning", 0.20, ("share_65plus", 1.0)),
+        _f("synlighet", "Synlighet", 0.20, ("foot_traffic", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.15, ("income_index", 1.0)),
+        _f("konkurrens", "Konkurrens", 0.20, ("competition_pressure", 1.0)),
+    )),
+
+    VerticalProfile("bageri", "Bageri", (
+        _f("morgon", "Morgonflöde", 0.30, ("flow_morning", 1.0)),
+        _f("gangtrafik", "Gångtrafik", 0.20, ("foot_traffic", 1.0)),
+        _f("bostadstathet", "Bostadstäthet", 0.15, ("residential_density", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.15, ("income_index", 1.0)),
+        _f("konkurrens", "Konkurrens", 0.20, ("competition_pressure", 1.0)),
+    )),
+
+    VerticalProfile("livsmedel", "Livsmedelsbutik", (
+        _f("upptagning", "Upptagningsområde", 0.30,
+           ("pop_radius", 0.6), ("residential_density", 0.4)),
+        _f("parkering", "Parkering", 0.15, ("parking_score", 1.0)),
+        _f("tillvaxt", "Tillväxt", 0.15, ("pop_growth_pct", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.15, ("income_index", 1.0)),
+        _f("konkurrens", "Konkurrens", 0.25, ("competition_pressure", 1.0)),
+    )),
+
+    VerticalProfile("aldreomsorg", "Äldreomsorg & hemtjänst", (
+        _f("aldre", "Äldre befolkning", 0.35, ("share_65plus", 1.0)),
+        _f("upptagning", "Upptagningsområde", 0.15, ("pop_radius", 1.0)),
+        _f("vardutbud", "Övrigt vårdutbud", 0.15, ("care_supply", 1.0)),
+        _f("utbud", "Utbudsgap", 0.20, ("provider_gap", 1.0)),
+        _f("tillvaxt", "Tillväxt", 0.15, ("pop_growth_pct", 1.0)),
+    )),
+
+    VerticalProfile("stadfirma", "Städfirma", (
+        _f("foretagskunder", "Företagskunder", 0.30,
+           ("business_density", 0.6), ("office_workers", 0.4)),
+        _f("bostadstathet", "Hushållskunder", 0.20, ("residential_density", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.15, ("income_index", 1.0)),
+        _f("marknadsutrymme", "Marknadsutrymme", 0.20,
+           ("provider_gap", 0.7), ("competition_pressure", 0.3)),
+        _f("tillvaxt", "Tillväxt", 0.15, ("pop_growth_pct", 1.0)),
+    )),
+
+    VerticalProfile("malare", "Måleri", (
+        _f("fastighetsbestand", "Fastighetsbestånd", 0.25,
+           ("detached_homes", 0.6), ("avg_building_age", 0.4)),
+        _f("renovering", "Renoveringsaktivitet", 0.25, ("renovation_index", 1.0)),
+        _f("bygglov", "Byggaktivitet", 0.15, ("building_permits", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.15, ("income_index", 1.0)),
+        _f("marknadsutrymme", "Marknadsutrymme", 0.20,
+           ("provider_gap", 0.7), ("competition_pressure", 0.3)),
+    )),
+
+    VerticalProfile("laddinfra", "Laddinfrastruktur", (
+        _f("elbilar", "Elbilstäthet", 0.30, ("ev_per_capita", 1.0)),
+        _f("fordonsflotta", "Fordonsflotta", 0.15, ("cars_per_1000", 1.0)),
+        _f("pendling", "Pendlingsflöden", 0.20, ("commuter_flow", 1.0)),
+        _f("naringsliv", "Näringsliv & flottor", 0.15, ("business_density", 1.0)),
+        _f("tillvaxt", "Tillväxt", 0.20, ("pop_growth_pct", 1.0)),
+    )),
+
+    VerticalProfile("cykelverkstad", "Cykelverkstad", (
+        _f("flode", "Cykel- & pendlingsflöden", 0.30,
+           ("foot_traffic", 0.5), ("commuter_flow", 0.5)),
+        _f("malgrupp", "Unga vuxna", 0.20, ("age_20_45_share", 1.0)),
+        _f("bostadstathet", "Bostadstäthet", 0.15, ("residential_density", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.10, ("income_index", 1.0)),
+        _f("konkurrens", "Konkurrens", 0.25, ("competition_pressure", 1.0)),
+    )),
+
     VerticalProfile("generisk", "Generisk verksamhet", (
         _f("kundunderlag", "Kundunderlag", 0.28, ("pop_radius", 1.0)),
         _f("synlighet", "Synlighet", 0.20, ("foot_traffic", 1.0)),

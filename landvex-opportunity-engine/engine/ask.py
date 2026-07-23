@@ -59,11 +59,24 @@ _VERTICAL_SYNONYMS: dict[str, str] = {
     "djurklinik": "veterinar",
     "lager": "lager", "logistik": "lager", "logistikcenter": "lager",
     "vvs-företag": "vvs", "vvs-firma": "vvs",
+    "förskola": "forskola", "dagis": "forskola",
+    "apotek": "apotek",
+    "optiker": "optiker", "glasögonbutik": "optiker",
+    "bageri": "bageri", "bagare": "bageri",
+    "livsmedelsbutik": "livsmedel", "mataffär": "livsmedel",
+    "matbutik": "livsmedel", "dagligvaruhandel": "livsmedel",
+    "äldreomsorg": "aldreomsorg", "hemtjänst": "aldreomsorg",
+    "äldreboende": "aldreomsorg",
+    "städfirma": "stadfirma", "städbolag": "stadfirma",
+    "måleri": "malare", "målarfirma": "malare",
+    "laddinfrastruktur": "laddinfra", "laddoperatör": "laddinfra",
+    "cykelverkstad": "cykelverkstad", "cykelaffär": "cykelverkstad",
 }
 
 # Yrke → närmast motsvarande bransch (för "starta X"-kontext).
 _OCC_TO_VERTICAL = {"elektriker": "elektriker", "vvs_montor": "vvs",
-                    "snickare": "bygg"}
+                    "snickare": "bygg", "malare": "malare",
+                    "kock": "restaurang", "underskoterska": "aldreomsorg"}
 
 _MARKET_SYNONYMS: dict[str, str] = {
     "sverige": "se", "svensk": "se",
@@ -72,6 +85,16 @@ _MARKET_SYNONYMS: dict[str, str] = {
     "spanien": "es", "spansk": "es",
     "polen": "pl", "polsk": "pl",
     "frankrike": "fr", "fransk": "fr",
+    "italien": "it", "italiensk": "it",
+    "nederländerna": "nl", "holland": "nl", "holländsk": "nl",
+    "belgien": "be", "belgisk": "be",
+    "österrike": "at", "österrikisk": "at",
+    "portugal": "pt", "portugisisk": "pt",
+    "danmark": "dk", "dansk": "dk",
+    "finland": "fi", "finsk": "fi", "finländsk": "fi",
+    "norge": "no", "norsk": "no",
+    "irland": "ie", "irländsk": "ie",
+    "tjeckien": "cz", "tjeckisk": "cz",
 }
 _GROUP_SYNONYMS: dict[str, str] = {
     "europa": "eu", "europeisk": "eu", "eu": "eu",
@@ -88,6 +111,13 @@ _OCCUPATION_SYNONYMS: dict[str, str] = {
     "maskinförare": "maskinforare", "anläggningsförare": "maskinforare",
     "anläggningsmaskinförare": "maskinforare",
     "kyltekniker": "kyltekniker", "värmepumpstekniker": "kyltekniker",
+    "undersköterska": "underskoterska",
+    "barnskötare": "barnskotare",
+    "kock": "kock", "kockar": "kock",
+    "lastbilsförare": "lastbilsforare", "chaufför": "lastbilsforare",
+    "svetsare": "svetsare",
+    "målare": "malare",
+    "it-tekniker": "it_tekniker", "ittekniker": "it_tekniker",
     "arkitekt": "arkitekt",
     "ingenjör": "ingenjor_bygg", "byggnadsingenjör": "ingenjor_bygg",
     "byggingenjör": "ingenjor_bygg",
@@ -132,6 +162,11 @@ _PRODUCT_SYNONYMS: dict[str, str] = {
     "industrirobot": "industrirobot", "robot": "industrirobot",
     "ventilation": "ventilation", "ftx": "ventilation",
     "personbil": "personbil",
+    "traktor": "jordbruksmaskin", "jordbruksmaskin": "jordbruksmaskin",
+    "grävmaskin": "byggmaskin", "byggmaskin": "byggmaskin",
+    "medicinteknik": "medicinteknik", "röntgen": "medicinteknik",
+    "serverrum": "it_infrastruktur", "serverhall": "it_infrastruktur",
+    "it-infrastruktur": "it_infrastruktur",
     "servicebehov": "*",   # generell servicefråga utan specifik produkt
 }
 _PLAN_WORDS = ("etableringsplan", "affärsplan", "hur startar jag",
@@ -242,6 +277,10 @@ def parse(question: str) -> Query:
     gap = any(w in q for w in _GAP_WORDS)
     plan = any(w in q for w in _PLAN_WORDS)
     segment = _find_in_lexicon(q, _SEGMENT_SYNONYMS)
+    # Bransch vinner över segment i etableringskontext
+    # ("starta äldreomsorg" ≠ segmentet seniorer).
+    if segment and vert and start:
+        segment = None
     malgrupp = "målgrupp" in q
     query.segment_id = segment
     product = _find_in_lexicon(q, _PRODUCT_SYNONYMS)

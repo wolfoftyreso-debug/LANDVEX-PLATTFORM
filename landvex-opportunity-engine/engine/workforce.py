@@ -96,6 +96,20 @@ OCCUPATIONS: dict[str, Occupation] = {o.id: o for o in [
        0.6, 0.030, 0.8, 39, 0.15,
        ("detached_homes", 0.35), ("renovation_index", 0.25),
        ("ev_per_capita", 0.20), ("pop_growth_pct", 0.20)),
+    _o("underskoterska", "Undersköterska", "Vård & omsorg", 13.0, 0.033, 15.0, 32, 0.12,
+       ("share_65plus", 0.55), ("pop_growth_pct", 0.45)),
+    _o("barnskotare", "Barnskötare", "Utbildning", 6.0, 0.028, 8.0, 29, 0.10,
+       ("families_share", 0.60), ("pop_growth_pct", 0.40)),
+    _o("kock", "Kock", "Besöksnäring", 4.0, 0.030, 5.0, 32, 0.15,
+       ("tourism_index", 0.30), ("foot_traffic", 0.30), ("pop_growth_pct", 0.40)),
+    _o("lastbilsforare", "Lastbilsförare", "Transport & logistik", 5.5, 0.035, 6.0, 35, 0.60,
+       ("logistics_access", 0.40), ("business_density", 0.30), ("pop_growth_pct", 0.30)),
+    _o("svetsare", "Svetsare", "Industri", 2.2, 0.034, 2.5, 36, 0.45,
+       ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
+    _o("malare", "Målare", "Bygg & installation", 2.8, 0.031, 3.5, 34, 0.25,
+       ("renovation_index", 0.40), ("building_permits", 0.30), ("pop_growth_pct", 0.30)),
+    _o("it_tekniker", "IT-tekniker", "IT & digitalt", 4.0, 0.020, 6.0, 42, 0.35,
+       ("business_density", 0.50), ("office_workers", 0.50)),
 ]}
 
 

@@ -11,7 +11,11 @@ from engine.workforce import forecast, global_map
 
 
 def test_markets_are_valid_data():
-    assert set(MARKETS) == {"se", "de", "us", "es", "pl", "fr"}
+    # USA + EU fullt utbyggt: minst 15 marknader, USA med 40 regioner.
+    assert {"se", "de", "us", "es", "pl", "fr", "it", "nl", "be", "at",
+            "pt", "dk", "fi", "no", "ie", "cz"} == set(MARKETS)
+    assert len(MARKETS["us"].regions) == 40
+    assert sum(len(m.regions) for m in MARKETS.values()) >= 200
     codes = set()
     for m in MARKETS.values():
         assert m.regions and m.currency and m.region_label_sv
@@ -23,7 +27,9 @@ def test_markets_are_valid_data():
             assert lon_min <= lon <= lon_max, (m.id, namn)
     assert MARKETS["se"].calibrated and not MARKETS["de"].calibrated
     assert all(mid in MARKETS for g in MARKET_GROUPS.values() for mid in g)
-    assert len(market_catalog()) == 6
+    assert "us" not in MARKET_GROUPS["eu"]
+    assert set(MARKET_GROUPS["varlden"]) == set(MARKETS)
+    assert len(market_catalog()) == len(MARKETS)
 
 
 def test_region_lookup():
@@ -97,10 +103,10 @@ def test_ask_global_answers():
     res = ask("Var i Europa är det störst brist på elektriker?")
     assert res["intent"] == "global_brist"
     assert "(" in res["rader"][0]["label_sv"]        # "Stad (Land)"
-    assert res["karta"]["bbox"] == [35.0, 70.0, -11.0, 26.0]
+    assert res["karta"]["bbox"] == [35.5, 71.0, -11.0, 32.0]
     res2 = ask("Vilket land är bäst för en svensk snickare att flytta till?")
     assert res2["intent"] == "land_ranking"
-    assert len(res2["rader"]) == 6                   # alla marknader rankade
+    assert len(res2["rader"]) == len(MARKETS)        # alla marknader rankade
     assert "regelverk" in res2["svar_sv"]            # ärlighetsnot
     res3 = ask("Var är det bäst att starta ett VVS-företag i Tyskland?")
     assert res3["intent"] == "basta_lage_vertikal"
