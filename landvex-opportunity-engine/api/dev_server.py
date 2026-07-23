@@ -418,9 +418,30 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def _register_with_aamos(port: int) -> None:
+    """Best-effort self-registrering i AAMOS service registry. Får aldrig
+    hindra uppstart – ett fel loggas och ignoreras."""
+    if not AAMOS.connected:
+        return
+    try:
+        AAMOS.register_service(
+            "landvex-opportunity-engine", port,
+            endpoints=[e["path"] for eng in _catalog_engines()
+                       for e in eng["endpoints"]])
+        print("Registered with AAMOS service registry.")
+    except Exception as e:                       # aldrig blockerande
+        print(f"AAMOS registration skipped: {e}")
+
+
+def _catalog_engines():
+    from api.catalog import API_CATALOG
+    return API_CATALOG["engines"]
+
+
 def main(port: int | None = None) -> None:
     port = port or int(os.environ.get("LANDVEX_PORT", "8000"))
     print(f"Opportunity Engine dev server: http://localhost:{port}")
+    _register_with_aamos(port)
     # Flertrådad + större accept-kö: tål burst-last utan att droppa
     # anslutningar (red-team: 200 samtidiga anrop). Produktionsvägen är
     # uvicorn/FastAPI, men denna server deployas också (systemd).

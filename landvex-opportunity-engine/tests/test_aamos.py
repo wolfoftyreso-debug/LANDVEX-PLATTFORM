@@ -113,6 +113,45 @@ def test_new_endpoints_are_capability_gated():
     assert required_capability("/v1/cognition/brief") == "partner_api"
 
 
+def test_xml_rss_fallback_in_contents():
+    """AAMOS Core returnerar ofta RSS/XML i contents-fältet."""
+    from integrations.aamos import _decode_body
+    d = _decode_body('{"contents": "<rss><channel>'
+                     '<item><title>Disk 80%</title>'
+                     '<severity>warning</severity></item></channel></rss>",'
+                     ' "ok": true}')
+    assert d["ok"] is True
+    assert "contents_parsed" in d
+    # Ren XML utan JSON-hölje → dict, aldrig krasch.
+    raw = _decode_body('<rss><channel><item><title>X</title>'
+                       '</item></channel></rss>')
+    assert isinstance(raw, dict)
+    # Skräp → ärligt inpackat, aldrig undantag.
+    assert _decode_body("inte json alls")["raw"] == "inte json alls"
+
+
+def test_quixzoom_via_aamos_and_registration():
+    """quiXzoom-missions och service-registrering går via AAMOS Core."""
+    from integrations.aamos import AamosClient
+    calls = []
+
+    def transport(method, url, body):
+        calls.append((method, url, body))
+        if "quixzoom/missions" in url:
+            return {"missions": [{"id": "m1"}, {"id": "m2"}]}
+        return {"registered": True}
+    c = AamosClient(base_url="http://localhost:3100", transport=transport)
+    m = c.quixzoom_missions(29.76, -95.37)
+    assert len(m["missions"]) == 2
+    assert "/api/aamos/quixzoom/missions" in calls[0][1]
+    reg = c.register_service("landvex-opportunity-engine", 8087,
+                             ["/v1/ask"])
+    assert reg["registered"] is True
+    assert calls[1][0] == "POST"
+    assert "/api/services/register" in calls[1][1]
+    assert calls[1][2]["name"] == "landvex-opportunity-engine"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

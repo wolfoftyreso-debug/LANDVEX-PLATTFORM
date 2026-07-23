@@ -91,6 +91,11 @@ PLANS: dict[str, dict] = _PlanMap({
         "beskrivning_en": "All decision engines and live map layers for "
                           "one organization.",
         "pris_manad": {"USD": 499, "EUR": 459},
+        # Kommissionsmodell (beslut från AAMOS-dev): 0.15 QZ TOKEN per
+        # levererad lead. ÖPPEN FRÅGA: ersätter detta månadsavgiften
+        # eller är det ett tillägg? Gäller det plattformsbrett? Fältet är
+        # data tills det bekräftas – enforcement använder ännu quota.
+        "kommission": {"qz_token_per_lead": 0.15, "modell": "commission"},
         "rate_limit_per_min": 600,
         "quota_per_month": 10000,
         "capabilities": ("core", "opportunity", "workforce",

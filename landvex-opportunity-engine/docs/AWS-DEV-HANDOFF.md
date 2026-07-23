@@ -66,7 +66,7 @@ identical endpoint surface (locked by tests/test_contract.py).
 | `LANDVEX_PG_DSN` | Postgres/PostGIS DSN (via pgbouncer). Empty ⇒ SQLite | `postgresql://user:pw@127.0.0.1:6432/landvex` |
 | `LANDVEX_DB` | SQLite path, or `off` when using Postgres | `off` |
 | `AAMOS_CORE_URL` | AAMOS Capability Platform base. Empty ⇒ honest not-connected | `http://127.0.0.1:3100` |
-| `LANDVEX_QUIXZOOM_URL` | quiXzoom observation API. Empty ⇒ honest not-connected | `http://127.0.0.1:3209` |
+| `AAMOS_QUIXZOOM_PATH` | AAMOS Core route for quiXzoom missions (quiXzoom is reached VIA AAMOS Core, decision #2) | `/api/aamos/quixzoom/missions` |
 | `LANDVEX_LIVE` | `0` = mock only (no real adapters) | `1` |
 | `LANDVEX_RATE_LIMIT` | Fallback per-minute cap when a key has no plan | `300` |
 | `LANDVEX_AUDIT_LOG` | JSONL audit path, or `off` | `/var/log/landvex/audit.jsonl` |
@@ -103,12 +103,16 @@ Template committed at `infra/nginx-opportunity.conf` (mounts `/v1/`,
 ## 6. WIRE THE INTEGRATIONS (this is the payoff)
 Both adapters are real clients today; they just need URLs.
 
-- **quiXzoom** → `LANDVEX_QUIXZOOM_URL=http://127.0.0.1:3209`. The
-  client calls `GET /v1/observations?lat&lon&signals=...` and expects
-  `{"observations": {"development_m2": {"value": N}, ...},
-  "observed_at": "...", "network": "quixzoom"}`. Feeds the
-  **Contradiction Index** (observed vs. officially planned). `/health`
-  flips that source from "not connected" to "ok" once set.
+- **quiXzoom (via AAMOS Core, decision #2)** → set `AAMOS_CORE_URL`;
+  the client calls `GET {AAMOS_QUIXZOOM_PATH}?lat&lon&radius_km`
+  (default `/api/aamos/quixzoom/missions`) and reads the mission list
+  (real shape: `id, title, location{lat,lng}, status, required_media,
+  reward`). It derives `field_observation_density` (mission count near
+  the point) — genuinely real. It does **not** fabricate
+  `development_m2`; the precise observed-development signal for the
+  Contradiction Index awaits the Vision pipeline analysing the
+  submitted media. **Confirm the exact AAMOS route** — if it differs,
+  set `AAMOS_QUIXZOOM_PATH` or send me the path and I lock the parser.
 - **AAMOS Core** → `AAMOS_CORE_URL=http://127.0.0.1:3100`. Powers
   `/v1/platform/status`, `/v1/watch`, `/v1/agents`, `/v1/agents/chat`,
   `/v1/cognition/brief`, and enriches `/v1/ask` with a strategic note.

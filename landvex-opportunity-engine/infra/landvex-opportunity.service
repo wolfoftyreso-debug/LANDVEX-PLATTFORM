@@ -21,7 +21,8 @@ EnvironmentFile=-/etc/landvex/opportunity.env
 #   LANDVEX_API_KEYS=nyckel:tenant:roll:plan[,...]
 #   LANDVEX_PG_DSN=postgresql://...@127.0.0.1:6432/...   (pgbouncer)
 #   LANDVEX_DB=off                    (SQLite av när Postgres används)
-#   LANDVEX_QUIXZOOM_URL=http://127.0.0.1:3209
+#   AAMOS_QUIXZOOM_PATH=/api/aamos/quixzoom/missions  (justera vid behov)
+#   (quiXzoom nås via AAMOS Core – ingen egen quiXzoom-URL)
 #   LANDVEX_AUDIT_LOG=/var/log/landvex/audit.jsonl
 Restart=on-failure
 RestartSec=3

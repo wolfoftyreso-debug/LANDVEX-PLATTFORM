@@ -335,6 +335,20 @@ OIDC.
   JSON) mappas fortsatt till 422. 18:e/19:e testsviterna (redteam,
   contract) i CI. Tidigare red-team-fynd (kvot-race, enkeltrådad
   server) fixade i samma spår.
+- **Korrigering mot verklig quiXzoom/AAMOS (v0.25):** AAMOS-dev
+  bekräftade att quiXzoom INTE har en `/v1/observations`-endpoint – det
+  är mission-baserat och nås via AAMOS Core. QuixzoomSource omskriven:
+  hämtar missions via AAMOS Core (`AAMOS_QUIXZOOM_PATH`), härleder den
+  ärligt verkliga signalen `field_observation_density` (antal missions
+  nära punkten) och hittar ALDRIG på `development_m2` – det kräver
+  Vision-pipelinen. AamosClient: XML/RSS→JSON-fallback för `contents`-
+  fältet (AAMOS Core svarar ofta i XML), `quixzoom_missions()`,
+  `register_service()`; servern self-registrerar best-effort mot
+  `/api/services/register` vid uppstart (aldrig blockerande). Beslut
+  inarbetade: domän `opportunity.landvex.com` (nginx-conf), Growth-
+  kommission 0.15 QZ TOKEN/lead som data (öppen fråga: ersätter
+  månadsavgift?). `LANDVEX_QUIXZOOM_URL` utgått. Öppet till AAMOS-dev:
+  exakt AAMOS-route för quiXzoom-missions + kommissionsmodellens scope.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

@@ -27,8 +27,9 @@ def source_status(resolver) -> list[dict[str, Any]]:
             continue
         if name == "quixzoom" and not getattr(inner, "base_url", ""):
             out.append({"source": name, "status": "ej_ansluten",
-                        "notis_en": "Client ready – set LANDVEX_QUIXZOOM_URL "
-                                    "to connect the observation network."})
+                        "notis_en": "quiXzoom missions reach us via AAMOS "
+                                    "Core – set AAMOS_CORE_URL to connect "
+                                    "the field-observation network."})
             continue
         down_until = getattr(inner, "_down_until", 0.0)
         clock = getattr(inner, "_clock", None)

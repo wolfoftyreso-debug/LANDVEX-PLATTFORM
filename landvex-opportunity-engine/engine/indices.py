@@ -176,8 +176,10 @@ _CAVEATS = [
     "All index values are traceable: each value carries its signal "
     "breakdown with a source per row.",
     "The Contradiction Index is currently computed on the same signal "
-    "picture – precision improves when the quiXzoom observation layer "
-    "is connected (stub in the source chain).",
+    "picture. quiXzoom field observations (mission density) connect via "
+    "AAMOS Core; the precise observed-development signal awaits the "
+    "Vision pipeline that analyses the submitted media – it is never "
+    "fabricated in the meantime.",
 ]
 
 

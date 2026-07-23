@@ -26,6 +26,50 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 
+def _xml_to_obj(text: str):
+    """Best-effort XML/RSS → dict (AAMOS Core often returns RSS/XML in a
+    `contents` field). Never raises; returns {"raw": text} on failure."""
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(text)
+    except Exception:
+        return {"raw": text}
+
+    def node(el):
+        kids = list(el)
+        tag = el.tag.split("}")[-1]
+        if not kids:
+            return tag, (el.text or "").strip()
+        out: dict[str, Any] = {}
+        for k in kids:
+            ktag, kval = node(k)
+            if ktag in out:
+                if not isinstance(out[ktag], list):
+                    out[ktag] = [out[ktag]]
+                out[ktag].append(kval)
+            else:
+                out[ktag] = kval
+        return tag, out
+    _, obj = node(root)
+    return obj if isinstance(obj, dict) else {"items": obj}
+
+
+def _decode_body(text: str) -> dict:
+    """Parse an AAMOS response body: JSON first; if a `contents` field
+    carries XML/RSS, parse that too; plain XML → dict; else wrap raw."""
+    text = text.strip()
+    try:
+        data = json.loads(text)
+    except Exception:
+        # Inte JSON – kanske rå XML/RSS.
+        return _xml_to_obj(text) if text[:1] == "<" else {"raw": text}
+    if isinstance(data, dict):
+        c = data.get("contents")
+        if isinstance(c, str) and c.strip()[:1] == "<":
+            data["contents_parsed"] = _xml_to_obj(c)
+    return data if isinstance(data, dict) else {"items": data}
+
+
 class AamosUnavailable(Exception):
     """AAMOS Core is not connected or did not respond."""
 
@@ -62,7 +106,7 @@ class AamosClient:
         req = urllib.request.Request(url, data=data, headers=headers,
                                      method=method)
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            return _decode_body(resp.read().decode("utf-8", "replace"))
 
     def _call(self, method: str, path: str,
               body: dict | None = None) -> dict:
@@ -143,6 +187,31 @@ class AamosClient:
         if agent_id:
             body["agent_id"] = agent_id
         return self._call("POST", "/api/aamos/agent-loop/chat", body)
+
+    # ── quiXzoom (reality collection, VIA AAMOS Core) ────────────────
+    # quiXzoom är mission-baserat (missions + zoomer-submissions med
+    # media), INTE en /v1/observations-endpoint. Fältdata når oss genom
+    # AAMOS Core. Basvägen är konfigurerbar (QUIXZOOM_MISSIONS_PATH) tills
+    # den exakta AAMOS-routen är bekräftad.
+    QUIXZOOM_PATH = os.environ.get(
+        "AAMOS_QUIXZOOM_PATH", "/api/aamos/quixzoom/missions")
+
+    def quixzoom_missions(self, lat: float, lon: float,
+                          radius_km: float = 5.0) -> dict:
+        """quiXzoom-missions/submissions nära en punkt, via AAMOS Core.
+        Fältnamn enligt verklig modell: id, title, location{lat,lng},
+        status, required_media, reward."""
+        path = (f"{self.QUIXZOOM_PATH}?lat={lat}&lon={lon}"
+                f"&radius_km={radius_km}")
+        return self._call("GET", path)
+
+    def register_service(self, name: str, port: int,
+                         endpoints: list[str] | None = None) -> dict:
+        """Registrera denna tjänst i AAMOS service registry
+        (/api/services/register). Best-effort – anroparen sväljer fel."""
+        return self._call("POST", "/api/services/register",
+                          {"name": name, "port": port,
+                           "endpoints": endpoints or []})
 
     # ── Honest status (same ids as the rest of the platform) ─────────
     def status(self) -> dict:
