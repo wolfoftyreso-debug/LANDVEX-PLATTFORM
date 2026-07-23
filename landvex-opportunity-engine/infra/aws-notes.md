@@ -8,7 +8,7 @@ Kärnan är beroendefri, så båda spåren nedan fungerar utan kodändringar.
 |---|---|---|
 | API | API Gateway + Lambda (Python 3.12) | `engine/` zippas rakt in; FastAPI via Mangum, eller Lambda-handler direkt på `analyze()` |
 | Alternativ API | ECS Fargate + ALB | Om ni hellre kör containern (`uvicorn api.main:app`) |
-| Databas | Aurora PostgreSQL + PostGIS | Platser, rapporter, signalcache, geodata |
+| Databas | Aurora PostgreSQL + PostGIS | Platser, rapporter, signalcache, geodata. `PostgresStore` finns i `engine/storage/postgres.py` (DSN via `LANDVEX_PG_DSN`, DDL ingår) – kör `.selftest()` vid driftsättning. SQLite är lokal referens |
 | Datalake | S3 + Glue | Rådata från SCB, bygglov, rörelsedata; partitionerat per källa/datum |
 | Ingestion | EventBridge Scheduler + Lambda/Step Functions | Nattliga hämtningar per adapter |
 | Hemligheter | Secrets Manager | API-nycklar för rörelsedata, platsdata m.m. |

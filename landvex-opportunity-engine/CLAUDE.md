@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.2 — SCB-adapter implementerad
+## Nuläge: v0.3 — SCB-adapter + persistens
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -37,6 +37,15 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   `python3 -m engine.datasources.scb <lat> <lon>` — utvecklingsmiljöns
   nätverkspolicy tillät inte SCB-anrop vid implementationen; tester
   körs mot fixturer i PxWeb-format.
+- **Persistens (v0.3):** `engine/storage/` — `Store`-gränssnitt,
+  `SqliteStore` (stdlib, testad referens; default `landvex.db`, styrs
+  med `LANDVEX_DB`, `off` stänger av) och `PostgresStore`
+  (Aurora + PostGIS, lazy psycopg, `LANDVEX_PG_DSN`; kör
+  `.selftest()` mot riktig databas vid driftsättning). Rapporter
+  sparas vid analyze (svaret får `report_id`); `GET /v1/reports`
+  + `GET /v1/reports/{id}` i båda API-lagren. `CachedSource` i
+  `engine/datasources/cache.py` cachar verkliga källor per plats
+  med TTL per källa (`DEFAULT_TTLS`).
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -45,6 +54,7 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 ```bash
 python3 -m tests.test_scoring      # motortester (8 st, utan pytest)
 python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
+python3 -m tests.test_storage      # persistens/cachetester (7 st)
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
 python3 -m engine.datasources.scb 59.31 18.07   # live-prob mot SCB (kräver nät)
@@ -74,8 +84,10 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
    (b) DeSO/rutnätsnivå + `pop_radius`/`families_share` när geodata
    (PostGIS) finns, (c) ersätta närmaste-centroid-lokalisering med
    riktiga kommunpolygoner.
-2. **Persistens** — Aurora PostgreSQL + PostGIS: platser, rapporter,
-   signalcache med TTL per källa.
+2. ~~**Persistens**~~ — KLAR (v0.3): Store-gränssnitt, SqliteStore
+   (referens), PostgresStore (Aurora + PostGIS), rapportendpoints,
+   signalcache med TTL per källa. Återstår: provisionera Aurora (via
+   backlog #6) och köra `PostgresStore.selftest()` mot den.
 3. **Isokroner** — AWS Location Service (Routes) för verklig
    "inom X minuter"-radie i stället för dagens approximation.
 4. **Bygglovs-/detaljplansadapter** — kommunala öppna data eller
@@ -106,9 +118,12 @@ engine/            kärnmotor (stdlib-only)
   scoring.py       analyze() – huvudingången
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
-                   scb.py (PxWeb-klient + kommunlokalisering)
+                   scb.py (PxWeb-klient + kommunlokalisering),
+                   cache.py (CachedSource, TTL per källa)
+  storage/         base.py (Store), sqlite.py (referens),
+                   postgres.py (Aurora + PostGIS)
 api/               main.py (FastAPI) + dev_server.py (stdlib)
-tests/             test_scoring.py + test_scb.py (körbara som moduler)
+tests/             test_scoring.py, test_scb.py, test_storage.py
 infra/             aws-notes.md (deploymentblueprint)
 ARCHITECTURE.md    designbeslut, dataflöde, roadmap
 ```

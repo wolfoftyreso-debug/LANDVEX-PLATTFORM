@@ -9,23 +9,42 @@ För en beroendefri utvecklingsserver, se api/dev_server.py.
 from __future__ import annotations
 
 import os
+import time
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from engine.datasources.adapters import production_sources
 from engine.datasources.base import Resolver
+from engine.datasources.cache import CachedSource
 from engine.datasources.mock import MockSource
 from engine.models import Location
 from engine.scoring import analyze
+from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.2.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.3.0")
 
-# Verkliga källor först, mock som fallback per signal.
-# LANDVEX_LIVE=0 stänger av live-källor (demo/offline/test).
+# Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
+# I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)
+# via LANDVEX_PG_DSN – samma gränssnitt.
+_DB = os.environ.get("LANDVEX_DB", "landvex.db")
+_PG_DSN = os.environ.get("LANDVEX_PG_DSN", "")
+if _PG_DSN:
+    from engine.storage.postgres import PostgresStore
+    STORE = PostgresStore(_PG_DSN)
+elif _DB.lower() not in ("off", "0", ""):
+    STORE = SqliteStore(_DB)
+else:
+    STORE = None
+
+# Verkliga källor först (cachade med TTL per källa om persistens finns),
+# mock som fallback per signal. LANDVEX_LIVE=0 stänger av live-källor.
 _LIVE = os.environ.get("LANDVEX_LIVE", "1") != "0"
-RESOLVER = Resolver((production_sources() if _LIVE else []) + [MockSource()])
+_sources = production_sources() if _LIVE else []
+if STORE is not None:
+    _sources = [CachedSource(s, STORE) for s in _sources]
+RESOLVER = Resolver(_sources + [MockSource()])
 
 
 class AnalyzeRequest(BaseModel):
@@ -56,4 +75,24 @@ def analyze_location(req: AnalyzeRequest):
                             detail=f"Okänd vertikal: {req.vertical}")
     loc = Location(lat=req.lat, lon=req.lon, address=req.address,
                    radius_minutes=req.radius_minutes)
-    return analyze(loc, req.vertical, resolver=RESOLVER).to_dict()
+    report = analyze(loc, req.vertical, resolver=RESOLVER).to_dict()
+    if STORE is not None:
+        report["report_id"] = STORE.save_report(report, created_at=time.time())
+    return report
+
+
+@app.get("/v1/reports")
+def list_reports(limit: int = 20):
+    if STORE is None:
+        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+    return STORE.list_reports(min(max(limit, 1), 200))
+
+
+@app.get("/v1/reports/{report_id}")
+def get_report(report_id: str):
+    if STORE is None:
+        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+    doc = STORE.get_report(report_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Okänt rapport-id.")
+    return doc
