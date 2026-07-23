@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+from api.health import build_health, source_status
 from api.security import AuthError, Gate
 
 from engine.datasources.adapters import production_sources
@@ -72,10 +73,26 @@ async def security_middleware(request: Request, call_next):
 
 
 @app.get("/metrics")
-def metrics():
+def metrics(format: str = "json"):
+    kallor = source_status(RESOLVER)
+    if format == "prometheus":
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(GATE.metrics.to_prometheus(kallor))
     snap = GATE.metrics.snapshot()
     snap["rate_limit_per_min"] = GATE.limiter.capacity
+    snap["kallor"] = kallor
     return snap
+
+
+@app.get("/v1/audit")
+def audit(limit: int = 100):
+    return GATE.audit.tail(limit)
+
+
+@app.get("/v1/agent-manifest")
+def agent_manifest():
+    from api.agent_manifest import AGENT_MANIFEST
+    return AGENT_MANIFEST
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 # I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)
@@ -109,7 +126,7 @@ class AnalyzeRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return build_health(RESOLVER, STORE)
 
 
 @app.get("/v1/verticals")

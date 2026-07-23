@@ -41,6 +41,7 @@ _MIN_ROLE = {
     ("GET", "/v1/profiles"): "analyst",
     ("GET", "/v1/reports"): "analyst",
     ("GET", "/metrics"): "admin",
+    ("GET", "/v1/audit"): "admin",
 }
 
 
@@ -150,6 +151,27 @@ class Metrics:
                     "requests_by_path": dict(sorted(self.by_path.items())),
                     "rate_limit_per_min": None}
 
+    def to_prometheus(self, sources: list[dict] | None = None) -> str:
+        """Prometheus text-exposition av samma data (?format=prometheus)."""
+        s = self.snapshot()
+        lines = [
+            "# TYPE landvex_uptime_seconds gauge",
+            f"landvex_uptime_seconds {s['uptime_s']}",
+            "# TYPE landvex_requests_total counter",
+            f"landvex_requests_total {s['requests_total']}",
+            "# TYPE landvex_errors_5xx_total counter",
+            f"landvex_errors_5xx_total {s['errors_5xx_total']}",
+        ]
+        for q, key in (("0.5", "latency_ms_p50"), ("0.95", "latency_ms_p95")):
+            if s[key] is not None:
+                lines.append(f'landvex_latency_ms{{quantile="{q}"}} {s[key]}')
+        for path, n in s["requests_by_path"].items():
+            lines.append(f'landvex_requests_by_path_total{{path="{path}"}} {n}')
+        for k in sources or []:
+            up = 1 if k["status"] == "ok" else 0
+            lines.append(f'landvex_source_up{{source="{k["source"]}"}} {up}')
+        return "\n".join(lines) + "\n"
+
 
 class AuditLog:
     """Revisionslogg som JSON-rader. Requestlogg går till stdout."""
@@ -166,6 +188,20 @@ class AuditLog:
         if self.path:
             with self._lock, open(self.path, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
+
+    def tail(self, limit: int = 100) -> list[dict]:
+        """Senaste händelserna (för GET /v1/audit, kräver admin)."""
+        if not self.path or not os.path.exists(self.path):
+            return []
+        with self._lock, open(self.path, encoding="utf-8") as f:
+            rader = f.readlines()[-max(1, min(limit, 1000)):]
+        out = []
+        for r in rader:
+            try:
+                out.append(json.loads(r))
+            except json.JSONDecodeError:
+                continue
+        return out
 
 
 class Gate:

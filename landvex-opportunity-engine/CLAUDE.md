@@ -186,6 +186,13 @@ OIDC.
   ett företag som servar laddboxar?", "Hur ser servicebehovet ut i
   Umeå?". Verkliga installationsregister (F-gas, elnätsanslutningar,
   besiktningar) är adapterkandidater i samma Resolver-mönster.
+- **AWS-paketering & agent-readiness (v0.13):** Lambda-ingång
+  (`api/lambda_handler.py`, Mangum), `Dockerfile` med healthcheck,
+  `GET /v1/catalog` (självbeskrivning), `GET /v1/agent-manifest`
+  (motorerna som verktyg med JSON Schema för AI-agenter),
+  `/health` med motorversion + källstatus (felpausade adaptrar =
+  degraderad), `/metrics?format=prometheus`, `GET /v1/audit`
+  (admin). README.md är överlämningsdokumentet till AWS-/dev-teamet.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -204,6 +211,7 @@ python3 -m tests.test_security     # auth/RBAC/rate limit/audit (6 st)
 python3 -m tests.test_gaps_plan    # obalanser + etableringsplan (7 st)
 python3 -m tests.test_segments     # målgruppsmotorn (4 st)
 python3 -m tests.test_installed_base  # installerad bas/service (5 st)
+python3 -m tests.test_platform     # hälsa/metrics/audit/manifest (6 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000

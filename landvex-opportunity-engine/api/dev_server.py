@@ -54,6 +54,7 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               national_map, occupation_catalog,
                               simulate as wf_simulate)
 
+from api.health import build_health, source_status
 from api.security import AuthError, Gate
 
 GATE = Gate()
@@ -113,9 +114,25 @@ class Handler(BaseHTTPRequestHandler):
     def _route_get(self):
         parsed = urlparse(self.path)
         if parsed.path == "/metrics":
+            kallor = source_status(RESOLVER)
+            if parse_qs(parsed.query).get("format", [""])[0] == "prometheus":
+                body = GATE.metrics.to_prometheus(kallor).encode("utf-8")
+                self._status = 200
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                return self.wfile.write(body)
             snap = GATE.metrics.snapshot()
             snap["rate_limit_per_min"] = GATE.limiter.capacity
+            snap["kallor"] = kallor
             return self._send(200, snap)
+        if parsed.path == "/v1/audit":
+            limit = int(parse_qs(parsed.query).get("limit", ["100"])[0])
+            return self._send(200, GATE.audit.tail(limit))
+        if parsed.path == "/v1/agent-manifest":
+            from api.agent_manifest import AGENT_MANIFEST
+            return self._send(200, AGENT_MANIFEST)
         if parsed.path in ("/", "/index.html"):
             self._status = 200
             body = _FRONTEND.read_bytes()
@@ -125,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(body)
         if parsed.path == "/health":
-            return self._send(200, {"status": "ok"})
+            return self._send(200, build_health(RESOLVER, STORE))
         if parsed.path == "/v1/verticals":
             return self._send(200, [{"id": v.id, "label_sv": v.label_sv}
                                     for v in VERTICALS.values()])
