@@ -66,6 +66,13 @@ CREATE TABLE IF NOT EXISTS extras_cache (
     stored_at REAL NOT NULL,
     PRIMARY KEY (source, loc_key)
 );
+
+CREATE TABLE IF NOT EXISTS usage_meter (
+    tenant TEXT NOT NULL,
+    month  TEXT NOT NULL,
+    n      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant, month)
+);
 """
 
 
@@ -202,6 +209,23 @@ class SqliteStore(Store):
                 "INSERT OR REPLACE INTO extras_cache VALUES (?,?,?,?)",
                 (source, loc_key, json.dumps(extras, ensure_ascii=False),
                  stored_at))
+
+    def bump_usage(self, tenant: str, month: str, quota: int) -> bool:
+        """Atomiskt: släpp igenom och räkna upp om under kvot, annars
+        neka utan att räkna upp. True = tillåtet, False = kvot nådd.
+        Persistent över omstarter (till skillnad från in-memory)."""
+        with self._lock, self._conn:
+            row = self._conn.execute(
+                "SELECT n FROM usage_meter WHERE tenant = ? AND month = ?",
+                (tenant, month)).fetchone()
+            n = row[0] if row else 0
+            if n >= quota:
+                return False
+            self._conn.execute(
+                "INSERT INTO usage_meter (tenant, month, n) VALUES (?,?,1) "
+                "ON CONFLICT(tenant, month) DO UPDATE SET n = n + 1",
+                (tenant, month))
+            return True
 
     def close(self) -> None:
         with self._lock:

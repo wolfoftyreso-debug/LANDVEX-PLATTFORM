@@ -138,6 +138,67 @@ def test_cached_scb_end_to_end():
     assert r2.to_dict() == r1.to_dict()                # determinism
 
 
+def test_persistent_monthly_quota_survives_restart():
+    """Kvoten lagras i DB och minns förbrukningen efter omstart."""
+    import os
+    import tempfile
+    from api.security import AuthError, MonthlyQuota
+    db = os.path.join(tempfile.mkdtemp(), "quota.db")
+    clock = lambda: 1_750_000_000.0
+    store = SqliteStore(db)
+    q = MonthlyQuota(clock=clock, store=store)
+    n = 0
+    try:
+        for _ in range(10):
+            q.check("acme", 3)
+            n += 1
+    except AuthError:
+        pass
+    assert n == 3                              # tak 3 håller
+    store.close()
+    # "Omstart": nytt lager mot samma fil minns räkningen.
+    store2 = SqliteStore(db)
+    q2 = MonthlyQuota(clock=clock, store=store2)
+    blocked = False
+    try:
+        q2.check("acme", 3)
+    except AuthError as e:
+        blocked = True
+        assert e.status == 429
+    assert blocked                             # kvoten kvarstår
+    q2.check("beta", 3)                        # annan tenant opåverkad
+    store2.close()
+
+
+def test_quota_bump_is_atomic_under_threads():
+    import os
+    import tempfile
+    import threading
+    from api.security import AuthError, MonthlyQuota
+    db = os.path.join(tempfile.mkdtemp(), "q2.db")
+    store = SqliteStore(db)
+    q = MonthlyQuota(clock=lambda: 1_750_000_000.0, store=store)
+    ok = {"n": 0}
+    lock = threading.Lock()
+
+    def burn():
+        for _ in range(30):
+            try:
+                q.check("race", 50)
+                with lock:
+                    ok["n"] += 1
+            except AuthError:
+                return
+
+    threads = [threading.Thread(target=burn) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert ok["n"] <= 50, f"kvotöverskott: {ok['n']} (tak 50)"
+    store.close()
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -377,24 +377,36 @@ class MonthlyQuota:
     nollställs vid omstart; persistent metering är en dokumenterad
     uppföljning. Klockan är injicerbar för deterministiska tester."""
 
-    def __init__(self, clock=None):
+    def __init__(self, clock=None, store=None):
         self._clock = clock or time.time
+        self._store = store            # persistent räkning om lagret stöder
         self._used: dict[tuple[str, str], int] = {}
         self._lock = threading.Lock()
+
+    def _deny(self, quota: int) -> None:
+        raise AuthError(429, f"Monthly quota reached ({quota} calls/"
+                             f"month on this plan) – resets next "
+                             f"month, or upgrade (see /v1/plans).")
 
     def check(self, tenant: str, quota: int | None) -> None:
         if quota is None:
             return
         month = time.strftime("%Y-%m", time.gmtime(self._clock()))
+        # Persistent metering: lagret räknar atomiskt och överlever
+        # omstarter. Faller tillbaka på in-memory om ej stött/ej satt.
+        if self._store is not None:
+            allowed = self._store.bump_usage(tenant, month, quota)
+            if allowed is not None:
+                if not allowed:
+                    self._deny(quota)
+                return
         key = (tenant, month)
         # Check-and-increment måste vara atomiskt: annars kan två samtidiga
         # anrop båda läsa n=quota-1 och båda släppas igenom (kvotöverskott).
         with self._lock:
             n = self._used.get(key, 0)
             if n >= quota:
-                raise AuthError(429, f"Monthly quota reached ({quota} calls/"
-                                     f"month on this plan) – resets next "
-                                     f"month, or upgrade (see /v1/plans).")
+                self._deny(quota)
             self._used[key] = n + 1
 
 
@@ -404,12 +416,14 @@ class Gate:
     def __init__(self, auth: ApiAuth | None = None,
                  limiter: RateLimiter | None = None,
                  metrics: Metrics | None = None,
-                 audit: AuditLog | None = None):
+                 audit: AuditLog | None = None,
+                 store=None):
         self.auth = auth or ApiAuth()
         self.limiter = limiter or RateLimiter()
         self.metrics = metrics or Metrics()
         self.audit = audit or AuditLog()
-        self.quota = MonthlyQuota()
+        # Persistent kvotmätning när ett lager finns; annars in-memory.
+        self.quota = MonthlyQuota(store=store)
 
     def enter(self, api_key: str | None, method: str, path: str) -> tuple[Principal, str]:
         principal = self.auth.authorize(api_key, method, path)

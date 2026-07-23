@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS extras_cache (
     stored_at DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (source, loc_key)
 );
+
+CREATE TABLE IF NOT EXISTS usage_meter (
+    tenant TEXT NOT NULL,
+    month  TEXT NOT NULL,
+    n      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant, month)
+);
 """
 
 
@@ -184,6 +191,18 @@ class PostgresStore(Store):
                 "payload = EXCLUDED.payload, stored_at = EXCLUDED.stored_at",
                 (source, loc_key, json.dumps(extras, ensure_ascii=False),
                  stored_at))
+
+    def bump_usage(self, tenant: str, month: str, quota: int) -> bool:
+        """Atomisk villkorad upsert: räkna upp endast om under kvot.
+        RETURNING ger en rad ⇒ tillåtet; tom ⇒ kvot nådd. DB:n
+        serialiserar samtidiga anrop."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO usage_meter (tenant, month, n) VALUES (%s,%s,1) "
+                "ON CONFLICT (tenant, month) DO UPDATE SET n = usage_meter.n "
+                "+ 1 WHERE usage_meter.n < %s RETURNING n",
+                (tenant, month, quota))
+            return cur.fetchone() is not None
 
     def close(self) -> None:
         self._conn.close()

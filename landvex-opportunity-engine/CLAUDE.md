@@ -321,6 +321,20 @@ OIDC.
   (4) Ask-svar berikas med AAMOS cognition-not när AAMOS_CORE_URL
   är satt (API-lagret, aldrig kärnan, aldrig blockerande).
   Vision/Reality/RALE medvetet utelämnade tills scheman finns.
+- **Produktionshårdning efter red-team (v0.24):** (1) Kontraktstest
+  `tests/test_contract.py` läser båda API-lagrens källkod statiskt och
+  låser att FastAPI och stdlib-servern exponerar SAMMA endpoint-yta +
+  att varje katalog-/manifest-endpoint finns i båda (fångar drift
+  mellan servrarna). (2) Persistent månadskvot: `usage_meter`-tabell i
+  SqliteStore/PostgresStore + `bump_usage` (atomisk, DB-serialiserad);
+  MonthlyQuota tar ett lager via Gate och överlever omstarter, faller
+  ärligt tillbaka på in-memory om lagret saknas. (3) Skyddsnät i
+  dev-serverns `_gated`: ett oväntat undantag läcker aldrig stacktrace
+  eller lämnar klienten utan svar – loggas strukturerat med request_id
+  och ger ren 500 med samma id. Indata-fel (KeyError/ValueError/Type/
+  JSON) mappas fortsatt till 422. 18:e/19:e testsviterna (redteam,
+  contract) i CI. Tidigare red-team-fynd (kvot-race, enkeltrådad
+  server) fixade i samma spår.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

@@ -34,7 +34,7 @@ jobs:
                    test_markets test_security test_gaps_plan \
                    test_segments test_installed_base test_platform \
                    test_indices test_licensing test_aamos \
-                   test_redteam; do
+                   test_redteam test_contract; do
             echo "── tests.$t"
             python -m tests.$t
           done

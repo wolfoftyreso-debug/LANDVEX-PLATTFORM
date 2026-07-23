@@ -51,7 +51,6 @@ from engine.workforce import (forecast as wf_forecast, global_map,
 
 app = FastAPI(title="LANDVEX Opportunity Engine", version="0.9.0")
 
-GATE = Gate()
 _OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json",
                "/v1/plans")
 
@@ -116,6 +115,9 @@ elif _DB.lower() not in ("off", "0", ""):
     STORE = SqliteStore(_DB)
 else:
     STORE = None
+
+# Gate delar lagret så månadskvoten överlever omstarter (om DB på).
+GATE = Gate(store=STORE)
 
 # Verkliga källor först (cachade med TTL per källa om persistens finns),
 # mock som fallback per signal. LANDVEX_LIVE=0 stänger av live-källor.

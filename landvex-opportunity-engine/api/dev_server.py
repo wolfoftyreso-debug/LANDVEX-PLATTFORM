@@ -26,7 +26,9 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -65,7 +67,6 @@ from integrations.aamos import (AamosClient, AamosUnavailable,
                                 cognition_brief_safe,
                                 platform_status, watch)
 
-GATE = Gate()
 AAMOS = AamosClient()
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
@@ -73,6 +74,9 @@ _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
 STORE = SqliteStore(_DB) if _DB.lower() not in ("off", "0", "") else None
+
+# Gate delar lagret så månadskvoten överlever omstarter (om DB på).
+GATE = Gate(store=STORE)
 
 # Samma källkedja som produktions-API:t; LANDVEX_LIVE=0 → endast mock.
 _LIVE = os.environ.get("LANDVEX_LIVE", "1") != "0"
@@ -115,6 +119,16 @@ class Handler(BaseHTTPRequestHandler):
             route()
         except AuthError as e:
             self._send(e.status, {"error": e.message_en})
+        except Exception:
+            # Sista skyddsnät: en oväntad bugg får aldrig läcka en
+            # stacktrace eller lämna klienten utan svar. Logga med
+            # request_id för korrelation, returnera ren 500.
+            rid = self._request_id or "-"
+            traceback.print_exc(file=sys.stderr)
+            print(f'{{"level":"error","request_id":"{rid}",'
+                  f'"path":"{urlparse(path).path}"}}', file=sys.stderr,
+                  flush=True)
+            self._send(500, {"error": "Internal error.", "request_id": rid})
         finally:
             GATE.exit(principal, self._request_id or "-", method, path,
                       self._status, (time.monotonic() - t0) * 1000)

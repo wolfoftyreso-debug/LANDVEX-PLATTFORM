@@ -66,5 +66,11 @@ class Store(ABC):
     def put_cached_extras(self, source: str, loc_key: str,
                           extras: dict[str, Any], stored_at: float) -> None: ...
 
+    def bump_usage(self, tenant: str, month: str, quota: int):
+        """Persistent kvoträkning. Returnerar True (tillåtet) / False
+        (kvot nådd), eller None om lagret inte stöder det – då faller
+        anroparen tillbaka på in-memory-räkning. Valfritt att överskugga."""
+        return None
+
     def close(self) -> None:  # valfritt att överskugga
         pass
