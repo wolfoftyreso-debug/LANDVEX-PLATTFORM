@@ -128,8 +128,16 @@
     <div class="status" id="status">Bygg din profil och klicka på Analysera Sverige.</div>
   </aside>
 
-  <main class="karta">
-    <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Värmekarta Sverige"></svg>
+  <main class="karta" id="kartyta">
+    <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Värmekarta Sverige">
+      <defs>
+        <radialGradient id="glodGron"><stop offset="0%" stop-color="#3ecf8e" stop-opacity=".5"/><stop offset="100%" stop-color="#3ecf8e" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodGul"><stop offset="0%" stop-color="#f2c14e" stop-opacity=".5"/><stop offset="100%" stop-color="#f2c14e" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodRod"><stop offset="0%" stop-color="#e5636c" stop-opacity=".5"/><stop offset="100%" stop-color="#e5636c" stop-opacity="0"/></radialGradient>
+      </defs>
+      <path id="kontur" fill="#141d30" stroke="#2a3a5c" stroke-width="1.2" d=""/>
+      <g id="glod"></g><g id="prickar"></g>
+    </svg>
     <div class="legend" id="legendEtab">
       <div><i style="background:var(--gron)"></i>Score ≥ 70 · starka möjligheter</div>
       <div><i style="background:var(--gul)"></i>45–69 · normalläge</div>
@@ -158,7 +166,83 @@ const W = 560, H = 1000;
 const px = lon => (lon - BOX.lonMin) / (BOX.lonMax - BOX.lonMin) * (W - 60) + 30;
 const py = lat => (BOX.latMax - lat) / (BOX.latMax - BOX.latMin) * (H - 60) + 30;
 const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)" };
+const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)", rod: "url(#glodRod)" };
 const $ = id => document.getElementById(id);
+
+// Förenklad Sverigekontur (lat,lon) – illustrativ, inte kartografisk.
+const KONTUR = [
+  [55.35, 13.0], [55.55, 14.2], [56.0, 14.7], [56.15, 15.6], [56.65, 16.4],
+  [57.3, 16.5], [57.75, 16.7], [58.6, 16.9], [58.75, 17.4], [59.25, 18.3],
+  [59.55, 19.1], [60.3, 18.5], [60.7, 17.3], [61.6, 17.2], [62.4, 17.5],
+  [63.3, 19.0], [63.8, 20.5], [64.8, 21.3], [65.6, 22.4], [65.85, 24.1],
+  [66.6, 23.9], [67.45, 23.5], [68.4, 22.6], [69.05, 20.6], [68.55, 18.1],
+  [68.15, 17.9], [67.5, 16.1], [66.1, 15.4], [65.1, 14.5], [64.05, 13.9],
+  [63.55, 12.2], [61.9, 12.2], [61.0, 12.85], [60.15, 12.5], [59.65, 11.8],
+  [59.1, 11.2], [58.7, 11.2], [58.05, 11.5], [57.65, 11.85], [57.0, 12.3],
+  [56.35, 12.6], [56.05, 12.7], [55.55, 12.9], [55.35, 13.0],
+];
+
+// Zoom & panorering via viewBox.
+let vb = { x: 0, y: 0, w: W, h: H };
+function applyVB() {
+  $("karta").setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  const scale = vb.w / W;
+  document.querySelectorAll(".prick").forEach(c =>
+    c.setAttribute("r", Math.max(2.2, +c.dataset.r * Math.pow(scale, 0.7))));
+  document.querySelectorAll(".glodc").forEach(c =>
+    c.setAttribute("r", Math.max(6, +c.dataset.r * Math.pow(scale, 0.7))));
+}
+function initKarta() {
+  $("kontur").setAttribute("d",
+    "M" + KONTUR.map(([la, lo]) => `${px(lo).toFixed(1)},${py(la).toFixed(1)}`)
+                .join(" L") + " Z");
+  const svg = $("karta");
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    const f = e.deltaY < 0 ? 0.8 : 1.25;
+    const nw = Math.min(W, Math.max(70, vb.w * f));
+    const rect = svg.getBoundingClientRect();
+    const mx = vb.x + (e.clientX - rect.left) / rect.width * vb.w;
+    const my = vb.y + (e.clientY - rect.top) / rect.height * vb.h;
+    vb = { x: mx - (mx - vb.x) * nw / vb.w, y: my - (my - vb.y) * nw / vb.w * (H / W) * (W / H),
+           w: nw, h: nw * H / W };
+    applyVB();
+  }, { passive: false });
+  let drag = null;
+  svg.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; });
+  svg.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const rect = svg.getBoundingClientRect();
+    vb.x -= (e.clientX - drag.x) / rect.width * vb.w;
+    vb.y -= (e.clientY - drag.y) / rect.height * vb.h;
+    drag = { x: e.clientX, y: e.clientY };
+    applyVB();
+  });
+  svg.addEventListener("pointerup", () => drag = null);
+  svg.addEventListener("pointerleave", () => drag = null);
+  svg.addEventListener("dblclick", () => { vb = { x: 0, y: 0, w: W, h: H }; applyVB(); });
+}
+
+function tomKarta() { $("glod").innerHTML = ""; $("prickar").innerHTML = ""; }
+
+function laggPunkt(lat, lon, band, r, info, kommunKod, onClick) {
+  const NS = "http://www.w3.org/2000/svg";
+  const g = document.createElementNS(NS, "circle");
+  g.setAttribute("cx", px(lon)); g.setAttribute("cy", py(lat));
+  g.setAttribute("r", r * 3.2); g.dataset.r = r * 3.2;
+  g.setAttribute("fill", GLOD[band]); g.setAttribute("class", "glodc");
+  g.style.pointerEvents = "none";
+  $("glod").appendChild(g);
+  const c = document.createElementNS(NS, "circle");
+  c.setAttribute("cx", px(lon)); c.setAttribute("cy", py(lat));
+  c.setAttribute("r", r); c.dataset.r = r;
+  c.setAttribute("fill", FARG[band]); c.setAttribute("class", "prick");
+  c.dataset.info = info; c.dataset.kommun = kommunKod;
+  c.addEventListener("mousemove", visaTooltip);
+  c.addEventListener("mouseleave", () => $("tooltip").style.display = "none");
+  c.addEventListener("click", onClick);
+  $("prickar").appendChild(c);
+}
 
 const FALT = [
   ["vertical_id", "Bransch"], ["budget_band", "Budget"],
@@ -217,21 +301,15 @@ function lasProfil() {
 }
 
 function ritaKarta(res) {
-  const svg = $("karta");
-  svg.innerHTML = "";
+  tomKarta();
+  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   const hotspotNycklar = new Set(res.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
   const r = res.level === "detaljerad" ? 4.5 : 7;
   for (const p of res.heatmap) {
-    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    c.setAttribute("cx", px(p.lon)); c.setAttribute("cy", py(p.lat));
-    c.setAttribute("r", hotspotNycklar.has(p.kommun_kod + ":" + p.punkt) ? r + 3 : r);
-    c.setAttribute("fill", FARG[p.band]); c.setAttribute("class", "prick");
-    c.dataset.info = `${p.kommun}${p.punkt !== "centrum" ? " · " + p.punkt : ""} — score ${p.score}`;
-    c.dataset.kommun = p.kommun_kod;
-    c.addEventListener("mousemove", visaTooltip);
-    c.addEventListener("mouseleave", () => $("tooltip").style.display = "none");
-    c.addEventListener("click", () => valjKommun(p.kommun_kod));
-    svg.appendChild(c);
+    laggPunkt(p.lat, p.lon, p.band,
+      hotspotNycklar.has(p.kommun_kod + ":" + p.punkt) ? r + 3 : r,
+      `${p.kommun}${p.punkt !== "centrum" ? " · " + p.punkt : ""} — score ${p.score}`,
+      p.kommun_kod, () => valjKommun(p.kommun_kod));
   }
 }
 
@@ -294,8 +372,28 @@ function ritaHotspots(res) {
         <p class="roi-notis">Förväntad ROI: ${esc(h.expected_roi.notis_sv)}</p>
         <h4>Nästa steg</h4>
         <div class="steg">${h.next_steps_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>
+        <h4>Riskprofil</h4>
+        <div class="sim"><button class="riskBtn">Visa riskprofil →</button></div>
+        <div class="riskUt"></div>
       </div>`;
     div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
+    div.querySelector(".riskBtn").onclick = async (e) => {
+      e.stopPropagation();
+      const ut = div.querySelector(".riskUt");
+      ut.innerHTML = "<p class='motiv'>Beräknar …</p>";
+      try {
+        const rp = await api("/v1/risk", {
+          lat: h.lat, lon: h.lon, address: h.lage_sv,
+          vertical: senasteScan.profile.vertical_id });
+        ut.innerHTML = `<p class="motiv"><b>${esc(rp.narrativ_sv)}</b></p>` +
+          rp.dimensioner.map(d => `<div class="driver">
+            <span>${esc(d.label_sv)}${d.atgard_sv ? " ⚠" : ""}</span>
+            <span class="${d.risk >= 60 ? "neg" : "pos"}">${Math.round(d.risk)} · ${esc(d.band)}</span>
+          </div>`).join("") +
+          rp.dimensioner.filter(d => d.atgard_sv).map(d =>
+            `<p class="roi-notis">⚠ ${esc(d.label_sv)}: ${esc(d.atgard_sv)}</p>`).join("");
+      } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
+    };
     wrap.appendChild(div);
   }
   $("caveats").innerHTML = res.caveats_sv
@@ -337,27 +435,22 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("undertitel").textContent = MODE === "etab"
     ? "Opportunity Engine · Analysera Sverige"
     : "Workforce Intelligence · Kompetensprognos";
-  $("karta").innerHTML = ""; $("hotspots").innerHTML =
+  tomKarta(); $("hotspots").innerHTML =
     "<p class='motiv'>Inga resultat ännu.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = MODE === "etab"
     ? "Bygg din profil och klicka på Analysera Sverige."
     : "Välj yrke och målår, klicka på Prognostisera Sverige.";
 });
 
+const KOMPBAND = { balans: "gron", okande_brist: "gul", kritisk_brist: "rod" };
+
 function ritaKompKarta(res) {
-  const svg = $("karta");
-  svg.innerHTML = "";
+  tomKarta();
+  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   for (const k of res.kommuner) {
-    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    c.setAttribute("cx", px(k.lon)); c.setAttribute("cy", py(k.lat));
-    c.setAttribute("r", 7);
-    c.setAttribute("fill", KOMPFARG[k.band]); c.setAttribute("class", "prick");
-    c.dataset.info = `${k.kommun} — brist ${k.brist} (${BANDTEXT[k.band].toLowerCase()})`;
-    c.dataset.kommun = k.kommun_kod;
-    c.addEventListener("mousemove", visaTooltip);
-    c.addEventListener("mouseleave", () => $("tooltip").style.display = "none");
-    c.addEventListener("click", () => visaKompKommun(k.kommun_kod, k.kommun));
-    svg.appendChild(c);
+    laggPunkt(k.lat, k.lon, KOMPBAND[k.band], 7,
+      `${k.kommun} — brist ${k.brist} (${BANDTEXT[k.band].toLowerCase()})`,
+      k.kommun_kod, () => visaKompKommun(k.kommun_kod, k.kommun));
   }
 }
 
@@ -454,6 +547,7 @@ $("prognostisera").onclick = async () => {
 };
 
 (async () => {
+  initKarta();
   try {
     OPTIONS = await api("/v1/profile-options");
     byggFormular();

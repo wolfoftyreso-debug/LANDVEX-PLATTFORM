@@ -24,12 +24,14 @@ from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
+from engine.compare import compare
+from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 from engine.workforce import (forecast as wf_forecast, national_map,
                               occupation_catalog, simulate as wf_simulate)
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.6.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.7.0")
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 # I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)
@@ -168,6 +170,37 @@ class SimulateRequest(BaseModel):
     occupation_id: str
     extra_places_per_year: float = Field(..., ge=0)
     target_year: int = 2035
+
+
+class RiskRequest(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    vertical: str
+    address: str = ""
+    radius_minutes: int = Field(10, ge=1, le=60)
+
+
+class CompareRequest(BaseModel):
+    vertical: str
+    locations: list[dict]
+
+
+@app.post("/v1/risk")
+def risk_profile(req: RiskRequest):
+    try:
+        return assess(Location(lat=req.lat, lon=req.lon, address=req.address,
+                               radius_minutes=req.radius_minutes),
+                      req.vertical, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/compare")
+def compare_locations(req: CompareRequest):
+    try:
+        return compare(req.locations, req.vertical, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/workforce/occupations")

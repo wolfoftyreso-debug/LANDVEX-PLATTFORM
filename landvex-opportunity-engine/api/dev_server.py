@@ -11,6 +11,8 @@ Samma endpoints som produktions-API:t:
     GET  /v1/reports?limit=20  ·  GET /v1/reports/<id>
     POST /v1/analyze   {"lat":..,"lon":..,"vertical":"frisor","radius_minutes":10}
     POST /v1/scan      {"profile":{...}} eller {"profile_id":"..."}
+    POST /v1/risk      {"lat":..,"lon":..,"vertical":"frisor"}
+    POST /v1/compare   {"vertical":"frisor","locations":[{...},{...}]}
     GET  /v1/workforce/occupations
     GET  /v1/workforce/map?occupation_id=elektriker&target_year=2035
     POST /v1/workforce/forecast  {"kommun_kod":"0180","target_year":2035}
@@ -36,6 +38,8 @@ from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
+from engine.compare import compare
+from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 from engine.workforce import (forecast as wf_forecast, national_map,
@@ -139,6 +143,16 @@ class Handler(BaseHTTPRequestHandler):
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
+            if self.path == "/v1/risk":
+                loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
+                               address=req.get("address", ""),
+                               radius_minutes=int(req.get("radius_minutes", 10)))
+                return self._send(200, assess(loc, req["vertical"],
+                                              resolver=RESOLVER))
+            if self.path == "/v1/compare":
+                return self._send(200, compare(req["locations"],
+                                               req["vertical"],
+                                               resolver=RESOLVER))
             if self.path == "/v1/workforce/forecast":
                 return self._send(200, wf_forecast(
                     req["kommun_kod"], int(req.get("target_year", 2035)),

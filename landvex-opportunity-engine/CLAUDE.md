@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.6 — Workforce Intelligence Engine
+## Nuläge: v0.7 — Risk Engine, jämförelser, interaktiv karta
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -90,6 +90,20 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   Etablering/Kompetens med prognoskarta, antaganden, drivkrafter och
   simulering. Ny signal `population_total` (SCB-adaptern levererar
   den på riktigt; mock som fallback).
+- **Risk Engine (v0.7):** `engine/risk.py` – tredje motorn. Fyra
+  datadrivna riskdimensioner (marknads-, efterfråge-, kostnads-,
+  utvecklingsrisk) + dataosäkerhet som egen dimension. Per dimension:
+  score, band, narrativ med största riskfaktor + källa, och
+  åtgärdsförslag vid risk ≥ 60. Transparent: dimensionsrisk =
+  100 × (1 − viktat normaliserat signalvärde). `POST /v1/risk`.
+- **Jämförelsemodul (v0.7):** `engine/compare.py` – 2–4 platser mot
+  varandra för samma vertikal: faktormatris med vinnare per faktor,
+  totalscore + riskband per plats, marginalmedveten rekommendation.
+  `POST /v1/compare`.
+- **Interaktiv karta (v0.7):** förenklad Sverigekontur (illustrativ),
+  glödande värmepunkter (radial-gradient), zoom mot muspekaren +
+  panorering + dubbelklick-återställning, punktstorlek skalar med
+  zoomnivå. Riskprofilen kan öppnas direkt i varje hotspotkort.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -101,6 +115,7 @@ python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
 python3 -m tests.test_storage      # persistens/cachetester (7 st)
 python3 -m tests.test_scan         # profil- och sveptester (11 st)
 python3 -m tests.test_workforce    # kompetensprognostester (6 st)
+python3 -m tests.test_risk_compare # risk- och jämförelsetester (7 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -178,6 +193,8 @@ engine/            kärnmotor (stdlib-only)
   profile.py       BusinessProfile + PROFILE_OPTIONS
   scan.py          Sverigesvepet: profil → hotspots med beslutskort
   workforce.py     kompetensprognoser, simulering, nationell bristkarta
+  risk.py          riskdimensioner med narrativ + åtgärdsförslag
+  compare.py       jämför 2–4 platser: faktormatris + rekommendation
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),
