@@ -380,18 +380,22 @@ class MonthlyQuota:
     def __init__(self, clock=None):
         self._clock = clock or time.time
         self._used: dict[tuple[str, str], int] = {}
+        self._lock = threading.Lock()
 
     def check(self, tenant: str, quota: int | None) -> None:
         if quota is None:
             return
         month = time.strftime("%Y-%m", time.gmtime(self._clock()))
         key = (tenant, month)
-        n = self._used.get(key, 0)
-        if n >= quota:
-            raise AuthError(429, f"Monthly quota reached ({quota} calls/"
-                                 f"month on this plan) – resets next "
-                                 f"month, or upgrade (see /v1/plans).")
-        self._used[key] = n + 1
+        # Check-and-increment måste vara atomiskt: annars kan två samtidiga
+        # anrop båda läsa n=quota-1 och båda släppas igenom (kvotöverskott).
+        with self._lock:
+            n = self._used.get(key, 0)
+            if n >= quota:
+                raise AuthError(429, f"Monthly quota reached ({quota} calls/"
+                                     f"month on this plan) – resets next "
+                                     f"month, or upgrade (see /v1/plans).")
+            self._used[key] = n + 1
 
 
 class Gate:

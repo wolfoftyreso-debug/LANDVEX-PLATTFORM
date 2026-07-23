@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -407,7 +407,13 @@ class Handler(BaseHTTPRequestHandler):
 def main(port: int | None = None) -> None:
     port = port or int(os.environ.get("LANDVEX_PORT", "8000"))
     print(f"Opportunity Engine dev server: http://localhost:{port}")
-    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    # Flertrådad + större accept-kö: tål burst-last utan att droppa
+    # anslutningar (red-team: 200 samtidiga anrop). Produktionsvägen är
+    # uvicorn/FastAPI, men denna server deployas också (systemd).
+    class _Server(ThreadingHTTPServer):
+        daemon_threads = True
+        request_queue_size = 256
+    _Server(("0.0.0.0", port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
