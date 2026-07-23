@@ -73,7 +73,7 @@ def test_agent_manifest_matches_catalog():
         assert schema["type"] == "object"
         for req in schema["required"]:
             assert req in schema["properties"], (t["name"], req)
-    assert "caveats" in AGENT_MANIFEST["instruktioner_sv"]
+    assert "caveats" in AGENT_MANIFEST["instruktioner_en"]
     assert json.dumps(AGENT_MANIFEST)                 # serialiserbart
 
 

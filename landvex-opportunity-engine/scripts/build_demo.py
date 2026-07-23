@@ -31,26 +31,26 @@ from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
                               occupation_catalog)
 
 FRAGOR = [
-    "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
-    "Vilka är de tre största affärsmöjligheterna i Göteborg?",
-    "Var i Europa är det störst brist på elektriker?",
-    "Var i världen är bristen på snickare störst?",
-    "Var är det bäst att starta ett VVS-företag i Tyskland?",
-    "Vilket land är bäst för en svensk snickare att flytta till?",
-    "Vilka yrkesgrupper saknas mest i Umeå de kommande fem åren?",
-    "Vilka yrkesgrupper saknas mest i Berlin?",
-    "Vilken amerikansk delstat behöver flest sjuksköterskor de kommande tio åren?",
-    "Var i Sverige är behovet av sjuksköterskor störst?",
-    "Var ska jag öppna café?",
-    "Hur riskabelt är det att starta gym i Solna?",
-    "Var finns störst obalans för bilverkstäder?",
-    "Gör en etableringsplan för bilverkstad i Skellefteå.",
-    "Var i Sverige finns flest djurägare?",
-    "Hur ser målgrupperna ut i Umeå?",
-    "Vilken region har flest värmepumpar som närmar sig utbytesålder?",
-    "Var är det bäst att starta ett företag som servar laddboxar?",
-    "Hur ser servicebehovet ut i Umeå?",
-    "Var kommer behovet av kyltekniker att öka de kommande fem åren?",
+    "What are the five biggest business opportunities in Örebro right now?",
+    "What are the three biggest business opportunities in Gothenburg?",
+    "Where in Europe is the shortage of electricians greatest?",
+    "Where in the world is the shortage of carpenters greatest?",
+    "Where is the best place to start a plumbing company in Germany?",
+    "Which country is best for a Swedish carpenter to move to?",
+    "Which occupations will be missing most in Umeå over the next five years?",
+    "Which occupations are missing most in Berlin?",
+    "Which US state will need the most nurses over the next ten years?",
+    "Where in Sweden is the need for nurses greatest?",
+    "Where should I open a café?",
+    "How risky is it to start a gym in Solna?",
+    "Where is the imbalance greatest for car repair shops?",
+    "Create an establishment plan for a car repair shop in Skellefteå.",
+    "Where in Sweden are there the most pet owners?",
+    "What do the target groups look like in Umeå?",
+    "Which region has the most heat pumps approaching replacement age?",
+    "Where is the best place to start a company servicing EV chargers?",
+    "What does the service demand look like in Umeå?",
+    "Where will the need for refrigeration technicians increase over the next five years?",
 ]
 # Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
 # data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
@@ -97,7 +97,7 @@ def build(out_path: str) -> None:
                 kod, market=market)
     # Följdfrågor i demon pekar alltid på bakade frågor.
     for q, svar in demo["ask"].items():
-        svar["forslag_sv"] = [f for f in FRAGOR if f != q][:3]
+        svar["forslag_en"] = [f for f in FRAGOR if f != q][:3]
 
     for market in DEMO_MARKETS:
         for vid in VERTICALS:
@@ -108,7 +108,7 @@ def build(out_path: str) -> None:
                 key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
                 if key not in demo["risk"]:
                     demo["risk"][key] = assess(
-                        Location(h["lat"], h["lon"], address=h["lage_sv"]), vid)
+                        Location(h["lat"], h["lon"], address=h["lage_en"]), vid)
                 demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
                     establishment_plan(h["kommun_kod"], vid, market=market)
         for occ in OCCUPATIONS:
@@ -138,7 +138,7 @@ def build(out_path: str) -> None:
   return data;
 }'''
     assert old_api in html, "api() hittades inte i frontend/index.html"
-    new_api = '''const DEMOFEL = "Den här kombinationen är inte förberäknad i demon – live-API:t (python3 -m api.dev_server) svarar på allt.";
+    new_api = '''const DEMOFEL = "This combination is not precomputed in the demo – the live API (python3 -m api.dev_server) answers everything.";
 function qp(path, key) { const m = path.match(new RegExp(key + "=([^&]*)")); return m ? m[1] : null; }
 async function api(path, body) {
   const D = window.DEMO;
@@ -149,15 +149,15 @@ async function api(path, body) {
   if (path === "/v1/ask") {
     const svar = D.ask[(body.question || "").trim()];
     if (svar) return svar;
-    return { intent: "hjalp", rader: [], caveats_sv: [],
-      svar_sv: "Demoläget har förberäknade svar för frågorna nedan – live-API:t tolkar fria frågor.",
-      forslag_sv: Object.keys(D.ask) };
+    return { intent: "hjalp", rader: [], caveats_en: [],
+      svar_en: "The demo has precomputed answers for the questions below – the live API interprets free-form questions.",
+      forslag_en: Object.keys(D.ask) };
   }
   if (path === "/v1/scan") {
     const r = D.scans[`${body.market || "se"}:${(body.profile || {}).vertical_id}`];
     if (!r) throw new Error(DEMOFEL);
     const kopia = JSON.parse(JSON.stringify(r));
-    kopia.caveats_sv.unshift("Demo: bransch och marknad styr det förberäknade svepet – övriga profilfält påverkar inte resultatet här.");
+    kopia.caveats_en.unshift("Demo: industry and market drive the precomputed sweep – the other profile fields do not affect this result.");
     return kopia;
   }
   if (path.startsWith("/v1/workforce/map")) {
@@ -216,7 +216,7 @@ async function api(path, body) {
     html = html.replace(
         '<input type="number" min="0" value="30" id="simN_${kod}">',
         '<input type="number" value="30" id="simN_${kod}" readonly '
-        'title="Demon simulerar 30 platser/år – live-läget tar valfritt antal">')
+        'title="The demo simulates 30 places/yr – the live system takes any number">')
     # Guidens platser-fråga är låst till det bakade värdet 30.
     assert 'data-guide="platser" min="0"' in html, \
         "guidens platser-fält hittades inte i frontend/index.html"
@@ -224,7 +224,7 @@ async function api(path, body) {
         '<input type="number" id="guideInput" data-guide="platser" min="0" ` +\n'
         '      `value="${nuv ? JSON.parse(nuv) : falt.standard}">',
         '<input type="number" id="guideInput" data-guide="platser" readonly '
-        'title="Demon simulerar 30 platser/år – live-läget tar valfritt antal" ` +\n'
+        'title="The demo simulates 30 places/yr – the live system takes any number" ` +\n'
         '      `value="30">')
     # Topplistorna är bakade med fem träffar – andra top-N erbjuds inte.
     assert '<select id="instTopN">' in html, \
@@ -237,8 +237,8 @@ async function api(path, body) {
                         "<title>LANDVEX · Opportunity Engine (demo)</title>")
     html = html.replace("</header>", """</header>
 <div style="background:rgba(91,141,239,.12);border-bottom:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 20px">
-  Statisk demo (förberäknade motorsvar, all data simulerad och märkt därefter).
-  Live-läge: <code style="color:var(--text)">python3 -m api.dev_server</code>
+  Static demo (precomputed engine responses; all data simulated and labeled as such).
+  Live mode: <code style="color:var(--text)">python3 -m api.dev_server</code>
 </div>""")
     payload = json.dumps(demo, ensure_ascii=False)
     html = html.replace('<script>\n"use strict";',

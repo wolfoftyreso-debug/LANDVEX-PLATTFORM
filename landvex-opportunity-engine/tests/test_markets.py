@@ -18,7 +18,7 @@ def test_markets_are_valid_data():
     assert sum(len(m.regions) for m in MARKETS.values()) >= 200
     codes = set()
     for m in MARKETS.values():
-        assert m.regions and m.currency and m.region_label_sv
+        assert m.regions and m.currency and m.region_label_en
         lat_min, lat_max, lon_min, lon_max = m.bbox
         for kod, namn, lat, lon in m.regions:
             assert kod not in codes, f"dublettkod {kod}"
@@ -74,7 +74,7 @@ def test_global_map_and_ranking():
     assert len(res["landsranking"]) == len(MARKET_GROUPS["eu"])
     pcts = [r["snitt_brist_pct"] for r in res["landsranking"]]
     assert pcts == sorted(pcts, reverse=True)
-    assert any("simulerad" in c for c in res["caveats_sv"])
+    assert any("simulated" in c for c in res["caveats_en"])
     try:
         global_map("elektriker", group="mars")
     except ValueError:
@@ -102,15 +102,15 @@ def test_ask_global_intents():
 def test_ask_global_answers():
     res = ask("Var i Europa är det störst brist på elektriker?")
     assert res["intent"] == "global_brist"
-    assert "(" in res["rader"][0]["label_sv"]        # "Stad (Land)"
+    assert "(" in res["rader"][0]["label_en"]        # "Stad (Land)"
     assert res["karta"]["bbox"] == [35.5, 71.0, -11.0, 32.0]
     res2 = ask("Vilket land är bäst för en svensk snickare att flytta till?")
     assert res2["intent"] == "land_ranking"
     assert len(res2["rader"]) == len(MARKETS)        # alla marknader rankade
-    assert "regelverk" in res2["svar_sv"]            # ärlighetsnot
+    assert "regulations" in res2["svar_en"]            # ärlighetsnot
     res3 = ask("Var är det bäst att starta ett VVS-företag i Tyskland?")
     assert res3["intent"] == "basta_lage_vertikal"
-    assert "Tyskland" in res3["svar_sv"]
+    assert "Germany" in res3["svar_en"]
 
 
 if __name__ == "__main__":

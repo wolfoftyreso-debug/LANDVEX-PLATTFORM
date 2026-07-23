@@ -20,19 +20,20 @@ def compare(locations: list[dict[str, Any]], vertical_id: str,
             resolver: Resolver | None = None) -> dict[str, Any]:
     """locations: [{lat, lon, address?, radius_minutes?}, ...] (2–4 st)."""
     if vertical_id not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vertical_id}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vertical_id}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
     if not 2 <= len(locations) <= 4:
-        raise ValueError("Jämförelsen kräver 2–4 platser.")
+        raise ValueError("Comparison requires 2–4 locations.")
 
     locs, reports, risks = [], [], []
     for i, d in enumerate(locations):
         try:
             loc = Location(lat=float(d["lat"]), lon=float(d["lon"]),
-                           address=str(d.get("address", f"Plats {i + 1}")),
+                           address=str(d.get("address", f"Location {i + 1}")),
                            radius_minutes=int(d.get("radius_minutes", 10)))
         except (KeyError, TypeError, ValueError):
-            raise ValueError(f"Plats {i + 1}: lat och lon krävs som tal.")
+            raise ValueError(f"Location {i + 1}: lat and lon are required "
+                             f"as numbers.")
         locs.append(loc)
         reports.append(analyze(loc, vertical_id, resolver=resolver))
         risks.append(assess(loc, vertical_id, resolver=resolver))
@@ -45,9 +46,9 @@ def compare(locations: list[dict[str, Any]], vertical_id: str,
         scores = [r.factors[fi].score for r in reports]
         best = max(range(len(scores)), key=lambda i: (scores[i], -i))
         matrix.append({
-            "factor_id": spec.id, "label_sv": spec.label_sv,
+            "factor_id": spec.id, "label_en": spec.label_en,
             "weight": spec.weight, "scores": scores, "vinnare_index": best,
-            "narrativ_sv": [r.factors[fi].narrative_sv for r in reports],
+            "narrativ_en": [r.factors[fi].narrative_en for r in reports],
         })
 
     totals = [r.opportunity_score for r in reports]
@@ -57,19 +58,19 @@ def compare(locations: list[dict[str, Any]], vertical_id: str,
     margin = totals[win] - totals[second]
 
     if margin >= 8:
-        rek = (f"{names[win]} är tydligt starkast "
-               f"({int(totals[win])} mot {int(totals[second])}).")
+        rek = (f"{names[win]} is clearly strongest "
+               f"({int(totals[win])} vs {int(totals[second])}).")
     elif margin >= 3:
-        rek = (f"{names[win]} leder knappt ({int(totals[win])} mot "
-               f"{int(totals[second])}) – väg in risk och hyresvillkor.")
+        rek = (f"{names[win]} leads narrowly ({int(totals[win])} vs "
+               f"{int(totals[second])}) – weigh in risk and lease terms.")
     else:
-        rek = (f"Jämnt lopp mellan {names[win]} och {names[second]} "
-               f"(±{int(margin)} poäng) – låt riskprofil, "
-               f"lokalkostnad och magkänsla avgöra.")
+        rek = (f"A close race between {names[win]} and {names[second]} "
+               f"(±{int(margin)} points) – let the risk profile, "
+               f"premises cost and gut feeling decide.")
 
     return {
         "vertical_id": vertical_id,
-        "vertical_label_sv": VERTICALS[vertical_id].label_sv,
+        "vertical_label_en": VERTICALS[vertical_id].label_en,
         "platser": [{
             "index": i, "address": names[i],
             "lat": locs[i].lat, "lon": locs[i].lon,
@@ -77,11 +78,11 @@ def compare(locations: list[dict[str, Any]], vertical_id: str,
             "risk_total": risks[i]["total_risk"],
             "risk_band": risks[i]["band"],
             "data_coverage": reports[i].data_coverage,
-            "insikter_sv": reports[i].insights_sv,
+            "insikter_en": reports[i].insights_en,
         } for i in range(len(locs))],
         "faktormatris": matrix,
         "vinnare_index": win,
         "marginal": round(margin, 0),
-        "rekommendation_sv": rek,
-        "caveats_sv": reports[win].caveats_sv,
+        "rekommendation_en": rek,
+        "caveats_en": reports[win].caveats_en,
     }

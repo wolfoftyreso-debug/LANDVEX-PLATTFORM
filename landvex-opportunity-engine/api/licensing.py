@@ -45,82 +45,82 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
 
 PLANS: dict[str, dict] = {
     "free": {
-        "label_sv": "Landvex Free",
-        "beskrivning_sv": "Fråga plattformen och se de fria kartlagren. "
-                          "Historisk bas – live kräver prenumeration.",
+        "label_en": "Landvex Free",
+        "beskrivning_en": "Ask the platform and view the free map layers. "
+                          "Historical base – live requires a subscription.",
         "pris_manad": {"SEK": 0, "EUR": 0, "USD": 0},
         "rate_limit_per_min": 60,
         "capabilities": ("core", "intelligence_map_free"),
-        "ingar_sv": ["Fråga Landvex (/v1/ask)",
-                     "Fria Intelligence Map-lager (historik)",
-                     "Marknads- och produktkataloger"],
+        "ingar_en": ["Ask Landvex (/v1/ask)",
+                     "Free Intelligence Map layers (historical)",
+                     "Market and product catalogs"],
     },
     "pro": {
-        "label_sv": "Landvex Pro",
-        "beskrivning_sv": "Alla beslutsmotorer och live-kartlager för "
-                          "en organisation.",
+        "label_en": "Landvex Pro",
+        "beskrivning_en": "All decision engines and live map layers for "
+                          "one organization.",
         "pris_manad": {"SEK": 4900, "EUR": 450, "USD": 490},
         "rate_limit_per_min": 600,
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live"),
-        "ingar_sv": ["Allt i Free",
-                     "Opportunity: svep, gap-analys, etableringsplaner, "
-                     "risk, jämförelser, målgrupper",
-                     "Workforce: prognoser, simulering, bristkartor",
-                     "Demand Intelligence: installerad bas & servicebehov",
-                     "Intelligence Map inkl. live-lager"],
+        "ingar_en": ["Everything in Free",
+                     "Opportunity: market sweeps, gap analysis, "
+                     "establishment plans, risk, comparisons, segments",
+                     "Workforce: forecasts, simulation, shortage maps",
+                     "Demand Intelligence: installed base & service needs",
+                     "Intelligence Map incl. live layers"],
     },
     "enterprise": {
-        "label_sv": "Landvex Enterprise",
-        "beskrivning_sv": "Partner-API, agentintegration, drift-/"
-                          "revisionsinsyn, tenant-isolering och SLA.",
+        "label_en": "Landvex Enterprise",
+        "beskrivning_en": "Partner API, agent integration, operations/"
+                          "audit visibility, tenant isolation and SLA.",
         "pris_manad": None,          # offert
         "rate_limit_per_min": 3000,
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "partner_api",
                          "platform_ops"),
-        "ingar_sv": ["Allt i Pro",
-                     "Partner-API + agent-manifest",
-                     "Metrics- och revisionsinsyn via API",
-                     "OIDC/SSO och tenant-isolering (AWS-fasen)",
-                     "SLA och dedikerad support"],
+        "ingar_en": ["Everything in Pro",
+                     "Partner API + agent manifest",
+                     "Metrics and audit visibility via API",
+                     "OIDC/SSO and tenant isolation (AWS phase)",
+                     "SLA and dedicated support"],
     },
 }
 
 # Produktmoduler som tillägg (t.ex. Free + enbart Workforce).
 ADDONS: dict[str, dict] = {
-    "opportunity": {"label_sv": "Opportunity Engine",
+    "opportunity": {"label_en": "Opportunity Engine",
                     "pris_manad": {"SEK": 1490, "EUR": 135, "USD": 149},
                     "capabilities": ("opportunity",)},
-    "workforce": {"label_sv": "Workforce Intelligence",
+    "workforce": {"label_en": "Workforce Intelligence",
                   "pris_manad": {"SEK": 1990, "EUR": 180, "USD": 199},
                   "capabilities": ("workforce",)},
-    "demand_intelligence": {"label_sv": "Demand Intelligence",
+    "demand_intelligence": {"label_en": "Demand Intelligence",
                             "pris_manad": {"SEK": 1990, "EUR": 180, "USD": 199},
                             "capabilities": ("demand_intelligence",)},
-    "intelligence_map": {"label_sv": "Intelligence Map Live",
+    "intelligence_map": {"label_en": "Intelligence Map Live",
                          "pris_manad": {"SEK": 1490, "EUR": 135, "USD": 149},
                          "capabilities": ("intelligence_map_live",)},
-    "partner_api": {"label_sv": "Partner-API & agenter",
+    "partner_api": {"label_en": "Partner API & Agents",
                     "pris_manad": {"SEK": 4900, "EUR": 450, "USD": 490},
                     "capabilities": ("partner_api",)},
 }
 
-PRISNOT_SV = ("Listpriser (prisexempel) per månad exkl. moms – "
-              "konfigureras per avtal, marknad och volym.")
+PRISNOT_EN = ("List prices (examples) per month excl. VAT – "
+              "configured per contract, market and volume.")
 
 
 def resolve_capabilities(plan: str, addons: tuple[str, ...] = ()) -> frozenset:
     if plan not in PLANS:
-        raise ValueError(f"Okänd plan: {plan}. "
-                         f"Tillgängliga: {', '.join(PLANS)}")
+        raise ValueError(f"Unknown plan: {plan}. "
+                         f"Available: {', '.join(PLANS)}")
     caps = set(PLANS[plan]["capabilities"])
     for a in addons:
         if a not in ADDONS:
-            raise ValueError(f"Okänt tillägg: {a}. "
-                             f"Tillgängliga: {', '.join(ADDONS)}")
+            raise ValueError(f"Unknown add-on: {a}. "
+                             f"Available: {', '.join(ADDONS)}")
         caps.update(ADDONS[a]["capabilities"])
     return frozenset(caps)
 
@@ -135,15 +135,15 @@ def required_capability(path: str) -> str | None:
     return best[1] if best else None
 
 
-def upgrade_hint_sv(capability: str) -> str:
+def upgrade_hint_en(capability: str) -> str:
     """Vilka paket låser upp kapabiliteten – för 403-svaret."""
-    plans = [p["label_sv"] for p in PLANS.values()
+    plans = [p["label_en"] for p in PLANS.values()
              if capability in p["capabilities"]]
-    addons = [a["label_sv"] for a in ADDONS.values()
+    addons = [a["label_en"] for a in ADDONS.values()
               if capability in a["capabilities"]]
-    delar = plans + [f"tillägget {a}" for a in addons]
-    return (f"Kräver {' eller '.join(delar)} – se /v1/plans."
-            if delar else "Kapabiliteten ingår inte i något paket ännu.")
+    delar = plans + [f"the {a} add-on" for a in addons]
+    return (f"Requires {' or '.join(delar)} – see /v1/plans."
+            if delar else "This capability is not part of any package yet.")
 
 
 def plans_catalog() -> dict:
@@ -155,4 +155,4 @@ def plans_catalog() -> dict:
                                        if k != "capabilities"},
                          "capabilities": list(a["capabilities"])}
                         for aid, a in ADDONS.items()],
-            "prisnot_sv": PRISNOT_SV}
+            "prisnot_en": PRISNOT_EN}

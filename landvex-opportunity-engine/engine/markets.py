@@ -24,9 +24,9 @@ from .datasources.scb import KOMMUNER
 @dataclass(frozen=True)
 class Market:
     id: str
-    label_sv: str
+    label_en: str
     currency: str
-    region_label_sv: str
+    region_label_en: str
     bbox: tuple            # (lat_min, lat_max, lon_min, lon_max)
     regions: tuple         # ((kod, namn, lat, lon), ...)
     calibrated: bool = False   # ekonomischabloner kalibrerade för marknaden?
@@ -37,10 +37,10 @@ def _r(*rows):
 
 
 MARKETS: dict[str, Market] = {m.id: m for m in [
-    Market("se", "Sverige", "SEK", "kommun",
+    Market("se", "Sweden", "SEK", "municipality",
            (55.0, 69.5, 10.5, 24.5), tuple(KOMMUNER), calibrated=True),
 
-    Market("us", "USA", "USD", "storstadsregion",
+    Market("us", "USA", "USD", "metro region",
            (24.0, 50.0, -125.0, -66.0), _r(
         ("us-newyork", "New York", 40.71, -74.01),
         ("us-losangeles", "Los Angeles", 34.05, -118.24),
@@ -83,7 +83,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("us-oklahomacity", "Oklahoma City", 35.47, -97.52),
         ("us-neworleans", "New Orleans", 29.95, -90.07))),
 
-    Market("de", "Tyskland", "EUR", "storstadsregion",
+    Market("de", "Germany", "EUR", "metro region",
            (47.0, 55.2, 5.5, 15.5), _r(
         ("de-berlin", "Berlin", 52.52, 13.40),
         ("de-hamburg", "Hamburg", 53.55, 10.00),
@@ -110,7 +110,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("de-freiburg", "Freiburg", 47.99, 7.85),
         ("de-mainz", "Mainz", 50.00, 8.27))),
 
-    Market("fr", "Frankrike", "EUR", "storstadsregion",
+    Market("fr", "France", "EUR", "metro region",
            (41.0, 51.5, -5.5, 9.5), _r(
         ("fr-paris", "Paris", 48.86, 2.35),
         ("fr-marseille", "Marseille", 43.30, 5.37),
@@ -128,7 +128,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("fr-rouen", "Rouen", 49.44, 1.10),
         ("fr-dijon", "Dijon", 47.32, 5.04))),
 
-    Market("es", "Spanien", "EUR", "region",
+    Market("es", "Spain", "EUR", "region",
            (35.5, 44.0, -10.0, 4.5), _r(
         ("es-madrid", "Madrid", 40.42, -3.70),
         ("es-barcelona", "Barcelona", 41.39, 2.17),
@@ -145,7 +145,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("es-granada", "Granada", 37.18, -3.60),
         ("es-coruna", "A Coruña", 43.37, -8.40))),
 
-    Market("pl", "Polen", "PLN", "stad",
+    Market("pl", "Poland", "PLN", "city",
            (49.0, 55.0, 14.0, 24.5), _r(
         ("pl-warszawa", "Warszawa", 52.23, 21.01),
         ("pl-krakow", "Kraków", 50.06, 19.94),
@@ -160,7 +160,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("pl-bydgoszcz", "Bydgoszcz", 53.12, 18.00),
         ("pl-rzeszow", "Rzeszów", 50.04, 22.00))),
 
-    Market("it", "Italien", "EUR", "storstadsregion",
+    Market("it", "Italy", "EUR", "metro region",
            (36.5, 47.2, 6.5, 18.6), _r(
         ("it-rom", "Rom", 41.90, 12.50),
         ("it-milano", "Milano", 45.46, 9.19),
@@ -175,7 +175,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("it-palermo", "Palermo", 38.12, 13.36),
         ("it-catania", "Catania", 37.50, 15.09))),
 
-    Market("nl", "Nederländerna", "EUR", "stad",
+    Market("nl", "Netherlands", "EUR", "city",
            (50.7, 53.6, 3.3, 7.2), _r(
         ("nl-amsterdam", "Amsterdam", 52.37, 4.90),
         ("nl-rotterdam", "Rotterdam", 51.92, 4.48),
@@ -188,7 +188,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("nl-breda", "Breda", 51.59, 4.78),
         ("nl-nijmegen", "Nijmegen", 51.84, 5.85))),
 
-    Market("be", "Belgien", "EUR", "stad",
+    Market("be", "Belgium", "EUR", "city",
            (49.5, 51.5, 2.5, 6.4), _r(
         ("be-bryssel", "Bryssel", 50.85, 4.35),
         ("be-antwerpen", "Antwerpen", 51.22, 4.40),
@@ -199,7 +199,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("be-namur", "Namur", 50.47, 4.87),
         ("be-leuven", "Leuven", 50.88, 4.70))),
 
-    Market("at", "Österrike", "EUR", "stad",
+    Market("at", "Austria", "EUR", "city",
            (46.4, 49.0, 9.5, 17.2), _r(
         ("at-wien", "Wien", 48.21, 16.37),
         ("at-graz", "Graz", 47.07, 15.44),
@@ -209,7 +209,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("at-klagenfurt", "Klagenfurt", 46.62, 14.31),
         ("at-stpolten", "St. Pölten", 48.20, 15.62))),
 
-    Market("pt", "Portugal", "EUR", "stad",
+    Market("pt", "Portugal", "EUR", "city",
            (36.9, 42.2, -9.6, -6.2), _r(
         ("pt-lissabon", "Lissabon", 38.72, -9.14),
         ("pt-porto", "Porto", 41.15, -8.61),
@@ -219,7 +219,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("pt-aveiro", "Aveiro", 40.64, -8.65),
         ("pt-faro", "Faro", 37.02, -7.93))),
 
-    Market("dk", "Danmark", "DKK", "stad",
+    Market("dk", "Denmark", "DKK", "city",
            (54.5, 57.8, 8.0, 12.7), _r(
         ("dk-kopenhamn", "Köpenhamn", 55.68, 12.57),
         ("dk-arhus", "Århus", 56.16, 10.20),
@@ -228,7 +228,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("dk-esbjerg", "Esbjerg", 55.47, 8.45),
         ("dk-randers", "Randers", 56.46, 10.04))),
 
-    Market("fi", "Finland", "EUR", "stad",
+    Market("fi", "Finland", "EUR", "city",
            (59.8, 66.0, 21.0, 28.0), _r(
         ("fi-helsingfors", "Helsingfors", 60.17, 24.94),
         ("fi-esbo", "Esbo", 60.21, 24.66),
@@ -237,7 +237,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("fi-abo", "Åbo", 60.45, 22.27),
         ("fi-uleaborg", "Uleåborg", 65.01, 25.47))),
 
-    Market("no", "Norge", "NOK", "stad",
+    Market("no", "Norway", "NOK", "city",
            (57.9, 70.0, 4.8, 20.0), _r(
         ("no-oslo", "Oslo", 59.91, 10.75),
         ("no-bergen", "Bergen", 60.39, 5.32),
@@ -246,7 +246,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("no-drammen", "Drammen", 59.74, 10.20),
         ("no-tromso", "Tromsø", 69.65, 18.96))),
 
-    Market("ie", "Irland", "EUR", "stad",
+    Market("ie", "Ireland", "EUR", "city",
            (51.4, 55.4, -10.5, -5.9), _r(
         ("ie-dublin", "Dublin", 53.35, -6.26),
         ("ie-cork", "Cork", 51.90, -8.47),
@@ -254,7 +254,7 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("ie-galway", "Galway", 53.27, -9.05),
         ("ie-waterford", "Waterford", 52.26, -7.11))),
 
-    Market("cz", "Tjeckien", "CZK", "stad",
+    Market("cz", "Czechia", "CZK", "city",
            (48.5, 51.1, 12.0, 18.9), _r(
         ("cz-prag", "Prag", 50.08, 14.44),
         ("cz-brno", "Brno", 49.20, 16.61),
@@ -272,14 +272,14 @@ MARKET_GROUPS: dict[str, tuple[str, ...]] = {
 }
 GROUP_BBOX = {"eu": (35.5, 71.0, -11.0, 32.0),
               "varlden": (23.0, 71.0, -126.0, 32.0)}
-GROUP_LABEL_SV = {"eu": "Europa", "varlden": "världen"}
+GROUP_LABEL_SV = {"eu": "Europe", "varlden": "the world"}
 
 
 def get_market(market_id: str) -> Market:
     m = MARKETS.get(market_id)
     if m is None:
-        raise ValueError(f"Okänd marknad: {market_id}. "
-                         f"Tillgängliga: {', '.join(sorted(MARKETS))}")
+        raise ValueError(f"Unknown market: {market_id}. "
+                         f"Available: {', '.join(sorted(MARKETS))}")
     return m
 
 
@@ -288,9 +288,14 @@ def get_region(market_id: str, region_kod: str) -> tuple:
     for r in m.regions:
         if r[0] == region_kod:
             return r
-    raise ValueError(f"Okänd region: {region_kod} i {m.label_sv}. "
-                     f"Marknaden täcker {len(m.regions)} regioner "
-                     f"i denna version.")
+    raise ValueError(f"Unknown region: {region_kod} in {m.label_en}. "
+                     f"The market covers {len(m.regions)} regions "
+                     f"in this version.")
+
+
+def plural_region_label(label: str) -> str:
+    """Engelsk plural för regionbenämningen ("municipality" → "municipalities")."""
+    return label[:-1] + "ies" if label.endswith("y") else label + "s"
 
 
 def find_region_by_name(name_lower: str) -> tuple[str, tuple] | None:
@@ -303,8 +308,8 @@ def find_region_by_name(name_lower: str) -> tuple[str, tuple] | None:
 
 
 def market_catalog() -> list[dict]:
-    return [{"id": m.id, "label_sv": m.label_sv, "currency": m.currency,
-             "region_label_sv": m.region_label_sv,
+    return [{"id": m.id, "label_en": m.label_en, "currency": m.currency,
+             "region_label_en": m.region_label_en,
              "antal_regioner": len(m.regions),
              "bbox": list(m.bbox), "kalibrerad": m.calibrated}
             for m in MARKETS.values()]

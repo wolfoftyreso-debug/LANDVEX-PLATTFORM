@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.catalog import API_CATALOG
 from api.licensing import (ADDONS, PLANS, plans_catalog,
                            required_capability, resolve_capabilities,
-                           upgrade_hint_sv)
+                           upgrade_hint_en)
 from api.security import ApiAuth, AuthError, RateLimiter, _parse_keys
 
 
@@ -15,15 +15,15 @@ def test_plans_and_addons_are_valid_data():
                       for p in ("free", "pro", "enterprise"))
     assert free < pro < ent                            # strikt nivåtrappa
     for p in PLANS.values():
-        assert p["rate_limit_per_min"] > 0 and p["ingar_sv"]
+        assert p["rate_limit_per_min"] > 0 and p["ingar_en"]
         if p["pris_manad"] is not None:
             assert set(p["pris_manad"]) == {"SEK", "EUR", "USD"}
     for a in ADDONS.values():
         assert a["capabilities"] and a["pris_manad"]["SEK"] > 0
     kat = plans_catalog()
     assert len(kat["plans"]) == 3 and len(kat["tillagg"]) == 5
-    assert "prisexempel" in kat["prisnot_sv"].lower() or \
-           "listpris" in kat["prisnot_sv"].lower()     # ärlig prismärkning
+    assert "list price" in kat["prisnot_en"].lower() or \
+           "example" in kat["prisnot_en"].lower()      # ärlig prismärkning
 
 
 def test_every_engine_endpoint_has_a_capability():
@@ -72,7 +72,7 @@ def test_plan_enforcement_in_authorize():
             auth.authorize(key, method, path)
         except AuthError as e:
             assert e.status == 403
-            assert "/v1/plans" in e.message_sv         # uppgraderingshänvisning
+            assert "/v1/plans" in e.message_en         # uppgraderingshänvisning
             continue
         raise AssertionError(f"Skulle ha spärrats: {key} {path}")
 
@@ -86,7 +86,7 @@ def test_rate_limit_per_plan():
     try:
         rl.check("fri-nyckel", free_cap)
     except AuthError as e:
-        assert e.status == 429 and "plans" in e.message_sv
+        assert e.status == 429 and "plans" in e.message_en
     else:
         raise AssertionError("Free-taket slog inte till")
     # Pro-nyckel har eget, högre tak.
@@ -95,7 +95,7 @@ def test_rate_limit_per_plan():
 
 
 def test_upgrade_hint_mentions_unlocking_products():
-    hint = upgrade_hint_sv("workforce")
+    hint = upgrade_hint_en("workforce")
     assert "Pro" in hint and "Workforce" in hint
 
 

@@ -13,7 +13,7 @@ from engine.workforce import OCCUPATIONS
 
 def test_gap_contract_and_ranking():
     res = gap_analysis("bilverkstad", top_n=5)
-    assert res["sammanfattning_sv"]
+    assert res["sammanfattning_en"]
     obal = res["obalanser"]
     assert len(obal) == 5
     scores = [e["obalans_score"] for e in obal]
@@ -25,11 +25,11 @@ def test_gap_contract_and_ranking():
         for axel in ("efterfragan", "utbudsunderskott", "utveckling"):
             assert 0 <= e[axel] <= 100, axel
         assert e["forklaring"]["efterfragan"] and e["forklaring"]["utbud"]
-        assert all("bedomning_sv" in r and "kalla" in r
+        assert all("bedomning_en" in r and "kalla" in r
                    for r in e["forklaring"]["efterfragan"])
-        assert e["narrativ_sv"]
+        assert e["narrativ_en"]
     assert len(res["heatmap"]) == 40
-    assert res["caveats_sv"]
+    assert res["caveats_en"]
     assert gap_analysis("bilverkstad", top_n=5) == res     # determinism
 
 
@@ -60,18 +60,18 @@ def test_plan_contract():
     p = establishment_plan("2482", "bilverkstad")          # Skellefteå
     assert p["kommun"] == "Skellefteå"
     for key in ("lokal", "investering_tkr", "finansiering", "personal",
-                "leverantorer_sv", "ekonomi", "risker", "nasta_steg_sv",
-                "caveats_sv"):
+                "leverantorer_en", "ekonomi", "risker", "nasta_steg_en",
+                "caveats_en"):
         assert key in p, key
     inv = p["investering_tkr"]
     assert inv["totalt"][0] == inv["startkapital"][0] + inv["utrustning"][0]
     eko = p["ekonomi"]
     assert eko["aterbetalningstid_ar"] is None or \
         0 < eko["aterbetalningstid_ar"][0] <= eko["aterbetalningstid_ar"][1]
-    assert "prognos" in eko["notis_sv"]                    # schablonmärkning
+    assert "forecast" in eko["notis_en"]                    # schablonmärkning
     assert len(p["risker"]) == 3
     assert p["personal"]["yrken"] and all(
-        y["rekryteringslage_sv"] for y in p["personal"]["yrken"])
+        y["rekryteringslage_en"] for y in p["personal"]["yrken"])
     assert establishment_plan("2482", "bilverkstad") == p  # determinism
 
 
@@ -104,13 +104,13 @@ def test_ask_gap_and_plan_intents():
     res = ask("Var finns störst obalans för bilverkstäder?")
     assert res["intent"] == "gap_analys"
     assert res["rader"] and res["karta"]["typ"] == "heatmap"
-    assert res["rader"][0]["detalj"]["motivering_sv"]
+    assert res["rader"][0]["detalj"]["motivering_en"]
 
     res2 = ask("Gör en etableringsplan för bilverkstad i Skellefteå.")
     assert res2["intent"] == "etableringsplan"
     ids = [r["id"] for r in res2["rader"]]
     assert ids == ["lokal", "investering", "personal", "ekonomi", "risker"]
-    assert "tkr" in res2["svar_sv"]
+    assert "kSEK" in res2["svar_en"]
 
 
 if __name__ == "__main__":

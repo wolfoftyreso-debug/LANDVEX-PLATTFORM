@@ -6,4 +6,4 @@ signalvärden ⇒ samma score. Höj versionen vid varje ändring av
 scoring-, risk- eller prognoslogik så att historiska rapporter kan
 tolkas korrekt.
 """
-ENGINE_VERSION = "0.9.0"
+ENGINE_VERSION = "0.10.0"

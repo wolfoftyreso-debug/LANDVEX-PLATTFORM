@@ -19,20 +19,20 @@ def source_status(resolver) -> list[dict[str, Any]]:
         name = getattr(inner, "name", "okand")
         if name == "mock":
             out.append({"source": "mock", "status": "ok",
-                        "notis_sv": "Deterministisk fallback."})
+                        "notis_en": "Deterministic fallback."})
             continue
         if isinstance(inner, _NotWiredSource):
             out.append({"source": name, "status": "ej_ansluten",
-                        "notis_sv": "Adapterstub – väntar på datakälla."})
+                        "notis_en": "Adapter stub – awaiting data source."})
             continue
         down_until = getattr(inner, "_down_until", 0.0)
         clock = getattr(inner, "_clock", None)
         pausad = bool(down_until and clock and clock() < down_until)
         out.append({"source": name,
                     "status": "pausad" if pausad else "ok",
-                    "notis_sv": ("Felpaus efter källfel – mock tar över, "
-                                 "återförsök sker automatiskt." if pausad
-                                 else "Ansluten.")})
+                    "notis_en": ("Paused after a source error – mock takes "
+                                 "over, retried automatically." if pausad
+                                 else "Connected.")})
     return out
 
 

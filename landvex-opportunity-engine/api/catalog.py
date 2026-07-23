@@ -17,69 +17,72 @@ API_CATALOG: dict = {
     "platform": "LANDVEX Opportunity Engine",
     "engine_version": ENGINE_VERSION,
     "api_version": "v1",
-    "beskrivning_sv": "Beslutsmotorer för framtida arbetskrafts- och "
-                      "affärsbehov. API-first: webbportalen är en klient "
-                      "av flera. Alla svar bär konfidens, antaganden och "
-                      "datatäckning.",
-    "auth": {"typ": "API-nyckel (header X-API-Key), roller "
+    "beskrivning_en": "Decision engines for future workforce and "
+                      "business needs. API-first: the web portal is one "
+                      "client of many. Every response carries confidence, "
+                      "assumptions and data coverage.",
+    "auth": {"typ": "API key (header X-API-Key), roles "
                     "admin/analyst/partner",
-             "notis_sv": "OIDC ersätter nyckellagret i produktionsfasen. "
-                         "Öppet läge utan LANDVEX_API_KEYS (utveckling)."},
+             "notis_en": "OIDC replaces the key store in the production "
+                         "phase. Open mode without LANDVEX_API_KEYS "
+                         "(development)."},
     "engines": [
-        {"id": "ask", "label_sv": "Fråga Landvex",
-         "beskrivning_sv": "Naturligt språk in, motordata ut.",
+        {"id": "ask", "label_en": "Ask Landvex",
+         "beskrivning_en": "Natural language in, engine data out.",
          "endpoints": [{"method": "POST", "path": "/v1/ask"}]},
-        {"id": "opportunity", "label_sv": "Opportunity Engine",
-         "beskrivning_sv": "Platsanalys och profilstyrt marknadssvep "
-                           "med beslutskort.",
+        {"id": "opportunity", "label_en": "Opportunity Engine",
+         "beskrivning_en": "Location analysis and profile-driven market "
+                           "sweeps with decision cards.",
          "endpoints": [{"method": "POST", "path": "/v1/analyze"},
                        {"method": "POST", "path": "/v1/scan"},
                        {"method": "GET", "path": "/v1/profile-options"},
                        {"method": "POST", "path": "/v1/profiles"},
                        {"method": "GET", "path": "/v1/profiles"}]},
-        {"id": "workforce", "label_sv": "Workforce Intelligence",
-         "beskrivning_sv": "Kompetensprognoser 1–20 år, simulering, "
-                           "nationella och globala bristkartor.",
+        {"id": "workforce", "label_en": "Workforce Intelligence",
+         "beskrivning_en": "Skills forecasts 1–20 years, simulation, "
+                           "national and global shortage maps.",
          "endpoints": [{"method": "GET", "path": "/v1/workforce/occupations"},
                        {"method": "POST", "path": "/v1/workforce/forecast"},
                        {"method": "POST", "path": "/v1/workforce/simulate"},
                        {"method": "GET", "path": "/v1/workforce/map"},
                        {"method": "GET", "path": "/v1/workforce/global-map"}]},
-        {"id": "risk", "label_sv": "Risk Engine",
-         "beskrivning_sv": "Flerdimensionell riskprofil med åtgärdsförslag.",
+        {"id": "risk", "label_en": "Risk Engine",
+         "beskrivning_en": "Multi-dimensional risk profile with suggested "
+                           "mitigations.",
          "endpoints": [{"method": "POST", "path": "/v1/risk"}]},
-        {"id": "compare", "label_sv": "Jämförelse",
-         "beskrivning_sv": "2–4 platser mot varandra med faktormatris.",
+        {"id": "compare", "label_en": "Comparison",
+         "beskrivning_en": "2–4 locations head-to-head with a factor "
+                           "matrix.",
          "endpoints": [{"method": "POST", "path": "/v1/compare"}]},
-        {"id": "gaps", "label_sv": "Gap Analysis",
-         "beskrivning_sv": "Obalanser: hög efterfrågan × lågt utbud × "
-                           "positiv utveckling.",
+        {"id": "gaps", "label_en": "Gap Analysis",
+         "beskrivning_en": "Imbalances: high demand × low supply × "
+                           "positive development.",
          "endpoints": [{"method": "POST", "path": "/v1/gaps"}]},
-        {"id": "plan", "label_sv": "Etableringsplan",
-         "beskrivning_sv": "Från analys till beslutsunderlag: lokal, "
-                           "investering, personal, ekonomi, risker.",
+        {"id": "plan", "label_en": "Establishment Plan",
+         "beskrivning_en": "From analysis to decision basis: premises, "
+                           "investment, staffing, economics, risks.",
          "endpoints": [{"method": "POST", "path": "/v1/plan"}]},
-        {"id": "segments", "label_sv": "Målgruppsmotorn",
-         "beskrivning_sv": "Segmentanalys (djurägare, barnfamiljer m.fl.) "
-                           "per region och som karta.",
+        {"id": "segments", "label_en": "Segment Engine",
+         "beskrivning_en": "Segment analysis (pet owners, families with "
+                           "children, etc.) per region and as a map.",
          "endpoints": [{"method": "GET", "path": "/v1/segments"},
                        {"method": "POST", "path": "/v1/segments/analyze"},
                        {"method": "GET", "path": "/v1/segments/map"}]},
-        {"id": "installed_base", "label_sv": "Installed Base Engine",
-         "beskrivning_sv": "Installerad bas → framtida servicebehov, "
-                           "teknikerbehov och mismatch-möjligheter.",
+        {"id": "installed_base", "label_en": "Installed Base Engine",
+         "beskrivning_en": "Installed base → future service needs, "
+                           "technician demand and mismatch opportunities.",
          "endpoints": [{"method": "GET", "path": "/v1/products"},
                        {"method": "POST", "path": "/v1/service/analyze"},
                        {"method": "GET", "path": "/v1/service/map"}]},
-        {"id": "indices", "label_sv": "Intelligence Map-index",
-         "beskrivning_sv": "Stadsindex (infrastrukturrisk, kommersiell "
-                           "aktivitet, trygghet, klimatrisk, urban tillväxt) "
-                           "+ kontradiktionsindexet – sourced & traceable.",
+        {"id": "indices", "label_en": "Intelligence Map Indices",
+         "beskrivning_en": "City indices (infrastructure risk, commercial "
+                           "activity, safety, climate risk, urban growth) "
+                           "+ the contradiction index – sourced & traceable.",
          "endpoints": [{"method": "GET", "path": "/v1/indices"},
                        {"method": "GET", "path": "/v1/indices/map"},
                        {"method": "POST", "path": "/v1/indices/assess"}]},
-        {"id": "platform", "label_sv": "Plattform",
-         "beskrivning_sv": "Marknader, rapporter, hälsa och metrics.",
+        {"id": "platform", "label_en": "Platform",
+         "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},
                        {"method": "GET", "path": "/v1/reports"},
                        {"method": "GET", "path": "/health"},

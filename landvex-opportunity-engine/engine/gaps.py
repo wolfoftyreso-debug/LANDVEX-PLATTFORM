@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from .datasources.base import Resolver
-from .markets import get_market
+from .markets import get_market, plural_region_label
 from .models import Location
 from .scan import momentum_of
 from .scoring import analyze
@@ -37,11 +37,11 @@ from .verticals import VERTICALS
 
 _SUPPLY_SIGNALS = ("competition_pressure", "provider_gap")
 
-_STRENGTH_SV = ((0.8, "mycket starkt"), (0.6, "starkt"), (0.4, "måttligt"),
-                (0.2, "svagt"), (0.0, "mycket svagt"))
-_SUPPLY_SV = ((0.8, "mycket låg konkurrens"), (0.6, "låg konkurrens"),
-              (0.4, "balanserad konkurrens"), (0.2, "hög konkurrens"),
-              (0.0, "mättad marknad"))
+_STRENGTH_SV = ((0.8, "very strong"), (0.6, "strong"), (0.4, "moderate"),
+                (0.2, "weak"), (0.0, "very weak"))
+_SUPPLY_SV = ((0.8, "very low competition"), (0.6, "low competition"),
+              (0.4, "balanced competition"), (0.2, "high competition"),
+              (0.0, "saturated market"))
 
 
 def _grade(n: float, table) -> str:
@@ -59,18 +59,18 @@ def _axes(report, vertical_id: str) -> tuple[float, float, list, list]:
                 continue
             weight = f.weight * w
             n = s["normalized"]
-            row = {"signal_id": sid, "label_sv": CATALOG[sid].label_sv,
+            row = {"signal_id": sid, "label_en": CATALOG[sid].label_en,
                    "varde": s["value"], "enhet": CATALOG[sid].unit,
                    "kalla": s["source"]}
             if sid in _SUPPLY_SIGNALS:
                 u_num += weight * n
                 u_den += weight
-                u_rows.append({**row, "bedomning_sv": _grade(n, _SUPPLY_SV)})
+                u_rows.append({**row, "bedomning_en": _grade(n, _SUPPLY_SV)})
             else:
                 d_num += weight * n
                 d_den += weight
                 d_rows.append({**row, "n": n,
-                               "bedomning_sv": _grade(n, _STRENGTH_SV)})
+                               "bedomning_en": _grade(n, _STRENGTH_SV)})
     d_rows.sort(key=lambda r: -r.pop("n"))
     return (d_num / d_den if d_den else 0.5,
             u_num / u_den if u_den else 0.5, d_rows, u_rows)
@@ -81,8 +81,8 @@ def gap_analysis(vertical_id: str, market: str = "se",
                  top_n: int = 5) -> dict[str, Any]:
     """Rankar marknadens regioner efter obalans för en vertikal."""
     if vertical_id not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vertical_id}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vertical_id}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
     mkt = get_market(market)
 
     entries = []
@@ -107,23 +107,23 @@ def gap_analysis(vertical_id: str, market: str = "se",
             "opportunity_score": report.opportunity_score,
             "data_coverage": report.data_coverage,
             "forklaring": {"efterfragan": d_rows[:6], "utbud": u_rows},
-            "narrativ_sv": (
-                f"{name}: efterfrågan {round(100 * d)}/100, "
-                f"utbudsunderskott {round(100 * u)}/100, utveckling "
+            "narrativ_en": (
+                f"{name}: demand {round(100 * d)}/100, "
+                f"supply deficit {round(100 * u)}/100, development "
                 f"{mom['value']}/100 ({mom['direction']}). "
-                + ("Klassisk obalans – hög efterfrågan, lågt utbud, "
-                   "positiv utveckling." if klass == "stark_obalans" else
-                   "Delvis obalans – se nedbrytningen." if klass ==
+                + ("Classic imbalance – high demand, low supply, "
+                   "positive development." if klass == "stark_obalans" else
+                   "Partial imbalance – see the breakdown." if klass ==
                    "potentiell_obalans" else
-                   "Ingen tydlig obalans i nuläget.")),
+                   "No clear imbalance at present.")),
         })
     entries.sort(key=lambda e: (-e["obalans_score"], e["kommun_kod"]))
 
     starka = sum(1 for e in entries if e["klass"] == "stark_obalans")
     return {
         "vertical_id": vertical_id,
-        "vertical_label_sv": VERTICALS[vertical_id].label_sv,
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "vertical_label_en": VERTICALS[vertical_id].label_en,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "bbox": list(mkt.bbox),
         "obalanser": entries[:top_n],
         "heatmap": [{"kommun": e["kommun"], "kommun_kod": e["kommun_kod"],
@@ -132,14 +132,14 @@ def gap_analysis(vertical_id: str, market: str = "se",
                      "band": ("gron" if e["klass"] == "stark_obalans" else
                               "gul" if e["klass"] == "potentiell_obalans"
                               else "rod")} for e in entries],
-        "sammanfattning_sv": (
-            f"{starka} av {len(entries)} analyserade "
-            f"{mkt.region_label_sv}er visar stark obalans för "
-            f"{VERTICALS[vertical_id].label_sv.lower()}."),
-        "caveats_sv": [
-            "Obalansformeln (0.45·efterfrågan + 0.35·utbudsunderskott + "
-            "0.20·utveckling) är en dokumenterad heuristik.",
-            "Utbudsbilden bygger på konkurrenssignalerna – verklig "
-            "konkurrentdata (Places-adaptern) höjer precisionen.",
+        "sammanfattning_en": (
+            f"{starka} of {len(entries)} analyzed "
+            f"{plural_region_label(mkt.region_label_en)} show strong "
+            f"imbalance for {VERTICALS[vertical_id].label_en.lower()}."),
+        "caveats_en": [
+            "The imbalance formula (0.45·demand + 0.35·supply deficit + "
+            "0.20·development) is a documented heuristic.",
+            "The supply picture builds on the competition signals – real "
+            "competitor data (the Places adapter) improves precision.",
         ],
     }

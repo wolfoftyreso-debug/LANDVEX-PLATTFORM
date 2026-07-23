@@ -19,9 +19,9 @@ def test_scores_within_bounds():
             assert 0 <= r.opportunity_score <= 100, (vid, r.opportunity_score)
             for f in r.factors:
                 assert 0 <= f.score <= 100
-                assert f.narrative_sv
-            assert r.recommendation_sv
-            assert r.risk_level in ("Låg", "Medel", "Hög")
+                assert f.narrative_en
+            assert r.recommendation_en
+            assert r.risk_level in ("Low", "Medium", "High")
 
 
 def test_deterministic():
@@ -53,15 +53,15 @@ def test_normalization_bounds():
 
 def test_cafe_afternoon_pattern():
     ins = pattern_insights("cafe", {"flows": {"morning": 600, "afternoon": 120}})
-    assert any("efter klockan 14" in t for t in ins)
+    assert any("after 2 pm" in t for t in ins)
     ins2 = pattern_insights("cafe", {"flows": {"morning": 600, "afternoon": 500}})
-    assert not any("efter klockan 14" in t for t in ins2)
+    assert not any("after 2 pm" in t for t in ins2)
 
 
 def test_electrician_headroom_insight():
     ins = pattern_insights("elektriker", {
         "competitors": {"effective": 2.0}, "demand_units": 5.4})
-    assert any("ytterligare" in t and "elektriker" in t for t in ins)
+    assert any("another" in t and "electrician" in t for t in ins)
 
 
 def test_unknown_vertical_raises():

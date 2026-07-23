@@ -124,8 +124,8 @@ class ScbSource(DataSource):
                    for sid in wanted if sid in raw}
         if signals:
             info = {"kommun": kommun, "kommun_namn": kommun_namn,
-                    "notis": "Kommunnivå – förfinas till DeSO/rutnät "
-                             "i geodatafasen."}
+                    "notis": "Municipality level – refined to DeSO/grid "
+                             "in the geodata phase."}
             for k in ("ar", "folkmangd_kommun"):
                 if k in extras:
                     info[k] = extras.pop(k)

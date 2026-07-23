@@ -17,61 +17,61 @@ from .verticals import VERTICALS
 
 PROFILE_OPTIONS: dict[str, list[dict[str, Any]]] = {
     "budget_band": [
-        {"id": "0-500k",   "label_sv": "0–500 000 kr"},
-        {"id": "500k-2m",  "label_sv": "500 000 – 2 miljoner"},
-        {"id": "2-5m",     "label_sv": "2–5 miljoner"},
-        {"id": "5-10m",    "label_sv": "5–10 miljoner"},
-        {"id": "10m+",     "label_sv": "10 miljoner +"},
+        {"id": "0-500k",   "label_en": "0–500,000 SEK"},
+        {"id": "500k-2m",  "label_en": "500,000 – 2 million"},
+        {"id": "2-5m",     "label_en": "2–5 million"},
+        {"id": "5-10m",    "label_en": "5–10 million"},
+        {"id": "10m+",     "label_en": "10 million +"},
     ],
     "team_size": [
-        {"id": "1",     "label_sv": "Bara jag"},
-        {"id": "2-5",   "label_sv": "2–5 anställda"},
-        {"id": "5-20",  "label_sv": "5–20 anställda"},
-        {"id": "20-50", "label_sv": "20–50 anställda"},
-        {"id": "50+",   "label_sv": "Fler än 50"},
+        {"id": "1",     "label_en": "Just me"},
+        {"id": "2-5",   "label_en": "2–5 employees"},
+        {"id": "5-20",  "label_en": "5–20 employees"},
+        {"id": "20-50", "label_en": "20–50 employees"},
+        {"id": "50+",   "label_en": "More than 50"},
     ],
     "business_model": [
-        {"id": "nyetablering",   "label_sv": "Nyetablering"},
-        {"id": "kop_befintligt", "label_sv": "Köpa befintligt"},
-        {"id": "franchise",      "label_sv": "Franchise"},
-        {"id": "expansion",      "label_sv": "Expandera"},
-        {"id": "filial",         "label_sv": "Filial"},
-        {"id": "mobilt",         "label_sv": "Mobilt koncept"},
-        {"id": "premium",        "label_sv": "Premium"},
-        {"id": "lagpris",        "label_sv": "Lågpris"},
+        {"id": "nyetablering",   "label_en": "New establishment"},
+        {"id": "kop_befintligt", "label_en": "Buy existing"},
+        {"id": "franchise",      "label_en": "Franchise"},
+        {"id": "expansion",      "label_en": "Expand"},
+        {"id": "filial",         "label_en": "Branch office"},
+        {"id": "mobilt",         "label_en": "Mobile concept"},
+        {"id": "premium",        "label_en": "Premium"},
+        {"id": "lagpris",        "label_en": "Low-cost"},
     ],
     "risk_tolerance": [
-        {"id": "lag",       "label_sv": "Låg"},
-        {"id": "normal",    "label_sv": "Normal"},
-        {"id": "hog",       "label_sv": "Hög"},
-        {"id": "aggressiv", "label_sv": "Aggressiv"},
+        {"id": "lag",       "label_en": "Low"},
+        {"id": "normal",    "label_en": "Normal"},
+        {"id": "hog",       "label_en": "High"},
+        {"id": "aggressiv", "label_en": "Aggressive"},
     ],
     "commute_km": [
-        {"id": 10,   "label_sv": "10 km"},
-        {"id": 30,   "label_sv": "30 km"},
-        {"id": 100,  "label_sv": "100 km"},
-        {"id": None, "label_sv": "Ingen gräns"},
+        {"id": 10,   "label_en": "10 km"},
+        {"id": 30,   "label_en": "30 km"},
+        {"id": 100,  "label_en": "100 km"},
+        {"id": None, "label_en": "No limit"},
     ],
     "environments": [
-        {"id": "stad",        "label_sv": "Stad"},
-        {"id": "forort",      "label_sv": "Förort"},
-        {"id": "landsbygd",   "label_sv": "Landsbygd"},
-        {"id": "turistort",   "label_sv": "Turistort"},
-        {"id": "industrizon", "label_sv": "Industrizon"},
+        {"id": "stad",        "label_en": "City"},
+        {"id": "forort",      "label_en": "Suburb"},
+        {"id": "landsbygd",   "label_en": "Rural"},
+        {"id": "turistort",   "label_en": "Tourist destination"},
+        {"id": "industrizon", "label_en": "Industrial zone"},
     ],
     "horizon_years": [
-        {"id": 1,  "label_sv": "1 år"},
-        {"id": 3,  "label_sv": "3 år"},
-        {"id": 5,  "label_sv": "5 år"},
-        {"id": 10, "label_sv": "10 år"},
+        {"id": 1,  "label_en": "1 year"},
+        {"id": 3,  "label_en": "3 years"},
+        {"id": 5,  "label_en": "5 years"},
+        {"id": 10, "label_en": "10 years"},
     ],
     "goal": [
-        {"id": "maximal_vinst",  "label_sv": "Maximal vinst"},
-        {"id": "stabilitet",     "label_sv": "Stabilitet"},
-        {"id": "livsstil",       "label_sv": "Livsstil"},
-        {"id": "bygga_kedja",    "label_sv": "Bygga kedja"},
-        {"id": "exit",           "label_sv": "Exit"},
-        {"id": "passiv_inkomst", "label_sv": "Passiv inkomst"},
+        {"id": "maximal_vinst",  "label_en": "Maximum profit"},
+        {"id": "stabilitet",     "label_en": "Stability"},
+        {"id": "livsstil",       "label_en": "Lifestyle"},
+        {"id": "bygga_kedja",    "label_en": "Build a chain"},
+        {"id": "exit",           "label_en": "Exit"},
+        {"id": "passiv_inkomst", "label_en": "Passive income"},
     ],
 }
 
@@ -104,29 +104,30 @@ class BusinessProfile:
 def profile_from_dict(d: dict[str, Any]) -> BusinessProfile:
     """Validerar och bygger en profil; ValueError med svensk text vid fel."""
     if not isinstance(d, dict):
-        raise ValueError("Profilen måste vara ett objekt.")
+        raise ValueError("The profile must be an object.")
     vid = d.get("vertical_id")
     if vid not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vid}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vid}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
 
     def choice(key: str, default):
         val = d.get(key, default)
         if val not in _ids(key):
-            raise ValueError(f"Ogiltigt värde för {key}: {val!r}. "
-                             f"Tillåtna: {_ids(key)}")
+            raise ValueError(f"Invalid value for {key}: {val!r}. "
+                             f"Allowed: {_ids(key)}")
         return val
 
     envs = d.get("environments", []) or []
     bad = [e for e in envs if e not in _ids("environments")]
     if bad:
-        raise ValueError(f"Ogiltig miljötyp: {bad}. Tillåtna: {_ids('environments')}")
+        raise ValueError(f"Invalid environment type: {bad}. "
+                         f"Allowed: {_ids('environments')}")
 
     commute = d.get("commute_km", None)
     if commute is not None and (not isinstance(commute, (int, float)) or commute <= 0):
-        raise ValueError("commute_km måste vara ett positivt tal eller null.")
+        raise ValueError("commute_km must be a positive number or null.")
     if commute is not None and (d.get("home_lat") is None or d.get("home_lon") is None):
-        raise ValueError("Pendlingsgräns kräver home_lat och home_lon.")
+        raise ValueError("A commute limit requires home_lat and home_lon.")
 
     return BusinessProfile(
         vertical_id=vid,
@@ -146,6 +147,6 @@ def profile_from_dict(d: dict[str, Any]) -> BusinessProfile:
 
 def profile_options() -> dict[str, Any]:
     """Formulärdata till frontend, inklusive aktuella vertikaler."""
-    return {"vertical_id": [{"id": v.id, "label_sv": v.label_sv}
+    return {"vertical_id": [{"id": v.id, "label_en": v.label_en}
                             for v in VERTICALS.values()],
             **PROFILE_OPTIONS}

@@ -16,7 +16,7 @@ UMEA = {"lat": 63.8258, "lon": 20.2630, "address": "Umeå"}
 
 def test_risk_dimensions_are_valid_data():
     for d in DIMENSIONS:
-        assert d.mitigation_sv
+        assert d.mitigation_en
         assert abs(sum(w for _, w in d.signals) - 1.0) < 1e-6, d.id
         for sid, _ in d.signals:
             assert sid in CATALOG, (d.id, sid)
@@ -26,18 +26,18 @@ def test_risk_dimensions_are_valid_data():
 def test_risk_profile_contract():
     rp = assess(STHLM, "frisor")
     assert 0 <= rp["total_risk"] <= 100
-    assert rp["band"] in ("Låg", "Medel", "Hög", "Mycket hög")
+    assert rp["band"] in ("Low", "Medium", "High", "Very high")
     ids = [d["id"] for d in rp["dimensioner"]]
     assert ids == [d.id for d in DIMENSIONS] + ["dataosakerhet"]
     for d in rp["dimensioner"]:
         assert 0 <= d["risk"] <= 100
-        assert d["narrativ_sv"]
+        assert d["narrativ_en"]
         if d["risk"] >= 60:
-            assert d["atgard_sv"]          # förhöjd risk ⇒ åtgärdsförslag
+            assert d["atgard_en"]          # förhöjd risk ⇒ åtgärdsförslag
         if d["id"] != "dataosakerhet":
             assert d["signaler"] and all(
                 "riskbidrag" in s and "kalla" in s for s in d["signaler"])
-    assert rp["caveats_sv"]
+    assert rp["caveats_en"]
     assert assess(STHLM, "frisor") == rp   # determinism
 
 
@@ -45,7 +45,7 @@ def test_risk_data_uncertainty_reflects_mock():
     rp = assess(STHLM, "cafe")
     data = next(d for d in rp["dimensioner"] if d["id"] == "dataosakerhet")
     assert data["risk"] >= 60               # allt mockat ⇒ hög dataosäkerhet
-    assert data["atgard_sv"]
+    assert data["atgard_en"]
 
 
 def test_risk_unknown_vertical():
@@ -71,7 +71,7 @@ def test_compare_contract():
     win = res["vinnare_index"]
     assert res["platser"][win]["opportunity_score"] == max(
         p["opportunity_score"] for p in res["platser"])
-    assert res["rekommendation_sv"] and res["caveats_sv"]
+    assert res["rekommendation_en"] and res["caveats_en"]
     assert all(p["risk_band"] for p in res["platser"])
 
 

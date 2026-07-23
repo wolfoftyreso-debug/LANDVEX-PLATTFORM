@@ -31,62 +31,62 @@ _DEFAULT_RESOLVER = Resolver([MockSource()])
 @dataclass(frozen=True)
 class SegmentDef:
     id: str
-    label_sv: str
-    beskrivning_sv: str
+    label_en: str
+    beskrivning_en: str
     signal: str
     mode: str            # "per_1000" | "share_pct" | "count" | "index"
-    enhet_sv: str
+    enhet_en: str
     verticals: tuple     # vertikaler som betjänar segmentet
 
 
 SEGMENTS: dict[str, SegmentDef] = {s.id: s for s in [
-    SegmentDef("djuragare", "Djurägare",
-               "Hushåll med sällskapsdjur – uppskattat ur djurtäthet.",
-               "pets_per_1000", "per_1000", "djur",
+    SegmentDef("djuragare", "Pet owners",
+               "Households with pets – estimated from pet density.",
+               "pets_per_1000", "per_1000", "pets",
                ("veterinar",)),
-    SegmentDef("barnfamiljer", "Barnfamiljer",
-               "Andel hushåll med barn.",
-               "families_share", "share_pct", "personer",
+    SegmentDef("barnfamiljer", "Families with children",
+               "Share of households with children.",
+               "families_share", "share_pct", "people",
                ("tandlakare", "frisor", "gym")),
-    SegmentDef("seniorer", "Seniorer (65+)",
-               "Andel av befolkningen som är 65 år eller äldre.",
-               "share_65plus", "share_pct", "personer",
+    SegmentDef("seniorer", "Seniors (65+)",
+               "Share of the population aged 65 or older.",
+               "share_65plus", "share_pct", "people",
                ("tandlakare", "frisor")),
-    SegmentDef("unga_vuxna", "Unga vuxna (20–45)",
-               "Andel av befolkningen i åldern 20–45 år.",
-               "age_20_45_share", "share_pct", "personer",
+    SegmentDef("unga_vuxna", "Young adults (20–45)",
+               "Share of the population aged 20–45.",
+               "age_20_45_share", "share_pct", "people",
                ("gym", "cafe", "restaurang")),
-    SegmentDef("bilagare", "Bilägare",
-               "Personbilar per invånare – proxy för bilhushåll.",
-               "cars_per_1000", "per_1000", "bilar",
+    SegmentDef("bilagare", "Car owners",
+               "Cars per resident – a proxy for car-owning households.",
+               "cars_per_1000", "per_1000", "cars",
                ("bilverkstad",)),
-    SegmentDef("pendlare", "Pendlare",
-               "Personer i pendlingsflödet morgon och kväll.",
-               "commuter_flow", "count", "personer",
+    SegmentDef("pendlare", "Commuters",
+               "People in the morning and evening commuter flow.",
+               "commuter_flow", "count", "people",
                ("cafe", "gym")),
-    SegmentDef("villaagare", "Villaägare",
-               "Villor och småhus i upptagningsområdet.",
-               "detached_homes", "count", "hushåll",
+    SegmentDef("villaagare", "Detached-home owners",
+               "Detached and single-family homes in the catchment area.",
+               "detached_homes", "count", "households",
                ("elektriker", "vvs", "bygg")),
-    SegmentDef("hoginkomsttagare", "Höginkomsttagare",
-               "Inkomstläge relativt rikssnittet (index).",
+    SegmentDef("hoginkomsttagare", "High-income earners",
+               "Income level relative to the national average (index).",
                "income_index", "index", "index",
                ("frisor", "restaurang", "tandlakare")),
-    SegmentDef("foretagare", "Företagare",
-               "Företag per 1 000 invånare.",
-               "business_density", "per_1000", "företag",
+    SegmentDef("foretagare", "Business owners",
+               "Businesses per 1,000 residents.",
+               "business_density", "per_1000", "businesses",
                ("lager", "elektriker", "vvs")),
-    SegmentDef("besokare", "Besökare & turister",
-               "Turism- och besöksintensitet (index).",
+    SegmentDef("besokare", "Visitors & tourists",
+               "Tourism and visitor intensity (index).",
                "tourism_index", "index", "index",
                ("restaurang", "cafe")),
 ]}
 
 
 def segment_catalog() -> list[dict[str, Any]]:
-    return [{"id": s.id, "label_sv": s.label_sv,
-             "beskrivning_sv": s.beskrivning_sv,
-             "betjanas_av": [VERTICALS[v].label_sv for v in s.verticals]}
+    return [{"id": s.id, "label_en": s.label_en,
+             "beskrivning_en": s.beskrivning_en,
+             "betjanas_av": [VERTICALS[v].label_en for v in s.verticals]}
             for s in SEGMENTS.values()]
 
 
@@ -127,10 +127,10 @@ def _index_band(index: float) -> str:
         return "kring_snittet"
     return "under_snittet" if index >= 80 else "langt_under_snittet"
 
-_BAND_SV = {"mycket_over_snittet": "mycket över snittet",
-            "over_snittet": "över snittet", "kring_snittet": "kring snittet",
-            "under_snittet": "under snittet",
-            "langt_under_snittet": "långt under snittet"}
+_BAND_SV = {"mycket_over_snittet": "well above average",
+            "over_snittet": "above average", "kring_snittet": "around average",
+            "under_snittet": "below average",
+            "langt_under_snittet": "far below average"}
 
 
 def segment_analysis(kommun_kod: str, market: str = "se",
@@ -151,33 +151,33 @@ def segment_analysis(kommun_kod: str, market: str = "se",
         avg = sum(vals) / len(vals)
         index = round(value / avg * 100) if avg else 100
         rows.append({
-            "segment_id": seg.id, "label_sv": seg.label_sv,
+            "segment_id": seg.id, "label_en": seg.label_en,
             "antal_uppskattat": _estimate(seg, value, pop),
-            "enhet_sv": seg.enhet_sv,
+            "enhet_en": seg.enhet_en,
             "varde": value,
             "index_mot_marknadssnitt": index,
             "band": _index_band(index),
-            "narrativ_sv": f"{seg.label_sv}: {_BAND_SV[_index_band(index)]} "
+            "narrativ_en": f"{seg.label_en}: {_BAND_SV[_index_band(index)]} "
                            f"(index {index}).",
             "betjanas_av": [{"vertical_id": v,
-                             "label_sv": VERTICALS[v].label_sv}
+                             "label_en": VERTICALS[v].label_en}
                             for v in seg.verticals],
         })
     rows.sort(key=lambda r: -r["index_mot_marknadssnitt"])
     topp = rows[0]
     return {
         "kommun": namn, "kommun_kod": kod,
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "befolkning": int(pop),
         "segment": rows,
-        "sammanfattning_sv": (
-            f"Mest utmärkande målgrupp i {namn}: "
-            f"{topp['label_sv'].lower()} (index "
-            f"{topp['index_mot_marknadssnitt']} mot marknadssnittet)."),
-        "caveats_sv": [
-            "Antal är uppskattningar härledda ur signalvärden × befolkning "
-            "– inte register. Index jämför mot snittet av marknadens "
-            "analyserade regioner.",
+        "sammanfattning_en": (
+            f"Most distinctive target group in {namn}: "
+            f"{topp['label_en'].lower()} (index "
+            f"{topp['index_mot_marknadssnitt']} vs the market average)."),
+        "caveats_en": [
+            "Counts are estimates derived from signal values × population "
+            "– not registers. The index compares against the average of "
+            "the market's analyzed regions.",
         ],
     }
 
@@ -188,8 +188,8 @@ def segment_map(segment_id: str, market: str = "se",
     """Segmentkarta: var på marknaden finns segmentet – antal + index."""
     seg = SEGMENTS.get(segment_id)
     if seg is None:
-        raise ValueError(f"Okänt segment: {segment_id}. "
-                         f"Tillgängliga: {', '.join(sorted(SEGMENTS))}")
+        raise ValueError(f"Unknown segment: {segment_id}. "
+                         f"Available: {', '.join(sorted(SEGMENTS))}")
     mkt = get_market(market)
     data = _resolve_market(market, resolver)
     vals = [d[seg.signal] for d in data.values() if seg.signal in d]
@@ -212,9 +212,9 @@ def segment_map(segment_id: str, market: str = "se",
     rows.sort(key=lambda r: -(r[nyckel] or 0))
 
     return {
-        "segment_id": seg.id, "label_sv": seg.label_sv,
-        "beskrivning_sv": seg.beskrivning_sv,
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "segment_id": seg.id, "label_en": seg.label_en,
+        "beskrivning_en": seg.beskrivning_en,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "bbox": list(mkt.bbox),
         "regioner": rows,
         "heatmap": [{"kommun": r["kommun"], "kommun_kod": r["kommun_kod"],
@@ -222,16 +222,16 @@ def segment_map(segment_id: str, market: str = "se",
                      "band": ("gron" if r["index"] >= 110 else
                               "gul" if r["index"] >= 90 else "rod")}
                     for r in rows],
-        "sammanfattning_sv": (
-            f"Flest {seg.label_sv.lower()} i {mkt.label_sv}: "
+        "sammanfattning_en": (
+            f"Most {seg.label_en.lower()} in {mkt.label_en}: "
             + ", ".join(r["kommun"] for r in rows[:min(3, len(rows))])
-            + f". Betjänas främst av "
-            + ", ".join(VERTICALS[v].label_sv.lower() for v in seg.verticals)
+            + f". Primarily served by "
+            + ", ".join(VERTICALS[v].label_en.lower() for v in seg.verticals)
             + "."),
-        "betjanas_av": [{"vertical_id": v, "label_sv": VERTICALS[v].label_sv}
+        "betjanas_av": [{"vertical_id": v, "label_en": VERTICALS[v].label_en}
                         for v in seg.verticals],
-        "caveats_sv": [
-            "Antal är uppskattningar ur signalvärden × befolkning; "
-            "index jämför mot marknadssnittet.",
+        "caveats_en": [
+            "Counts are estimates from signal values × population; "
+            "the index compares against the market average.",
         ],
     }

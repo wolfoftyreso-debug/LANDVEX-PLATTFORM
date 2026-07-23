@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from api.health import build_health, source_status
-from api.licensing import plans_catalog, upgrade_hint_sv
+from api.licensing import plans_catalog, upgrade_hint_en
 from api.security import AuthError, Gate
 
 from engine.datasources.adapters import production_sources
@@ -69,7 +69,7 @@ async def security_middleware(request: Request, call_next):
         return response
     except AuthError as e:
         status = e.status
-        return JSONResponse({"error": e.message_sv}, status_code=e.status,
+        return JSONResponse({"error": e.message_en}, status_code=e.status,
                             headers={"X-Request-ID": request_id})
     finally:
         GATE.exit(principal, request_id, request.method, path,
@@ -135,8 +135,8 @@ def health():
 
 @app.get("/v1/verticals")
 def verticals():
-    return [{"id": v.id, "label_sv": v.label_sv,
-             "factors": [{"id": f.id, "label_sv": f.label_sv, "weight": f.weight}
+    return [{"id": v.id, "label_en": v.label_en,
+             "factors": [{"id": f.id, "label_en": f.label_en, "weight": f.weight}
                          for f in v.factors]}
             for v in VERTICALS.values()]
 
@@ -145,7 +145,7 @@ def verticals():
 def analyze_location(req: AnalyzeRequest):
     if req.vertical not in VERTICALS:
         raise HTTPException(status_code=422,
-                            detail=f"Okänd vertikal: {req.vertical}")
+                            detail=f"Unknown vertical: {req.vertical}")
     loc = Location(lat=req.lat, lon=req.lon, address=req.address,
                    radius_minutes=req.radius_minutes)
     report = analyze(loc, req.vertical, resolver=RESOLVER).to_dict()
@@ -178,7 +178,7 @@ def get_profile_options():
 @app.post("/v1/profiles")
 def save_profile(profile: dict):
     if STORE is None:
-        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     try:
         p = profile_from_dict(profile)
     except ValueError as e:
@@ -189,17 +189,17 @@ def save_profile(profile: dict):
 @app.get("/v1/profiles")
 def list_profiles(limit: int = 50):
     if STORE is None:
-        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     return STORE.list_profiles(min(max(limit, 1), 200))
 
 
 @app.get("/v1/profiles/{profile_id}")
 def get_profile(profile_id: str):
     if STORE is None:
-        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     doc = STORE.get_profile(profile_id)
     if doc is None:
-        raise HTTPException(status_code=404, detail="Okänd profil.")
+        raise HTTPException(status_code=404, detail="Unknown profile.")
     return doc
 
 
@@ -207,17 +207,17 @@ def get_profile(profile_id: str):
 def scan_sweden(req: ScanRequest):
     if req.profile is None and req.profile_id is None:
         raise HTTPException(status_code=422,
-                            detail="Ange profile (inline) eller profile_id (sparad).")
+                            detail="Provide profile (inline) or profile_id (saved).")
     raw = req.profile
     if raw is None:
         if STORE is None:
-            raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+            raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
         raw = STORE.get_profile(req.profile_id)
         if raw is None:
-            raise HTTPException(status_code=404, detail="Okänd profil.")
+            raise HTTPException(status_code=404, detail="Unknown profile.")
     if req.level not in SCAN_LEVELS:
         raise HTTPException(status_code=422,
-                            detail=f"Okänd analysnivå: {req.level}.")
+                            detail=f"Unknown analysis level: {req.level}.")
     try:
         p = profile_from_dict(raw)
         return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level,
@@ -406,7 +406,7 @@ def indices(request: Request):
         for ix in kat:
             if ix["niva"] == "live":
                 ix["last"] = True
-                ix["las_notis_sv"] = upgrade_hint_sv("intelligence_map_live")
+                ix["las_notis_en"] = upgrade_hint_en("intelligence_map_live")
     return kat
 
 
@@ -416,8 +416,8 @@ def indices_map(request: Request, index_id: str, market: str = "se"):
     ix = INDEX_TYPES.get(index_id)
     if ix and ix.niva == "live" and _live_locked(request):
         raise HTTPException(status_code=403,
-                            detail="Live-lager kräver prenumeration. "
-                                   + upgrade_hint_sv("intelligence_map_live"))
+                            detail="Live layers require a subscription. "
+                                   + upgrade_hint_en("intelligence_map_live"))
     try:
         return index_map(index_id, market=market, resolver=RESOLVER)
     except ValueError as e:
@@ -434,10 +434,10 @@ def indices_assess(request: Request, req: AssessRequest):
     if _live_locked(request):
         for row in res["index"]:
             if row["niva"] == "live":
-                row.update({"varde": None, "band": None, "band_sv": None,
+                row.update({"varde": None, "band": None, "band_en": None,
                             "drivare": [], "last": True,
-                            "narrativ_sv": "Live-lager – kräver prenumeration. "
-                            + upgrade_hint_sv("intelligence_map_live")})
+                            "narrativ_en": "Live layer – requires a subscription. "
+                            + upgrade_hint_en("intelligence_map_live")})
     return res
 
 
@@ -500,15 +500,15 @@ def workforce_global_map(occupation_id: str, target_year: int = 2035,
 @app.get("/v1/reports")
 def list_reports(limit: int = 20):
     if STORE is None:
-        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     return STORE.list_reports(min(max(limit, 1), 200))
 
 
 @app.get("/v1/reports/{report_id}")
 def get_report(report_id: str):
     if STORE is None:
-        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     doc = STORE.get_report(report_id)
     if doc is None:
-        raise HTTPException(status_code=404, detail="Okänt rapport-id.")
+        raise HTTPException(status_code=404, detail="Unknown report id.")
     return doc

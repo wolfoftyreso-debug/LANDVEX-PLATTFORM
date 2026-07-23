@@ -35,99 +35,105 @@ class PlanSpec:
     utrustning_tkr: tuple     # utrustningsinvestering (min, max)
     marginal: tuple           # rörelsemarginal-schablon (min, max)
     yrken: tuple              # occupation-id:n för rekryteringsläget
-    leverantorer_sv: tuple    # leverantörs-/avtalskategorier
+    leverantorer_en: tuple    # leverantörs-/avtalskategorier
 
 
 PLAN_DATA: dict[str, PlanSpec] = {
     "frisor": PlanSpec((40, 90), (150, 400), (0.08, 0.15), (),
-                       ("Salongsinredning", "Produktgrossist",
-                        "Bokningssystem", "Kassasystem")),
+                       ("Salon furnishings", "Product wholesaler",
+                        "Booking system", "POS system")),
     "elektriker": PlanSpec((0, 150), (300, 900), (0.08, 0.14), ("elektriker",),
-                           ("Elgrossist", "Fordonsleasing", "Verktyg & mätinstrument",
-                            "Certifiering & behörighet")),
+                           ("Electrical wholesaler", "Vehicle leasing",
+                            "Tools & measuring instruments",
+                            "Certification & authorization")),
     "vvs": PlanSpec((0, 200), (300, 900), (0.08, 0.14), ("vvs_montor",),
-                    ("VVS-grossist", "Fordonsleasing", "Verktyg",
-                     "Auktorisation (Säker Vatten)")),
+                    ("Plumbing & HVAC wholesaler", "Vehicle leasing", "Tools",
+                     "Authorization (Säker Vatten)")),
     "gym": PlanSpec((400, 1500), (1500, 5000), (0.10, 0.20), (),
-                    ("Träningsutrustning (köp/leasing)", "Passersystem",
-                     "Medlemssystem", "Städ & drift")),
+                    ("Training equipment (purchase/leasing)",
+                     "Access control system",
+                     "Membership system", "Cleaning & operations")),
     "restaurang": PlanSpec((120, 350), (800, 2500), (0.04, 0.10), (),
-                           ("Storköksutrustning", "Livsmedelsgrossist",
-                            "Kassasystem", "Serveringstillstånd")),
+                           ("Commercial kitchen equipment", "Food wholesaler",
+                            "POS system", "Alcohol serving license")),
     "cafe": PlanSpec((60, 150), (400, 1200), (0.05, 0.12), (),
-                     ("Kaffemaskiner (ofta leasing)", "Råvarugrossist",
-                      "Inredning", "Kassasystem")),
+                     ("Coffee machines (often leased)",
+                      "Ingredient wholesaler",
+                      "Furnishings", "POS system")),
     "bygg": PlanSpec((0, 300), (400, 1500), (0.06, 0.12),
                      ("snickare", "betongarbetare"),
-                     ("Byggmaterialhandel", "Maskinuthyrning",
-                      "Fordonsleasing", "Försäkring & garantier")),
+                     ("Building materials supplier", "Machine rental",
+                      "Vehicle leasing", "Insurance & warranties")),
     "tandlakare": PlanSpec((90, 200), (1500, 4000), (0.15, 0.25), (),
-                           ("Dentalutrustning (ofta leasing)", "Dentallabb",
-                            "Journalsystem", "Försäkringsavtal")),
+                           ("Dental equipment (often leased)", "Dental lab",
+                            "Records system", "Insurance agreements")),
     "bilverkstad": PlanSpec((250, 800), (800, 2500), (0.08, 0.15),
                             ("fastighetstekniker",),
-                            ("Lyftar & verkstadsutrustning (ofta leasing)",
-                             "Reservdelsgrossist", "Däckleverantör",
-                             "Märkesauktorisation")),
+                            ("Lifts & workshop equipment (often leased)",
+                             "Spare parts wholesaler", "Tire supplier",
+                             "Brand authorization")),
     "veterinar": PlanSpec((100, 250), (1000, 3000), (0.12, 0.20), (),
-                          ("Medicinteknisk utrustning", "Läkemedelsgrossist",
-                           "Journalsystem", "Laboratorietjänster")),
+                          ("Medical equipment", "Pharmaceutical wholesaler",
+                           "Records system", "Laboratory services")),
     "lager": PlanSpec((1000, 10000), (1500, 8000), (0.05, 0.10),
                       ("maskinforare", "drifttekniker"),
-                      ("Truckar & automation (ofta leasing)", "WMS-system",
-                       "Transportavtal", "Energiavtal")),
+                      ("Forklifts & automation (often leased)", "WMS system",
+                       "Transport agreements", "Energy contracts")),
     "forskola": PlanSpec((200, 600), (300, 1200), (0.04, 0.08),
                          ("barnskotare", "forskollarare"),
-                         ("Pedagogiskt material", "Storkök/catering",
-                          "Utemiljö & säkerhet", "Kommunalt tillstånd")),
+                         ("Educational materials",
+                          "Commercial kitchen/catering",
+                          "Outdoor environment & safety", "Municipal permit")),
     "apotek": PlanSpec((80, 200), (800, 2000), (0.03, 0.06), (),
-                       ("Läkemedelsgrossist", "Receptsystem", "Kylkedja",
-                        "Tillstånd Läkemedelsverket")),
+                       ("Pharmaceutical wholesaler", "Prescription system",
+                        "Cold chain",
+                        "License from Läkemedelsverket")),
     "optiker": PlanSpec((60, 150), (400, 1500), (0.10, 0.18), (),
-                        ("Glas- & bågleverantör",
-                         "Synundersökningsutrustning", "Journalsystem")),
+                        ("Lens & frame supplier",
+                         "Eye examination equipment", "Records system")),
     "bageri": PlanSpec((80, 250), (600, 1800), (0.05, 0.10), ("kock",),
-                       ("Ugnar & degmaskiner (ofta leasing)",
-                        "Råvarugrossist", "Kassasystem",
-                        "Livsmedelsregistrering")),
+                       ("Ovens & dough machines (often leased)",
+                        "Ingredient wholesaler", "POS system",
+                        "Food business registration")),
     "livsmedel": PlanSpec((400, 1500), (1500, 5000), (0.02, 0.04), (),
-                          ("Dagligvarugrossist", "Kyl & frys",
-                           "Kassasystem", "Livsmedelsregistrering")),
+                          ("Grocery wholesaler", "Refrigeration & freezers",
+                           "POS system", "Food business registration")),
     "aldreomsorg": PlanSpec((0, 150), (100, 500), (0.05, 0.09),
                             ("underskoterska", "sjukskoterska"),
-                            ("Vård-/journalsystem", "Bemanningsplanering",
-                             "Fordon", "IVO-tillstånd")),
+                            ("Care/records system", "Staff scheduling",
+                             "Vehicles", "IVO permit")),
     "stadfirma": PlanSpec((0, 100), (100, 400), (0.08, 0.15), (),
-                          ("Städmaterialgrossist", "Fordonsleasing",
-                           "Schemasystem")),
+                          ("Cleaning supplies wholesaler", "Vehicle leasing",
+                           "Scheduling system")),
     "malare": PlanSpec((0, 150), (100, 500), (0.08, 0.14), ("malare",),
-                       ("Färggrossist", "Ställningar & liftar (hyra)",
-                        "Fordonsleasing")),
+                       ("Paint wholesaler", "Scaffolding & lifts (rental)",
+                        "Vehicle leasing")),
     "laddinfra": PlanSpec((0, 50), (2000, 8000), (0.05, 0.12),
                           ("elektriker", "it_tekniker"),
-                          ("Laddhårdvara", "Elnätsanslutning",
-                           "Betal-/mjukvaruplattform", "Markavtal")),
+                          ("Charging hardware", "Grid connection",
+                           "Payment/software platform", "Land agreements")),
     "cykelverkstad": PlanSpec((60, 150), (150, 500), (0.08, 0.15), (),
-                              ("Cykelgrossist", "Verktyg & mekplats",
-                               "Kassasystem")),
+                              ("Bicycle wholesaler", "Tools & workshop space",
+                               "POS system")),
     "generisk": PlanSpec((50, 300), (300, 1500), (0.06, 0.12), (),
-                         ("Branschgrossist", "Kassasystem", "Inredning")),
+                         ("Industry wholesaler", "POS system", "Furnishings")),
 }
 
 _FINANSIERING_SV = [
-    {"alternativ_sv": "Banklån med företagsinteckning",
-     "notis_sv": "Vanligast för etableringar med fysisk lokal; kräver "
-                 "normalt 20–30 % eget kapital."},
-    {"alternativ_sv": "Almi företagslån",
-     "notis_sv": "Kompletterar bank vid högre risk; högre ränta men "
-                 "mindre säkerhetskrav."},
-    {"alternativ_sv": "Leasing av utrustning",
-     "notis_sv": "Frigör startkapital – vanligast för maskiner, "
-                 "kaffemaskiner, lyftar och dentalutrustning."},
-    {"alternativ_sv": "Leverantörskredit",
-     "notis_sv": "Förhandla betalningsvillkor med grossist vid start."},
-    {"alternativ_sv": "Eget kapital / delägare",
-     "notis_sv": "Stärker låneförmågan och sänker återbetalningsrisken."},
+    {"alternativ_en": "Bank loan with a business mortgage",
+     "notis_en": "Most common for establishments with physical premises; "
+                 "normally requires 20–30% equity."},
+    {"alternativ_en": "Almi business loan",
+     "notis_en": "Complements bank financing at higher risk; higher "
+                 "interest but lower collateral requirements."},
+    {"alternativ_en": "Equipment leasing",
+     "notis_en": "Frees up startup capital – most common for machinery, "
+                 "coffee machines, lifts and dental equipment."},
+    {"alternativ_en": "Supplier credit",
+     "notis_en": "Negotiate payment terms with wholesalers at launch."},
+    {"alternativ_en": "Equity / co-owners",
+     "notis_en": "Strengthens borrowing capacity and lowers repayment "
+                 "risk."},
 ]
 
 
@@ -137,10 +143,10 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
                        resolver: Resolver | None = None) -> dict[str, Any]:
     """Konkret etableringsplan för vertikal + region. JSON-redo dict."""
     if vertical_id not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vertical_id}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vertical_id}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
     if team_size not in TEAM_PERSONS:
-        raise ValueError(f"Ogiltig team_size: {team_size}.")
+        raise ValueError(f"Invalid team_size: {team_size}.")
     mkt = get_market(market)
     kod, namn, lat, lon = get_region(market, kommun_kod)
     spec = PLAN_DATA[vertical_id]
@@ -155,11 +161,13 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
     skala = max(1.0, persons / 3.0)
     lokal_m2 = [int(m2_lo * skala), int(m2_hi * skala)]
     rent = report.signals.get("rent_index")
-    hyreslage = ("Hyresnivå över rikssnittet – förhandla hyrestrappa."
+    hyreslage = ("Rent level above the national average – negotiate a "
+                 "stepped rent."
                  if rent and rent["value"] > 110 else
-                 "Hyresnivå under rikssnittet – kostnadsläget är en fördel."
+                 "Rent level below the national average – the cost "
+                 "position is an advantage."
                  if rent and rent["value"] < 95 else
-                 "Hyresnivå kring rikssnittet.")
+                 "Rent level around the national average.")
 
     # Investering: startkapital + utrustning (schabloner).
     start_lo, start_hi = STARTUP_TKR[vertical_id]
@@ -171,14 +179,14 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
     for occ_id in spec.yrken:
         f = forecast(kod, 2031, [occ_id], resolver=resolver,
                      market=market)["prognoser"][0]
-        laget = (f"Brist på {f['brist']} till 2031 – räkna med lång "
-                 f"rekryteringstid och lönepress."
-                 if f["brist"] > 0 else "Balanserat rekryteringsläge.")
+        laget = (f"Shortage of {f['brist']} by 2031 – expect long "
+                 f"recruitment lead times and wage pressure."
+                 if f["brist"] > 0 else "Balanced recruitment market.")
         personal_yrken.append({"occupation_id": occ_id,
-                               "label_sv": OCCUPATIONS[occ_id].label_sv,
+                               "label_en": OCCUPATIONS[occ_id].label_en,
                                "medellon_tkr_manad":
                                    OCCUPATIONS[occ_id].salary_tkr_month,
-                               "rekryteringslage_sv": laget})
+                               "rekryteringslage_en": laget})
 
     # Ekonomi: scenario + återbetalningstid, endast kalibrerad marknad.
     if mkt.calibrated:
@@ -193,55 +201,61 @@ def establishment_plan(kommun_kod: str, vertical_id: str,
                    if res_lo > 0 else None)
         ekonomi = {
             "omsattningsscenario_tkr_ar": oms,
-            "budget_fit_sv": eko["budget_fit_sv"],
+            "budget_fit_en": eko["budget_fit_en"],
             "marginal_schablon_pct": [round(100 * m_lo), round(100 * m_hi)],
             "rorelseresultat_tkr_ar": [res_lo, res_hi],
             "aterbetalningstid_ar": payback,
-            "notis_sv": "Schablonkalkyl (branschriktvärden × platsens score) "
-                        "– räkneunderlag att utmana, ingen prognos.",
+            "notis_en": "Standard-estimate calculation (industry benchmarks "
+                        "× the location's score) – a working figure to "
+                        "challenge, not a forecast.",
         }
     else:
         ekonomi = {"status": "ej_kalibrerad",
-                   "notis_sv": f"Ekonomischabloner ej kalibrerade för "
-                               f"{mkt.label_sv} – redovisas inte."}
+                   "notis_en": f"Economic standard estimates are not "
+                               f"calibrated for {mkt.label_en} – "
+                               f"not reported."}
 
-    risker = [{"label_sv": d["label_sv"], "risk": d["risk"],
-               "band": d["band"], "atgard_sv": d["atgard_sv"]}
+    risker = [{"label_en": d["label_en"], "risk": d["risk"],
+               "band": d["band"], "atgard_en": d["atgard_en"]}
               for d in sorted(riskprofil["dimensioner"],
                               key=lambda d: -d["risk"])[:3]]
 
     return {
         "vertical_id": vertical_id,
-        "vertical_label_sv": VERTICALS[vertical_id].label_sv,
+        "vertical_label_en": VERTICALS[vertical_id].label_en,
         "kommun": namn, "kommun_kod": kod,
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "opportunity_score": report.opportunity_score,
         "risk_total": riskprofil["total_risk"],
-        "lokal": {"storlek_m2": lokal_m2, "hyreslage_sv": hyreslage},
+        "lokal": {"storlek_m2": lokal_m2, "hyreslage_en": hyreslage},
         "investering_tkr": {"startkapital": [start_lo, start_hi],
                             "utrustning": [utr_lo, utr_hi],
                             "totalt": [tot_lo, tot_hi],
-                            "notis_sv": "Branschschabloner – offertläge "
-                                        "avgör de verkliga beloppen."},
+                            "notis_en": "Industry standard estimates – "
+                                        "actual amounts depend on quotes."},
         "finansiering": _FINANSIERING_SV,
         "personal": {"antal": persons, "team_size": team_size,
                      "yrken": personal_yrken,
-                     "notis_sv": ("Rekryteringsläget kommer från "
-                                  "Workforce-motorns prognos till 2031."
+                     "notis_en": ("The recruitment outlook comes from the "
+                                  "Workforce engine's forecast to 2031."
                                   if personal_yrken else
-                                  "Rekryteringsläge för branschens yrken är "
-                                  "inte modellerat ännu.")},
-        "leverantorer_sv": list(spec.leverantorer_sv),
+                                  "The recruitment outlook for this "
+                                  "industry's occupations is not modeled "
+                                  "yet.")},
+        "leverantorer_en": list(spec.leverantorer_en),
         "ekonomi": ekonomi,
         "risker": risker,
-        "nasta_steg_sv": ["Platsbesök och lokalsökning", "Offert på utrustning",
-                          "Bankmöte med denna kalkyl som underlag",
-                          "Kontakt med kommunens näringslivskontor",
-                          "Registrering och tillstånd"],
-        "caveats_sv": [
-            "Planen är ett beslutsunderlag byggt på schabloner och platsens "
-            "signalbild – validera med offerter, platsbesök och egen kalkyl.",
-        ] + (["Delar av underlaget är simulerat – se data_coverage."]
+        "nasta_steg_en": ["Site visit and premises search",
+                          "Equipment quotes",
+                          "Bank meeting with this calculation as material",
+                          "Contact the municipality's business office",
+                          "Registration and permits"],
+        "caveats_en": [
+            "The plan is decision support built on standard estimates and "
+            "the location's signal picture – validate with quotes, site "
+            "visits and your own calculations.",
+        ] + (["Parts of the underlying data are simulated – see "
+              "data_coverage."]
              if report.data_coverage < 1.0 else []),
         "data_coverage": report.data_coverage,
     }

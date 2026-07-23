@@ -17,7 +17,7 @@ def test_catalog_is_valid_data():
         for sid, _ in o.drivers:
             assert sid in CATALOG, (o.id, sid)
     for c in occupation_catalog():
-        assert set(c) == {"id", "label_sv", "sector_sv",
+        assert set(c) == {"id", "label_en", "sector_en",
                           "medellon_tkr_manad", "automationsrisk_schablon"}
         assert 0.0 <= c["automationsrisk_schablon"] <= 1.0
 
@@ -35,9 +35,9 @@ def test_forecast_contract_and_honesty():
         assert f["antaganden"] and f["drivare"]        # transparens
         assert len(f["bana"]) == 2035 - BASE_YEAR
         assert f["bana"][-1]["gap"] == f["brist"]
-    assert res["caveats_sv"]                           # aldrig "absolut sanning"
+    assert res["caveats_en"]                           # aldrig "absolut sanning"
     prio = res["utbildningsprioriteringar"]
-    assert prio and all(p["motivering_sv"] for p in prio)
+    assert prio and all(p["motivering_en"] for p in prio)
     assert [p["rang"] for p in prio] == list(range(1, len(prio) + 1))
 
 
@@ -89,7 +89,7 @@ def test_national_map_bands():
     # Sorterad: störst brist först.
     brist = [k["brist"] for k in res["kommuner"]]
     assert brist == sorted(brist, reverse=True)
-    assert res["caveats_sv"]
+    assert res["caveats_en"]
 
 
 if __name__ == "__main__":

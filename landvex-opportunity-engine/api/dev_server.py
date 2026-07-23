@@ -56,7 +56,7 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               simulate as wf_simulate)
 
 from api.health import build_health, source_status
-from api.licensing import plans_catalog, upgrade_hint_sv
+from api.licensing import plans_catalog, upgrade_hint_en
 from api.security import AuthError, Gate
 
 GATE = Gate()
@@ -106,7 +106,7 @@ class Handler(BaseHTTPRequestHandler):
             self._principal = principal
             route()
         except AuthError as e:
-            self._send(e.status, {"error": e.message_sv})
+            self._send(e.status, {"error": e.message_en})
         finally:
             GATE.exit(principal, self._request_id or "-", method, path,
                       self._status, (time.monotonic() - t0) * 1000)
@@ -150,7 +150,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             return self._send(200, build_health(RESOLVER, STORE))
         if parsed.path == "/v1/verticals":
-            return self._send(200, [{"id": v.id, "label_sv": v.label_sv}
+            return self._send(200, [{"id": v.id, "label_en": v.label_en}
                                     for v in VERTICALS.values()])
         if parsed.path == "/v1/profile-options":
             return self._send(200, {**profile_options(),
@@ -177,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
                 for ix in kat:
                     if ix["niva"] == "live":
                         ix["last"] = True
-                        ix["las_notis_sv"] = upgrade_hint_sv(
+                        ix["las_notis_en"] = upgrade_hint_en(
                             "intelligence_map_live")
             return self._send(200, kat)
         if parsed.path == "/v1/indices/map":
@@ -185,8 +185,8 @@ class Handler(BaseHTTPRequestHandler):
             from engine.indices import INDEX_TYPES
             ix = INDEX_TYPES.get(q.get("index_id", [""])[0])
             if ix and ix.niva == "live" and self._live_locked():
-                return self._send(403, {"error": "Live-lager kräver "
-                                        "prenumeration. " + upgrade_hint_sv(
+                return self._send(403, {"error": "Live layers require a "
+                                        "subscription. " + upgrade_hint_en(
                                             "intelligence_map_live")})
             try:
                 return self._send(200, index_map(
@@ -234,32 +234,32 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/profiles":
             if STORE is None:
-                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
             try:
                 limit = int(parse_qs(parsed.query).get("limit", ["50"])[0])
             except ValueError:
-                return self._send(422, {"error": "limit måste vara ett heltal"})
+                return self._send(422, {"error": "limit must be an integer"})
             return self._send(200, STORE.list_profiles(min(max(limit, 1), 200)))
         if parsed.path.startswith("/v1/profiles/"):
             if STORE is None:
-                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
             doc = STORE.get_profile(parsed.path.rsplit("/", 1)[1])
             return self._send(200, doc) if doc is not None else \
-                self._send(404, {"error": "Okänd profil."})
+                self._send(404, {"error": "Unknown profile."})
         if parsed.path == "/v1/reports":
             if STORE is None:
-                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
             try:
                 limit = int(parse_qs(parsed.query).get("limit", ["20"])[0])
             except ValueError:
-                return self._send(422, {"error": "limit måste vara ett heltal"})
+                return self._send(422, {"error": "limit must be an integer"})
             return self._send(200, STORE.list_reports(min(max(limit, 1), 200)))
         if parsed.path.startswith("/v1/reports/"):
             if STORE is None:
-                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
             doc = STORE.get_report(parsed.path.rsplit("/", 1)[1])
             return self._send(200, doc) if doc is not None else \
-                self._send(404, {"error": "Okänt rapport-id."})
+                self._send(404, {"error": "Unknown report id."})
         self._send(404, {"error": "not found"})
 
     def _route_post(self):
@@ -276,7 +276,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, report)
             if self.path == "/v1/profiles":
                 if STORE is None:
-                    return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                    return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
@@ -291,10 +291,10 @@ class Handler(BaseHTTPRequestHandler):
                     for row in res["index"]:
                         if row["niva"] == "live":
                             row.update({"varde": None, "band": None,
-                                        "band_sv": None, "drivare": [],
+                                        "band_en": None, "drivare": [],
                                         "last": True,
-                                        "narrativ_sv": "Live-lager – kräver "
-                                        "prenumeration. " + upgrade_hint_sv(
+                                        "narrativ_en": "Live layer – requires "
+                                        "a subscription. " + upgrade_hint_en(
                                             "intelligence_map_live")})
                 return self._send(200, res)
             if self.path == "/v1/service/analyze":
@@ -343,12 +343,12 @@ class Handler(BaseHTTPRequestHandler):
                 raw = req.get("profile")
                 if raw is None and req.get("profile_id"):
                     if STORE is None:
-                        return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                        return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
                     raw = STORE.get_profile(req["profile_id"])
                     if raw is None:
-                        return self._send(404, {"error": "Okänd profil."})
+                        return self._send(404, {"error": "Unknown profile."})
                 if raw is None:
-                    return self._send(422, {"error": "Ange profile eller profile_id."})
+                    return self._send(422, {"error": "Provide profile or profile_id."})
                 p = profile_from_dict(raw)
                 top_n = min(max(int(req.get("top_n", 5)), 1), 20)
                 return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n,
@@ -363,7 +363,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main(port: int = 8000) -> None:
-    print(f"Opportunity Engine dev-server: http://localhost:{port}")
+    print(f"Opportunity Engine dev server: http://localhost:{port}")
     HTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
 

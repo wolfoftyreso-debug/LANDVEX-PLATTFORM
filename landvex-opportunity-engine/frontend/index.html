@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -144,90 +144,90 @@
     <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <h1>LANDVEX</h1><span id="undertitel">Landvex · Guiden frågar, motorerna svarar</span>
+  <h1>LANDVEX</h1><span id="undertitel">Landvex · The guide asks, the engines answer</span>
   <nav id="tabs">
     <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
-    <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Fråga</button>
-    <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Etablering</button>
-    <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Kompetens</button>
+    <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Ask</button>
+    <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Establish</button>
+    <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Workforce</button>
     <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
-    <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Paket</button>
-    <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Inställningar</button>
+    <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
+    <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
 </header>
 
 <div class="layout">
   <aside class="profil">
     <div id="vyGuide">
-      <h2 id="guideRubrik">Guiden</h2>
+      <h2 id="guideRubrik">Guide</h2>
       <div class="falt"><div id="guideProgress" class="motiv"></div></div>
       <div id="guideFraga" style="font-size:14px;font-weight:600;margin-bottom:10px"></div>
       <div id="guideSvar"></div>
       <div class="sim" style="margin-top:12px">
-        <button id="guideTillbaka" style="width:auto">‹ Tillbaka</button>
-        <button id="guideNasta" style="background:var(--accent);border:none;color:#fff;font-weight:600">Nästa ›</button>
+        <button id="guideTillbaka" style="width:auto">‹ Back</button>
+        <button id="guideNasta" style="background:var(--accent);border:none;color:#fff;font-weight:600">Next ›</button>
       </div>
       <div class="falt" style="margin-top:10px">
-        <button id="guideOm" class="chip exempel" style="border:1px solid var(--line)"><svg class="ikon"><use href="#i-om"/></svg> Börja om guiden</button>
+        <button id="guideOm" class="chip exempel" style="border:1px solid var(--line)"><svg class="ikon"><use href="#i-om"/></svg> Restart the guide</button>
       </div>
     </div>
     <div id="vyFraga" style="display:none">
-      <h2>Fråga Landvex</h2>
+      <h2>Ask Landvex</h2>
       <div class="falt">
-        <textarea id="fragaText" rows="3" placeholder="T.ex. Vilka är de fem största affärsmöjligheterna i Örebro just nu?"></textarea>
+        <textarea id="fragaText" rows="3" placeholder="E.g. What are the five biggest business opportunities in Örebro right now?"></textarea>
       </div>
-      <button id="fragaBtn">Fråga →</button>
-      <div class="falt" style="margin-top:12px"><label>Exempel</label>
+      <button id="fragaBtn">Ask →</button>
+      <div class="falt" style="margin-top:12px"><label>Examples</label>
         <div class="chips" id="exempelChips"></div>
       </div>
     </div>
     <div id="vyEtab" style="display:none">
-      <h2>Min affärsprofil</h2>
+      <h2>My business profile</h2>
       <div id="formular"></div>
-      <div class="falt"><label>Marknad</label><select id="marknadEtab"></select></div>
-      <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
-      <button id="analysera">Analysera marknaden</button>
+      <div class="falt"><label>Market</label><select id="marknadEtab"></select></div>
+      <div class="falt"><label>Analysis level</label><select id="niva"></select></div>
+      <button id="analysera">Analyze the market</button>
     </div>
     <div id="vyKomp" style="display:none">
-      <h2>Kompetensprognos</h2>
-      <div class="falt"><label>Yrke</label><select id="yrke"></select></div>
-      <div class="falt"><label>Marknad</label><select id="marknadKomp"></select></div>
-      <div class="falt"><label>Målår</label><select id="malar">
+      <h2>Workforce forecast</h2>
+      <div class="falt"><label>Occupation</label><select id="yrke"></select></div>
+      <div class="falt"><label>Market</label><select id="marknadKomp"></select></div>
+      <div class="falt"><label>Target year</label><select id="malar">
         <option>2028</option><option>2030</option><option>2032</option><option selected>2035</option><option>2038</option><option>2040</option><option>2045</option>
       </select></div>
-      <button id="prognostisera">Prognostisera marknaden</button>
+      <button id="prognostisera">Forecast the market</button>
     </div>
     <div id="vyIndex" style="display:none">
       <h2>Intelligence Map</h2>
       <div class="falt"><label>Index</label><select id="indexVal"></select></div>
-      <div class="falt"><label>Marknad</label><select id="marknadIndex"></select></div>
-      <button id="ritaIndex">Rita kartlager</button>
+      <div class="falt"><label>Market</label><select id="marknadIndex"></select></div>
+      <button id="ritaIndex">Draw map layer</button>
     </div>
     <div id="vyPaket" style="display:none">
-      <h2>Plattformsnivåer</h2>
-      <p class="motiv">Tre plannivåer och produktmoduler som tillägg –
-        API:t upprätthåller behörigheter, live-lager och anropstak per
-        paket automatiskt.</p>
+      <h2>Platform tiers</h2>
+      <p class="motiv">Three plan tiers plus product modules as add-ons –
+        the API enforces entitlements, live layers and rate limits per
+        plan automatically.</p>
     </div>
     <div id="vyInstall" style="display:none">
-      <h2>Inställningar</h2>
-      <div class="falt"><label title="Förvald marknad i guider och flikar">Standardmarknad</label>
+      <h2>Settings</h2>
+      <div class="falt"><label title="Default market in guides and tabs">Default market</label>
         <select id="instMarknad"></select></div>
-      <div class="falt"><label title="Förvalt målår för prognoser">Standardmålår</label>
+      <div class="falt"><label title="Default target year for forecasts">Default target year</label>
         <select id="instMalar"></select></div>
-      <div class="falt"><label title="Antal träffar i topplistor">Antal resultat (top-N)</label>
+      <div class="falt"><label title="Number of hits in top lists">Results (top-N)</label>
         <select id="instTopN"><option>3</option><option selected>5</option><option>8</option><option>10</option></select></div>
-      <div class="falt"><label title="X-API-Key mot ett skyddat live-API. Lämna tomt i öppet läge/demo">API-nyckel</label>
-        <input id="instNyckel" type="password" placeholder="valfritt" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line)"></div>
-      <button id="instSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Spara inställningar</button>
-      <div class="falt" style="margin-top:14px"><label>Om systemet</label>
-        <div id="omSystemet" class="motiv">Hämtar …</div></div>
+      <div class="falt"><label title="X-API-Key for a protected live API. Leave empty in open/demo mode">API key</label>
+        <input id="instNyckel" type="password" placeholder="optional" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line)"></div>
+      <button id="instSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Save settings</button>
+      <div class="falt" style="margin-top:14px"><label>About the system</label>
+        <div id="omSystemet" class="motiv">Loading …</div></div>
     </div>
-    <div class="status" id="status">Svara på frågorna – guiden kör analyserna åt dig.</div>
+    <div class="status" id="status">Answer the questions – the guide runs the analyses for you.</div>
   </aside>
 
   <main class="karta" id="kartyta">
-    <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Värmekarta Sverige">
+    <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Market heatmap">
       <defs>
         <radialGradient id="glodGron"><stop offset="0%" stop-color="#3ecf8e" stop-opacity=".5"/><stop offset="100%" stop-color="#3ecf8e" stop-opacity="0"/></radialGradient>
         <radialGradient id="glodGul"><stop offset="0%" stop-color="#f2c14e" stop-opacity=".5"/><stop offset="100%" stop-color="#f2c14e" stop-opacity="0"/></radialGradient>
@@ -238,28 +238,28 @@
       <g id="glod"></g><g id="prickar"></g>
     </svg>
     <div class="legend" id="legendEtab">
-      <div><i style="background:var(--gron)"></i>Score ≥ 70 · starka möjligheter</div>
-      <div><i style="background:var(--gul)"></i>45–69 · normalläge</div>
-      <div><i style="background:var(--rod)"></i>&lt; 45 · svagt underlag</div>
+      <div><i style="background:var(--gron)"></i>Score ≥ 70 · strong opportunities</div>
+      <div><i style="background:var(--gul)"></i>45–69 · normal conditions</div>
+      <div><i style="background:var(--rod)"></i>&lt; 45 · weak fundamentals</div>
     </div>
     <div class="legend" id="legendKomp" style="display:none">
-      <div><i style="background:var(--rod)"></i>Extrem efterfrågan</div>
-      <div><i style="background:var(--orange)"></i>Hög efterfrågan</div>
-      <div><i style="background:var(--gul)"></i>Växande efterfrågan</div>
-      <div><i style="background:var(--gron)"></i>Mättad marknad</div>
+      <div><i style="background:var(--rod)"></i>Extreme demand</div>
+      <div><i style="background:var(--orange)"></i>High demand</div>
+      <div><i style="background:var(--gul)"></i>Growing demand</div>
+      <div><i style="background:var(--gron)"></i>Saturated market</div>
     </div>
     <div class="legend" id="legendIndex" style="display:none">
-      <div><i style="background:var(--gron)"></i>Låg operativ risk</div>
-      <div><i style="background:var(--gul)"></i>Måttlig</div>
-      <div><i style="background:var(--orange)"></i>Förhöjd</div>
-      <div><i style="background:var(--rod)"></i>Hög risk</div>
+      <div><i style="background:var(--gron)"></i>Low operational risk</div>
+      <div><i style="background:var(--gul)"></i>Moderate</div>
+      <div><i style="background:var(--orange)"></i>Elevated</div>
+      <div><i style="background:var(--rod)"></i>High risk</div>
     </div>
     <div id="tooltip"></div>
   </main>
 
   <aside class="resultat">
-    <h2 id="resultatRubrik">Guiden</h2>
-    <div id="hotspots"><p class="motiv">Inga resultat ännu.</p></div>
+    <h2 id="resultatRubrik">Guide</h2>
+    <div id="hotspots"><p class="motiv">No results yet.</p></div>
     <div id="caveats"></div>
   </aside>
 </div>
@@ -287,8 +287,8 @@ const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)",
                rod: "url(#glodRod)", orange: "url(#glodOrange)" };
 // Opportunity Map: extrem (röd) · hög (orange) · växande (gul) · mättad (grön)
 const EFTERBAND = { extrem: "rod", hog: "orange", vaxande: "gul", mattad: "gron" };
-const EFTERTEXT = { extrem: "Extrem efterfrågan", hog: "Hög efterfrågan",
-                    vaxande: "Växande efterfrågan", mattad: "Mättad marknad" };
+const EFTERTEXT = { extrem: "Extreme demand", hog: "High demand",
+                    vaxande: "Growing demand", mattad: "Saturated market" };
 const $ = id => document.getElementById(id);
 const ikon = (n, kl) => `<svg class="ikon ${kl || ""}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
@@ -368,10 +368,10 @@ function laggPunkt(lat, lon, band, r, info, kommunKod, onClick) {
 }
 
 const FALT = [
-  ["vertical_id", "Bransch"], ["budget_band", "Budget"],
-  ["team_size", "Antal anställda"], ["business_model", "Affärsmodell"],
-  ["risk_tolerance", "Risknivå"], ["horizon_years", "Investeringshorisont"],
-  ["goal", "Målsättning"],
+  ["vertical_id", "Industry"], ["budget_band", "Budget"],
+  ["team_size", "Employees"], ["business_model", "Business model"],
+  ["risk_tolerance", "Risk tolerance"], ["horizon_years", "Investment horizon"],
+  ["goal", "Goal"],
 ];
 let OPTIONS = null, valdMiljo = new Set(), senasteScan = null;
 
@@ -398,18 +398,18 @@ function byggFormular() {
     const sel = document.createElement("select");
     sel.id = "f_" + key;
     for (const o of OPTIONS[key])
-      sel.add(new Option(o.label_sv, JSON.stringify(o.id)));
+      sel.add(new Option(o.label_en, JSON.stringify(o.id)));
     d.appendChild(sel);
     form.appendChild(d);
   }
   const d = document.createElement("div");
   d.className = "falt";
-  d.innerHTML = "<label>Miljötyp (tomt = alla)</label>";
+  d.innerHTML = "<label>Environment type (empty = all)</label>";
   const chips = document.createElement("div");
   chips.className = "chips";
   for (const o of OPTIONS.environments) {
     const c = document.createElement("span");
-    c.className = "chip"; c.textContent = o.label_sv;
+    c.className = "chip"; c.textContent = o.label_en;
     c.onclick = () => {
       valdMiljo.has(o.id) ? valdMiljo.delete(o.id) : valdMiljo.add(o.id);
       c.classList.toggle("on");
@@ -418,7 +418,7 @@ function byggFormular() {
   }
   d.appendChild(chips); form.appendChild(d);
   for (const o of OPTIONS.scan_levels || [])
-    $("niva").add(new Option(o.label_sv, o.id));
+    $("niva").add(new Option(o.label_en, o.id));
 }
 
 function lasProfil() {
@@ -466,7 +466,7 @@ function ritaHotspots(res) {
   const wrap = $("hotspots");
   wrap.innerHTML = "";
   if (!res.hotspots.length) {
-    wrap.innerHTML = "<p class='motiv'>Inga platser matchade filtren.</p>";
+    wrap.innerHTML = "<p class='motiv'>No locations matched the filters.</p>";
   }
   for (const h of res.hotspots) {
     const div = document.createElement("div");
@@ -474,138 +474,138 @@ function ritaHotspots(res) {
     const m = h.market_momentum, eko = h.economy_scenario;
     div.innerHTML = `
       <div class="rubrik">
-        <span class="plats">${ikon("pin")} ${esc(h.lage_sv)} <small style="color:var(--muted)">#${h.rank}</small></span>
+        <span class="plats">${ikon("pin")} ${esc(h.lage_en)} <small style="color:var(--muted)">#${h.rank}</small></span>
         <span class="score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</span>
       </div>
       <div class="metrik">
         <div><b>${h.confidence}</b><span>Confidence</span></div>
-        <div><b>${h.risk_index}</b><span>Riskindex (${esc(h.risk_level)})</span></div>
+        <div><b>${h.risk_index}</b><span>Risk index (${esc(h.risk_level)})</span></div>
         <div><b>${m.value}</b><span>Momentum</span></div>
-        <div><b>${h.competition_gap.ratio ?? "–"}</b><span>Utbudsgap</span></div>
-        <div><b>~${h.time_window_months} mån</b><span>Tidsfönster</span></div>
-        <div><b>${h.rank_score}</b><span>Rank (din profil)</span></div>
+        <div><b>${h.competition_gap.ratio ?? "–"}</b><span>Supply gap</span></div>
+        <div><b>~${h.time_window_months} mo</b><span>Time window</span></div>
+        <div><b>${h.rank_score}</b><span>Rank (your profile)</span></div>
       </div>
-      ${h.motivering_sv.slice(0, 2).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
+      ${h.motivering_en.slice(0, 2).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
       <div class="detalj">
-        <h4>Vad ligger bakom?</h4>
+        <h4>What's behind this?</h4>
         ${h.drivers.map(d => `<div class="driver">
-            <span>${ikon(d.direction === "driver" ? "upp" : "ned", d.direction === "driver" ? "pos" : "neg")} ${esc(d.label_sv)}</span>
+            <span>${ikon(d.direction === "driver" ? "upp" : "ned", d.direction === "driver" ? "pos" : "neg")} ${esc(d.label_en)}</span>
             <span class="${d.direction === "driver" ? "pos" : "neg"}">${esc(d.value)} ${esc(d.unit)}</span>
           </div>`).join("")}
-        <h4>Ekonomi – schablonscenario</h4>
+        <h4>Economics – standard scenario</h4>
         ${eko.status === "ej_kalibrerad"
-          ? `<p class="roi-notis">${esc(eko.notis_sv)}</p>`
-          : `<p class="motiv">Omsättningsscenario: <b>${eko.omsattningsscenario_tkr_ar} tkr/år</b> ·
-               Startkapital typiskt ${eko.startkapital_typiskt_tkr[0]}–${eko.startkapital_typiskt_tkr[1]} tkr</p>
-             <p class="motiv">${esc(eko.budget_fit_sv)}</p>
-             <p class="roi-notis">${esc(eko.notis_sv)}</p>`}
-        <p class="roi-notis">Förväntad ROI: ${esc(h.expected_roi.notis_sv)}</p>
-        <h4>Nästa steg</h4>
-        <div class="steg">${h.next_steps_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>
-        <h4>Riskprofil</h4>
-        <div class="sim"><button class="riskBtn">Visa riskprofil →</button></div>
+          ? `<p class="roi-notis">${esc(eko.notis_en)}</p>`
+          : `<p class="motiv">Revenue scenario: <b>${eko.omsattningsscenario_tkr_ar} kSEK/yr</b> ·
+               Start-up capital typically ${eko.startkapital_typiskt_tkr[0]}–${eko.startkapital_typiskt_tkr[1]} kSEK</p>
+             <p class="motiv">${esc(eko.budget_fit_en)}</p>
+             <p class="roi-notis">${esc(eko.notis_en)}</p>`}
+        <p class="roi-notis">Expected ROI: ${esc(h.expected_roi.notis_en)}</p>
+        <h4>Next steps</h4>
+        <div class="steg">${h.next_steps_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>
+        <h4>Risk profile</h4>
+        <div class="sim"><button class="riskBtn">Show risk profile →</button></div>
         <div class="riskUt"></div>
-        <h4>Från analys till handling</h4>
-        <div class="sim"><button class="planBtn">Skapa etableringsplan →</button></div>
+        <h4>From analysis to action</h4>
+        <div class="sim"><button class="planBtn">Create establishment plan →</button></div>
         <div class="planUt"></div>
       </div>`;
     div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
     div.querySelector(".riskBtn").onclick = async (e) => {
       e.stopPropagation();
       const ut = div.querySelector(".riskUt");
-      ut.innerHTML = "<p class='motiv'>Beräknar …</p>";
+      ut.innerHTML = "<p class='motiv'>Computing …</p>";
       try {
         const rp = await api("/v1/risk", {
-          lat: h.lat, lon: h.lon, address: h.lage_sv,
+          lat: h.lat, lon: h.lon, address: h.lage_en,
           vertical: senasteScan.profile.vertical_id });
-        ut.innerHTML = `<p class="motiv"><b>${esc(rp.narrativ_sv)}</b></p>` +
+        ut.innerHTML = `<p class="motiv"><b>${esc(rp.narrativ_en)}</b></p>` +
           rp.dimensioner.map(d => `<div class="driver">
-            <span>${esc(d.label_sv)}${d.atgard_sv ? " " + ikon("varning", "varn") : ""}</span>
+            <span>${esc(d.label_en)}${d.atgard_en ? " " + ikon("varning", "varn") : ""}</span>
             <span class="${d.risk >= 60 ? "neg" : "pos"}">${Math.round(d.risk)} · ${esc(d.band)}</span>
           </div>`).join("") +
-          rp.dimensioner.filter(d => d.atgard_sv).map(d =>
-            `<p class="roi-notis">${ikon("varning", "varn")} ${esc(d.label_sv)}: ${esc(d.atgard_sv)}</p>`).join("");
-      } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
+          rp.dimensioner.filter(d => d.atgard_en).map(d =>
+            `<p class="roi-notis">${ikon("varning", "varn")} ${esc(d.label_en)}: ${esc(d.atgard_en)}</p>`).join("");
+      } catch (err) { ut.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`; }
     };
     div.querySelector(".planBtn").onclick = async (e) => {
       e.stopPropagation();
       const ut = div.querySelector(".planUt");
-      ut.innerHTML = "<p class='motiv'>Bygger plan …</p>";
+      ut.innerHTML = "<p class='motiv'>Building plan …</p>";
       try {
         const p = await api("/v1/plan", {
           kommun_kod: h.kommun_kod, vertical: senasteScan.profile.vertical_id,
           market: senasteScan.market || "se" });
         ut.innerHTML = planHTML(p);
-      } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
+      } catch (err) { ut.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`; }
     };
     wrap.appendChild(div);
   }
-  $("caveats").innerHTML = (res.caveats_sv || [])
+  $("caveats").innerHTML = (res.caveats_en || [])
     .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
 }
 
 function planHTML(p) {
   const inv = p.investering_tkr, eko = p.ekonomi;
   return `
-          <div class="driver"><span>Lokal</span><span>${p.lokal.storlek_m2[0]}–${p.lokal.storlek_m2[1]} m²</span></div>
-          <p class="motiv">${esc(p.lokal.hyreslage_sv)}</p>
-          <div class="driver"><span>Startkapital</span><span>${inv.startkapital[0]}–${inv.startkapital[1]} tkr</span></div>
-          <div class="driver"><span>Utrustning</span><span>${inv.utrustning[0]}–${inv.utrustning[1]} tkr</span></div>
-          <div class="driver"><span><b>Total investering</b></span><span><b>${inv.totalt[0]}–${inv.totalt[1]} tkr</b></span></div>
+          <div class="driver"><span>Premises</span><span>${p.lokal.storlek_m2[0]}–${p.lokal.storlek_m2[1]} m²</span></div>
+          <p class="motiv">${esc(p.lokal.hyreslage_en)}</p>
+          <div class="driver"><span>Start-up capital</span><span>${inv.startkapital[0]}–${inv.startkapital[1]} kSEK</span></div>
+          <div class="driver"><span>Equipment</span><span>${inv.utrustning[0]}–${inv.utrustning[1]} kSEK</span></div>
+          <div class="driver"><span><b>Total investment</b></span><span><b>${inv.totalt[0]}–${inv.totalt[1]} kSEK</b></span></div>
           ${eko.status === "ej_kalibrerad"
-            ? `<p class="roi-notis">${esc(eko.notis_sv)}</p>`
-            : `<div class="driver"><span>Omsättningsscenario</span><span>${eko.omsattningsscenario_tkr_ar} tkr/år</span></div>
-               <div class="driver"><span>Rörelseresultat (schablon)</span><span>${eko.rorelseresultat_tkr_ar[0]}–${eko.rorelseresultat_tkr_ar[1]} tkr/år</span></div>
-               <div class="driver"><span>Återbetalningstid</span><span>${eko.aterbetalningstid_ar ? eko.aterbetalningstid_ar[0] + "–" + eko.aterbetalningstid_ar[1] + " år" : "ej beräkningsbar"}</span></div>
-               <p class="roi-notis">${esc(eko.notis_sv)}</p>`}
-          ${p.personal.yrken.map(y => `<p class="motiv"><b>${esc(y.label_sv)}</b> (${y.medellon_tkr_manad} tkr/mån): ${esc(y.rekryteringslage_sv)}</p>`).join("")}
-          <p class="motiv">${esc(p.personal.notis_sv)}</p>
-          <p class="motiv"><b>Finansiering:</b> ${p.finansiering.map(f => esc(f.alternativ_sv)).join(" · ")}</p>
-          <p class="motiv"><b>Leverantörer:</b> ${p.leverantorer_sv.map(esc).join(" · ")}</p>
-          ${p.risker.map(r => `<p class="roi-notis">${ikon("varning", "varn")} ${esc(r.label_sv)} ${Math.round(r.risk)}/100${r.atgard_sv ? " – " + esc(r.atgard_sv) : ""}</p>`).join("")}
-          <div class="steg">${p.nasta_steg_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
+            ? `<p class="roi-notis">${esc(eko.notis_en)}</p>`
+            : `<div class="driver"><span>Revenue scenario</span><span>${eko.omsattningsscenario_tkr_ar} kSEK/yr</span></div>
+               <div class="driver"><span>Operating margin (standard estimate)</span><span>${eko.rorelseresultat_tkr_ar[0]}–${eko.rorelseresultat_tkr_ar[1]} kSEK/yr</span></div>
+               <div class="driver"><span>Payback period</span><span>${eko.aterbetalningstid_ar ? eko.aterbetalningstid_ar[0] + "–" + eko.aterbetalningstid_ar[1] + " yrs" : "not computable"}</span></div>
+               <p class="roi-notis">${esc(eko.notis_en)}</p>`}
+          ${p.personal.yrken.map(y => `<p class="motiv"><b>${esc(y.label_en)}</b> (${y.medellon_tkr_manad} kSEK/mo): ${esc(y.rekryteringslage_en)}</p>`).join("")}
+          <p class="motiv">${esc(p.personal.notis_en)}</p>
+          <p class="motiv"><b>Financing:</b> ${p.finansiering.map(f => esc(f.alternativ_en)).join(" · ")}</p>
+          <p class="motiv"><b>Suppliers:</b> ${p.leverantorer_en.map(esc).join(" · ")}</p>
+          ${p.risker.map(r => `<p class="roi-notis">${ikon("varning", "varn")} ${esc(r.label_en)} ${Math.round(r.risk)}/100${r.atgard_en ? " – " + esc(r.atgard_en) : ""}</p>`).join("")}
+          <div class="steg">${p.nasta_steg_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
 }
 
 $("analysera").onclick = async () => {
   const btn = $("analysera"), st = $("status");
   btn.disabled = true;
-  st.textContent = "Analyserar Sverige …";
+  st.textContent = "Scanning the market …";
   try {
     const res = await api("/v1/scan", { profile: lasProfil(), top_n: 5,
                                         level: $("niva").value,
                                         market: $("marknadEtab").value });
     senasteScan = res;
     ritaKarta(res); ritaHotspots(res);
-    st.textContent = `${res.candidates_scanned} punkter i ${res.kommuner_scanned} kommuner analyserade` +
-      ` · datatäckning ${Math.round(100 * Math.max(0, ...res.hotspots.map(h => h.data_coverage), 0))} % verkliga källor.`;
+    st.textContent = `${res.candidates_scanned} points across ${res.kommuner_scanned} municipalities analyzed` +
+      ` · data coverage ${Math.round(100 * Math.max(0, ...res.hotspots.map(h => h.data_coverage), 0))} % real sources.`;
   } catch (e) {
-    st.textContent = "Fel: " + e.message;
+    st.textContent = "Error: " + e.message;
   } finally { btn.disabled = false; }
 };
 
 // ── Kompetensläget (Workforce Intelligence) ─────────────────────────
 const KOMPFARG = { balans: "var(--gron)", okande_brist: "var(--gul)",
                    kritisk_brist: "var(--rod)" };
-const BANDTEXT = { balans: "God balans", okande_brist: "Ökande brist",
-                   kritisk_brist: "Kritisk brist" };
+const BANDTEXT = { balans: "Good balance", okande_brist: "Growing shortage",
+                   kritisk_brist: "Critical shortage" };
 let MODE = "guide", senasteKarta = null;
 
 const LAGEN = {
-  fraga: { rubrik: "Svar", titel: "Fråga Landvex · Vad vill du veta?",
-           status: "Ställ en fråga – svaret byggs av Landvex motorer." },
-  etab: { rubrik: "Hotspots", titel: "Opportunity Engine · Analysera marknaden",
-          status: "Bygg din profil och klicka på Analysera marknaden." },
-  komp: { rubrik: "Störst brist", titel: "Workforce Intelligence · Kompetensprognos",
-          status: "Välj yrke, marknad och målår." },
-  index: { rubrik: "Städer", titel: "Intelligence Map · Sourced & traceable",
-           status: "Välj index och marknad, rita kartlagret. Klicka en stad " +
-                   "för full bedömning." },
-  paket: { rubrik: "Paket & priser", titel: "Landvex · Planer och produkter",
-           status: "Listpriser – konfigureras per avtal och marknad." },
-  guide: { rubrik: "Guiden", titel: "Landvex · Guiden frågar, motorerna svarar",
-           status: "Svara på frågorna – guiden kör analyserna åt dig." },
-  install: { rubrik: "System", titel: "Landvex · Inställningar",
-             status: "Standardval sparas lokalt i din webbläsare." },
+  fraga: { rubrik: "Answers", titel: "Ask Landvex · What do you want to know?",
+           status: "Ask a question – the answer is built by the Landvex engines." },
+  etab: { rubrik: "Hotspots", titel: "Opportunity Engine · Analyze the market",
+          status: "Build your profile and click Analyze the market." },
+  komp: { rubrik: "Largest shortage", titel: "Workforce Intelligence · Workforce forecast",
+          status: "Choose occupation, market and target year." },
+  index: { rubrik: "Cities", titel: "Intelligence Map · Sourced & traceable",
+           status: "Choose index and market, draw the map layer. Click a city " +
+                   "for a full assessment." },
+  paket: { rubrik: "Plans & pricing", titel: "Landvex · Plans and products",
+           status: "List prices – configured per contract and market." },
+  guide: { rubrik: "Guide", titel: "Landvex · The guide asks, the engines answer",
+           status: "Answer the questions – the guide runs the analyses for you." },
+  install: { rubrik: "System", titel: "Landvex · Settings",
+             status: "Defaults are saved locally in your browser." },
 };
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
@@ -627,7 +627,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("resultatRubrik").textContent = LAGEN[MODE].rubrik;
   $("undertitel").textContent = LAGEN[MODE].titel;
   tomKarta(); $("hotspots").innerHTML =
-    "<p class='motiv'>Inga resultat ännu.</p>"; $("caveats").innerHTML = "";
+    "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
 });
 
@@ -637,7 +637,7 @@ function ritaKompKarta(res) {
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   for (const k of res.kommuner) {
     laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
-      `${k.kommun} — brist ${k.brist} (${EFTERTEXT[k.efterfragan].toLowerCase()})`,
+      `${k.kommun} — shortage ${k.brist} (${EFTERTEXT[k.efterfragan].toLowerCase()})`,
       k.kommun_kod, () => visaKompKommun(k.kommun_kod, k.kommun));
   }
 }
@@ -655,13 +655,13 @@ function ritaKompLista(res) {
         <span class="plats">${ikon("pin")} ${esc(k.kommun)}${k.trend ? ` <small style="color:var(--muted)">· ${esc(k.trend)}</small>` : ""}</span>
         <span class="score ${bandKl}">${k.brist}</span>
       </div>
-      <p class="motiv">${EFTERTEXT[k.efterfragan]} · behov ${k.behov_prognos} till
-        ${res.malar} · konfidens ${k.konfidens} (heuristik)</p>
-      <div class="detalj"><p class="motiv">Hämtar detaljer …</p></div>`;
+      <p class="motiv">${EFTERTEXT[k.efterfragan]} · need ${k.behov_prognos} by
+        ${res.malar} · confidence ${k.konfidens} (heuristic)</p>
+      <div class="detalj"><p class="motiv">Loading details …</p></div>`;
     div.onclick = () => visaKompKommun(k.kommun_kod, k.kommun);
     wrap.appendChild(div);
   }
-  $("caveats").innerHTML = res.caveats_sv
+  $("caveats").innerHTML = res.caveats_en
     .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
 }
 
@@ -678,32 +678,32 @@ async function visaKompKommun(kod, namn) {
         market: $("marknadKomp").value });
     const f = res.prognoser[0];
     detalj.innerHTML = `
-      <h4>Kompetensprognos ${ar} · ${esc(f.label_sv)}</h4>
+      <h4>Workforce forecast ${ar} · ${esc(f.label_en)}</h4>
       <div class="metrik">
-        <div><b>${f.behov_nu}</b><span>Behov nu</span></div>
-        <div><b>${f.behov_prognos}</b><span>Behov ${ar}</span></div>
-        <div><b>${f.brist}</b><span>Brist</span></div>
+        <div><b>${f.behov_nu}</b><span>Need now</span></div>
+        <div><b>${f.behov_prognos}</b><span>Need ${ar}</span></div>
+        <div><b>${f.brist}</b><span>Shortage</span></div>
       </div>
-      <p class="intervall">Intervall ${f.intervall[0]}–${f.intervall[1]} ·
-        konfidens ${f.konfidens} (heuristik) ·
-        efterfrågetakt ${f.efterfragetakt_pct_ar} %/år ·
-        pensionsavgångar ${f.pensionsavgangar}</p>
-      ${f.milstolpar ? `<p class="intervall">Gap på 1/3/5/10/20 års sikt: ` +
+      <p class="intervall">Range ${f.intervall[0]}–${f.intervall[1]} ·
+        confidence ${f.konfidens} (heuristic) ·
+        demand growth ${f.efterfragetakt_pct_ar} %/yr ·
+        retirements ${f.pensionsavgangar}</p>
+      ${f.milstolpar ? `<p class="intervall">Gap at 1/3/5/10/20-year horizons: ` +
         f.milstolpar.map(m => `${m.gap} <small>(${m.ar})</small>`).join(" · ") +
         `</p>` : ""}
-      <h4>Antaganden</h4>
-      ${f.antaganden.map(a => `<p class="motiv"><b>${esc(a.antagande_sv)}:</b>
-        ${esc(a.varde_sv)}</p>`).join("")}
-      <h4>Drivkrafter</h4>
+      <h4>Assumptions</h4>
+      ${f.antaganden.map(a => `<p class="motiv"><b>${esc(a.antagande_en)}:</b>
+        ${esc(a.varde_en)}</p>`).join("")}
+      <h4>Drivers</h4>
       ${f.drivare.map(d => `<div class="driver">
-        <span>${esc(d.label_sv)} (${esc(d.kalla)})</span>
+        <span>${esc(d.label_en)} (${esc(d.kalla)})</span>
         <span class="${d.bidrag_pct_ar >= 0 ? "pos" : "neg"}">
-          ${d.bidrag_pct_ar >= 0 ? "+" : ""}${d.bidrag_pct_ar} %/år</span>
+          ${d.bidrag_pct_ar >= 0 ? "+" : ""}${d.bidrag_pct_ar} %/yr</span>
       </div>`).join("")}
-      <h4>Simulera utbildning</h4>
+      <h4>Simulate training</h4>
       <div class="sim">
         <input type="number" min="0" value="30" id="simN_${kod}">
-        <button id="simBtn_${kod}">platser/år →</button>
+        <button id="simBtn_${kod}">places/yr →</button>
       </div>
       <p class="motiv" id="simUt_${kod}"></p>`;
     $("simBtn_" + kod).onclick = async (e) => {
@@ -714,20 +714,20 @@ async function visaKompKommun(kod, namn) {
           extra_places_per_year: n, target_year: ar,
           market: $("marknadKomp").value });
       $("simUt_" + kod).innerHTML =
-        `Med <b>${n}</b> extra platser/år: brist ${s.brist_utan_atgard} → ` +
+        `With <b>${n}</b> extra training places/yr: shortage ${s.brist_utan_atgard} → ` +
         `<b>${s.brist_med_atgard}</b> (−${s.minskning})` +
-        (s.balansar ? ` · balans nås ${s.balansar}` : ` · balans nås ej före ${ar}`);
+        (s.balansar ? ` · balance reached ${s.balansar}` : ` · balance not reached before ${ar}`);
     };
     detalj.querySelector(".sim input").onclick = e => e.stopPropagation();
   } catch (err) {
-    detalj.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`;
+    detalj.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`;
   }
 }
 
 $("prognostisera").onclick = async () => {
   const btn = $("prognostisera"), st = $("status");
   btn.disabled = true;
-  st.textContent = "Prognostiserar Sverige …";
+  st.textContent = "Forecasting the market …";
   try {
     const res = await api(`/v1/workforce/map?occupation_id=${$("yrke").value}` +
                           `&target_year=${$("malar").value}` +
@@ -735,23 +735,21 @@ $("prognostisera").onclick = async () => {
     senasteKarta = res;
     ritaKompKarta(res); ritaKompLista(res);
     const kritiska = res.kommuner.filter(k => k.band === "kritisk_brist").length;
-    st.textContent = `${res.kommuner.length} kommuner prognostiserade · ` +
-      `${kritiska} med kritisk brist på ${res.label_sv.toLowerCase()}.`;
+    st.textContent = `${res.kommuner.length} municipalities forecast · ` +
+      `${kritiska} with a critical shortage of ${res.label_en.toLowerCase()}.`;
   } catch (e) {
-    st.textContent = "Fel: " + e.message;
+    st.textContent = "Error: " + e.message;
   } finally { btn.disabled = false; }
 };
 
 // ── Fråga Landvex ────────────────────────────────────────────────────
 const EXEMPEL = [
-  "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
-  "Vilken region har flest värmepumpar som närmar sig utbytesålder?",
-  "Var är det bäst att starta ett företag som servar laddboxar?",
-  "Hur ser servicebehovet ut i Umeå?",
-  "Var i Sverige finns flest djurägare?",
-  "Var finns störst obalans för bilverkstäder?",
-  "Gör en etableringsplan för bilverkstad i Skellefteå.",
-  "Hur riskabelt är det att starta gym i Solna?",
+  "What are the five biggest business opportunities in Örebro right now?",
+  "Where in Europe is the shortage of electricians greatest?",
+  "Which US state will need the most nurses over the next ten years?",
+  "Where should I open a café?",
+  "Where is the imbalance greatest for car repair shops?",
+  "Which region has the most heat pumps approaching replacement age?",
 ];
 
 function nyckelRad(k, v) {
@@ -762,20 +760,20 @@ function nyckelRad(k, v) {
 }
 
 const DETALJNAMN = {
-  behov_nu: "Behov nu", behov_prognos: "Behov vid målåret",
-  intervall: "Konfidensintervall", konfidens: "Konfidens (heuristik)",
-  pensionsavgangar: "Pensionsavgångar till målåret",
-  medellon_tkr_manad: "Medellön tkr/mån (schablon)",
-  automationsrisk_schablon: "Automationsrisk 0–1 (schablon)",
-  risk_total: "Samlad risk", risk_band: "Riskband",
-  confidence: "Confidence", risk_index: "Riskindex",
-  time_window_months: "Tidsfönster (mån)", data_coverage: "Datatäckning",
-  band: "Band", narrativ_sv: "Narrativ", atgard_sv: "Åtgärd",
+  behov_nu: "Need now", behov_prognos: "Need at target year",
+  intervall: "Confidence interval", konfidens: "Confidence (heuristic)",
+  pensionsavgangar: "Retirements by target year",
+  medellon_tkr_manad: "Average salary kSEK/mo (standard estimate)",
+  automationsrisk_schablon: "Automation risk 0–1 (standard estimate)",
+  risk_total: "Overall risk", risk_band: "Risk band",
+  confidence: "Confidence", risk_index: "Risk index",
+  time_window_months: "Time window (mo)", data_coverage: "Data coverage",
+  band: "Band", narrativ_en: "Narrative", atgard_en: "Action",
 };
 
 function ritaSvar(res) {
   const wrap = $("hotspots");
-  wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.svar_sv || "")}</b></p>`;
+  wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.svar_en || "")}</b></p>`;
   for (const rad of res.rader || []) {
     const div = document.createElement("div");
     div.className = "kort";
@@ -786,29 +784,29 @@ function ritaSvar(res) {
     const d = rad.detalj || {};
     div.innerHTML = `
       <div class="rubrik">
-        <span class="plats">${esc(rad.label_sv)}${rad.trend ? ` <small style="color:var(--muted)">· ${esc(rad.trend)}</small>` : ""}</span>
+        <span class="plats">${esc(rad.label_en)}${rad.trend ? ` <small style="color:var(--muted)">· ${esc(rad.trend)}</small>` : ""}</span>
         <span class="score ${scoreKl}">${Math.round(rad.score)}</span>
       </div>
-      ${rad.efterfragan ? `<p class="motiv">${EFTERTEXT[rad.efterfragan]}${"brist" in rad ? ` · brist ${rad.brist}` : ""}</p>` : ""}
+      ${rad.efterfragan ? `<p class="motiv">${EFTERTEXT[rad.efterfragan]}${"brist" in rad ? ` · shortage ${rad.brist}` : ""}</p>` : ""}
       <div class="detalj">
         ${Object.entries(d).map(([k, v]) => nyckelRad(DETALJNAMN[k] || k, v)).join("")}
-        ${(d.faktorer || []).map(f => `<div class="driver"><span>${esc(f.label_sv)}</span><span>${Math.round(f.score)}</span></div>`).join("")}
-        ${(d.motivering_sv || d.insikter_sv || []).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
-        ${(d.drivare || []).map(x => `<div class="driver"><span>${esc(x.label_sv)} (${esc(x.kalla)})</span><span>${x.bidrag_pct_ar >= 0 ? "+" : ""}${x.bidrag_pct_ar} %/år</span></div>`).join("")}
-        ${(d.antaganden || []).map(a => `<p class="roi-notis">${esc(a.antagande_sv)}: ${esc(a.varde_sv)}</p>`).join("")}
-        ${d.ekonomi_schablon ? `<p class="motiv">Omsättningsscenario ${d.ekonomi_schablon.omsattningsscenario_tkr_ar} tkr/år · ${esc(d.ekonomi_schablon.budget_fit_sv)}</p><p class="roi-notis">${esc(d.ekonomi_schablon.notis_sv)}</p>` : ""}
+        ${(d.faktorer || []).map(f => `<div class="driver"><span>${esc(f.label_en)}</span><span>${Math.round(f.score)}</span></div>`).join("")}
+        ${(d.motivering_en || d.insikter_en || []).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
+        ${(d.drivare || []).map(x => `<div class="driver"><span>${esc(x.label_en)} (${esc(x.kalla)})</span><span>${x.bidrag_pct_ar >= 0 ? "+" : ""}${x.bidrag_pct_ar} %/yr</span></div>`).join("")}
+        ${(d.antaganden || []).map(a => `<p class="roi-notis">${esc(a.antagande_en)}: ${esc(a.varde_en)}</p>`).join("")}
+        ${d.ekonomi_schablon ? `<p class="motiv">Revenue scenario ${d.ekonomi_schablon.omsattningsscenario_tkr_ar} kSEK/yr · ${esc(d.ekonomi_schablon.budget_fit_en)}</p><p class="roi-notis">${esc(d.ekonomi_schablon.notis_en)}</p>` : ""}
       </div>`;
     div.onclick = () => { div.classList.toggle("open");
                           if (rad.id) valjKommun(rad.id); };
     wrap.appendChild(div);
   }
-  const forslag = (res.forslag_sv || []).map(f =>
+  const forslag = (res.forslag_en || []).map(f =>
     `<span class="chip exempel" style="cursor:pointer">${esc(f)}</span>`).join("");
   if (forslag) wrap.insertAdjacentHTML("beforeend",
-    `<h2 style="margin-top:14px">Följdfrågor</h2><div class="chips">${forslag}</div>`);
+    `<h2 style="margin-top:14px">Follow-up questions</h2><div class="chips">${forslag}</div>`);
   wrap.querySelectorAll(".chip.exempel").forEach(c =>
     c.onclick = () => { $("fragaText").value = c.textContent; stallFraga(); });
-  $("caveats").innerHTML = (res.caveats_sv || [])
+  $("caveats").innerHTML = (res.caveats_en || [])
     .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
 
   tomKarta();
@@ -818,7 +816,7 @@ function ritaSvar(res) {
   if (karta && karta.typ === "efterfragan") {
     for (const k of karta.kommuner)
       laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
-        `${k.kommun} — ${EFTERTEXT[k.efterfragan].toLowerCase()}, brist ${k.brist}`,
+        `${k.kommun} — ${EFTERTEXT[k.efterfragan].toLowerCase()}, shortage ${k.brist}`,
         k.kommun_kod, () => valjKommun(k.kommun_kod));
   } else if (karta && karta.typ === "heatmap") {
     const nycklar = new Set(karta.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
@@ -835,14 +833,31 @@ async function stallFraga() {
   if (!q) return;
   const btn = $("fragaBtn"), st = $("status");
   btn.disabled = true;
-  st.textContent = "Landvex motorer arbetar …";
+  st.textContent = "The Landvex engines are working …";
   try {
     const res = await api("/v1/ask", { question: q });
     ritaSvar(res);
-    st.textContent = `Tolkad som: ${res.intent.replace(/_/g, " ")}` +
-      (res.malar && res.intent !== "hjalp" ? ` · målår ${res.malar}` : "");
+    const INTENT_EN = {
+      mojligheter_kommun: "top opportunities in a municipality",
+      basta_lage_vertikal: "best locations for an industry",
+      bristyrken_kommun: "occupations in shortage locally",
+      nationell_brist: "national shortage map",
+      global_brist: "cross-country shortage ranking",
+      land_ranking: "country ranking for an occupation",
+      riskprofil: "risk profile",
+      etableringsplan: "establishment plan",
+      gap_analys: "imbalance analysis",
+      segment_karta: "target-group map",
+      malgrupper_kommun: "target groups in a municipality",
+      service_karta: "service-demand map",
+      servicebehov_kommun: "service demand in a municipality",
+      okand_kommun: "unknown municipality",
+      hjalp: "help",
+    };
+    st.textContent = `Interpreted as: ${INTENT_EN[res.intent] || res.intent.replace(/_/g, " ")}` +
+      (res.malar && res.intent !== "hjalp" ? ` · target year ${res.malar}` : "");
   } catch (e) {
-    st.textContent = "Fel: " + e.message;
+    st.textContent = "Error: " + e.message;
   } finally { btn.disabled = false; }
 }
 $("fragaBtn").onclick = stallFraga;
@@ -858,28 +873,28 @@ const INSTALL = Object.assign(
 function visaOmSystemet() {
   Promise.all([api("/health"), api("/v1/catalog")]).then(([h, c]) => {
     $("omSystemet").innerHTML =
-      `<div class="driver"><span>Motorversion</span><span>${esc(h.engine_version)}</span></div>` +
+      `<div class="driver"><span>Engine version</span><span>${esc(h.engine_version)}</span></div>` +
       `<div class="driver"><span>Status</span><span>${esc(h.status)}</span></div>` +
-      `<div class="driver"><span>Persistens</span><span>${esc(h.persistens)}</span></div>` +
-      `<div class="driver"><span>Motorer / endpoints</span><span>${c.engines.length} / ${c.engines.reduce((a, e) => a + e.endpoints.length, 0)}</span></div>` +
-      h.kallor.map(k => `<div class="driver"><span>Källa: ${esc(k.source)}</span><span>${esc(k.status)}</span></div>`).join("");
-  }).catch(e => { $("omSystemet").textContent = "Kunde inte hämta: " + e.message; });
+      `<div class="driver"><span>Persistence</span><span>${esc(h.persistens)}</span></div>` +
+      `<div class="driver"><span>Engines / endpoints</span><span>${c.engines.length} / ${c.engines.reduce((a, e) => a + e.endpoints.length, 0)}</span></div>` +
+      h.kallor.map(k => `<div class="driver"><span>Source: ${esc(k.source)}</span><span>${esc(k.status)}</span></div>`).join("");
+  }).catch(e => { $("omSystemet").textContent = "Could not load: " + e.message; });
 }
 
 // ── Guiden – stegvisa flöden som frågar sig fram ─────────────────────
 const GUIDE_FLOWS = {
   start: {
-    fraga: "Vad vill du att Landvex hjälper dig med?",
+    fraga: "What would you like Landvex to help you with?",
     typ: "val",
     val: [
-      { id: "starta", ikon: "byggnad", label: "Starta eller etablera verksamhet",
-        info: "Hitta bästa läget, få etableringsplan och riskbild." },
-      { id: "kompetens", ikon: "examen", label: "Planera kompetensförsörjning",
-        info: "Prognoser, bristkartor och utbildningssimulering." },
-      { id: "lage", ikon: "pin", label: "Djupanalysera föreslagna lägen",
-        info: "Beslutskort, riskprofil och plan för toppkandidater." },
-      { id: "obalans", ikon: "diamant", label: "Hitta obalanser & investeringslägen",
-        info: "Hög efterfrågan, lågt utbud, positiv utveckling." },
+      { id: "starta", ikon: "byggnad", label: "Start or establish a business",
+        info: "Find the best location, get an establishment plan and a risk picture." },
+      { id: "kompetens", ikon: "examen", label: "Plan workforce supply",
+        info: "Forecasts, shortage maps and training simulation." },
+      { id: "lage", ikon: "pin", label: "Deep-dive suggested locations",
+        info: "Decision cards, risk profile and plan for the top candidates." },
+      { id: "obalans", ikon: "diamant", label: "Find imbalances & investment opportunities",
+        info: "High demand, low supply, positive momentum." },
     ],
   },
   steg: {
@@ -891,38 +906,38 @@ const GUIDE_FLOWS = {
 };
 
 const GUIDE_FALT = {
-  bransch: { fraga: "Vilken bransch gäller det?",
-             info: "Branschen styr vilka signaler som väger tyngst.",
+  bransch: { fraga: "Which industry is this about?",
+             info: "The industry decides which signals carry the most weight.",
              typ: "select", kalla: () => OPTIONS.vertical_id },
-  marknad: { fraga: "Vilken marknad vill du analysera?",
-             info: "Endast Sverige har verkliga datakällor ännu – övriga är simulerade och märks så.",
+  marknad: { fraga: "Which market do you want to analyze?",
+             info: "Only Sweden has real data sources so far – the others are simulated and labeled as such.",
              typ: "select",
              kalla: () => [...document.querySelectorAll("#marknadEtab option")]
-               .map(o => ({ id: o.value, label_sv: o.textContent })) },
-  budget: { fraga: "Hur stor är investeringsbudgeten?",
-            info: "Påverkar budget-fit i etableringsplanen.",
+               .map(o => ({ id: o.value, label_en: o.textContent })) },
+  budget: { fraga: "How large is the investment budget?",
+            info: "Affects budget fit in the establishment plan.",
             typ: "chips", kalla: () => OPTIONS.budget_band },
-  team: { fraga: "Hur många kommer att arbeta i verksamheten?",
-          info: "Styr lokalstorlek, ekonomiscenario och personalplan.",
+  team: { fraga: "How many people will work in the business?",
+          info: "Drives premises size, economic scenario and staffing plan.",
           typ: "chips", kalla: () => OPTIONS.team_size },
-  risk: { fraga: "Vilken risknivå är du bekväm med?",
-          info: "Justerar rankingen – aldrig grundscoren.",
+  risk: { fraga: "What risk level are you comfortable with?",
+          info: "Adjusts the ranking – never the base score.",
           typ: "chips", kalla: () => OPTIONS.risk_tolerance },
-  mal: { fraga: "Vad är det viktigaste målet?",
-         info: "Stabilitet straffar risk hårdare; vinst/exit viktar momentum.",
+  mal: { fraga: "What is the most important goal?",
+         info: "Stability penalizes risk harder; profit/exit weights momentum.",
          typ: "chips", kalla: () => OPTIONS.goal },
-  yrke: { fraga: "Vilket yrke vill du prognostisera?",
-          info: "Ur Workforce-katalogen – varje yrke har egna efterfrågedrivare.",
+  yrke: { fraga: "Which occupation do you want to forecast?",
+          info: "From the Workforce catalog – each occupation has its own demand drivers.",
           typ: "select",
           kalla: () => [...document.querySelectorAll("#yrke option")]
-            .map(o => ({ id: o.value, label_sv: o.textContent })) },
-  malar: { fraga: "Vilket målår gäller prognosen?",
-           info: "Längre horisont ⇒ bredare konfidensintervall.",
+            .map(o => ({ id: o.value, label_en: o.textContent })) },
+  malar: { fraga: "Which target year should the forecast use?",
+           info: "Longer horizon ⇒ wider confidence interval.",
            typ: "select",
            kalla: () => [...document.querySelectorAll("#malar option")]
-             .map(o => ({ id: o.textContent, label_sv: o.textContent })) },
-  platser: { fraga: "Hur många extra utbildningsplatser per år kan skapas?",
-             info: "Guiden simulerar effekten på bristen fram till målåret.",
+             .map(o => ({ id: o.textContent, label_en: o.textContent })) },
+  platser: { fraga: "How many extra training places per year can be created?",
+             info: "The guide simulates the effect on the shortage up to the target year.",
              typ: "nummer", standard: 30 },
 };
 
@@ -937,9 +952,9 @@ function guideRita() {
   const p = $("guideProgress"), f = $("guideFraga"), s = $("guideSvar");
   $("guideTillbaka").style.visibility = guide.steg >= 0 ? "visible" : "hidden";
   $("guideNasta").innerHTML = (guide.steg === steg.length - 1)
-    ? `Kör analysen ${ikon("bock")}` : "Nästa ›";
+    ? `Run analysis ${ikon("bock")}` : "Next ›";
   if (guide.steg < 0) {
-    p.textContent = "Välj uppdrag";
+    p.textContent = "Choose a mission";
     f.textContent = GUIDE_FLOWS.start.fraga;
     s.innerHTML = GUIDE_FLOWS.start.val.map(v => `
       <div class="kort guideval ${guide.flode === v.id ? "vald" : ""}" data-val="${v.id}" style="padding:10px">
@@ -954,17 +969,17 @@ function guideRita() {
   }
   $("guideNasta").style.visibility = "visible";
   const falt = GUIDE_FALT[steg[guide.steg]];
-  p.textContent = `Steg ${guide.steg + 2} av ${steg.length + 1}`;
+  p.textContent = `Step ${guide.steg + 2} of ${steg.length + 1}`;
   f.textContent = falt.fraga;
   const nuv = guide.svar[steg[guide.steg]];
   if (falt.typ === "select") {
     const alternativ = falt.kalla();
     s.innerHTML = `<select id="guideInput">` + alternativ.map(o =>
-      `<option value='${JSON.stringify(o.id)}' ${JSON.stringify(o.id) === nuv ? "selected" : ""}>${esc(o.label_sv)}</option>`).join("") + `</select>` +
+      `<option value='${JSON.stringify(o.id)}' ${JSON.stringify(o.id) === nuv ? "selected" : ""}>${esc(o.label_en)}</option>`).join("") + `</select>` +
       `<p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
   } else if (falt.typ === "chips") {
     s.innerHTML = `<div class="chips">` + falt.kalla().map(o => `
-      <span class="chip ${nuv === JSON.stringify(o.id) ? "on" : ""}" data-v='${JSON.stringify(o.id)}'>${esc(o.label_sv)}</span>`).join("") +
+      <span class="chip ${nuv === JSON.stringify(o.id) ? "on" : ""}" data-v='${JSON.stringify(o.id)}'>${esc(o.label_en)}</span>`).join("") +
       `</div><p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
     s.querySelectorAll(".chip").forEach(c => c.onclick = () => {
       guide.svar[steg[guide.steg]] = c.dataset.v; guideRita();
@@ -978,7 +993,7 @@ function guideRita() {
 
 async function guideKor() {
   const st = $("status");
-  st.textContent = "Guiden kör motorerna …";
+  st.textContent = "The guide is running the engines …";
   const sv = k => guide.svar[k] ? JSON.parse(guide.svar[k]) : undefined;
   const marknad = sv("marknad") || INSTALL.marknad;
   try {
@@ -998,8 +1013,8 @@ async function guideKor() {
         kort.querySelector(".planBtn").click();
         kort.querySelector(".riskBtn").click();
       }
-      st.textContent = `Guiden klar: ${res.hotspots.length} lägen rankade – ` +
-        `toppkandidatens etableringsplan och riskprofil är öppnade.`;
+      st.textContent = `Guide complete: ${res.hotspots.length} locations ranked – ` +
+        `the top candidate's establishment plan and risk profile are open.`;
     } else if (guide.flode === "kompetens") {
       $("yrke").value = sv("yrke");
       $("marknadKomp").value = marknad;
@@ -1011,8 +1026,8 @@ async function guideKor() {
       await visaKompKommun(topp.kommun_kod, topp.kommun);
       const knapp = document.querySelector(`.kort[data-kommun="${topp.kommun_kod}"] .sim button`);
       if (knapp) knapp.click();
-      st.textContent = `Guiden klar: störst brist i ${topp.kommun} – ` +
-        `prognos och simulering öppnade.`;
+      st.textContent = `Guide complete: largest shortage in ${topp.kommun} – ` +
+        `forecast and simulation opened.`;
     } else if (guide.flode === "obalans") {
       const res = await api("/v1/gaps", { vertical: sv("bransch"),
                                           market: marknad, top_n: INSTALL.topN });
@@ -1020,27 +1035,27 @@ async function guideKor() {
       vb = { x: 0, y: 0, w: W, h: H }; applyVB();
       for (const h of res.heatmap)
         laggPunkt(h.lat, h.lon, h.band, 7,
-          `${h.kommun} — obalans ${h.score}`, h.kommun_kod, () => valjKommun(h.kommun_kod));
+          `${h.kommun} — imbalance ${h.score}`, h.kommun_kod, () => valjKommun(h.kommun_kod));
       const wrap = $("hotspots");
-      wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.sammanfattning_sv)}</b></p>`;
+      wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.sammanfattning_en)}</b></p>`;
       for (const e of res.obalanser) {
         wrap.insertAdjacentHTML("beforeend", `
           <div class="kort open" data-kommun="${e.kommun_kod}">
             <div class="rubrik"><span class="plats">${ikon("pin")} ${esc(e.kommun)}</span>
               <span class="score ${scoreKlass(e.obalans_score)}">${Math.round(e.obalans_score)}</span></div>
-            <p class="motiv">${esc(e.narrativ_sv)}</p>
+            <p class="motiv">${esc(e.narrativ_en)}</p>
             <div class="detalj">
-              <div class="driver"><span>Efterfrågan</span><span>${e.efterfragan}</span></div>
-              <div class="driver"><span>Utbudsunderskott</span><span>${e.utbudsunderskott}</span></div>
-              <div class="driver"><span>Utveckling</span><span>${e.utveckling}</span></div>
+              <div class="driver"><span>Demand</span><span>${e.efterfragan}</span></div>
+              <div class="driver"><span>Supply deficit</span><span>${e.utbudsunderskott}</span></div>
+              <div class="driver"><span>Development</span><span>${e.utveckling}</span></div>
             </div></div>`);
       }
-      $("caveats").innerHTML = res.caveats_sv.map(c => `<div class="caveat">${esc(c)}</div>`).join("");
-      st.textContent = `Guiden klar: obalanser rankade för ` +
-        `${res.vertical_label_sv.toLowerCase()} i ${res.market_label_sv}.`;
+      $("caveats").innerHTML = res.caveats_en.map(c => `<div class="caveat">${esc(c)}</div>`).join("");
+      st.textContent = `Guide complete: imbalances ranked for ` +
+        `${res.vertical_label_en.toLowerCase()} in ${res.market_label_en}.`;
     }
   } catch (e) {
-    st.textContent = "Guiden stötte på fel: " + e.message;
+    st.textContent = "The guide hit an error: " + e.message;
   }
 }
 
@@ -1051,7 +1066,7 @@ $("guideNasta").onclick = async () => {
     if (input) guide.svar[steg[guide.steg]] =
       input.type === "number" ? JSON.stringify(+input.value) : input.value;
     else if (!guide.svar[steg[guide.steg]]) {
-      $("status").textContent = "Välj ett alternativ för att gå vidare.";
+      $("status").textContent = "Pick an option to continue.";
       return;
     }
   }
@@ -1068,7 +1083,7 @@ $("guideTillbaka").onclick = () => {
 $("guideOm").onclick = () => {
   guide = { flode: null, steg: -1, svar: {} };
   tomKarta();
-  $("hotspots").innerHTML = "<p class='motiv'>Inga resultat ännu.</p>";
+  $("hotspots").innerHTML = "<p class='motiv'>No results yet.</p>";
   $("caveats").innerHTML = "";
   guideRita();
 };
@@ -1078,16 +1093,16 @@ $("instSpara").onclick = () => {
   INSTALL.topN = +$("instTopN").value;
   INSTALL.nyckel = $("instNyckel").value;
   localStorage.setItem("landvex_settings", JSON.stringify(INSTALL));
-  $("status").textContent = "Inställningar sparade.";
+  $("status").textContent = "Settings saved.";
 };
 
 // ── Paket & priser ───────────────────────────────────────────────────
-const pris = p => p ? `${p.SEK.toLocaleString("sv-SE")} kr/mån` +
-  ` <small style="color:var(--muted)">· €${p.EUR} · $${p.USD}</small>` : "Offert";
+const pris = p => p ? `${p.SEK.toLocaleString("en-US")} SEK/mo` +
+  ` <small style="color:var(--muted)">· €${p.EUR} · $${p.USD}</small>` : "Custom quote";
 
 async function visaPaket() {
   const wrap = $("hotspots");
-  wrap.innerHTML = "<p class='motiv'>Hämtar paket …</p>";
+  wrap.innerHTML = "<p class='motiv'>Loading plans …</p>";
   try {
     const res = await api("/v1/plans");
     wrap.innerHTML = "";
@@ -1096,28 +1111,28 @@ async function visaPaket() {
       div.className = "kort open";
       div.innerHTML = `
         <div class="rubrik">
-          <span class="plats">${esc(p.label_sv)}</span>
+          <span class="plats">${esc(p.label_en)}</span>
           <span class="score s-gron" style="font-size:15px">${pris(p.pris_manad)}</span>
         </div>
-        <p class="motiv">${esc(p.beskrivning_sv)}</p>
+        <p class="motiv">${esc(p.beskrivning_en)}</p>
         <div class="detalj">
-          ${p.ingar_sv.map(i => `<div class="driver"><span>${ikon("bock", "pos")} ${esc(i)}</span><span></span></div>`).join("")}
-          <p class="roi-notis">Anropstak: ${p.rate_limit_per_min} anrop/min</p>
+          ${p.ingar_en.map(i => `<div class="driver"><span>${ikon("bock", "pos")} ${esc(i)}</span><span></span></div>`).join("")}
+          <p class="roi-notis">Rate limit: ${p.rate_limit_per_min} calls/min</p>
         </div>`;
       wrap.appendChild(div);
     }
     wrap.insertAdjacentHTML("beforeend",
-      "<h2 style='margin:14px 0 8px'>Produktmoduler (tillägg)</h2>");
+      "<h2 style='margin:14px 0 8px'>Product modules (add-ons)</h2>");
     for (const a of res.tillagg) {
       wrap.insertAdjacentHTML("beforeend", `
         <div class="kort"><div class="rubrik">
-          <span class="plats">${esc(a.label_sv)}</span>
+          <span class="plats">${esc(a.label_en)}</span>
           <span class="score s-gul" style="font-size:14px">${pris(a.pris_manad)}</span>
         </div></div>`);
     }
-    $("caveats").innerHTML = `<div class="caveat">${esc(res.prisnot_sv)}</div>`;
+    $("caveats").innerHTML = `<div class="caveat">${esc(res.prisnot_en)}</div>`;
   } catch (e) {
-    wrap.innerHTML = `<p class="motiv">Fel: ${esc(e.message)}</p>`;
+    wrap.innerHTML = `<p class="motiv">Error: ${esc(e.message)}</p>`;
   }
 }
 
@@ -1132,23 +1147,23 @@ async function visaIndexStad(kod, namn) {
     const res = await api("/v1/indices/assess",
       { kommun_kod: kod, market: $("marknadIndex").value });
     detalj.innerHTML = `
-      <h4>Stadsbedömning · alla index</h4>
+      <h4>City assessment · all indices</h4>
       ${res.index.map(ix => `
         <div class="driver">
-          <span>${esc(ix.label_sv)} <small style="color:var(--muted)">${ix.niva.toUpperCase()}</small>${ix.kontradiktion_upptackt ? " " + ikon("varning", "varn") : ""}</span>
-          <span class="${ix.band === "lag" ? "pos" : ix.band === "hog" ? "neg" : ""}">${ix.varde} · ${esc(ix.band_sv)}</span>
+          <span>${esc(ix.label_en)} <small style="color:var(--muted)">${ix.niva.toUpperCase()}</small>${ix.kontradiktion_upptackt ? " " + ikon("varning", "varn") : ""}</span>
+          <span class="${ix.band === "lag" ? "pos" : ix.band === "hog" ? "neg" : ""}">${ix.varde} · ${esc(ix.band_en)}</span>
         </div>
-        ${(ix.drivare || []).map(d => `<p class="roi-notis" style="margin-left:10px">${esc(d.label_sv)}: ${esc(d.varde)} ${esc(d.enhet)} (källa ${esc(d.kalla)}${d.roll ? ", " + esc(d.roll).replace("_", " ") : ""})</p>`).join("")}`).join("")}
-      ${res.caveats_sv.map(c => `<p class="roi-notis">${esc(c)}</p>`).join("")}`;
+        ${(ix.drivare || []).map(d => `<p class="roi-notis" style="margin-left:10px">${esc(d.label_en)}: ${esc(d.varde)} ${esc(d.enhet)} (source ${esc(d.kalla)}${d.roll ? ", " + esc(d.roll).replace("_", " ") : ""})</p>`).join("")}`).join("")}
+      ${res.caveats_en.map(c => `<p class="roi-notis">${esc(c)}</p>`).join("")}`;
   } catch (err) {
-    detalj.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`;
+    detalj.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`;
   }
 }
 
 $("ritaIndex").onclick = async () => {
   const btn = $("ritaIndex"), st = $("status");
   btn.disabled = true;
-  st.textContent = "Ritar kartlager …";
+  st.textContent = "Drawing map layer …";
   try {
     const res = await api(`/v1/indices/map?index_id=${$("indexVal").value}` +
                           `&market=${$("marknadIndex").value}`);
@@ -1157,10 +1172,10 @@ $("ritaIndex").onclick = async () => {
     vb = { x: 0, y: 0, w: W, h: H }; applyVB();
     for (const r of res.heatmap)
       laggPunkt(r.lat, r.lon, r.band, 7,
-        `${r.kommun} — ${res.label_sv} ${r.score}`, r.kommun_kod,
+        `${r.kommun} — ${res.label_en} ${r.score}`, r.kommun_kod,
         () => visaIndexStad(r.kommun_kod, r.kommun));
     const wrap = $("hotspots");
-    wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.sammanfattning_sv)}</b></p>`;
+    wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.sammanfattning_en)}</b></p>`;
     for (const r of res.regioner.slice(0, 8)) {
       const div = document.createElement("div");
       div.className = "kort"; div.dataset.kommun = r.kommun_kod;
@@ -1171,17 +1186,17 @@ $("ritaIndex").onclick = async () => {
           <span class="plats">${ikon("pin")} ${esc(r.kommun)}${r.kontradiktion_upptackt ? " " + ikon("varning", "varn") : ""}</span>
           <span class="score ${kl}">${r.varde}</span>
         </div>
-        <p class="motiv">${esc(r.band_sv)} · klicka för full stadsbedömning</p>
-        <div class="detalj"><p class="motiv">Hämtar …</p></div>`;
+        <p class="motiv">${esc(r.band_en)} · click for a full city assessment</p>
+        <div class="detalj"><p class="motiv">Loading …</p></div>`;
       div.onclick = () => visaIndexStad(r.kommun_kod, r.kommun);
       wrap.appendChild(div);
     }
-    $("caveats").innerHTML = res.caveats_sv
+    $("caveats").innerHTML = res.caveats_en
       .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
-    st.textContent = `${res.regioner.length} städer · ${res.label_sv} · ` +
-                     `klicka en stad för alla index.`;
+    st.textContent = `${res.regioner.length} cities · ${res.label_en} · ` +
+                     `click a city for all indices.`;
   } catch (e) {
-    st.textContent = "Fel: " + e.message;
+    st.textContent = "Error: " + e.message;
   } finally { btn.disabled = false; }
 };
 
@@ -1199,10 +1214,10 @@ $("ritaIndex").onclick = async () => {
     OPTIONS = await api("/v1/profile-options");
     byggFormular();
     for (const o of await api("/v1/workforce/occupations"))
-      $("yrke").add(new Option(o.label_sv, o.id));
+      $("yrke").add(new Option(o.label_en, o.id));
     for (const m of await api("/v1/markets")) {
-      const label = `${m.label_sv} (${m.antal_regioner} ${m.region_label_sv}er` +
-                    `${m.kalibrerad ? "" : " · simulerad data"})`;
+      const label = `${m.label_en} (${m.antal_regioner} ${m.region_label_en}s` +
+                    `${m.kalibrerad ? "" : " · simulated data"})`;
       $("marknadEtab").add(new Option(label, m.id));
       $("marknadKomp").add(new Option(label, m.id));
       $("marknadIndex").add(new Option(label, m.id));
@@ -1221,9 +1236,9 @@ $("ritaIndex").onclick = async () => {
     $("instNyckel").value = INSTALL.nyckel;
     for (const ix of await api("/v1/indices"))
       $("indexVal").add(new Option(
-        `${ix.label_sv} (${ix.niva.toUpperCase()})`, ix.id));
+        `${ix.label_en} (${ix.niva.toUpperCase()})`, ix.id));
   } catch (e) {
-    $("status").textContent = "Kunde inte nå API:t: " + e.message;
+    $("status").textContent = "Could not reach the API: " + e.message;
   }
 })();
 </script>

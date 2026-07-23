@@ -23,7 +23,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.scb import _haversine_km
-from .markets import get_market
+from .markets import get_market, plural_region_label
 from .models import Location
 from .profile import BusinessProfile
 from .scoring import analyze
@@ -73,8 +73,9 @@ _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
                "2-5m": (2000, 5000), "5-10m": (5000, 10000),
                "10m+": (10000, 100000)}
 
-_NEXT_STEPS_SV = ["Hitta lokal", "Finansiering", "Rekrytering", "Bygglov",
-                  "Startbudget", "Leverantörer", "Kontakt med kommunen"]
+_NEXT_STEPS_EN = ["Find premises", "Financing", "Recruitment",
+                  "Building permits", "Startup budget", "Suppliers",
+                  "Contact the municipality"]
 
 # ── Analysnivåer ─────────────────────────────────────────────────────
 # oversikt: en punkt per kommun (centroiden).
@@ -87,12 +88,12 @@ SCAN_LEVELS: dict[str, tuple[tuple[float, float, str], ...]] = {
                    (0.0, 0.060, "oster"), (0.0, -0.060, "vaster")),
 }
 SCAN_LEVEL_OPTIONS = [
-    {"id": "oversikt", "label_sv": "Översikt – en punkt per kommun"},
-    {"id": "detaljerad", "label_sv": "Detaljerad – fem punkter per kommun"},
+    {"id": "oversikt", "label_en": "Overview – one point per municipality"},
+    {"id": "detaljerad", "label_en": "Detailed – five points per municipality"},
 ]
-_POINT_LABEL_SV = {"centrum": "centrum", "norr": "norra delen",
-                   "soder": "södra delen", "oster": "östra delen",
-                   "vaster": "västra delen"}
+_POINT_LABEL_EN = {"centrum": "center", "norr": "northern part",
+                   "soder": "southern part", "oster": "eastern part",
+                   "vaster": "western part"}
 
 
 def _sig(report, sid: str):
@@ -130,24 +131,24 @@ def _momentum(report) -> dict[str, Any]:
     value = int(round(100 * sum(ns) / len(ns))) if ns else 50
     direction = ("forbattras" if value >= 60 else
                  "forsvagas" if value <= 40 else "stabil")
-    text = {"forbattras": "Marknaden förbättras – hög utvecklingsaktivitet.",
-            "stabil": "Marknaden är stabil.",
-            "forsvagas": "Marknaden försvagas – låg utvecklingsaktivitet."}[direction]
-    return {"value": value, "direction": direction, "text_sv": text}
+    text = {"forbattras": "The market is improving – high development activity.",
+            "stabil": "The market is stable.",
+            "forsvagas": "The market is weakening – low development activity."}[direction]
+    return {"value": value, "direction": direction, "text_en": text}
 
 
 def _competition_gap(report) -> dict[str, Any]:
     gap = _sig(report, "provider_gap")
     ratio = round(gap["value"], 2) if gap else None
     if ratio is None:
-        return {"ratio": None, "text_sv": "Underlag saknas."}
+        return {"ratio": None, "text_en": "No data available."}
     if ratio >= 1.3:
-        text = "Tydligt underskott av aktörer – efterfrågan överstiger utbudet."
+        text = "Clear shortage of providers – demand exceeds supply."
     elif ratio >= 0.95:
-        text = "Utbud och efterfrågan i balans."
+        text = "Supply and demand in balance."
     else:
-        text = "Överskott av aktörer – mättad marknad."
-    return {"ratio": ratio, "text_sv": text}
+        text = "Surplus of providers – saturated market."
+    return {"ratio": ratio, "text_en": text}
 
 
 def _time_window(momentum_value: int, gap_ratio: float | None) -> int:
@@ -177,7 +178,7 @@ def _drivers(report, vertical_id: str, limit: int = 10) -> list[dict[str, Any]]:
         n = s["normalized"]
         impact = w * (n - 0.5)                     # + driver, − hämmar
         d = CATALOG[sid]
-        scored.append({"signal_id": sid, "label_sv": d.label_sv,
+        scored.append({"signal_id": sid, "label_en": d.label_en,
                        "value": s["value"], "unit": d.unit,
                        "source": s["source"],
                        "direction": "driver" if impact >= 0 else "hammar",
@@ -195,17 +196,18 @@ def _economy_scenario(profile: BusinessProfile, opportunity_score: float) -> dic
     local = 0.75 + 0.5 * opportunity_score / 100.0
     revenue = int(round(persons * rev * local, -1))
     if b_hi < lo_start:
-        fit = "Budgeten ligger under typiskt startkapital för branschen."
+        fit = "The budget is below the typical startup capital for the industry."
     elif b_lo > hi_start:
-        fit = "Budgeten täcker typiskt startkapital med god marginal."
+        fit = "The budget covers typical startup capital with a good margin."
     else:
-        fit = "Budgeten ligger inom typiskt startkapitalintervall."
+        fit = "The budget is within the typical startup capital range."
     return {
         "omsattningsscenario_tkr_ar": revenue,
         "startkapital_typiskt_tkr": [lo_start, hi_start],
-        "budget_fit_sv": fit,
-        "notis_sv": "Schablonscenario utifrån branschriktvärden och platsens "
-                    "score – INTE en prognos. Kalibreras mot utfallsdata i v2.",
+        "budget_fit_en": fit,
+        "notis_en": "Standard-estimate scenario based on industry benchmarks "
+                    "and the location's score – NOT a forecast. Calibrated "
+                    "against outcome data in v2.",
     }
 
 
@@ -217,9 +219,9 @@ STARTUP_TKR = _STARTUP_TKR
 
 _ROI_UNAVAILABLE = {
     "status": "ej_tillgangligt",
-    "notis_sv": "Förväntad ROI redovisas när utfallsdata finns (v2/v3). "
-                "Att gissa vore att bryta mot principen förklarbarhet "
-                "före prediktion.",
+    "notis_en": "Expected ROI is reported once outcome data exists (v2/v3). "
+                "Guessing would violate the principle of explainability "
+                "before prediction.",
 }
 
 
@@ -233,8 +235,8 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
          market: str = "se") -> dict[str, Any]:
     """Analyserar kandidatorter mot profilen. Returnerar JSON-redo dict."""
     if level not in SCAN_LEVELS:
-        raise ValueError(f"Okänd analysnivå: {level}. "
-                         f"Tillgängliga: {', '.join(SCAN_LEVELS)}")
+        raise ValueError(f"Unknown scan level: {level}. "
+                         f"Available: {', '.join(SCAN_LEVELS)}")
     mkt = get_market(market)
     cands = candidates if candidates is not None else list(mkt.regions)
     excluded = {"pendling": 0, "miljo": 0}
@@ -296,7 +298,7 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
             "rank": i,
             "kommun": s["name"], "kommun_kod": s["code"],
             "punkt": s["punkt"],
-            "lage_sv": f"{s['name']}, {_POINT_LABEL_SV[s['punkt']]}",
+            "lage_en": f"{s['name']}, {_POINT_LABEL_EN[s['punkt']]}",
             "lat": s["lat"], "lon": s["lon"],
             "opportunity_score": r.opportunity_score,
             "rank_score": s["rank_score"],
@@ -309,35 +311,36 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
                                                gap["ratio"]),
             "environment": s["env"],
             "drivers": _drivers(r, profile.vertical_id),
-            "motivering_sv": [f.narrative_sv for f in top_factors] + r.insights_sv,
-            "factors": [{"id": f.id, "label_sv": f.label_sv, "score": f.score}
+            "motivering_en": [f.narrative_en for f in top_factors] + r.insights_en,
+            "factors": [{"id": f.id, "label_en": f.label_en, "score": f.score}
                         for f in r.factors],
             "economy_scenario": (
                 _economy_scenario(profile, r.opportunity_score)
                 if mkt.calibrated else
                 {"status": "ej_kalibrerad",
-                 "notis_sv": f"Ekonomischablonerna är inte kalibrerade för "
-                             f"{mkt.label_sv} ännu – redovisas inte."}),
+                 "notis_en": f"Economic standard estimates are not "
+                             f"calibrated for {mkt.label_en} yet – "
+                             f"not reported."}),
             "expected_roi": dict(_ROI_UNAVAILABLE),
             "data_coverage": r.data_coverage,
-            "next_steps_sv": list(_NEXT_STEPS_SV),
+            "next_steps_en": list(_NEXT_STEPS_EN),
         })
 
     caveats = [
-        f"Svepet i {mkt.label_sv} omfattar {len(mkt.regions)} "
-        f"{mkt.region_label_sv}er i denna version – fler kandidatorter och "
-        f"finmaskigare rutnät kommer med geodatafasen.",
-        "Rankjustering och tidsfönster är dokumenterade heuristiker, "
-        "inte prediktioner.",
+        f"The scan of {mkt.label_en} covers {len(mkt.regions)} "
+        f"{plural_region_label(mkt.region_label_en)} in this version – more "
+        f"candidate locations and a finer grid come with the geodata phase.",
+        "Rank adjustment and time window are documented heuristics, "
+        "not predictions.",
     ]
     if hotspots and max(h["data_coverage"] for h in hotspots) < 1.0:
-        caveats.append("Delar av underlaget bygger på simulerad data – se "
+        caveats.append("Parts of the underlying data are simulated – see "
                        "data_coverage per hotspot.")
 
     return {
         "profile": profile.to_dict(),
-        "vertical_label_sv": VERTICALS[profile.vertical_id].label_sv,
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "vertical_label_en": VERTICALS[profile.vertical_id].label_en,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "bbox": list(mkt.bbox),
         "level": level,
         "candidates_scanned": len(heatmap),
@@ -345,5 +348,5 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
         "excluded": excluded,
         "heatmap": heatmap,
         "hotspots": hotspots,
-        "caveats_sv": caveats,
+        "caveats_en": caveats,
     }

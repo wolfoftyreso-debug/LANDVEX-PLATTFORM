@@ -47,8 +47,8 @@ _DEFAULT_RESOLVER = Resolver([MockSource()])
 @dataclass(frozen=True)
 class Occupation:
     id: str
-    label_sv: str
-    sector_sv: str
+    label_en: str
+    sector_en: str
     per_1000: float           # sysselsatta per 1000 invånare (schablon)
     pension_rate: float       # årlig avgångstakt (schablon)
     edu_per_100k: float       # utbildningsplatser/år per 100k inv (schablon)
@@ -63,58 +63,58 @@ def _o(id, label, sector, per_1000, pension, edu, salary, autom, *drivers):
 
 
 OCCUPATIONS: dict[str, Occupation] = {o.id: o for o in [
-    _o("elektriker", "Elektriker", "Bygg & installation", 3.8, 0.028, 6.0, 38, 0.20,
+    _o("elektriker", "Electrician", "Construction & installation", 3.8, 0.028, 6.0, 38, 0.20,
        ("building_permits", 0.30), ("development_m2", 0.20),
        ("infra_invest", 0.15), ("ev_per_capita", 0.15), ("pop_growth_pct", 0.20)),
-    _o("vvs_montor", "VVS-montör", "Bygg & installation", 2.0, 0.030, 3.0, 37, 0.20,
+    _o("vvs_montor", "Plumbing & HVAC fitter", "Construction & installation", 2.0, 0.030, 3.0, 37, 0.20,
        ("building_permits", 0.40), ("development_m2", 0.25),
        ("infra_invest", 0.15), ("pop_growth_pct", 0.20)),
-    _o("snickare", "Snickare", "Bygg & installation", 6.5, 0.032, 8.0, 36, 0.30,
+    _o("snickare", "Carpenter", "Construction & installation", 6.5, 0.032, 8.0, 36, 0.30,
        ("building_permits", 0.45), ("development_m2", 0.25), ("pop_growth_pct", 0.30)),
-    _o("betongarbetare", "Betongarbetare", "Anläggning", 1.2, 0.035, 1.5, 35, 0.50,
+    _o("betongarbetare", "Concrete worker", "Civil engineering", 1.2, 0.035, 1.5, 35, 0.50,
        ("development_m2", 0.40), ("infra_invest", 0.35), ("detail_plans", 0.25)),
-    _o("plattsattare", "Plattsättare", "Bygg & installation", 0.8, 0.030, 1.0, 35, 0.30,
+    _o("plattsattare", "Tiler", "Construction & installation", 0.8, 0.030, 1.0, 35, 0.30,
        ("building_permits", 0.50), ("renovation_index", 0.30), ("pop_growth_pct", 0.20)),
-    _o("maskinforare", "Anläggningsmaskinförare", "Anläggning", 2.4, 0.034, 3.0, 36, 0.55,
+    _o("maskinforare", "Construction equipment operator", "Civil engineering", 2.4, 0.034, 3.0, 36, 0.55,
        ("infra_invest", 0.40), ("development_m2", 0.35), ("detail_plans", 0.25)),
-    _o("arkitekt", "Arkitekt", "Samhällsbyggnad", 1.1, 0.022, 1.2, 47, 0.30,
+    _o("arkitekt", "Architect", "Urban development", 1.1, 0.022, 1.2, 47, 0.30,
        ("detail_plans", 0.40), ("development_m2", 0.35), ("pop_growth_pct", 0.25)),
-    _o("ingenjor_bygg", "Byggnadsingenjör", "Samhällsbyggnad", 3.0, 0.025, 4.0, 48, 0.25,
+    _o("ingenjor_bygg", "Construction engineer", "Urban development", 3.0, 0.025, 4.0, 48, 0.25,
        ("development_m2", 0.30), ("infra_invest", 0.30),
        ("business_density", 0.20), ("detail_plans", 0.20)),
-    _o("larare", "Lärare (grundskola)", "Utbildning", 11.0, 0.030, 12.0, 38, 0.10,
+    _o("larare", "Teacher (compulsory school)", "Education", 11.0, 0.030, 12.0, 38, 0.10,
        ("families_share", 0.50), ("pop_growth_pct", 0.50)),
-    _o("forskollarare", "Förskollärare", "Utbildning", 5.5, 0.028, 7.0, 34, 0.08,
+    _o("forskollarare", "Preschool teacher", "Education", 5.5, 0.028, 7.0, 34, 0.08,
        ("families_share", 0.60), ("pop_growth_pct", 0.40)),
-    _o("sjukskoterska", "Sjuksköterska", "Vård & omsorg", 11.5, 0.032, 13.0, 40, 0.10,
+    _o("sjukskoterska", "Nurse", "Health & social care", 11.5, 0.032, 13.0, 40, 0.10,
        ("share_65plus", 0.55), ("pop_growth_pct", 0.45)),
-    _o("fastighetstekniker", "Fastighetstekniker", "Drift & fastighet", 1.8, 0.033, 2.0, 35, 0.30,
+    _o("fastighetstekniker", "Property technician", "Operations & property", 1.8, 0.033, 2.0, 35, 0.30,
        ("residential_density", 0.40), ("development_m2", 0.30), ("pop_growth_pct", 0.30)),
-    _o("drifttekniker", "Drifttekniker", "Drift & fastighet", 1.5, 0.030, 2.0, 38, 0.35,
+    _o("drifttekniker", "Operations technician", "Operations & property", 1.5, 0.030, 2.0, 38, 0.35,
        ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
-    _o("kyltekniker", "Kyl- & värmepumpstekniker", "Drift & installation",
+    _o("kyltekniker", "Refrigeration & heat pump technician", "Operations & installation",
        0.6, 0.030, 0.8, 39, 0.15,
        ("detached_homes", 0.35), ("renovation_index", 0.25),
        ("ev_per_capita", 0.20), ("pop_growth_pct", 0.20)),
-    _o("underskoterska", "Undersköterska", "Vård & omsorg", 13.0, 0.033, 15.0, 32, 0.12,
+    _o("underskoterska", "Assistant nurse", "Health & social care", 13.0, 0.033, 15.0, 32, 0.12,
        ("share_65plus", 0.55), ("pop_growth_pct", 0.45)),
-    _o("barnskotare", "Barnskötare", "Utbildning", 6.0, 0.028, 8.0, 29, 0.10,
+    _o("barnskotare", "Childcare assistant", "Education", 6.0, 0.028, 8.0, 29, 0.10,
        ("families_share", 0.60), ("pop_growth_pct", 0.40)),
-    _o("kock", "Kock", "Besöksnäring", 4.0, 0.030, 5.0, 32, 0.15,
+    _o("kock", "Chef", "Hospitality", 4.0, 0.030, 5.0, 32, 0.15,
        ("tourism_index", 0.30), ("foot_traffic", 0.30), ("pop_growth_pct", 0.40)),
-    _o("lastbilsforare", "Lastbilsförare", "Transport & logistik", 5.5, 0.035, 6.0, 35, 0.60,
+    _o("lastbilsforare", "Truck driver", "Transport & logistics", 5.5, 0.035, 6.0, 35, 0.60,
        ("logistics_access", 0.40), ("business_density", 0.30), ("pop_growth_pct", 0.30)),
-    _o("svetsare", "Svetsare", "Industri", 2.2, 0.034, 2.5, 36, 0.45,
+    _o("svetsare", "Welder", "Manufacturing", 2.2, 0.034, 2.5, 36, 0.45,
        ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
-    _o("malare", "Målare", "Bygg & installation", 2.8, 0.031, 3.5, 34, 0.25,
+    _o("malare", "Painter", "Construction & installation", 2.8, 0.031, 3.5, 34, 0.25,
        ("renovation_index", 0.40), ("building_permits", 0.30), ("pop_growth_pct", 0.30)),
-    _o("it_tekniker", "IT-tekniker", "IT & digitalt", 4.0, 0.020, 6.0, 42, 0.35,
+    _o("it_tekniker", "IT technician", "IT & digital", 4.0, 0.020, 6.0, 42, 0.35,
        ("business_density", 0.50), ("office_workers", 0.50)),
 ]}
 
 
 def occupation_catalog() -> list[dict[str, Any]]:
-    return [{"id": o.id, "label_sv": o.label_sv, "sector_sv": o.sector_sv,
+    return [{"id": o.id, "label_en": o.label_en, "sector_en": o.sector_en,
              "medellon_tkr_manad": o.salary_tkr_month,
              "automationsrisk_schablon": o.automation_risk}
             for o in OCCUPATIONS.values()]
@@ -149,7 +149,7 @@ def _demand_growth(occ: Occupation, values: dict) -> tuple[float, list[dict]]:
             # Normaliserad aktivitet kring neutralpunkt 0.5 → −2..+2 %/år.
             g = (normalize(CATALOG[sid], sv.value) - 0.5) * 0.04
         growth += w * g
-        parts.append({"signal_id": sid, "label_sv": CATALOG[sid].label_sv,
+        parts.append({"signal_id": sid, "label_en": CATALOG[sid].label_en,
                       "varde": sv.value, "enhet": CATALOG[sid].unit,
                       "kalla": sv.source, "bidrag_pct_ar": round(100 * w * g, 2)})
     return max(-0.02, min(0.06, growth)), parts
@@ -198,26 +198,30 @@ def _demand_band(gap: float, need: float) -> str:
 
 def _trend(growth: float) -> str:
     if growth >= 0.005:
-        return "stigande"
-    return "minskande" if growth <= -0.005 else "stabil"
+        return "rising"
+    return "declining" if growth <= -0.005 else "stable"
 
 
 _CAVEATS = [
-    "Prognosen är modellberäknad, inte en sanning: teknikskiften, migration, "
-    "konjunktur och politiska beslut ligger utanför modellen.",
-    "Yrkestäthet, pensionstakt och utbildningsplatser är branschschabloner "
-    "tills SCB:s yrkesregister och Skolverkets data kopplats in.",
-    "Konfidensnivån är en dokumenterad heuristik (datakvalitet × horisont), "
-    "inte en statistisk sannolikhet.",
+    "The forecast is model-computed, not a truth: technology shifts, "
+    "migration, business cycles and policy decisions are outside the model.",
+    "Occupation density, retirement rates and education places are industry "
+    "standard estimates until SCB's occupational register and Skolverket "
+    "data are connected.",
+    "The confidence level is a documented heuristic (data quality × "
+    "horizon), not a statistical probability.",
 ]
+
+_BAND_LABEL_EN = {"balans": "balance", "okande_brist": "growing shortage",
+                  "kritisk_brist": "critical shortage"}
 
 
 def _forecast_one(occ: Occupation, values: dict, horizon: int,
                   extra_places_per_year: float = 0.0) -> dict[str, Any]:
-    pop_sv = values.get("population_total")
-    if pop_sv is None or not pop_sv.value:
-        raise ValueError("Befolkningsunderlag saknas.")
-    pop = pop_sv.value
+    pop_en = values.get("population_total")
+    if pop_en is None or not pop_en.value:
+        raise ValueError("Population data missing.")
+    pop = pop_en.value
     need_now = occ.per_1000 * pop / 1000.0
     growth, driver_parts = _demand_growth(occ, values)
     edu = (occ.edu_per_100k * pop / 100000.0 + extra_places_per_year) * COMPLETION_RATE
@@ -236,22 +240,26 @@ def _forecast_one(occ: Occupation, values: dict, horizon: int,
     q = _quality(values, used)
     half = need_h * (0.06 + 0.012 * horizon + 0.18 * (1 - q))
     assumptions = [
-        {"antagande_sv": "Basår och balansläge",
-         "varde_sv": f"Arbetsstyrkan antas motsvara behovet {BASE_YEAR}."},
-        {"antagande_sv": "Befolkning (kommun)",
-         "varde_sv": f"{int(pop)} invånare (källa: {pop_sv.source})."},
-        {"antagande_sv": "Efterfrågetakt",
-         "varde_sv": f"{round(100 * growth, 2)} %/år, härledd ur drivsignalerna nedan."},
-        {"antagande_sv": "Pensionsavgångar",
-         "varde_sv": f"{round(100 * occ.pension_rate, 1)} %/år (schablon)."},
-        {"antagande_sv": "Utbildningsinflöde",
-         "varde_sv": f"{round(edu)} examinerade/år "
-                     f"(schablon{', inkl. simulerade platser' if extra_places_per_year else ''}, "
-                     f"examensgrad {int(COMPLETION_RATE * 100)} %)."},
+        {"antagande_en": "Base year and balance assumption",
+         "varde_en": f"The workforce is assumed to match demand in "
+                     f"{BASE_YEAR}."},
+        {"antagande_en": "Population (municipality)",
+         "varde_en": f"{int(pop)} residents (source: {pop_en.source})."},
+        {"antagande_en": "Demand growth rate",
+         "varde_en": f"{round(100 * growth, 2)}%/year, derived from the "
+                     f"driver signals below."},
+        {"antagande_en": "Retirement outflow",
+         "varde_en": f"{round(100 * occ.pension_rate, 1)}%/year "
+                     f"(standard estimate)."},
+        {"antagande_en": "Education inflow",
+         "varde_en": f"{round(edu)} graduates/year "
+                     f"(standard estimate"
+                     f"{', incl. simulated places' if extra_places_per_year else ''}, "
+                     f"completion rate {int(COMPLETION_RATE * 100)}%)."},
     ]
     return {
-        "occupation_id": occ.id, "label_sv": occ.label_sv,
-        "sector_sv": occ.sector_sv,
+        "occupation_id": occ.id, "label_en": occ.label_en,
+        "sector_en": occ.sector_en,
         "behov_nu": round(need_now),
         "behov_prognos": need_h,
         "styrka_prognos": last["styrka"],
@@ -279,12 +287,12 @@ def forecast(kommun_kod: str, target_year: int = 2035,
     """Kompetensprognos för en region, alla (eller valda) yrken."""
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
-        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
-                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+        raise ValueError(f"Target year must be between {BASE_YEAR + 1} "
+                         f"and {BASE_YEAR + MAX_HORIZON_YEARS}.")
     occ_ids = occupation_ids or list(OCCUPATIONS)
     unknown = [o for o in occ_ids if o not in OCCUPATIONS]
     if unknown:
-        raise ValueError(f"Okända yrken: {unknown}")
+        raise ValueError(f"Unknown occupations: {unknown}")
     values, _, kom = _resolve(kommun_kod, occ_ids, resolver, market)
 
     forecasts = [_forecast_one(OCCUPATIONS[oid], values, horizon)
@@ -298,14 +306,14 @@ def forecast(kommun_kod: str, target_year: int = 2035,
                                  -f["brist"]))
     priorities = [{
         "rang": i,
-        "occupation_id": f["occupation_id"], "label_sv": f["label_sv"],
+        "occupation_id": f["occupation_id"], "label_en": f["label_en"],
         "brist": f["brist"], "band": f["band"],
-        "motivering_sv": (
-            f"Beräknad brist på {f['brist']} {f['label_sv'].lower()} till "
-            f"{target_year} ({f['band'].replace('_', ' ')}). Största drivkraft: "
-            f"{max(f['drivare'], key=lambda d: d['bidrag_pct_ar'])['label_sv'].lower()}."
+        "motivering_en": (
+            f"Estimated shortage of {f['brist']} {f['label_en'].lower()}(s) "
+            f"by {target_year} ({_BAND_LABEL_EN[f['band']]}). Largest driver: "
+            f"{max(f['drivare'], key=lambda d: d['bidrag_pct_ar'])['label_en'].lower()}."
             if f["drivare"] else
-            f"Beräknad brist på {f['brist']} till {target_year}."),
+            f"Estimated shortage of {f['brist']} by {target_year}."),
     } for i, f in enumerate(prio[:5], start=1)]
 
     coverage = (sum(1 for s in values.values() if s.source != "mock") /
@@ -313,12 +321,12 @@ def forecast(kommun_kod: str, target_year: int = 2035,
     mkt = get_market(market)
     return {
         "kommun": kom[1], "kommun_kod": kom[0],
-        "market": mkt.id, "market_label_sv": mkt.label_sv,
+        "market": mkt.id, "market_label_en": mkt.label_en,
         "basar": BASE_YEAR, "malar": target_year,
         "prognoser": forecasts,
         "utbildningsprioriteringar": priorities,
         "data_coverage": round(coverage, 2),
-        "caveats_sv": list(_CAVEATS),
+        "caveats_en": list(_CAVEATS),
     }
 
 
@@ -328,13 +336,13 @@ def simulate(kommun_kod: str, occupation_id: str,
              market: str = "se") -> dict[str, Any]:
     """Utbildningssimulering: 'om vi startar X platser/år – vad händer?'"""
     if occupation_id not in OCCUPATIONS:
-        raise ValueError(f"Okänt yrke: {occupation_id}")
+        raise ValueError(f"Unknown occupation: {occupation_id}")
     if extra_places_per_year < 0:
-        raise ValueError("Antal platser kan inte vara negativt.")
+        raise ValueError("Number of places cannot be negative.")
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
-        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
-                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+        raise ValueError(f"Target year must be between {BASE_YEAR + 1} "
+                         f"and {BASE_YEAR + MAX_HORIZON_YEARS}.")
     values, _, kom = _resolve(kommun_kod, [occupation_id], resolver, market)
     occ = OCCUPATIONS[occupation_id]
     base = _forecast_one(occ, values, horizon)
@@ -343,7 +351,7 @@ def simulate(kommun_kod: str, occupation_id: str,
     balanced = next((p["ar"] for p in sim["bana"] if p["gap"] <= 0), None)
     return {
         "kommun": kom[1], "kommun_kod": kom[0],
-        "occupation_id": occupation_id, "label_sv": occ.label_sv,
+        "occupation_id": occupation_id, "label_en": occ.label_en,
         "malar": target_year,
         "extra_platser_per_ar": extra_places_per_year,
         "brist_utan_atgard": base["brist"],
@@ -352,7 +360,7 @@ def simulate(kommun_kod: str, occupation_id: str,
         "balansar": balanced,
         "bana_utan": base["bana"], "bana_med": sim["bana"],
         "konfidens": sim["konfidens"],
-        "caveats_sv": list(_CAVEATS),
+        "caveats_en": list(_CAVEATS),
     }
 
 
@@ -361,11 +369,11 @@ def national_map(occupation_id: str, target_year: int = 2035,
                  market: str = "se") -> dict[str, Any]:
     """Marknadskarta: kompetensbalans per region för ett yrke."""
     if occupation_id not in OCCUPATIONS:
-        raise ValueError(f"Okänt yrke: {occupation_id}")
+        raise ValueError(f"Unknown occupation: {occupation_id}")
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= MAX_HORIZON_YEARS:
-        raise ValueError(f"Målår måste ligga {BASE_YEAR + 1}–"
-                         f"{BASE_YEAR + MAX_HORIZON_YEARS}.")
+        raise ValueError(f"Target year must be between {BASE_YEAR + 1} "
+                         f"and {BASE_YEAR + MAX_HORIZON_YEARS}.")
     mkt = get_market(market)
     occ = OCCUPATIONS[occupation_id]
     res = resolver or _DEFAULT_RESOLVER
@@ -376,7 +384,7 @@ def national_map(occupation_id: str, target_year: int = 2035,
                                 "workforce", needed)
         f = _forecast_one(occ, values, horizon)
         kommuner.append({"kommun": name, "kommun_kod": code,
-                         "market": mkt.id, "market_label_sv": mkt.label_sv,
+                         "market": mkt.id, "market_label_en": mkt.label_en,
                          "lat": lat, "lon": lon,
                          "behov_prognos": f["behov_prognos"],
                          "brist": f["brist"], "band": f["band"],
@@ -384,11 +392,11 @@ def national_map(occupation_id: str, target_year: int = 2035,
                          "trend": f["trend"],
                          "konfidens": f["konfidens"]})
     kommuner.sort(key=lambda k: -k["brist"])
-    return {"occupation_id": occupation_id, "label_sv": occ.label_sv,
-            "market": mkt.id, "market_label_sv": mkt.label_sv,
+    return {"occupation_id": occupation_id, "label_en": occ.label_en,
+            "market": mkt.id, "market_label_en": mkt.label_en,
             "bbox": list(mkt.bbox),
             "basar": BASE_YEAR, "malar": target_year,
-            "kommuner": kommuner, "caveats_sv": list(_CAVEATS)}
+            "kommuner": kommuner, "caveats_en": list(_CAVEATS)}
 
 
 def global_map(occupation_id: str, target_year: int = 2035,
@@ -400,8 +408,8 @@ def global_map(occupation_id: str, target_year: int = 2035,
     signalkatalogen äger normaliseringen – inte länderna.
     """
     if group not in MARKET_GROUPS:
-        raise ValueError(f"Okänd marknadsgrupp: {group}. "
-                         f"Tillgängliga: {', '.join(MARKET_GROUPS)}")
+        raise ValueError(f"Unknown market group: {group}. "
+                         f"Available: {', '.join(MARKET_GROUPS)}")
     regions: list[dict[str, Any]] = []
     for mid in MARKET_GROUPS[group]:
         res = national_map(occupation_id, target_year,
@@ -415,19 +423,19 @@ def global_map(occupation_id: str, target_year: int = 2035,
         share = r["brist"] / max(r["behov_prognos"], 1)
         per_market.setdefault(r["market"], []).append(share)
     ranking = sorted(
-        ({"market": mid, "market_label_sv": get_market(mid).label_sv,
+        ({"market": mid, "market_label_en": get_market(mid).label_en,
           "snitt_brist_pct": round(100 * sum(sh) / len(sh), 1),
           "regioner": len(sh)}
          for mid, sh in per_market.items()),
         key=lambda x: -x["snitt_brist_pct"])
 
     occ = OCCUPATIONS[occupation_id]
-    return {"occupation_id": occupation_id, "label_sv": occ.label_sv,
-            "group": group, "group_label_sv": GROUP_LABEL_SV[group],
+    return {"occupation_id": occupation_id, "label_en": occ.label_en,
+            "group": group, "group_label_en": GROUP_LABEL_SV[group],
             "bbox": list(GROUP_BBOX[group]),
             "basar": BASE_YEAR, "malar": target_year,
             "regioner": regions, "landsranking": ranking,
-            "caveats_sv": list(_CAVEATS) + [
-                "Endast Sverige har verkliga datakällor kopplade ännu – "
-                "övriga marknader körs på simulerad data tills lokala "
-                "adaptrar (Destatis, Eurostat, Census m.fl.) finns."]}
+            "caveats_en": list(_CAVEATS) + [
+                "Only Sweden has real data sources connected so far – "
+                "other markets run on simulated data until local adapters "
+                "(Destatis, Eurostat, Census, etc.) are in place."]}

@@ -23,7 +23,7 @@ def test_profile_options_cover_all_fields():
                 "risk_tolerance", "commute_km", "environments",
                 "horizon_years", "goal"):
         assert key in opts and opts[key], key
-        assert all("label_sv" in o for o in opts[key]), key
+        assert all("label_en" in o for o in opts[key]), key
     assert {o["id"] for o in opts["vertical_id"]} == set(VERTICALS)
 
 
@@ -79,8 +79,8 @@ def test_decision_card_contract():
     for key in ("kommun", "opportunity_score", "rank_score", "confidence",
                 "risk_index", "risk_level", "market_momentum",
                 "competition_gap", "time_window_months", "drivers",
-                "economy_scenario", "expected_roi", "next_steps_sv",
-                "motivering_sv", "factors", "environment", "data_coverage"):
+                "economy_scenario", "expected_roi", "next_steps_en",
+                "motivering_en", "factors", "environment", "data_coverage"):
         assert key in card, key
     assert 0 <= card["confidence"] <= 100
     assert 0 <= card["risk_index"] <= 100
@@ -89,7 +89,7 @@ def test_decision_card_contract():
     assert all(d["direction"] in ("driver", "hammar") for d in card["drivers"])
     # Ärlighetsprinciperna: ROI utlovas inte, schablonen är märkt.
     assert card["expected_roi"]["status"] == "ej_tillgangligt"
-    assert "prognos" in card["economy_scenario"]["notis_sv"]
+    assert "forecast" in card["economy_scenario"]["notis_en"]
 
 
 def test_commute_filter():

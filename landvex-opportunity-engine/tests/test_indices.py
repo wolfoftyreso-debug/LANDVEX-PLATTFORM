@@ -28,7 +28,7 @@ def test_city_assessment_is_traceable():
     for ix in res["index"]:
         assert 0 <= ix["varde"] <= 100
         assert ix["band"] in ("lag", "mattlig", "forhojd", "hog")
-        assert ix["narrativ_sv"]
+        assert ix["narrativ_en"]
         # "All sourced, all traceable": varje drivare bär källa.
         assert ix["drivare"] and all("kalla" in d for d in ix["drivare"])
     kontr = next(i for i in res["index"]
@@ -37,7 +37,7 @@ def test_city_assessment_is_traceable():
         (kontr["varde"] >= CONTRADICTION_THRESHOLD)
     roller = {d["roll"] for d in kontr["drivare"]}
     assert roller == {"officiellt_planerat", "observerat"}
-    assert "quiXzoom" in res["caveats_sv"][1]         # ärlig precisionsnot
+    assert "quiXzoom" in res["caveats_en"][1]         # ärlig precisionsnot
     assert city_assessment("0180") == res             # determinism
 
 

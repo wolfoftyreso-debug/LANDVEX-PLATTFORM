@@ -18,10 +18,10 @@ def test_product_types_are_valid_data():
         assert 0 < p.serviceintervall_ar <= p.livslangd_ar, p.id
         assert p.vertical_id in VERTICALS, p.id
         assert p.occupation_id is None or p.occupation_id in OCCUPATIONS, p.id
-        assert p.certifiering_sv and p.felmonster_sv and p.sasong_sv
+        assert p.certifiering_en and p.felmonster_en and p.sasong_en
         for sid, _ in p.tillvaxt_signaler:
             assert sid in CATALOG, (p.id, sid)
-    assert all(c["betjanas_av_sv"] for c in product_catalog())
+    assert all(c["betjanas_av_en"] for c in product_catalog())
 
 
 def test_service_analysis_contract():
@@ -34,10 +34,10 @@ def test_service_analysis_contract():
         assert p["installerad_bas"] >= 0
         assert p["servicetillfallen_per_ar"] >= 0
         assert p["teknikerbehov"] >= 0
-        assert p["teknikerlage"]["text_sv"]
+        assert p["teknikerlage"]["text_en"]
         # Kedjan är konsistent: utbyten ≤ bas, service ∝ bas/intervall.
         assert p["utbyten_till_malar"] <= p["installerad_bas"]
-    assert "uppskattning" in res["antaganden_sv"][0]     # ärlighet
+    assert "estimate" in res["antaganden_en"][0]     # ärlighet
     assert service_analysis("0180") == res               # determinism
 
 
@@ -82,13 +82,13 @@ def test_ask_service_intents_and_answers():
     res = ask("Vilken region har flest värmepumpar som närmar sig utbytesålder?")
     assert res["intent"] == "service_karta"
     assert len(res["karta"]["heatmap"]) == 40
-    assert "uppskattning" in res["rader"][0]["detalj"]["installerad_bas"]
+    assert "estimate" in res["rader"][0]["detalj"]["installerad_bas"]
 
     res2 = ask("Hur ser servicebehovet ut i Umeå?")
     assert res2["intent"] == "servicebehov_kommun"
     assert len(res2["rader"]) == len(PRODUCT_TYPES)
     d = res2["rader"][0]["detalj"]
-    assert d["certifiering"] and d["motivering_sv"]
+    assert d["certifiering"] and d["motivering_en"]
 
 
 if __name__ == "__main__":

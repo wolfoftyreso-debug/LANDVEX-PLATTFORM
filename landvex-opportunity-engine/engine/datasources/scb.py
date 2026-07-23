@@ -114,7 +114,8 @@ def build_query(meta: dict, region: list[str], time_top: int,
             picked = [v for v, t in zip(values, texts)
                       if any(w in t.lower() for w in contents_like)]
             if not picked:
-                raise ScbError(f"Ingen innehållsserie matchar {contents_like} i tabellen.")
+                raise ScbError(f"No contents series matches {contents_like} "
+                               f"in the table.")
             query.append({"code": code, "selection": {"filter": "item", "values": picked[:1]}})
         elif code in take_all:
             query.append({"code": code, "selection": {"filter": "item", "values": list(values)}})
@@ -168,7 +169,7 @@ class JsonStat:
     def mean(self, fixed: dict[str, str]) -> float:
         vals = [v for _, v in self.cells(fixed)]
         if not vals:
-            raise ScbError(f"Inga celler för {fixed}.")
+            raise ScbError(f"No cells for {fixed}.")
         return sum(vals) / len(vals)
 
 
@@ -187,7 +188,7 @@ def population_signals(client: ScbClient, kommun: str) -> tuple[dict[str, float]
     stat = JsonStat(client.data(POP_TABLE, query))
     years = sorted(stat.codes("Tid"))
     if not years:
-        raise ScbError("Inga år i befolkningssvaret.")
+        raise ScbError("No years in the population response.")
     latest = years[-1]
 
     def ages_for(year: str) -> dict[int, float]:
@@ -203,7 +204,7 @@ def population_signals(client: ScbClient, kommun: str) -> tuple[dict[str, float]
     ages = ages_for(latest)
     total = sum(ages.values())
     if total <= 0:
-        raise ScbError("Tom befolkning i svaret.")
+        raise ScbError("Empty population in the response.")
 
     signals: dict[str, float] = {
         "age_20_45_share": round(
@@ -229,7 +230,7 @@ def income_index_signal(client: ScbClient, kommun: str) -> float:
     kommun_mean = stat.mean({"Region": kommun, "Tid": latest})
     riket_mean = stat.mean({"Region": RIKET, "Tid": latest})
     if riket_mean <= 0:
-        raise ScbError("Riksmedelinkomst saknas.")
+        raise ScbError("National mean income missing.")
     return round(kommun_mean / riket_mean * 100, 1)
 
 
@@ -242,7 +243,7 @@ def density_signal(client: ScbClient, kommun: str) -> float:
     latest = sorted(stat.codes("Tid"))[-1]
     density = stat.total({"Region": kommun, "Tid": latest})
     if density <= 0:
-        raise ScbError("Täthet saknas i svaret.")
+        raise ScbError("Density missing in the response.")
     return round(density / PERSONS_PER_HOUSEHOLD, 0)
 
 
@@ -327,11 +328,12 @@ if __name__ == "__main__":
     lon = float(sys.argv[2]) if len(sys.argv) > 2 else 18.0705
     hit = KommunLocator().locate(lat, lon)
     if not hit:
-        sys.exit("Ingen kommun inom tröskeln – utöka KOMMUNER eller ange annan punkt.")
+        sys.exit("No municipality within the threshold – extend KOMMUNER "
+                 "or provide another point.")
     code, name = hit
-    print(f"Kommun: {name} ({code})")
+    print(f"Municipality: {name} ({code})")
     client = ScbClient()
     sig, extra = population_signals(client, code)
-    print(f"Befolkning: {extra}  →  {sig}")
+    print(f"Population: {extra}  →  {sig}")
     print(f"income_index: {income_index_signal(client, code)}")
     print(f"residential_density (hh/km²): {density_signal(client, code)}")

@@ -248,6 +248,16 @@ OIDC.
   motorsträngar rensade (`⚠` borta ur `ask.py`/`indices.py`). Inga
   emojis kvar i frontend – nya ikoner läggs till som `<symbol>` i
   spriten och används via `ikon("namn")`.
+- **Engelska som huvudspråk (v0.19):** Hela plattformen är
+  engelskspråkig – alla API-textfält heter `*_en` (mekaniskt omdöpta
+  från `*_sv`), samtliga motor-narrativ, etiketter, caveats, fel-
+  meddelanden, paketbeskrivningar och hela frontenden är översatta.
+  "Ask Landvex"-tolken är engelsk-först (engelska intentord, tal,
+  horisonter, exonymer som Gothenburg→Göteborg, s-pluralstamning)
+  med svenska nyckelord kvar som synonymer – frågor fungerar på båda
+  språken. ENGINE_VERSION 0.10.0. Interna id:n är oförändrade
+  (vertical/occupation/band/status) – de är kontrakt, inte språk.
+  Dokumentationen (CLAUDE.md m.fl.) är fortsatt svensk tills vidare.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

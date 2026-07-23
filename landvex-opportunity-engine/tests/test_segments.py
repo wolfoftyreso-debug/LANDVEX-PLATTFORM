@@ -29,21 +29,21 @@ def test_segment_analysis_contract():
         assert s["band"] in ("mycket_over_snittet", "over_snittet",
                              "kring_snittet", "under_snittet",
                              "langt_under_snittet")
-        assert s["narrativ_sv"] and s["betjanas_av"]
+        assert s["narrativ_en"] and s["betjanas_av"]
         if SEGMENTS[s["segment_id"]].mode != "index":
             assert s["antal_uppskattat"] is not None and s["antal_uppskattat"] >= 0
-    assert "uppskattningar" in res["caveats_sv"][0]       # ärlighet
+    assert "estimates" in res["caveats_en"][0]       # ärlighet
     assert segment_analysis("0180") == res                # determinism
 
 
 def test_segment_map_contract():
     res = segment_map("djuragare")
-    assert res["label_sv"] == "Djurägare"
+    assert res["label_en"] == "Pet owners"
     assert len(res["regioner"]) == 40 and len(res["heatmap"]) == 40
     antal = [r["antal_uppskattat"] for r in res["regioner"]]
     assert antal == sorted(antal, reverse=True)           # flest först
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
-    assert "veterinär" in res["sammanfattning_sv"].lower()
+    assert "veterinary" in res["sammanfattning_en"].lower()
     de = segment_map("bilagare", market="de")
     from engine.markets import MARKETS
     assert len(de["regioner"]) == len(MARKETS["de"].regions)

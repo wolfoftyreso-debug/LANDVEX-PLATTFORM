@@ -45,27 +45,32 @@ def _risk(values) -> tuple[str, str, float]:
         parts.append(bad)
     score = sum(parts) / len(parts) if parts else 0.5
     if score < 0.35:
-        return "Låg", "Låg risk: stabil efterfrågan, rimliga hyror och hanterbar konkurrens.", score
+        return "Low", ("Low risk: stable demand, reasonable rents and "
+                       "manageable competition."), score
     if score < 0.6:
-        return "Medel", "Måttlig risk: enskilda faktorer bör bevakas, se nedbrytningen.", score
-    return "Hög", "Förhöjd risk: kombination av vakanser, hyresnivå, konkurrens eller svag tillväxt.", score
+        return "Medium", ("Moderate risk: individual factors should be "
+                          "monitored – see the breakdown."), score
+    return "High", ("Elevated risk: a combination of vacancies, rent levels, "
+                    "competition or weak growth."), score
 
 
 def _recommendation(score: float, risk_level: str) -> str:
-    if score >= 78 and risk_level != "Hög":
-        return "Mycket god etableringsmöjlighet."
+    if score >= 78 and risk_level != "High":
+        return "Very good establishment opportunity."
     if score >= 64:
-        return "God etableringsmöjlighet – med förbehåll enligt nedbrytningen."
+        return ("Good establishment opportunity – with reservations per "
+                "the breakdown.")
     if score >= 50:
-        return "Osäkert läge. Kräver tydlig differentiering eller lägre kostnadsbas."
-    return "Svagt underlag för etablering på denna plats i nuläget."
+        return ("Uncertain outlook. Requires clear differentiation or a "
+                "lower cost base.")
+    return "Weak case for establishing at this location at present."
 
 
 def analyze(location: Location, vertical_id: str,
             resolver: Resolver | None = None) -> OpportunityReport:
     if vertical_id not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vertical_id}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vertical_id}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
     prof = VERTICALS[vertical_id]
     res = resolver or _DEFAULT_RESOLVER
 
@@ -82,8 +87,8 @@ def analyze(location: Location, vertical_id: str,
                 den += w
         fscore = round(100.0 * num / den, 0) if den else 0.0
         text = factor_narrative(f.id, location, values, extras) or \
-            f"{f.label_sv}: index {int(fscore)}/100."
-        factors.append(FactorScore(f.id, f.label_sv, fscore, f.weight, text))
+            f"{f.label_en}: index {int(fscore)}/100."
+        factors.append(FactorScore(f.id, f.label_en, fscore, f.weight, text))
 
     total_w = sum(f.weight for f in factors) or 1.0
     score = round(sum(f.score * f.weight for f in factors) / total_w, 0)
@@ -98,25 +103,27 @@ def analyze(location: Location, vertical_id: str,
 
     caveats = []
     if coverage < 1.0:
-        caveats.append("Delar av underlaget bygger på simulerad data. "
-                       "Kopplas mot verkliga källor (SCB, rörelsedata, bygglov, "
-                       "platsdata) i produktionsmiljön.")
-    caveats.append("Beslutsunderlag, inte ett ja/nej. Scoren visar förutsättningar – "
-                   "utförande, koncept och prissättning avgör utfallet.")
+        caveats.append("Parts of the underlying data are simulated. "
+                       "Real sources (SCB, movement data, building permits, "
+                       "place data) are connected in the production "
+                       "environment.")
+    caveats.append("Decision support, not a yes/no. The score shows "
+                   "conditions – execution, concept and pricing determine "
+                   "the outcome.")
 
     return OpportunityReport(
         vertical_id=vertical_id,
-        vertical_label_sv=prof.label_sv,
+        vertical_label_en=prof.label_en,
         location=location,
         opportunity_score=score,
         factors=factors,
         risk_level=risk_level,
         risk_score=round(risk_score, 3),
-        risk_narrative_sv=risk_text,
-        recommendation_sv=_recommendation(score, risk_level),
-        insights_sv=pattern_insights(vertical_id, extras),
+        risk_narrative_en=risk_text,
+        recommendation_en=_recommendation(score, risk_level),
+        insights_en=pattern_insights(vertical_id, extras),
         data_coverage=round(coverage, 2),
-        caveats_sv=caveats,
+        caveats_en=caveats,
         signals=signal_breakdown,
         engine_version=ENGINE_VERSION,
     )

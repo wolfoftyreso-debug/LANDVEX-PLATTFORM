@@ -46,10 +46,10 @@ _MIN_ROLE = {
 
 
 class AuthError(Exception):
-    def __init__(self, status: int, message_sv: str):
-        super().__init__(message_sv)
+    def __init__(self, status: int, message_en: str):
+        super().__init__(message_en)
         self.status = status
-        self.message_sv = message_sv
+        self.message_en = message_en
 
 
 from api import licensing
@@ -72,9 +72,9 @@ def _parse_keys(raw: str) -> dict[str, Principal]:
     for entry in filter(None, (e.strip() for e in raw.split(","))):
         parts = entry.split(":")
         if not 3 <= len(parts) <= 5 or parts[2] not in _ROLE_RANK:
-            raise ValueError(f"Ogiltig LANDVEX_API_KEYS-post: {entry!r} "
-                             f"(format nyckel:tenant:roll[:plan[:tillägg]], "
-                             f"roll ∈ {sorted(_ROLE_RANK)})")
+            raise ValueError(f"Invalid LANDVEX_API_KEYS entry: {entry!r} "
+                             f"(format key:tenant:role[:plan[:addons]], "
+                             f"role ∈ {sorted(_ROLE_RANK)})")
         key, tenant, role = parts[0], parts[1], parts[2]
         plan = parts[3] if len(parts) >= 4 and parts[3] else "enterprise"
         addons = tuple(filter(None, parts[4].split("|"))) if len(parts) == 5 else ()
@@ -98,10 +98,10 @@ class ApiAuth:
         if not self.enabled:
             return self._OPEN
         if not api_key:
-            raise AuthError(401, "API-nyckel krävs (header X-API-Key).")
+            raise AuthError(401, "API key required (header X-API-Key).")
         p = self.keys.get(api_key)
         if p is None:
-            raise AuthError(401, "Ogiltig API-nyckel.")
+            raise AuthError(401, "Invalid API key.")
         base = path.split("?")[0].rstrip("/")
         # Prefixmatch så /v1/profiles/{id} ärver /v1/profiles-kravet.
         needed = "partner"
@@ -109,13 +109,13 @@ class ApiAuth:
             if m == method and base.startswith(prefix):
                 needed = max(needed, role, key=lambda r: _ROLE_RANK[r])
         if _ROLE_RANK[p.role] < _ROLE_RANK[needed]:
-            raise AuthError(403, f"Rollen '{p.role}' saknar behörighet "
-                                 f"för {method} {base}.")
+            raise AuthError(403, f"Role '{p.role}' has insufficient "
+                                 f"permissions for {method} {base}.")
         # Paketkontroll: planen/tilläggen måste ge endpointens kapabilitet.
         cap = licensing.required_capability(base)
         if cap and cap not in p.capabilities:
-            raise AuthError(403, f"Paketet '{p.plan}' omfattar inte "
-                                 f"{base}. {licensing.upgrade_hint_sv(cap)}")
+            raise AuthError(403, f"The '{p.plan}' plan does not include "
+                                 f"{base}. {licensing.upgrade_hint_en(cap)}")
         return p
 
 
@@ -136,9 +136,9 @@ class RateLimiter:
             tokens, ts = self._buckets.get(key_id, (cap, now))
             tokens = min(cap, tokens + (now - ts) * cap / 60.0)
             if tokens < 1.0:
-                raise AuthError(429, "För många anrop för paketets nivå – "
-                                     "försök igen strax eller uppgradera "
-                                     "(se /v1/plans).")
+                raise AuthError(429, "Too many requests for this plan "
+                                     "tier – try again shortly or upgrade "
+                                     "(see /v1/plans).")
             self._buckets[key_id] = (tokens - 1.0, now)
 
 

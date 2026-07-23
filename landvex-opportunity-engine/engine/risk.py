@@ -28,35 +28,36 @@ _DEFAULT_RESOLVER = Resolver([MockSource()])
 @dataclass(frozen=True)
 class RiskDimension:
     id: str
-    label_sv: str
+    label_en: str
     weight: float
     signals: tuple              # ((signal_id, vikt), ...)
-    mitigation_sv: str          # åtgärdsförslag när risken är förhöjd
+    mitigation_en: str          # åtgärdsförslag när risken är förhöjd
 
 
 DIMENSIONS: tuple[RiskDimension, ...] = (
     RiskDimension(
-        "marknadsrisk", "Marknadsrisk", 0.26,
+        "marknadsrisk", "Market risk", 0.26,
         (("competition_pressure", 0.6), ("provider_gap", 0.4)),
-        "Differentiera konceptet, säkra nischsegment eller ompröva läget "
-        "innan avtal tecknas."),
+        "Differentiate the concept, secure a niche segment or reconsider "
+        "the location before signing agreements."),
     RiskDimension(
-        "efterfragerisk", "Efterfrågerisk", 0.24,
+        "efterfragerisk", "Demand risk", 0.24,
         (("pop_radius", 0.40), ("pop_growth_pct", 0.35),
          ("target_match_pct", 0.25)),
-        "Utöka upptagningsområdet (längre öppettider, mobil tjänst, "
-        "e-handel) eller välj plats närmare målgruppens flöden."),
+        "Expand the catchment area (longer opening hours, mobile service, "
+        "e-commerce) or choose a location closer to the target group's "
+        "flows."),
     RiskDimension(
-        "kostnadsrisk", "Kostnadsrisk", 0.22,
+        "kostnadsrisk", "Cost risk", 0.22,
         (("rent_index", 0.6), ("vacancy_rate", 0.4)),
-        "Förhandla hyrestrappa/kortare bindningstid – hög vakans i "
-        "området är ett förhandlingsläge."),
+        "Negotiate a stepped rent/shorter lease term – high vacancy in "
+        "the area is a bargaining position."),
     RiskDimension(
-        "utvecklingsrisk", "Utvecklingsrisk", 0.16,
+        "utvecklingsrisk", "Development risk", 0.16,
         (("building_permits", 0.4), ("detail_plans", 0.3),
          ("infra_invest", 0.3)),
-        "Låg utvecklingsaktivitet: räkna inte med tillväxtdriven "
-        "efterfrågan – kalkylera på dagens marknad."),
+        "Low development activity: do not count on growth-driven "
+        "demand – base your calculations on today's market."),
 )
 
 _DATA_WEIGHT = 0.12   # dataosäkerhetens vikt i totalrisken
@@ -64,10 +65,10 @@ _DATA_WEIGHT = 0.12   # dataosäkerhetens vikt i totalrisken
 
 def _band(risk: float) -> str:
     if risk < 35:
-        return "Låg"
+        return "Low"
     if risk < 60:
-        return "Medel"
-    return "Hög" if risk < 75 else "Mycket hög"
+        return "Medium"
+    return "High" if risk < 75 else "Very high"
 
 
 def required_signals() -> list[str]:
@@ -78,8 +79,8 @@ def assess(location: Location, vertical_id: str,
            resolver: Resolver | None = None) -> dict[str, Any]:
     """Riskprofil för plats + vertikal. JSON-redo dict."""
     if vertical_id not in VERTICALS:
-        raise ValueError(f"Okänd vertikal: {vertical_id}. "
-                         f"Tillgängliga: {', '.join(sorted(VERTICALS))}")
+        raise ValueError(f"Unknown vertical: {vertical_id}. "
+                         f"Available: {', '.join(sorted(VERTICALS))}")
     res = resolver or _DEFAULT_RESOLVER
     values, _ = res.resolve(location, vertical_id, required_signals())
 
@@ -94,21 +95,21 @@ def assess(location: Location, vertical_id: str,
             n = normalize(CATALOG[sid], sv.value)
             num += w * n
             den += w
-            parts.append({"signal_id": sid, "label_sv": CATALOG[sid].label_sv,
+            parts.append({"signal_id": sid, "label_en": CATALOG[sid].label_en,
                           "varde": sv.value, "enhet": CATALOG[sid].unit,
                           "kalla": sv.source,
                           "riskbidrag": round(100 * (1 - n), 0)})
         risk = round(100 * (1 - num / den), 0) if den else 50.0
         parts.sort(key=lambda p: -p["riskbidrag"])
         worst = parts[0] if parts else None
-        narrative = (f"{d.label_sv} {int(risk)}/100 – största faktor: "
-                     f"{worst['label_sv'].lower()} ({worst['varde']} "
-                     f"{worst['enhet']}, källa {worst['kalla']})."
-                     if worst else f"{d.label_sv}: underlag saknas.")
-        dims.append({"id": d.id, "label_sv": d.label_sv, "risk": risk,
-                     "band": _band(risk), "narrativ_sv": narrative,
+        narrative = (f"{d.label_en} {int(risk)}/100 – largest factor: "
+                     f"{worst['label_en'].lower()} ({worst['varde']} "
+                     f"{worst['enhet']}, source {worst['kalla']})."
+                     if worst else f"{d.label_en}: no data available.")
+        dims.append({"id": d.id, "label_en": d.label_en, "risk": risk,
+                     "band": _band(risk), "narrativ_en": narrative,
                      "signaler": parts,
-                     "atgard_sv": d.mitigation_sv if risk >= 60 else None})
+                     "atgard_en": d.mitigation_en if risk >= 60 else None})
         total_num += d.weight * risk
         total_den += d.weight
 
@@ -118,15 +119,15 @@ def assess(location: Location, vertical_id: str,
     avg_q = (sum(v.quality for v in values.values()) /
              max(1, len(values)))
     data_risk = round(100 * (1 - (0.5 * coverage + 0.5 * avg_q)), 0)
-    dims.append({"id": "dataosakerhet", "label_sv": "Dataosäkerhet",
+    dims.append({"id": "dataosakerhet", "label_en": "Data uncertainty",
                  "risk": data_risk, "band": _band(data_risk),
-                 "narrativ_sv": f"{int(100 * coverage)} % av signalerna kommer "
-                                f"från verkliga källor. Osäkerheten minskar "
-                                f"i takt med att adaptrar kopplas in.",
+                 "narrativ_en": f"{int(100 * coverage)}% of signals come "
+                                f"from real sources. Uncertainty decreases "
+                                f"as adapters are connected.",
                  "signaler": [],
-                 "atgard_sv": ("Komplettera med platsbesök och lokala "
-                               "primärdata innan beslut." if data_risk >= 60
-                               else None)})
+                 "atgard_en": ("Supplement with site visits and local "
+                               "primary data before deciding."
+                               if data_risk >= 60 else None)})
     total_num += _DATA_WEIGHT * data_risk
     total_den += _DATA_WEIGHT
 
@@ -134,19 +135,20 @@ def assess(location: Location, vertical_id: str,
     worst_dim = max(dims, key=lambda d: d["risk"])
     return {
         "vertical_id": vertical_id,
-        "vertical_label_sv": VERTICALS[vertical_id].label_sv,
+        "vertical_label_en": VERTICALS[vertical_id].label_en,
         "location": {"lat": location.lat, "lon": location.lon,
                      "address": location.address,
                      "radius_minutes": location.radius_minutes},
         "total_risk": total,
         "band": _band(total),
-        "narrativ_sv": (f"Samlad risk {int(total)}/100 ({_band(total).lower()}). "
-                        f"Tyngsta dimensionen är "
-                        f"{worst_dim['label_sv'].lower()} "
+        "narrativ_en": (f"Overall risk {int(total)}/100 "
+                        f"({_band(total).lower()}). The heaviest dimension "
+                        f"is {worst_dim['label_en'].lower()} "
                         f"({int(worst_dim['risk'])}/100)."),
         "dimensioner": dims,
         "data_coverage": round(coverage, 2),
-        "caveats_sv": ["Riskprofilen är ett beslutsunderlag, inte en garanti. "
-                       "Dimensionsvikterna är dokumenterade och lika för alla "
-                       "platser – jämförbarhet före finjustering."],
+        "caveats_en": ["The risk profile is decision support, not a "
+                       "guarantee. Dimension weights are documented and "
+                       "identical for all locations – comparability before "
+                       "fine-tuning."],
     }
