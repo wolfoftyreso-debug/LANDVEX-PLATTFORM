@@ -39,12 +39,10 @@ FRAGOR = [
     "Var finns störst obalans för bilverkstäder?",
     "Gör en etableringsplan för bilverkstad i Skellefteå.",
 ]
-# Bakade svep (marknad, vertikal) och prognosyrken per marknad.
-SCANS = [("se", "frisor"), ("se", "cafe"), ("se", "vvs"), ("se", "gym"),
-         ("se", "bilverkstad"), ("de", "vvs"), ("us", "restaurang")]
-FORECAST_OCC = {"se": ["elektriker", "vvs_montor", "sjukskoterska",
-                       "larare", "snickare", "forskollarare"],
-                "de": ["elektriker"], "us": ["sjukskoterska"]}
+# Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
+# data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
+# alla vertikaler och alla yrken för demomarknaderna.
+DEMO_MARKETS = ("se", "de")
 
 
 def _strip(f: dict) -> dict:
@@ -55,32 +53,36 @@ def _strip(f: dict) -> dict:
 
 
 def build(out_path: str) -> None:
+    from engine.verticals import VERTICALS
     demo: dict = {
-        "options": {**profile_options(), "scan_levels": SCAN_LEVEL_OPTIONS},
+        # Endast bakade val erbjuds: en analysnivå, två marknader.
+        "options": {**profile_options(),
+                    "scan_levels": [SCAN_LEVEL_OPTIONS[0]]},
         "occupations": occupation_catalog(),
-        "markets": market_catalog(),
+        "markets": [m for m in market_catalog() if m["id"] in DEMO_MARKETS],
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
         "risk": {}, "plans": {},
     }
-    for market, vid in SCANS:
-        res = scan(profile_from_dict({"vertical_id": vid}), top_n=5,
-                   market=market)
-        demo["scans"][f"{market}:{vid}"] = res
-        for h in res["hotspots"]:
-            key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
-            demo["risk"][key] = assess(
-                Location(h["lat"], h["lon"], address=h["lage_sv"]), vid)
-            demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
-                establishment_plan(h["kommun_kod"], vid, market=market)
-    for occ in OCCUPATIONS:
-        demo["wf_maps"][f"se:{occ}"] = national_map(occ, 2035)
-    demo["wf_maps"]["de:elektriker"] = national_map("elektriker", 2035,
-                                                    market="de")
-    demo["wf_maps"]["us:sjukskoterska"] = national_map("sjukskoterska", 2035,
-                                                       market="us")
-    for market, occs in FORECAST_OCC.items():
-        for occ in occs:
+    # Följdfrågor i demon pekar alltid på bakade frågor.
+    for q, svar in demo["ask"].items():
+        svar["forslag_sv"] = [f for f in FRAGOR if f != q][:3]
+
+    for market in DEMO_MARKETS:
+        for vid in VERTICALS:
+            res = scan(profile_from_dict({"vertical_id": vid}), top_n=5,
+                       market=market)
+            demo["scans"][f"{market}:{vid}"] = res
+            for h in res["hotspots"]:
+                key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
+                if key not in demo["risk"]:
+                    demo["risk"][key] = assess(
+                        Location(h["lat"], h["lon"], address=h["lage_sv"]), vid)
+                demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
+                    establishment_plan(h["kommun_kod"], vid, market=market)
+        for occ in OCCUPATIONS:
+            demo["wf_maps"][f"{market}:{occ}"] = national_map(
+                occ, 2035, market=market)
             for kod, *_ in MARKETS[market].regions:
                 demo["forecasts"][f"{market}:{kod}:{occ}"] = _strip(
                     forecast(kod, 2035, [occ], market=market))
@@ -118,25 +120,24 @@ async function api(path, body) {
   }
   if (path === "/v1/scan") {
     const r = D.scans[`${body.market || "se"}:${(body.profile || {}).vertical_id}`];
-    if (!r) throw new Error("Demosvep finns för: " +
-      Object.keys(D.scans).join(", ") + ". " + DEMOFEL);
-    return r;
+    if (!r) throw new Error(DEMOFEL);
+    const kopia = JSON.parse(JSON.stringify(r));
+    kopia.caveats_sv.unshift("Demo: bransch och marknad styr det förberäknade svepet – övriga profilfält påverkar inte resultatet här.");
+    return kopia;
   }
   if (path.startsWith("/v1/workforce/map")) {
     const r = D.wf_maps[`${qp(path, "market") || "se"}:${qp(path, "occupation_id")}`];
-    if (!r || qp(path, "target_year") !== "2035")
-      throw new Error("Demokartor: alla yrken i Sverige, elektriker i Tyskland, sjuksköterska i USA – målår 2035. " + DEMOFEL);
+    if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/workforce/forecast") {
     const r = D.forecasts[`${body.market || "se"}:${body.kommun_kod}:${(body.occupation_ids || [])[0]}`];
-    if (!r || body.target_year !== 2035) throw new Error(DEMOFEL);
+    if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/workforce/simulate") {
     const r = D.simulate[`${body.market || "se"}:${body.kommun_kod}:${body.occupation_id}`];
-    if (!r || body.extra_places_per_year !== 30)
-      throw new Error("Demon simulerar exakt 30 platser/år. " + DEMOFEL);
+    if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/plan") {
@@ -152,6 +153,14 @@ async function api(path, body) {
   throw new Error(DEMOFEL);
 }'''
     html = html.replace(old_api, new_api)
+    # Demon erbjuder bara val som har data: ett målår, låst simulering.
+    html = html.replace(
+        '<option>2030</option><option selected>2035</option><option>2040</option>',
+        '<option selected>2035</option>')
+    html = html.replace(
+        '<input type="number" min="0" value="30" id="simN_${kod}">',
+        '<input type="number" value="30" id="simN_${kod}" readonly '
+        'title="Demon simulerar 30 platser/år – live-läget tar valfritt antal">')
     html = html.replace("<title>LANDVEX · Opportunity Engine</title>",
                         "<title>LANDVEX · Opportunity Engine (demo)</title>")
     html = html.replace("</header>", """</header>
