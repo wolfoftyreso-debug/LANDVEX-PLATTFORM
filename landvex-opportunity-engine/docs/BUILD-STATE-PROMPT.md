@@ -170,15 +170,17 @@ shown publicly; city list on the Intelligence Map; wording of
 When matching against **aamos.ai / developer.aamos.ai**: API conventions
 (auth, versioning, error format, manifest format) so `/v1/agent-manifest`
 and the key model mount cleanly as an aamos API.
-When matching against **the server inventory (bernt.wavult.com)**: the
-sections cut off after the Docker table — Gitea repos, database DSNs
-(RDS + local Postgres via pgbouncer :6432), Redis/ClickHouse roles, the
-REXO pipeline contract (`/opt/amos/rexo-build/` — required delivery
-format), which port range this API should claim (8081 is taken by the
-legacy landvex-api), which domain fronts it (api.landvex.io v0 exists —
-do we replace or mount as v1 alongside?), and whether quiXzoom's API
-(app.quixzoom.com; api.quixzoom.com is a zombie) exposes the observation
-data the Contradiction Index needs.
+When matching against **the server inventory (bernt.wavult.com)**: still
+open — Gitea repos, database DSNs (RDS `wavult-identity-core` + local
+Postgres via pgbouncer :6432), Redis/NATS roles, the REXO pipeline
+contract (`/opt/amos/rexo-build/` — required delivery format), the domain
+that fronts this API (api.landvex.io v0 exists — replace or mount as v1
+alongside?), and whether quiXzoom's API (:3209 /v1/observations, AVO
+:7070) exposes the observation data the Contradiction Index needs.
+Port resolved: the 8087 proposal is free — inventory 2026-07-23 shows
+8083 landvex-api (Object), 8084 bounties, 8085 claims, 8086 demo, 7072
+admin-api occupied. AAMOS Core :3100 and quiXzoom :3209/:7070 confirmed,
+matching the built adapters.
 When matching against **product/pricing truth**: confirm plan names,
 list prices per market/currency, add-on packaging, and what Enterprise
 includes contractually.

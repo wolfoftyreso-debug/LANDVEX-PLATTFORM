@@ -1,5 +1,7 @@
 # LANDVEX Opportunity Engine — systemd unit (REXO: systemd only, no pm2).
-# Föreslagen port: 8087 (8081 = legacy landvex-api, 8083/8084/8086 upptagna).
+# Föreslagen port: 8087. Upptagna enligt inventeringen 2026-07-23:
+# 8083 landvex-api (Object), 8084 bounties, 8085 claims, 8086 demo,
+# 7072 admin-api. 8087 är ledigt.
 # Installeras: cp infra/landvex-opportunity.service /etc/systemd/system/
 #              systemctl daemon-reload && systemctl enable --now landvex-opportunity
 [Unit]
