@@ -416,6 +416,9 @@ function ritaHotspots(res) {
         <h4>Riskprofil</h4>
         <div class="sim"><button class="riskBtn">Visa riskprofil →</button></div>
         <div class="riskUt"></div>
+        <h4>Från analys till handling</h4>
+        <div class="sim"><button class="planBtn">Skapa etableringsplan →</button></div>
+        <div class="planUt"></div>
       </div>`;
     div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
     div.querySelector(".riskBtn").onclick = async (e) => {
@@ -433,6 +436,35 @@ function ritaHotspots(res) {
           </div>`).join("") +
           rp.dimensioner.filter(d => d.atgard_sv).map(d =>
             `<p class="roi-notis">⚠ ${esc(d.label_sv)}: ${esc(d.atgard_sv)}</p>`).join("");
+      } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
+    };
+    div.querySelector(".planBtn").onclick = async (e) => {
+      e.stopPropagation();
+      const ut = div.querySelector(".planUt");
+      ut.innerHTML = "<p class='motiv'>Bygger plan …</p>";
+      try {
+        const p = await api("/v1/plan", {
+          kommun_kod: h.kommun_kod, vertical: senasteScan.profile.vertical_id,
+          market: senasteScan.market || "se" });
+        const inv = p.investering_tkr, eko = p.ekonomi;
+        ut.innerHTML = `
+          <div class="driver"><span>Lokal</span><span>${p.lokal.storlek_m2[0]}–${p.lokal.storlek_m2[1]} m²</span></div>
+          <p class="motiv">${esc(p.lokal.hyreslage_sv)}</p>
+          <div class="driver"><span>Startkapital</span><span>${inv.startkapital[0]}–${inv.startkapital[1]} tkr</span></div>
+          <div class="driver"><span>Utrustning</span><span>${inv.utrustning[0]}–${inv.utrustning[1]} tkr</span></div>
+          <div class="driver"><span><b>Total investering</b></span><span><b>${inv.totalt[0]}–${inv.totalt[1]} tkr</b></span></div>
+          ${eko.status === "ej_kalibrerad"
+            ? `<p class="roi-notis">${esc(eko.notis_sv)}</p>`
+            : `<div class="driver"><span>Omsättningsscenario</span><span>${eko.omsattningsscenario_tkr_ar} tkr/år</span></div>
+               <div class="driver"><span>Rörelseresultat (schablon)</span><span>${eko.rorelseresultat_tkr_ar[0]}–${eko.rorelseresultat_tkr_ar[1]} tkr/år</span></div>
+               <div class="driver"><span>Återbetalningstid</span><span>${eko.aterbetalningstid_ar ? eko.aterbetalningstid_ar[0] + "–" + eko.aterbetalningstid_ar[1] + " år" : "ej beräkningsbar"}</span></div>
+               <p class="roi-notis">${esc(eko.notis_sv)}</p>`}
+          ${p.personal.yrken.map(y => `<p class="motiv"><b>${esc(y.label_sv)}</b> (${y.medellon_tkr_manad} tkr/mån): ${esc(y.rekryteringslage_sv)}</p>`).join("")}
+          <p class="motiv">${esc(p.personal.notis_sv)}</p>
+          <p class="motiv"><b>Finansiering:</b> ${p.finansiering.map(f => esc(f.alternativ_sv)).join(" · ")}</p>
+          <p class="motiv"><b>Leverantörer:</b> ${p.leverantorer_sv.map(esc).join(" · ")}</p>
+          ${p.risker.map(r => `<p class="roi-notis">⚠ ${esc(r.label_sv)} ${Math.round(r.risk)}/100${r.atgard_sv ? " – " + esc(r.atgard_sv) : ""}</p>`).join("")}
+          <div class="steg">${p.nasta_steg_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
       } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
     };
     wrap.appendChild(div);

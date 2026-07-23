@@ -26,7 +26,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .datasources.base import Resolver
+from .gaps import gap_analysis
 from .markets import MARKETS, get_market
+from .plan import establishment_plan
 from .models import Location
 from .profile import BusinessProfile
 from .risk import assess
@@ -50,6 +52,7 @@ _VERTICAL_SYNONYMS: dict[str, str] = {
     "tandläkare": "tandlakare", "tandläkarpraktik": "tandlakare",
     "tandvård": "tandlakare",
     "bilverkstad": "bilverkstad", "verkstad": "bilverkstad",
+    "bilverkstäder": "bilverkstad", "verkstäder": "bilverkstad",
     "veterinär": "veterinar", "veterinärklinik": "veterinar",
     "djurklinik": "veterinar",
     "lager": "lager", "logistik": "lager", "logistikcenter": "lager",
@@ -101,6 +104,10 @@ _SHORTAGE_WORDS = ("brist", "saknas", "behov", "behöv", "efterfråg",
 _START_WORDS = ("starta", "öppna", "etablera", "affärsmöjlighet",
                 "möjligheter", "investera", "driva")
 _RISK_WORDS = ("risk", "riskabelt", "riskfyllt", "farligt", "vågar")
+_GAP_WORDS = ("obalans", "outnyttjad", "underförsörjd", "underetablerad",
+              "gap", "lucka", "vita fläckar")
+_PLAN_WORDS = ("etableringsplan", "affärsplan", "hur startar jag",
+               "vad krävs för att starta", "beslutsunderlag")
 
 
 @dataclass
@@ -202,8 +209,15 @@ def parse(question: str) -> Query:
                   unmatched_kommun=None if kommun else _find_unmatched_kommun(q),
                   raw=question)
 
+    gap = any(w in q for w in _GAP_WORDS)
+    plan = any(w in q for w in _PLAN_WORDS)
+
     if kommun is None and query.unmatched_kommun:
         query.intent = "okand_kommun"
+    elif plan and vert and kommun:
+        query.intent = "etableringsplan"
+    elif gap and vert:
+        query.intent = "gap_analys"
     elif risky and vert and kommun:
         query.intent = "riskprofil"
     elif occ and move:
@@ -229,9 +243,9 @@ _HELP = {
                "ett land (Sverige, Tyskland, USA, Spanien, Polen, Frankrike).",
     "forslag_sv": [
         "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
+        "Var finns störst obalans för bilverkstäder?",
+        "Gör en etableringsplan för bilverkstad i Skellefteå.",
         "Var i Europa är det störst brist på elektriker?",
-        "Var är det bäst att starta ett VVS-företag i Tyskland?",
-        "Vilket land är bäst för en svensk snickare att flytta till?",
         "Hur riskabelt är det att starta gym i Solna?",
     ],
 }
@@ -427,6 +441,99 @@ def _rows_basta_lage(query: Query, resolver) -> dict[str, Any]:
     }
 
 
+def _rows_gap(query: Query, resolver) -> dict[str, Any]:
+    res = gap_analysis(query.vertical_id, market=query.market or "se",
+                       resolver=resolver, top_n=query.top_n)
+    rows = [{
+        "typ": "obalans", "id": e["kommun_kod"], "label_sv": e["kommun"],
+        "score": e["obalans_score"],
+        "trend": e["utveckling_riktning"],
+        "detalj": {
+            "klass": e["klass"].replace("_", " "),
+            "efterfragan": e["efterfragan"],
+            "utbudsunderskott": e["utbudsunderskott"],
+            "utveckling": e["utveckling"],
+            "opportunity_score": e["opportunity_score"],
+            "motivering_sv": [e["narrativ_sv"]] + [
+                f"{r['label_sv']}: {r['varde']} {r['enhet']} "
+                f"({r['bedomning_sv']}, källa {r['kalla']})"
+                for r in (e["forklaring"]["efterfragan"][:4] +
+                          e["forklaring"]["utbud"])],
+        }} for e in res["obalanser"]]
+    return {
+        "svar_sv": res["sammanfattning_sv"] + (
+            f" Störst obalans: {rows[0]['label_sv']} "
+            f"({int(rows[0]['score'])}/100)." if rows else ""),
+        "rader": rows,
+        "karta": {"typ": "heatmap", "heatmap": res["heatmap"],
+                  "hotspots": [], "bbox": res["bbox"], "level": "oversikt"},
+        "forslag_sv": [f"Gör en etableringsplan för "
+                       f"{res['vertical_label_sv'].lower()} i "
+                       f"{rows[0]['label_sv']}." if rows else
+                       "Var finns störst obalans för tandläkare?"],
+        "caveats_sv": res["caveats_sv"],
+    }
+
+
+def _rows_plan(query: Query, resolver) -> dict[str, Any]:
+    kod = query.kommun[0]
+    p = establishment_plan(kod, query.vertical_id,
+                           market=query.region_market, resolver=resolver)
+    inv, eko = p["investering_tkr"], p["ekonomi"]
+    rows = [
+        {"typ": "plan", "id": "lokal", "label_sv": "Lokal",
+         "score": p["opportunity_score"], "trend": None,
+         "detalj": {"storlek": f"{p['lokal']['storlek_m2'][0]}–"
+                               f"{p['lokal']['storlek_m2'][1]} m²",
+                    "narrativ_sv": p["lokal"]["hyreslage_sv"]}},
+        {"typ": "plan", "id": "investering", "label_sv": "Investering (tkr)",
+         "score": inv["totalt"][1], "trend": None,
+         "detalj": {"startkapital": f"{inv['startkapital'][0]}–{inv['startkapital'][1]}",
+                    "utrustning": f"{inv['utrustning'][0]}–{inv['utrustning'][1]}",
+                    "totalt": f"{inv['totalt'][0]}–{inv['totalt'][1]}",
+                    "narrativ_sv": inv["notis_sv"],
+                    "motivering_sv": [f["alternativ_sv"] + " – " + f["notis_sv"]
+                                      for f in p["finansiering"]]}},
+        {"typ": "plan", "id": "personal", "label_sv": "Personal",
+         "score": p["personal"]["antal"], "trend": None,
+         "detalj": {"narrativ_sv": p["personal"]["notis_sv"],
+                    "motivering_sv": [
+                        f"{y['label_sv']} ({y['medellon_tkr_manad']} tkr/mån): "
+                        f"{y['rekryteringslage_sv']}"
+                        for y in p["personal"]["yrken"]] or
+                        ["Bemanning enligt vald teamstorlek."]}},
+        {"typ": "plan", "id": "ekonomi", "label_sv": "Ekonomi (schablon)",
+         "score": eko.get("omsattningsscenario_tkr_ar", 0), "trend": None,
+         "detalj": ({"omsattning_tkr_ar": eko["omsattningsscenario_tkr_ar"],
+                     "resultat_tkr_ar": f"{eko['rorelseresultat_tkr_ar'][0]}–"
+                                        f"{eko['rorelseresultat_tkr_ar'][1]}",
+                     "aterbetalningstid_ar":
+                         (f"{eko['aterbetalningstid_ar'][0]}–"
+                          f"{eko['aterbetalningstid_ar'][1]} år"
+                          if eko.get("aterbetalningstid_ar") else "ej beräkningsbar"),
+                     "narrativ_sv": eko["notis_sv"]}
+                    if "omsattningsscenario_tkr_ar" in eko else
+                    {"narrativ_sv": eko["notis_sv"]})},
+        {"typ": "plan", "id": "risker", "label_sv": "Viktigaste riskerna",
+         "score": p["risk_total"], "trend": None,
+         "detalj": {"motivering_sv": [
+             f"{r['label_sv']} ({int(r['risk'])}/100, {r['band']})"
+             + (f" – {r['atgard_sv']}" if r["atgard_sv"] else "")
+             for r in p["risker"]]}},
+    ]
+    return {
+        "svar_sv": f"Etableringsplan för {p['vertical_label_sv'].lower()} i "
+                   f"{p['kommun']}: score {int(p['opportunity_score'])}/100, "
+                   f"total investering {inv['totalt'][0]}–{inv['totalt'][1]} "
+                   f"tkr (schablon). Nästa steg: "
+                   f"{' · '.join(p['nasta_steg_sv'][:3])}.",
+        "rader": rows,
+        "forslag_sv": [f"Hur riskabelt är det att starta "
+                       f"{p['vertical_label_sv'].lower()} i {p['kommun']}?"],
+        "caveats_sv": p["caveats_sv"],
+    }
+
+
 def _rows_risk(query: Query, resolver) -> dict[str, Any]:
     kod, namn, lat, lon = query.kommun
     rp = assess(Location(lat, lon, address=namn), query.vertical_id,
@@ -471,6 +578,8 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
                "global_brist": _rows_global,
                "land_ranking": _rows_land_ranking,
                "basta_lage_vertikal": _rows_basta_lage,
+               "gap_analys": _rows_gap,
+               "etableringsplan": _rows_plan,
                "riskprofil": _rows_risk}[query.intent]
     result = handler(query, resolver)
     caveats = result.pop("caveats_sv", []) + [

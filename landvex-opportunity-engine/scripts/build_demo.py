@@ -16,6 +16,7 @@ import sys
 from engine.ask import ask
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
+from engine.plan import establishment_plan
 from engine.profile import profile_from_dict, profile_options
 from engine.risk import assess
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
@@ -35,6 +36,8 @@ FRAGOR = [
     "Var i Sverige är behovet av sjuksköterskor störst?",
     "Var ska jag öppna café?",
     "Hur riskabelt är det att starta gym i Solna?",
+    "Var finns störst obalans för bilverkstäder?",
+    "Gör en etableringsplan för bilverkstad i Skellefteå.",
 ]
 # Bakade svep (marknad, vertikal) och prognosyrken per marknad.
 SCANS = [("se", "frisor"), ("se", "cafe"), ("se", "vvs"), ("se", "gym"),
@@ -58,7 +61,7 @@ def build(out_path: str) -> None:
         "markets": market_catalog(),
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
-        "risk": {},
+        "risk": {}, "plans": {},
     }
     for market, vid in SCANS:
         res = scan(profile_from_dict({"vertical_id": vid}), top_n=5,
@@ -68,6 +71,8 @@ def build(out_path: str) -> None:
             key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
             demo["risk"][key] = assess(
                 Location(h["lat"], h["lon"], address=h["lage_sv"]), vid)
+            demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
+                establishment_plan(h["kommun_kod"], vid, market=market)
     for occ in OCCUPATIONS:
         demo["wf_maps"][f"se:{occ}"] = national_map(occ, 2035)
     demo["wf_maps"]["de:elektriker"] = national_map("elektriker", 2035,
@@ -132,6 +137,11 @@ async function api(path, body) {
     const r = D.simulate[`${body.market || "se"}:${body.kommun_kod}:${body.occupation_id}`];
     if (!r || body.extra_places_per_year !== 30)
       throw new Error("Demon simulerar exakt 30 platser/år. " + DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/plan") {
+    const r = D.plans[`${body.market || "se"}:${body.kommun_kod}:${body.vertical}`];
+    if (!r) throw new Error(DEMOFEL);
     return r;
   }
   if (path === "/v1/risk") {

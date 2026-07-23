@@ -147,6 +147,19 @@ OIDC.
 - **Multi-horisont (v0.9):** varje workforce-prognos bär `milstolpar`
   på 1/3/5/10/20 års sikt (strategisk planering), utöver valfritt
   målår och årsvis bana.
+- **Gap Analysis Engine (v0.10):** `engine/gaps.py` – hittar
+  obalanser (hög efterfrågan × lågt utbud × positiv utveckling) per
+  region och vertikal, med treaxlig nedbrytning, klassning
+  (stark/potentiell/svag obalans) och Volvo-stil-förklaringsrader
+  per signal med källa. `POST /v1/gaps`.
+- **Etableringsplan (v0.10):** `engine/plan.py` – från analys till
+  handling: lokalstorlek + hyresläge, investering (schablon),
+  finansieringsvägar, personalbehov med VERKLIGT rekryteringsläge
+  från Workforce-motorn, leverantörskategorier, omsättning/resultat/
+  återbetalningstid (intervall, endast kalibrerade marknader),
+  topp-3 risker med åtgärder, nästa steg. `PLAN_DATA` är data per
+  vertikal. `POST /v1/plan`. Frågetolken förstår obalans- och
+  planfrågor; frontend har "Skapa etableringsplan" i hotspotkorten.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -162,6 +175,7 @@ python3 -m tests.test_risk_compare # risk- och jämförelsetester (7 st)
 python3 -m tests.test_ask          # NL-tolk och svarstester (12 st)
 python3 -m tests.test_markets      # marknads- och globaltester (7 st)
 python3 -m tests.test_security     # auth/RBAC/rate limit/audit (6 st)
+python3 -m tests.test_gaps_plan    # obalanser + etableringsplan (7 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -249,6 +263,8 @@ engine/            kärnmotor (stdlib-only)
   compare.py       jämför 2–4 platser: faktormatris + rekommendation
   ask.py           Fråga Landvex: svensk NL-tolk → motorroutning
   markets.py       marknader som data (SE/DE/US/ES/PL/FR) + grupper
+  gaps.py          Gap Analysis: obalanser (efterfrågan/utbud/utveckling)
+  plan.py          etableringsplan: analys → konkret beslutsunderlag
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),

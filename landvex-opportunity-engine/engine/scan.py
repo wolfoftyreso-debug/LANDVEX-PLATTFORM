@@ -200,7 +200,11 @@ def _economy_scenario(profile: BusinessProfile, opportunity_score: float) -> dic
     }
 
 
-economy_scenario = _economy_scenario   # publikt namn (används av ask-modulen)
+# Publika namn (används av ask-, gap- och planmodulerna).
+economy_scenario = _economy_scenario
+momentum_of = _momentum
+TEAM_PERSONS = _TEAM_PERSONS
+STARTUP_TKR = _STARTUP_TKR
 
 _ROI_UNAVAILABLE = {
     "status": "ej_tillgangligt",

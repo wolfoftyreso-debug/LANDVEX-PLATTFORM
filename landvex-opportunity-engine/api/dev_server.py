@@ -41,7 +41,9 @@ from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
+from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.plan import establishment_plan
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
@@ -200,6 +202,18 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/ask":
                 return self._send(200, ask(str(req.get("question", "")),
                                            resolver=RESOLVER))
+            if self.path == "/v1/gaps":
+                return self._send(200, gap_analysis(
+                    req["vertical"], market=req.get("market", "se"),
+                    resolver=RESOLVER,
+                    top_n=min(max(int(req.get("top_n", 5)), 1), 20)))
+            if self.path == "/v1/plan":
+                return self._send(200, establishment_plan(
+                    req["kommun_kod"], req["vertical"],
+                    market=req.get("market", "se"),
+                    team_size=req.get("team_size", "2-5"),
+                    budget_band=req.get("budget_band", "500k-2m"),
+                    resolver=RESOLVER))
             if self.path == "/v1/risk":
                 loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
                                address=req.get("address", ""),

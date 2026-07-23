@@ -28,7 +28,9 @@ from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.ask import ask
 from engine.compare import compare
+from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.plan import establishment_plan
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
@@ -254,6 +256,40 @@ def risk_profile(req: RiskRequest):
 def compare_locations(req: CompareRequest):
     try:
         return compare(req.locations, req.vertical, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class GapRequest(BaseModel):
+    vertical: str
+    market: str = "se"
+    top_n: int = Field(5, ge=1, le=20)
+
+
+class PlanRequest(BaseModel):
+    kommun_kod: str
+    vertical: str
+    market: str = "se"
+    team_size: str = "2-5"
+    budget_band: str = "500k-2m"
+
+
+@app.post("/v1/gaps")
+def gaps(req: GapRequest):
+    try:
+        return gap_analysis(req.vertical, market=req.market,
+                            resolver=RESOLVER, top_n=req.top_n)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/plan")
+def plan(req: PlanRequest):
+    try:
+        return establishment_plan(req.kommun_kod, req.vertical,
+                                  market=req.market, team_size=req.team_size,
+                                  budget_band=req.budget_band,
+                                  resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
