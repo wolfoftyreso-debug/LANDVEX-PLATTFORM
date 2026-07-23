@@ -115,6 +115,7 @@
     <button class="tab" data-mode="etab">Etablering</button>
     <button class="tab" data-mode="komp">Kompetens</button>
     <button class="tab" data-mode="index">Index</button>
+    <button class="tab" data-mode="paket">Paket</button>
   </nav>
 </header>
 
@@ -151,6 +152,12 @@
       <div class="falt"><label>Index</label><select id="indexVal"></select></div>
       <div class="falt"><label>Marknad</label><select id="marknadIndex"></select></div>
       <button id="ritaIndex">Rita kartlager</button>
+    </div>
+    <div id="vyPaket" style="display:none">
+      <h2>Plattformsnivåer</h2>
+      <p class="motiv">Tre plannivåer och produktmoduler som tillägg –
+        API:t upprätthåller behörigheter, live-lager och anropstak per
+        paket automatiskt.</p>
     </div>
     <div class="status" id="status">Ställ en fråga – svaret byggs av Landvex motorer, med konfidens och antaganden.</div>
   </aside>
@@ -520,6 +527,8 @@ const LAGEN = {
   index: { rubrik: "Städer", titel: "Intelligence Map · Sourced & traceable",
            status: "Välj index och marknad, rita kartlagret. Klicka en stad " +
                    "för full bedömning." },
+  paket: { rubrik: "Paket & priser", titel: "Landvex · Planer och produkter",
+           status: "Listpriser – konfigureras per avtal och marknad." },
 };
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
@@ -529,9 +538,11 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyEtab").style.display = MODE === "etab" ? "" : "none";
   $("vyKomp").style.display = MODE === "komp" ? "" : "none";
   $("vyIndex").style.display = MODE === "index" ? "" : "none";
+  $("vyPaket").style.display = MODE === "paket" ? "" : "none";
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendIndex").style.display = MODE === "index" ? "" : "none";
+  if (MODE === "paket") visaPaket();
   $("resultatRubrik").textContent = LAGEN[MODE].rubrik;
   $("undertitel").textContent = LAGEN[MODE].titel;
   tomKarta(); $("hotspots").innerHTML =
@@ -757,6 +768,46 @@ $("fragaBtn").onclick = stallFraga;
 $("fragaText").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); stallFraga(); }
 });
+
+// ── Paket & priser ───────────────────────────────────────────────────
+const pris = p => p ? `${p.SEK.toLocaleString("sv-SE")} kr/mån` +
+  ` <small style="color:var(--muted)">· €${p.EUR} · $${p.USD}</small>` : "Offert";
+
+async function visaPaket() {
+  const wrap = $("hotspots");
+  wrap.innerHTML = "<p class='motiv'>Hämtar paket …</p>";
+  try {
+    const res = await api("/v1/plans");
+    wrap.innerHTML = "";
+    for (const p of res.plans) {
+      const div = document.createElement("div");
+      div.className = "kort open";
+      div.innerHTML = `
+        <div class="rubrik">
+          <span class="plats">${esc(p.label_sv)}</span>
+          <span class="score s-gron" style="font-size:15px">${pris(p.pris_manad)}</span>
+        </div>
+        <p class="motiv">${esc(p.beskrivning_sv)}</p>
+        <div class="detalj">
+          ${p.ingar_sv.map(i => `<div class="driver"><span>✔ ${esc(i)}</span><span></span></div>`).join("")}
+          <p class="roi-notis">Anropstak: ${p.rate_limit_per_min} anrop/min</p>
+        </div>`;
+      wrap.appendChild(div);
+    }
+    wrap.insertAdjacentHTML("beforeend",
+      "<h2 style='margin:14px 0 8px'>Produktmoduler (tillägg)</h2>");
+    for (const a of res.tillagg) {
+      wrap.insertAdjacentHTML("beforeend", `
+        <div class="kort"><div class="rubrik">
+          <span class="plats">${esc(a.label_sv)}</span>
+          <span class="score s-gul" style="font-size:14px">${pris(a.pris_manad)}</span>
+        </div></div>`);
+    }
+    $("caveats").innerHTML = `<div class="caveat">${esc(res.prisnot_sv)}</div>`;
+  } catch (e) {
+    wrap.innerHTML = `<p class="motiv">Fel: ${esc(e.message)}</p>`;
+  }
+}
 
 // ── Intelligence Map (Index) ─────────────────────────────────────────
 async function visaIndexStad(kod, namn) {

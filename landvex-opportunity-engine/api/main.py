@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from api.health import build_health, source_status
+from api.licensing import plans_catalog, upgrade_hint_sv
 from api.security import AuthError, Gate
 
 from engine.datasources.adapters import production_sources
@@ -46,7 +47,8 @@ from engine.workforce import (forecast as wf_forecast, global_map,
 app = FastAPI(title="LANDVEX Opportunity Engine", version="0.9.0")
 
 GATE = Gate()
-_OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json")
+_OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json",
+               "/v1/plans")
 
 
 @app.middleware("http")
@@ -60,6 +62,7 @@ async def security_middleware(request: Request, call_next):
     try:
         principal, request_id = GATE.enter(
             request.headers.get("X-API-Key"), request.method, path)
+        request.state.principal = principal
         response = await call_next(request)
         status = response.status_code
         response.headers["X-Request-ID"] = request_id
@@ -378,13 +381,43 @@ class AssessRequest(BaseModel):
     market: str = "se"
 
 
+@app.get("/v1/plans")
+def plans():
+    return plans_catalog()
+
+
+@app.get("/v1/entitlements")
+def entitlements(request: Request):
+    p = request.state.principal
+    return {"tenant": p.tenant, "roll": p.role, "plan": p.plan,
+            "tillagg": list(p.addons),
+            "capabilities": sorted(p.capabilities)}
+
+
+def _live_locked(request: Request) -> bool:
+    p = getattr(request.state, "principal", None)
+    return p is not None and "intelligence_map_live" not in p.capabilities
+
+
 @app.get("/v1/indices")
-def indices():
-    return index_catalog()
+def indices(request: Request):
+    kat = index_catalog()
+    if _live_locked(request):
+        for ix in kat:
+            if ix["niva"] == "live":
+                ix["last"] = True
+                ix["las_notis_sv"] = upgrade_hint_sv("intelligence_map_live")
+    return kat
 
 
 @app.get("/v1/indices/map")
-def indices_map(index_id: str, market: str = "se"):
+def indices_map(request: Request, index_id: str, market: str = "se"):
+    from engine.indices import INDEX_TYPES
+    ix = INDEX_TYPES.get(index_id)
+    if ix and ix.niva == "live" and _live_locked(request):
+        raise HTTPException(status_code=403,
+                            detail="Live-lager kräver prenumeration. "
+                                   + upgrade_hint_sv("intelligence_map_live"))
     try:
         return index_map(index_id, market=market, resolver=RESOLVER)
     except ValueError as e:
@@ -392,12 +425,20 @@ def indices_map(index_id: str, market: str = "se"):
 
 
 @app.post("/v1/indices/assess")
-def indices_assess(req: AssessRequest):
+def indices_assess(request: Request, req: AssessRequest):
     try:
-        return city_assessment(req.kommun_kod, market=req.market,
-                               resolver=RESOLVER)
+        res = city_assessment(req.kommun_kod, market=req.market,
+                              resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    if _live_locked(request):
+        for row in res["index"]:
+            if row["niva"] == "live":
+                row.update({"varde": None, "band": None, "band_sv": None,
+                            "drivare": [], "last": True,
+                            "narrativ_sv": "Live-lager – kräver prenumeration. "
+                            + upgrade_hint_sv("intelligence_map_live")})
+    return res
 
 
 @app.get("/v1/catalog")

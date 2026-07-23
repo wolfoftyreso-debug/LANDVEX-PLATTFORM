@@ -52,23 +52,36 @@ class AuthError(Exception):
         self.message_sv = message_sv
 
 
+from api import licensing
+
+
 @dataclass(frozen=True)
 class Principal:
     tenant: str
     role: str
     key_id: str          # maskerat nyckel-id för loggar, aldrig nyckeln
+    plan: str = "enterprise"
+    addons: tuple = ()
+    capabilities: frozenset = frozenset()
 
 
 def _parse_keys(raw: str) -> dict[str, Principal]:
+    """Format: nyckel:tenant:roll[:plan[:tillägg|tillägg]].
+    Utan plan ⇒ enterprise (bakåtkompatibelt)."""
     out: dict[str, Principal] = {}
     for entry in filter(None, (e.strip() for e in raw.split(","))):
         parts = entry.split(":")
-        if len(parts) != 3 or parts[2] not in _ROLE_RANK:
+        if not 3 <= len(parts) <= 5 or parts[2] not in _ROLE_RANK:
             raise ValueError(f"Ogiltig LANDVEX_API_KEYS-post: {entry!r} "
-                             f"(format nyckel:tenant:roll, roll ∈ "
-                             f"{sorted(_ROLE_RANK)})")
-        key, tenant, role = parts
-        out[key] = Principal(tenant, role, f"{key[:4]}…" if len(key) > 4 else "…")
+                             f"(format nyckel:tenant:roll[:plan[:tillägg]], "
+                             f"roll ∈ {sorted(_ROLE_RANK)})")
+        key, tenant, role = parts[0], parts[1], parts[2]
+        plan = parts[3] if len(parts) >= 4 and parts[3] else "enterprise"
+        addons = tuple(filter(None, parts[4].split("|"))) if len(parts) == 5 else ()
+        caps = licensing.resolve_capabilities(plan, addons)   # validerar
+        out[key] = Principal(tenant, role,
+                             f"{key[:4]}…" if len(key) > 4 else "…",
+                             plan, addons, caps)
     return out
 
 
@@ -78,9 +91,12 @@ class ApiAuth:
         self.keys = _parse_keys(raw)
         self.enabled = bool(self.keys)
 
+    _OPEN = Principal("dev", "admin", "open", "enterprise", (),
+                      licensing.resolve_capabilities("enterprise"))
+
     def authorize(self, api_key: str | None, method: str, path: str) -> Principal:
         if not self.enabled:
-            return Principal("dev", "admin", "open")
+            return self._OPEN
         if not api_key:
             raise AuthError(401, "API-nyckel krävs (header X-API-Key).")
         p = self.keys.get(api_key)
@@ -95,6 +111,11 @@ class ApiAuth:
         if _ROLE_RANK[p.role] < _ROLE_RANK[needed]:
             raise AuthError(403, f"Rollen '{p.role}' saknar behörighet "
                                  f"för {method} {base}.")
+        # Paketkontroll: planen/tilläggen måste ge endpointens kapabilitet.
+        cap = licensing.required_capability(base)
+        if cap and cap not in p.capabilities:
+            raise AuthError(403, f"Paketet '{p.plan}' omfattar inte "
+                                 f"{base}. {licensing.upgrade_hint_sv(cap)}")
         return p
 
 
@@ -108,13 +129,16 @@ class RateLimiter:
         self._buckets: dict[str, tuple[float, float]] = {}
         self._lock = threading.Lock()
 
-    def check(self, key_id: str) -> None:
+    def check(self, key_id: str, per_minute: float | None = None) -> None:
+        cap = float(per_minute) if per_minute else self.capacity
         now = self._clock()
         with self._lock:
-            tokens, ts = self._buckets.get(key_id, (self.capacity, now))
-            tokens = min(self.capacity, tokens + (now - ts) * self.capacity / 60.0)
+            tokens, ts = self._buckets.get(key_id, (cap, now))
+            tokens = min(cap, tokens + (now - ts) * cap / 60.0)
             if tokens < 1.0:
-                raise AuthError(429, "För många anrop – försök igen strax.")
+                raise AuthError(429, "För många anrop för paketets nivå – "
+                                     "försök igen strax eller uppgradera "
+                                     "(se /v1/plans).")
             self._buckets[key_id] = (tokens - 1.0, now)
 
 
@@ -218,7 +242,9 @@ class Gate:
 
     def enter(self, api_key: str | None, method: str, path: str) -> tuple[Principal, str]:
         principal = self.auth.authorize(api_key, method, path)
-        self.limiter.check(principal.key_id)
+        plan_limit = licensing.PLANS.get(principal.plan, {}).get(
+            "rate_limit_per_min")
+        self.limiter.check(principal.key_id, plan_limit)
         return principal, uuid.uuid4().hex[:12]
 
     def exit(self, principal: Principal | None, request_id: str,

@@ -56,6 +56,7 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               simulate as wf_simulate)
 
 from api.health import build_health, source_status
+from api.licensing import plans_catalog, upgrade_hint_sv
 from api.security import AuthError, Gate
 
 GATE = Gate()
@@ -86,7 +87,11 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/index.html", "/health")
+    _OPEN_PATHS = ("/", "/index.html", "/health", "/v1/plans")
+
+    def _live_locked(self) -> bool:
+        p = getattr(self, "_principal", None)
+        return p is not None and "intelligence_map_live" not in p.capabilities
 
     def _gated(self, method: str, route) -> None:
         """Auth → rate limit → routning → metrics + audit."""
@@ -159,10 +164,30 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
             return self._send(200, product_catalog())
+        if parsed.path == "/v1/plans":
+            return self._send(200, plans_catalog())
+        if parsed.path == "/v1/entitlements":
+            p = self._principal
+            return self._send(200, {"tenant": p.tenant, "roll": p.role,
+                                    "plan": p.plan, "tillagg": list(p.addons),
+                                    "capabilities": sorted(p.capabilities)})
         if parsed.path == "/v1/indices":
-            return self._send(200, index_catalog())
+            kat = index_catalog()
+            if self._live_locked():
+                for ix in kat:
+                    if ix["niva"] == "live":
+                        ix["last"] = True
+                        ix["las_notis_sv"] = upgrade_hint_sv(
+                            "intelligence_map_live")
+            return self._send(200, kat)
         if parsed.path == "/v1/indices/map":
             q = parse_qs(parsed.query)
+            from engine.indices import INDEX_TYPES
+            ix = INDEX_TYPES.get(q.get("index_id", [""])[0])
+            if ix and ix.niva == "live" and self._live_locked():
+                return self._send(403, {"error": "Live-lager kräver "
+                                        "prenumeration. " + upgrade_hint_sv(
+                                            "intelligence_map_live")})
             try:
                 return self._send(200, index_map(
                     q.get("index_id", [""])[0],
@@ -259,9 +284,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, ask(str(req.get("question", "")),
                                            resolver=RESOLVER))
             if self.path == "/v1/indices/assess":
-                return self._send(200, city_assessment(
-                    req["kommun_kod"], market=req.get("market", "se"),
-                    resolver=RESOLVER))
+                res = city_assessment(req["kommun_kod"],
+                                      market=req.get("market", "se"),
+                                      resolver=RESOLVER)
+                if self._live_locked():
+                    for row in res["index"]:
+                        if row["niva"] == "live":
+                            row.update({"varde": None, "band": None,
+                                        "band_sv": None, "drivare": [],
+                                        "last": True,
+                                        "narrativ_sv": "Live-lager – kräver "
+                                        "prenumeration. " + upgrade_hint_sv(
+                                            "intelligence_map_live")})
+                return self._send(200, res)
             if self.path == "/v1/service/analyze":
                 return self._send(200, service_analysis(
                     req["kommun_kod"], market=req.get("market", "se"),

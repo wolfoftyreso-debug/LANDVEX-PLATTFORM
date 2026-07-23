@@ -13,6 +13,7 @@ import json
 import pathlib
 import sys
 
+from api.licensing import plans_catalog
 from engine.ask import ask
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
@@ -72,6 +73,7 @@ def build(out_path: str) -> None:
         "risk": {}, "plans": {},
         "index_catalog": index_catalog(),
         "index_maps": {}, "assessments": {},
+        "plans": plans_catalog(),
     }
     for market in DEMO_MARKETS:
         for ix in index_catalog():
@@ -156,6 +158,7 @@ async function api(path, body) {
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
+  if (path === "/v1/plans") return D.plans;
   if (path === "/v1/indices") return D.index_catalog;
   if (path.startsWith("/v1/indices/map")) {
     const r = D.index_maps[`${qp(path, "market") || "se"}:${qp(path, "index_id")}`];

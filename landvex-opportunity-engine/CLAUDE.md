@@ -214,6 +214,18 @@ OIDC.
   `GET /v1/indices`, `GET /v1/indices/map`, `POST /v1/indices/assess`.
   Frontend har Index-flik med lagerval, marknadsval och
   stadsbedömning per klick.
+- **Licens- & paketlagret (v0.16):** `api/licensing.py` – tre plan-
+  nivåer (Free 0 kr / Pro 4 900 kr:mån / Enterprise offert) + fem
+  produktmoduler som tillägg (Opportunity, Workforce, Demand
+  Intelligence, Intelligence Map Live, Partner-API) med listpriser i
+  SEK/EUR/USD (märkta prisexempel, konfigureras per avtal). Verklig
+  enforcement i API:t: nyckelformat
+  `nyckel:tenant:roll[:plan[:tillägg|tillägg]]` (bakåtkompatibelt ⇒
+  enterprise), kapabilitet per endpoint, rate limit per plan
+  (60/600/3000 per min), live-indexlager spärrade för Free ("free
+  historical / live requires subscription") med uppgraderings-
+  hänvisning till `GET /v1/plans`. `GET /v1/entitlements` visar
+  nyckelns paket. Frontend har Paket-flik.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -234,6 +246,7 @@ python3 -m tests.test_segments     # målgruppsmotorn (4 st)
 python3 -m tests.test_installed_base  # installerad bas/service (5 st)
 python3 -m tests.test_platform     # hälsa/metrics/audit/manifest (6 st)
 python3 -m tests.test_indices      # Intelligence Map-index (3 st)
+python3 -m tests.test_licensing    # planer/tillägg/enforcement (7 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
