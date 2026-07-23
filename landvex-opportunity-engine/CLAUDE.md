@@ -15,7 +15,15 @@ faktornedbrytning, konfidens och antaganden i varje svar.
 Målgrupper: privatpersoner, företag, investerare, kommuner/regioner,
 utbildningsaktörer och myndigheter – på samma plattform och databas.
 
-## Nuläge: v0.9 — global marknadsmodell
+## Nuläge: v0.9 — global marknadsmodell + production readiness
+
+**Funktionsfrys pågår.** Readiness-status och kvarstående gap:
+`docs/production-readiness.md`. Säkerhetslager i `api/security.py`
+(API-nycklar/tenant/RBAC/rate limit/audit/metrics – öppet läge utan
+`LANDVEX_API_KEYS`), motorversion i varje rapport, schemamigrering i
+lagret, CI i `.github/workflows/landvex-ci.yml` (repo-roten).
+Största gap före deploy: CDK-stacken (#6), tenant-kolumner i lagret,
+OIDC.
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -153,6 +161,7 @@ python3 -m tests.test_workforce    # kompetensprognostester (6 st)
 python3 -m tests.test_risk_compare # risk- och jämförelsetester (7 st)
 python3 -m tests.test_ask          # NL-tolk och svarstester (12 st)
 python3 -m tests.test_markets      # marknads- och globaltester (7 st)
+python3 -m tests.test_security     # auth/RBAC/rate limit/audit (6 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -197,7 +206,9 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 6. **IaC med CDK** — API Gateway + Lambda (Mangum) eller ECS Fargate,
    Secrets Manager, EventBridge-ingestion, S3-datalake.
    Se `infra/aws-notes.md`.
-7. **CI** — kör testsviten + lint på varje PR (inga beroenden krävs).
+7. ~~**CI**~~ — KLAR: `.github/workflows/landvex-ci.yml` (repo-roten)
+   kör kompilering, alla 9 testsviter och API-röktest med auth på
+   Python 3.11/3.12, utan beroenden.
 8. **Auth & multitenancy** — API-nycklar/Cognito för
    plattformsintegration.
 9. **Rörelsedata** (licens, t.ex. Telia Crowd Insights) — sist p.g.a.

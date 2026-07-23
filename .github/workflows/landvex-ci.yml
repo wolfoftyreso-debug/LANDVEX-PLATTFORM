@@ -1,0 +1,51 @@
+# CI för LANDVEX Opportunity Engine.
+# Kärnan är beroendefri: hela sviten körs utan pip install (readiness-krav:
+# "kan systemet byggas och testas med en enda pipeline" – ja).
+name: landvex-ci
+
+on:
+  push:
+    paths: ["landvex-opportunity-engine/**", ".github/workflows/landvex-ci.yml"]
+  pull_request:
+    paths: ["landvex-opportunity-engine/**", ".github/workflows/landvex-ci.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: landvex-opportunity-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Kompilera allt (syntax- och importkontroll)
+        run: python -m compileall -q engine api tests
+
+      - name: Testsvit (utan beroenden, utan nätverk)
+        run: |
+          for t in test_scoring test_scb test_storage test_scan \
+                   test_workforce test_risk_compare test_ask \
+                   test_markets test_security; do
+            echo "── tests.$t"
+            python -m tests.$t
+          done
+
+      - name: Rök-test dev-API (auth på, persistens av)
+        run: |
+          LANDVEX_DB=off LANDVEX_AUDIT_LOG=off \
+            LANDVEX_API_KEYS="ci-nyckel:ci:admin" \
+            python -m api.dev_server & sleep 2
+          curl -sf localhost:8000/health
+          test "$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST localhost:8000/v1/analyze \
+            -d '{"lat":59.31,"lon":18.07,"vertical":"frisor"}')" = "401"
+          curl -sf -X POST localhost:8000/v1/analyze \
+            -H "X-API-Key: ci-nyckel" \
+            -d '{"lat":59.31,"lon":18.07,"vertical":"frisor"}' > /dev/null
+          curl -sf localhost:8000/metrics -H "X-API-Key: ci-nyckel" > /dev/null
