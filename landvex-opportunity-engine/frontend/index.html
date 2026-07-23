@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANDVEX · Opportunity Engine</title>
+<style>
+  :root {
+    --bg: #0e1420; --panel: #161e2e; --panel2: #1c2740; --line: #263452;
+    --text: #e8edf6; --muted: #8fa0bd; --gron: #3ecf8e; --gul: #f2c14e;
+    --rod: #e5636c; --accent: #5b8def;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: baseline; gap: 12px;
+           padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; letter-spacing: 2px; }
+  header span { color: var(--muted); font-size: 12px; }
+  .layout { display: grid; grid-template-columns: 300px 1fr 400px;
+            gap: 0; height: calc(100vh - 51px); }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; height: auto; } }
+
+  /* Profilpanel */
+  .profil { padding: 16px; border-right: 1px solid var(--line); overflow-y: auto; }
+  .profil h2, .resultat h2 { font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
+  .falt { margin-bottom: 12px; }
+  .falt label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  select, button {
+    width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
+          cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
+  .chip.on { border-color: var(--accent); color: var(--text);
+             background: rgba(91,141,239,.15); }
+  #analysera { margin-top: 14px; background: var(--accent); border: none;
+               color: #fff; font-weight: 600; padding: 11px; cursor: pointer; }
+  #analysera:disabled { opacity: .5; cursor: wait; }
+  .status { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 30px; }
+
+  /* Karta */
+  .karta { position: relative; display: flex; align-items: center;
+           justify-content: center; padding: 10px; }
+  svg { max-height: 100%; max-width: 100%; }
+  .prick { cursor: pointer; stroke: rgba(0,0,0,.5); stroke-width: .6;
+           transition: r .1s; }
+  .prick:hover { stroke: #fff; stroke-width: 1.2; }
+  .prick.vald { stroke: #fff; stroke-width: 1.6; }
+  .legend { position: absolute; left: 18px; bottom: 14px; background: var(--panel);
+            border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+            font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px;
+              border-radius: 50%; margin-right: 6px; }
+  #tooltip { position: absolute; pointer-events: none; background: var(--panel);
+             border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+             font-size: 12px; display: none; z-index: 5; }
+
+  /* Resultatpanel */
+  .resultat { padding: 16px; border-left: 1px solid var(--line); overflow-y: auto; }
+  .kort { background: var(--panel); border: 1px solid var(--line);
+          border-radius: 12px; padding: 14px; margin-bottom: 12px; cursor: pointer; }
+  .kort.vald { border-color: var(--accent); }
+  .kort .rubrik { display: flex; justify-content: space-between; align-items: baseline; }
+  .kort .plats { font-weight: 650; font-size: 15px; }
+  .kort .score { font-size: 22px; font-weight: 700; }
+  .s-gron { color: var(--gron); } .s-gul { color: var(--gul); } .s-rod { color: var(--rod); }
+  .metrik { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 10px 0; }
+  .metrik div { background: var(--panel2); border-radius: 8px; padding: 6px 8px; }
+  .metrik b { display: block; font-size: 14px; }
+  .metrik span { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                 letter-spacing: .5px; }
+  .detalj { display: none; margin-top: 10px; border-top: 1px solid var(--line);
+            padding-top: 10px; }
+  .kort.open .detalj { display: block; }
+  .detalj h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+               color: var(--muted); margin: 10px 0 5px; }
+  .driver { display: flex; justify-content: space-between; font-size: 12px;
+            padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .driver .pos { color: var(--gron); } .driver .neg { color: var(--rod); }
+  .motiv { font-size: 12.5px; color: var(--muted); margin: 4px 0; }
+  .steg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .steg span { font-size: 11px; padding: 4px 9px; border-radius: 999px;
+               background: var(--panel2); border: 1px solid var(--line); }
+  .caveat { font-size: 11px; color: var(--muted); border-left: 3px solid var(--gul);
+            padding-left: 8px; margin: 8px 0; }
+  .roi-notis { font-size: 11px; color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<header>
+  <h1>LANDVEX</h1><span>Opportunity Engine · Analysera Sverige</span>
+</header>
+
+<div class="layout">
+  <aside class="profil">
+    <h2>Min affärsprofil</h2>
+    <div id="formular"></div>
+    <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
+    <button id="analysera">Analysera Sverige</button>
+    <div class="status" id="status">Bygg din profil och klicka på Analysera Sverige.</div>
+  </aside>
+
+  <main class="karta">
+    <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Värmekarta Sverige"></svg>
+    <div class="legend">
+      <div><i style="background:var(--gron)"></i>Score ≥ 70 · starka möjligheter</div>
+      <div><i style="background:var(--gul)"></i>45–69 · normalläge</div>
+      <div><i style="background:var(--rod)"></i>&lt; 45 · svagt underlag</div>
+    </div>
+    <div id="tooltip"></div>
+  </main>
+
+  <aside class="resultat">
+    <h2>Hotspots</h2>
+    <div id="hotspots"><p class="motiv">Inga resultat ännu.</p></div>
+    <div id="caveats"></div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+// Projektion: enkel plattkarta över Sveriges bounding box.
+const BOX = { latMin: 55.0, latMax: 69.5, lonMin: 10.5, lonMax: 24.5 };
+const W = 560, H = 1000;
+const px = lon => (lon - BOX.lonMin) / (BOX.lonMax - BOX.lonMin) * (W - 60) + 30;
+const py = lat => (BOX.latMax - lat) / (BOX.latMax - BOX.latMin) * (H - 60) + 30;
+const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)" };
+const $ = id => document.getElementById(id);
+
+const FALT = [
+  ["vertical_id", "Bransch"], ["budget_band", "Budget"],
+  ["team_size", "Antal anställda"], ["business_model", "Affärsmodell"],
+  ["risk_tolerance", "Risknivå"], ["horizon_years", "Investeringshorisont"],
+  ["goal", "Målsättning"],
+];
+let OPTIONS = null, valdMiljo = new Set(), senasteScan = null;
+
+async function api(path, body) {
+  const res = await fetch(path, body
+    ? { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body) }
+    : undefined);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || res.status);
+  return data;
+}
+
+function byggFormular() {
+  const form = $("formular");
+  for (const [key, label] of FALT) {
+    const d = document.createElement("div");
+    d.className = "falt";
+    d.innerHTML = `<label>${label}</label>`;
+    const sel = document.createElement("select");
+    sel.id = "f_" + key;
+    for (const o of OPTIONS[key])
+      sel.add(new Option(o.label_sv, JSON.stringify(o.id)));
+    d.appendChild(sel);
+    form.appendChild(d);
+  }
+  const d = document.createElement("div");
+  d.className = "falt";
+  d.innerHTML = "<label>Miljötyp (tomt = alla)</label>";
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  for (const o of OPTIONS.environments) {
+    const c = document.createElement("span");
+    c.className = "chip"; c.textContent = o.label_sv;
+    c.onclick = () => {
+      valdMiljo.has(o.id) ? valdMiljo.delete(o.id) : valdMiljo.add(o.id);
+      c.classList.toggle("on");
+    };
+    chips.appendChild(c);
+  }
+  d.appendChild(chips); form.appendChild(d);
+  for (const o of OPTIONS.scan_levels || [])
+    $("niva").add(new Option(o.label_sv, o.id));
+}
+
+function lasProfil() {
+  const p = { environments: [...valdMiljo] };
+  for (const [key] of FALT) p[key] = JSON.parse($("f_" + key).value);
+  return p;
+}
+
+function ritaKarta(res) {
+  const svg = $("karta");
+  svg.innerHTML = "";
+  const hotspotNycklar = new Set(res.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
+  const r = res.level === "detaljerad" ? 4.5 : 7;
+  for (const p of res.heatmap) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", px(p.lon)); c.setAttribute("cy", py(p.lat));
+    c.setAttribute("r", hotspotNycklar.has(p.kommun_kod + ":" + p.punkt) ? r + 3 : r);
+    c.setAttribute("fill", FARG[p.band]); c.setAttribute("class", "prick");
+    c.dataset.info = `${p.kommun}${p.punkt !== "centrum" ? " · " + p.punkt : ""} — score ${p.score}`;
+    c.dataset.kommun = p.kommun_kod;
+    c.addEventListener("mousemove", visaTooltip);
+    c.addEventListener("mouseleave", () => $("tooltip").style.display = "none");
+    c.addEventListener("click", () => valjKommun(p.kommun_kod));
+    svg.appendChild(c);
+  }
+}
+
+function visaTooltip(e) {
+  const t = $("tooltip");
+  t.textContent = e.target.dataset.info;
+  t.style.display = "block";
+  const box = e.target.closest(".karta").getBoundingClientRect();
+  t.style.left = (e.clientX - box.left + 14) + "px";
+  t.style.top = (e.clientY - box.top - 8) + "px";
+}
+
+function valjKommun(kod) {
+  document.querySelectorAll(".prick.vald").forEach(x => x.classList.remove("vald"));
+  document.querySelectorAll(`.prick[data-kommun="${kod}"]`)
+          .forEach(x => x.classList.add("vald"));
+  const kort = document.querySelector(`.kort[data-kommun="${kod}"]`);
+  if (kort) { kort.classList.add("open"); kort.scrollIntoView({ behavior: "smooth" }); }
+}
+
+const scoreKlass = s => s >= 70 ? "s-gron" : s >= 45 ? "s-gul" : "s-rod";
+const esc = t => String(t).replace(/[&<>"]/g,
+  ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+function ritaHotspots(res) {
+  const wrap = $("hotspots");
+  wrap.innerHTML = "";
+  if (!res.hotspots.length) {
+    wrap.innerHTML = "<p class='motiv'>Inga platser matchade filtren.</p>";
+  }
+  for (const h of res.hotspots) {
+    const div = document.createElement("div");
+    div.className = "kort"; div.dataset.kommun = h.kommun_kod;
+    const m = h.market_momentum, eko = h.economy_scenario;
+    div.innerHTML = `
+      <div class="rubrik">
+        <span class="plats">📍 ${esc(h.lage_sv)} <small style="color:var(--muted)">#${h.rank}</small></span>
+        <span class="score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</span>
+      </div>
+      <div class="metrik">
+        <div><b>${h.confidence}</b><span>Confidence</span></div>
+        <div><b>${h.risk_index}</b><span>Riskindex (${esc(h.risk_level)})</span></div>
+        <div><b>${m.value}</b><span>Momentum</span></div>
+        <div><b>${h.competition_gap.ratio ?? "–"}</b><span>Utbudsgap</span></div>
+        <div><b>~${h.time_window_months} mån</b><span>Tidsfönster</span></div>
+        <div><b>${h.rank_score}</b><span>Rank (din profil)</span></div>
+      </div>
+      ${h.motivering_sv.slice(0, 2).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
+      <div class="detalj">
+        <h4>Vad ligger bakom?</h4>
+        ${h.drivers.map(d => `<div class="driver">
+            <span>${d.direction === "driver" ? "✔" : "▼"} ${esc(d.label_sv)}</span>
+            <span class="${d.direction === "driver" ? "pos" : "neg"}">${esc(d.value)} ${esc(d.unit)}</span>
+          </div>`).join("")}
+        <h4>Ekonomi – schablonscenario</h4>
+        <p class="motiv">Omsättningsscenario: <b>${eko.omsattningsscenario_tkr_ar} tkr/år</b> ·
+          Startkapital typiskt ${eko.startkapital_typiskt_tkr[0]}–${eko.startkapital_typiskt_tkr[1]} tkr</p>
+        <p class="motiv">${esc(eko.budget_fit_sv)}</p>
+        <p class="roi-notis">${esc(eko.notis_sv)}</p>
+        <p class="roi-notis">Förväntad ROI: ${esc(h.expected_roi.notis_sv)}</p>
+        <h4>Nästa steg</h4>
+        <div class="steg">${h.next_steps_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>
+      </div>`;
+    div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
+    wrap.appendChild(div);
+  }
+  $("caveats").innerHTML = res.caveats_sv
+    .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
+}
+
+$("analysera").onclick = async () => {
+  const btn = $("analysera"), st = $("status");
+  btn.disabled = true;
+  st.textContent = "Analyserar Sverige …";
+  try {
+    const res = await api("/v1/scan", { profile: lasProfil(), top_n: 5,
+                                        level: $("niva").value });
+    senasteScan = res;
+    ritaKarta(res); ritaHotspots(res);
+    st.textContent = `${res.candidates_scanned} punkter i ${res.kommuner_scanned} kommuner analyserade` +
+      ` · datatäckning ${Math.round(100 * Math.max(0, ...res.hotspots.map(h => h.data_coverage), 0))} % verkliga källor.`;
+  } catch (e) {
+    st.textContent = "Fel: " + e.message;
+  } finally { btn.disabled = false; }
+};
+
+(async () => {
+  try {
+    OPTIONS = await api("/v1/profile-options");
+    byggFormular();
+  } catch (e) {
+    $("status").textContent = "Kunde inte nå API:t: " + e.message;
+  }
+})();
+</script>
+</body>
+</html>

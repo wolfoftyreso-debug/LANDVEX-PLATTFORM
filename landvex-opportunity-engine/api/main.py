@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from engine.datasources.adapters import production_sources
@@ -20,7 +22,7 @@ from engine.datasources.cache import CachedSource
 from engine.datasources.mock import MockSource
 from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
-from engine.scan import scan
+from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
@@ -87,11 +89,20 @@ class ScanRequest(BaseModel):
     profile: dict | None = None      # inline-profil ...
     profile_id: str | None = None    # ... eller sparad profil
     top_n: int = Field(5, ge=1, le=20)
+    level: str = "oversikt"
+
+
+_FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def frontend():
+    return FileResponse(_FRONTEND, media_type="text/html")
 
 
 @app.get("/v1/profile-options")
 def get_profile_options():
-    return profile_options()
+    return {**profile_options(), "scan_levels": SCAN_LEVEL_OPTIONS}
 
 
 @app.post("/v1/profiles")
@@ -134,11 +145,14 @@ def scan_sweden(req: ScanRequest):
         raw = STORE.get_profile(req.profile_id)
         if raw is None:
             raise HTTPException(status_code=404, detail="Okänd profil.")
+    if req.level not in SCAN_LEVELS:
+        raise HTTPException(status_code=422,
+                            detail=f"Okänd analysnivå: {req.level}.")
     try:
         p = profile_from_dict(raw)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return scan(p, resolver=RESOLVER, top_n=req.top_n)
+    return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level)
 
 
 @app.get("/v1/reports")

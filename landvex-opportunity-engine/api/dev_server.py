@@ -20,6 +20,7 @@ import json
 import os
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from engine.datasources.adapters import production_sources
@@ -28,10 +29,12 @@ from engine.datasources.cache import CachedSource
 from engine.datasources.mock import MockSource
 from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
-from engine.scan import scan
+from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
+
+_FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
@@ -56,13 +59,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path in ("/", "/index.html"):
+            body = _FRONTEND.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            return self.wfile.write(body)
         if parsed.path == "/health":
             return self._send(200, {"status": "ok"})
         if parsed.path == "/v1/verticals":
             return self._send(200, [{"id": v.id, "label_sv": v.label_sv}
                                     for v in VERTICALS.values()])
         if parsed.path == "/v1/profile-options":
-            return self._send(200, profile_options())
+            return self._send(200, {**profile_options(),
+                                    "scan_levels": SCAN_LEVEL_OPTIONS})
         if parsed.path == "/v1/profiles":
             if STORE is None:
                 return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
@@ -123,7 +134,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(422, {"error": "Ange profile eller profile_id."})
                 p = profile_from_dict(raw)
                 top_n = min(max(int(req.get("top_n", 5)), 1), 20)
-                return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n))
+                return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n,
+                                            level=req.get("level", "oversikt")))
             self._send(404, {"error": "not found"})
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
             self._send(422, {"error": str(e)})

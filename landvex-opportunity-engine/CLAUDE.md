@@ -11,13 +11,14 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.4 — profilstyrt Sverigesvep med beslutskort
+## Nuläge: v0.5 — kartöversikt, analysnivåer, 10 branscher
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
-- 7 branschprofiler + generisk (frisor, elektriker, gym, restaurang,
-  cafe, bygg, tandlakare) — **helt datadrivna** i `engine/verticals.py`.
-- ~35 signaler med normalisering (saturating/linear/inverse/band) i
+- 10 branschprofiler + generisk (frisor, elektriker, gym, restaurang,
+  cafe, bygg, tandlakare, bilverkstad, veterinar, lager) — **helt
+  datadrivna** i `engine/verticals.py`.
+- ~39 signaler med normalisering (saturating/linear/inverse/band) i
   `engine/signals.py`.
 - Riskmotor, rekommendationslogik, svenska narrativ och mönsterinsikter
   (t.ex. "arbete för ytterligare 2 elektriker", caféets morgon/
@@ -61,6 +62,15 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   (`OpportunityReport.signals`) + `risk_score`. Profiler sparas via
   `POST /v1/profiles`; svep via `POST /v1/scan` (inline profil eller
   `profile_id`); formulärdata via `GET /v1/profile-options`.
+- **Analysnivåer (v0.5):** `POST /v1/scan` tar `level`:
+  `oversikt` (en punkt per kommun) eller `detaljerad` (5 punkter per
+  kommun, ~3 km offset → 200 punkter; bästa punkten representerar
+  kommunen i rankingen, korten får `punkt` + `lage_sv`).
+- **Kartöversikt (v0.5):** `frontend/index.html` — självförsörjande
+  (noll externa beroenden/CDN): profilformulär byggt från
+  `/v1/profile-options`, värmekarta (SVG, grön/gul/röd, tooltip,
+  klick markerar kommunens kort), hotspotpanel med hela beslutskortet.
+  Serveras på `/` av både dev-servern och FastAPI.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -70,7 +80,8 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 python3 -m tests.test_scoring      # motortester (8 st, utan pytest)
 python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
 python3 -m tests.test_storage      # persistens/cachetester (7 st)
-python3 -m tests.test_scan         # profil- och sveptester (9 st)
+python3 -m tests.test_scan         # profil- och sveptester (11 st)
+python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
 python3 -m engine.datasources.scb 59.31 18.07   # live-prob mot SCB (kräver nät)
@@ -123,8 +134,9 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 11. **Utfallslogging från dag 1** — etableringar + faktiskt utfall är
     träningsdatan för v2 (viktkalibrering) och v3 (ERP-modell i
     SageMaker). Låser även upp `expected_roi` i beslutskorten.
-12. **Fler vertikaler** (bilverkstad, veterinär, lager m.fl.) — endast
-    data: ny `VerticalProfile` + schablonrader i `engine/scan.py`.
+12. ~~**Fler vertikaler**~~ — bilverkstad, veterinar, lager KLARA
+    (v0.5). Fler tillkommer löpande: ny `VerticalProfile` +
+    schablonrader i `engine/scan.py`.
 13. **Fler signaler ur produktvisionen** — arbetslöshet, konkurser,
     sökvolym, kriminalitet, skolor, vårdcentraler, inflyttning:
     utöka katalogen + resp. adapter, motorn oförändrad.
@@ -149,7 +161,9 @@ engine/            kärnmotor (stdlib-only)
   storage/         base.py (Store), sqlite.py (referens),
                    postgres.py (Aurora + PostGIS)
 api/               main.py (FastAPI) + dev_server.py (stdlib)
-tests/             test_scoring.py, test_scb.py, test_storage.py
+frontend/          index.html – kartöversikt, serveras på /
+tests/             test_scoring.py, test_scb.py, test_storage.py,
+                   test_scan.py
 infra/             aws-notes.md (deploymentblueprint)
 ARCHITECTURE.md    designbeslut, dataflöde, roadmap
 ```

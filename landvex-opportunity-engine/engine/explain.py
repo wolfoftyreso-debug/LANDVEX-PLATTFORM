@@ -89,6 +89,25 @@ def factor_narrative(factor_id: str, location: Location,
                 f"{sv_num(v('office_workers') or 0)} kontorsarbetare inom radien.")
     if factor_id == "kvall" and v("flow_evening") is not None:
         return f"Kvällsflöde cirka {sv_num(v('flow_evening'))} personer/timme."
+    if factor_id == "bilbestand" and v("cars_per_1000") is not None:
+        return (f"{int(v('cars_per_1000'))} personbilar per 1 000 invånare, "
+                f"snittålder {str(v('avg_car_age') or 0).replace('.', ',')} år.")
+    if factor_id == "upptagning" and v("pop_radius") is not None:
+        return (f"{sv_num(v('pop_radius'))} personer och "
+                f"{sv_num(v('detached_homes') or 0)} villahushåll i upptagningsområdet.")
+    if factor_id == "pendling" and v("commuter_flow") is not None:
+        return f"Cirka {sv_num(v('commuter_flow'))} pendlare passerar morgon och kväll."
+    if factor_id == "naringsliv" and v("business_density") is not None:
+        return f"{int(v('business_density'))} företag per 1 000 invånare."
+    if factor_id == "djurunderlag" and v("pets_per_1000") is not None:
+        return f"Uppskattningsvis {int(v('pets_per_1000'))} sällskapsdjur per 1 000 invånare."
+    if factor_id == "logistiklage" and v("logistics_access") is not None:
+        return (f"Logistikläge {str(v('logistics_access')).replace('.', ',')} av 10 "
+                f"(närhet till E-väg, terminal och hamn).")
+    if factor_id == "kostnadslage" and v("rent_index") is not None:
+        idx = v("rent_index")
+        rel = "över" if idx > 105 else ("i nivå med" if idx >= 95 else "under")
+        return f"Hyresnivå {rel} rikssnittet (index {int(idx)})."
     if factor_id == "barnfamiljer" and v("families_share") is not None:
         return f"{str(v('families_share')).replace('.', ',')} % barnfamiljer i upptagningsområdet."
     if factor_id == "aldre" and v("share_65plus") is not None:

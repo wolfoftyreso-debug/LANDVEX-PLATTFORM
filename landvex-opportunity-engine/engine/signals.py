@@ -83,6 +83,11 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("infra_invest",      "Infrastruktursatsningar",      "mnkr",   "saturating", 400),
     _s("insurance_index",   "Försäkringsnivå tandvård",     "index",  "linear", 60, 120),
     _s("care_supply",       "Övrigt vårdutbud",             "0–10",   "band", 3, 7),
+    # ── Fordon, djur & logistik ───────────────────────────────────────
+    _s("cars_per_1000",     "Personbilar per 1000 inv",     "st",     "saturating", 450),
+    _s("avg_car_age",       "Snittålder personbilar",       "år",     "band", 9, 14),
+    _s("pets_per_1000",     "Sällskapsdjur per 1000 inv",   "st",     "saturating", 280),
+    _s("logistics_access",  "Logistikläge (E-väg/terminal)","0–10",   "linear", 0, 10),
     # ── Riskindikatorer ───────────────────────────────────────────────
     _s("vacancy_rate",      "Vakansgrad lokaler",           "%",      "inverse", 2, 15),
     _s("rent_index",        "Hyresnivå (snitt=100)",        "index",  "inverse", 90, 160),

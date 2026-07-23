@@ -101,6 +101,38 @@ VERTICALS: dict[str, VerticalProfile] = {p.id: p for p in [
         _f("vardutbud", "Övrigt vårdutbud", 0.18, ("care_supply", 1.0)),
     )),
 
+    VerticalProfile("bilverkstad", "Bilverkstad", (
+        _f("bilbestand", "Bilbestånd & fordonsålder", 0.26,
+           ("cars_per_1000", 0.6), ("avg_car_age", 0.4)),
+        _f("upptagning", "Upptagningsområde", 0.18,
+           ("pop_radius", 0.6), ("detached_homes", 0.4)),
+        _f("pendling", "Pendling & trafik", 0.16, ("commuter_flow", 1.0)),
+        _f("naringsliv", "Företagskunder", 0.12, ("business_density", 1.0)),
+        _f("marknadsutrymme", "Marknadsutrymme", 0.18,
+           ("provider_gap", 0.6), ("competition_pressure", 0.4)),
+        _f("kopkraft", "Köpkraft", 0.10, ("income_index", 1.0)),
+    )),
+
+    VerticalProfile("veterinar", "Veterinärklinik", (
+        _f("djurunderlag", "Djurunderlag", 0.30,
+           ("pets_per_1000", 0.7), ("detached_homes", 0.3)),
+        _f("barnfamiljer", "Barnfamiljer", 0.16, ("families_share", 1.0)),
+        _f("kopkraft", "Köpkraft", 0.16, ("income_index", 1.0)),
+        _f("konkurrens", "Konkurrens & utbudsgap", 0.24,
+           ("provider_gap", 0.6), ("competition_pressure", 0.4)),
+        _f("tillvaxt", "Tillväxt", 0.14, ("pop_growth_pct", 1.0)),
+    )),
+
+    VerticalProfile("lager", "Lager & logistik", (
+        _f("logistiklage", "Logistikläge", 0.28, ("logistics_access", 1.0)),
+        _f("naringsliv", "Näringslivstäthet", 0.18, ("business_density", 1.0)),
+        _f("exploatering", "Mark & exploatering", 0.20,
+           ("development_m2", 0.6), ("detail_plans", 0.4)),
+        _f("infrastruktur", "Infrastrukturinvesteringar", 0.16,
+           ("infra_invest", 1.0)),
+        _f("kostnadslage", "Kostnadsläge (hyra)", 0.18, ("rent_index", 1.0)),
+    )),
+
     VerticalProfile("generisk", "Generisk verksamhet", (
         _f("kundunderlag", "Kundunderlag", 0.28, ("pop_radius", 1.0)),
         _f("synlighet", "Synlighet", 0.20, ("foot_traffic", 1.0)),

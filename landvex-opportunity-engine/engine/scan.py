@@ -50,11 +50,13 @@ _MOMENTUM_SIGNALS = ("pop_growth_pct", "building_permits", "detail_plans",
 # kalibreras mot utfallsdata i v2.
 _REVENUE_PER_PERSON_TKR = {
     "frisor": 700, "elektriker": 1400, "gym": 900, "restaurang": 950,
-    "cafe": 800, "bygg": 1800, "tandlakare": 1600, "generisk": 1000}
+    "cafe": 800, "bygg": 1800, "tandlakare": 1600, "bilverkstad": 1200,
+    "veterinar": 1300, "lager": 1500, "generisk": 1000}
 _STARTUP_TKR = {
     "frisor": (150, 600), "elektriker": (100, 500), "gym": (1500, 6000),
     "restaurang": (800, 4000), "cafe": (400, 1500), "bygg": (200, 1000),
-    "tandlakare": (1500, 5000), "generisk": (300, 2000)}
+    "tandlakare": (1500, 5000), "bilverkstad": (500, 2500),
+    "veterinar": (800, 3000), "lager": (1000, 10000), "generisk": (300, 2000)}
 _TEAM_PERSONS = {"1": 1, "2-5": 3, "5-20": 10, "20-50": 30, "50+": 60}
 _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
                "2-5m": (2000, 5000), "5-10m": (5000, 10000),
@@ -62,6 +64,24 @@ _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
 
 _NEXT_STEPS_SV = ["Hitta lokal", "Finansiering", "Rekrytering", "Bygglov",
                   "Startbudget", "Leverantörer", "Kontakt med kommunen"]
+
+# ── Analysnivåer ─────────────────────────────────────────────────────
+# oversikt: en punkt per kommun (centroiden).
+# detaljerad: centroid + fyra kringpunkter (~3 km) → finmaskigare
+# värmekarta och bästa läget inom kommunen väljs för hotspot-kortet.
+SCAN_LEVELS: dict[str, tuple[tuple[float, float, str], ...]] = {
+    "oversikt": ((0.0, 0.0, "centrum"),),
+    "detaljerad": ((0.0, 0.0, "centrum"),
+                   (0.030, 0.0, "norr"), (-0.030, 0.0, "soder"),
+                   (0.0, 0.060, "oster"), (0.0, -0.060, "vaster")),
+}
+SCAN_LEVEL_OPTIONS = [
+    {"id": "oversikt", "label_sv": "Översikt – en punkt per kommun"},
+    {"id": "detaljerad", "label_sv": "Detaljerad – fem punkter per kommun"},
+]
+_POINT_LABEL_SV = {"centrum": "centrum", "norr": "norra delen",
+                   "soder": "södra delen", "oster": "östra delen",
+                   "vaster": "västra delen"}
 
 
 def _sig(report, sid: str):
@@ -192,8 +212,11 @@ def _band(score: float) -> str:
 
 def scan(profile: BusinessProfile, resolver: Resolver | None = None,
          candidates: list[tuple[str, str, float, float]] | None = None,
-         top_n: int = 5) -> dict[str, Any]:
+         top_n: int = 5, level: str = "oversikt") -> dict[str, Any]:
     """Analyserar kandidatorter mot profilen. Returnerar JSON-redo dict."""
+    if level not in SCAN_LEVELS:
+        raise ValueError(f"Okänd analysnivå: {level}. "
+                         f"Tillgängliga: {', '.join(SCAN_LEVELS)}")
     cands = candidates if candidates is not None else KOMMUNER
     excluded = {"pendling": 0, "miljo": 0}
 
@@ -207,14 +230,19 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
                 excluded["pendling"] += 1
         cands = within
 
+    points = [(code, name, plabel, round(lat + dlat, 3), round(lon + dlon, 3))
+              for code, name, lat, lon in cands
+              for dlat, dlon, plabel in SCAN_LEVELS[level]]
+
     heatmap: list[dict[str, Any]] = []
     scored: list[dict[str, Any]] = []
-    for code, name, lat, lon in cands:
+    for code, name, plabel, lat, lon in points:
         report = analyze(Location(lat, lon, address=name), profile.vertical_id,
                          resolver=resolver)
         env = classify_environment(report)
-        heatmap.append({"kommun": name, "kommun_kod": code, "lat": lat,
-                        "lon": lon, "score": report.opportunity_score,
+        heatmap.append({"kommun": name, "kommun_kod": code, "punkt": plabel,
+                        "lat": lat, "lon": lon,
+                        "score": report.opportunity_score,
                         "band": _band(report.opportunity_score)})
         if profile.environments and not set(profile.environments) & set(env):
             excluded["miljo"] += 1
@@ -228,18 +256,28 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
                 + _GOAL_MOMENTUM[profile.goal] * (momentum["value"] - 50))
         scored.append({"report": report, "env": env, "rank_score": round(rank, 1),
                        "risk_index": risk_index, "momentum": momentum,
-                       "code": code, "name": name, "lat": lat, "lon": lon})
+                       "code": code, "name": name, "punkt": plabel,
+                       "lat": lat, "lon": lon})
 
-    scored.sort(key=lambda x: (-x["rank_score"], x["code"]))
+    # Bästa punkten per kommun representerar kommunen i rankingen.
+    best_per_kommun: dict[str, dict[str, Any]] = {}
+    for s in scored:
+        b = best_per_kommun.get(s["code"])
+        if b is None or (s["rank_score"], s["punkt"]) > (b["rank_score"], b["punkt"]):
+            best_per_kommun[s["code"]] = s
+    ranked = sorted(best_per_kommun.values(),
+                    key=lambda x: (-x["rank_score"], x["code"]))
 
     hotspots = []
-    for i, s in enumerate(scored[:top_n], start=1):
+    for i, s in enumerate(ranked[:top_n], start=1):
         r = s["report"]
         gap = _competition_gap(r)
         top_factors = sorted(r.factors, key=lambda f: -f.score)[:2]
         hotspots.append({
             "rank": i,
             "kommun": s["name"], "kommun_kod": s["code"],
+            "punkt": s["punkt"],
+            "lage_sv": f"{s['name']}, {_POINT_LABEL_SV[s['punkt']]}",
             "lat": s["lat"], "lon": s["lon"],
             "opportunity_score": r.opportunity_score,
             "rank_score": s["rank_score"],
@@ -274,7 +312,9 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
     return {
         "profile": profile.to_dict(),
         "vertical_label_sv": VERTICALS[profile.vertical_id].label_sv,
+        "level": level,
         "candidates_scanned": len(heatmap),
+        "kommuner_scanned": len(cands),
         "excluded": excluded,
         "heatmap": heatmap,
         "hotspots": hotspots,

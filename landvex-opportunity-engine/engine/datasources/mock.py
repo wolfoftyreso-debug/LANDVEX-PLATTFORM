@@ -80,6 +80,11 @@ class MockSource(DataSource):
             "detail_plans": int(max(0, rng.gauss(2 + g, 2.2))),
             "development_m2": int(max(0, rng.gauss(30 + g * 14, 35))),
             "infra_invest": int(max(0, rng.gauss(120 + g * 45, 120))),
+            "cars_per_1000": int(300 + (1 - u) * 260 + rng.uniform(-40, 40)),
+            "avg_car_age": round(8 + (1 - u) * 5 + rng.uniform(-1.5, 1.5), 1),
+            "pets_per_1000": int(120 + (1 - u) * 220 * rng.uniform(0.6, 1.2)),
+            "logistics_access": round(max(0.0, min(10.0, 2 + u * 5 + g * 0.4 +
+                                                   rng.uniform(-2, 2))), 1),
             "insurance_index": round(65 + income * 0.35 + rng.uniform(-8, 8), 0),
             "care_supply": round(rng.uniform(1, 9), 1),
             "vacancy_rate": round(max(0.5, 11 - u * 7 + rng.uniform(-2, 3)), 1),

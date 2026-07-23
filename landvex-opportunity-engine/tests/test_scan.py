@@ -2,10 +2,11 @@
 python3 -m tests.test_scan"""
 from __future__ import annotations
 
+from engine import scan as scan_mod
 from engine.models import Location
 from engine.profile import (BusinessProfile, profile_from_dict,
                             profile_options)
-from engine.scan import scan
+from engine.scan import SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.verticals import VERTICALS
 
@@ -121,6 +122,38 @@ def test_risk_tolerance_affects_ranking():
         g["opportunity_score"] for g in low["hotspots"]
         if g["kommun"] == h["kommun"])
         for h in agg["hotspots"] if h["kommun"] in by_kommun)
+
+
+def test_detail_level_scans_five_points_per_kommun():
+    over = scan(_profile(), level="oversikt")
+    det = scan(_profile(), level="detaljerad")
+    assert over["candidates_scanned"] == 40
+    assert det["candidates_scanned"] == 200
+    assert det["kommuner_scanned"] == 40
+    # Fortfarande max en hotspot per kommun – bästa punkten vinner.
+    koder = [h["kommun_kod"] for h in det["hotspots"]]
+    assert len(koder) == len(set(koder))
+    assert all(h["punkt"] in dict.fromkeys(
+        lbl for _, _, lbl in SCAN_LEVELS["detaljerad"]) for h in det["hotspots"])
+    assert scan(_profile(), level="detaljerad") == det   # determinism
+    try:
+        scan(_profile(), level="ultra")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Okänd nivå ska ge ValueError")
+
+
+def test_new_verticals_scan_and_have_schablons():
+    # Schablontabellerna ska täcka alla vertikaler (annars kraschar kortet).
+    assert set(scan_mod._REVENUE_PER_PERSON_TKR) == set(VERTICALS)
+    assert set(scan_mod._STARTUP_TKR) == set(VERTICALS)
+    for vid in ("bilverkstad", "veterinar", "lager"):
+        res = scan(profile_from_dict({"vertical_id": vid}), top_n=3)
+        assert len(res["hotspots"]) == 3, vid
+        card = res["hotspots"][0]
+        assert card["drivers"], vid
+        assert card["economy_scenario"]["omsattningsscenario_tkr_ar"] > 0, vid
 
 
 if __name__ == "__main__":
