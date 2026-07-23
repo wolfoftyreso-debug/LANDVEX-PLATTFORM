@@ -355,6 +355,12 @@ def segments_map(segment_id: str, market: str = "se"):
         raise HTTPException(status_code=422, detail=str(e))
 
 
+@app.get("/v1/catalog")
+def api_catalog():
+    from api.catalog import API_CATALOG
+    return API_CATALOG
+
+
 @app.get("/v1/markets")
 def markets():
     return market_catalog()

@@ -132,6 +132,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/profile-options":
             return self._send(200, {**profile_options(),
                                     "scan_levels": SCAN_LEVEL_OPTIONS})
+        if parsed.path == "/v1/catalog":
+            from api.catalog import API_CATALOG
+            return self._send(200, API_CATALOG)
         if parsed.path == "/v1/markets":
             return self._send(200, market_catalog())
         if parsed.path == "/v1/segments":
