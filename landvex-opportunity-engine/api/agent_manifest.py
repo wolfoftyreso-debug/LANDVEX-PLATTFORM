@@ -102,6 +102,12 @@ AGENT_MANIFEST: dict = {
               "POST", "/v1/segments/analyze",
               {"kommun_kod": {"type": "string"}, "market": {"type": "string"}},
               ["kommun_kod"]),
+        _tool("city_indices",
+              "Alla stadsindex (infrastrukturrisk, trygghet, klimat, "
+              "tillväxt, kontradiktion) för en region – spårbara.",
+              "POST", "/v1/indices/assess",
+              {"kommun_kod": {"type": "string"}, "market": {"type": "string"}},
+              ["kommun_kod"]),
         _tool("service_analysis",
               "Servicebehov från installerad bas för en region.",
               "POST", "/v1/service/analyze",

@@ -71,6 +71,13 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/products"},
                        {"method": "POST", "path": "/v1/service/analyze"},
                        {"method": "GET", "path": "/v1/service/map"}]},
+        {"id": "indices", "label_sv": "Intelligence Map-index",
+         "beskrivning_sv": "Stadsindex (infrastrukturrisk, kommersiell "
+                           "aktivitet, trygghet, klimatrisk, urban tillväxt) "
+                           "+ kontradiktionsindexet – sourced & traceable.",
+         "endpoints": [{"method": "GET", "path": "/v1/indices"},
+                       {"method": "GET", "path": "/v1/indices/map"},
+                       {"method": "POST", "path": "/v1/indices/assess"}]},
         {"id": "platform", "label_sv": "Plattform",
          "beskrivning_sv": "Marknader, rapporter, hälsa och metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

@@ -31,6 +31,7 @@ from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
@@ -368,6 +369,33 @@ def segments_analyze(req: SegmentAnalyzeRequest):
 def segments_map(segment_id: str, market: str = "se"):
     try:
         return segment_map(segment_id, market=market, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class AssessRequest(BaseModel):
+    kommun_kod: str
+    market: str = "se"
+
+
+@app.get("/v1/indices")
+def indices():
+    return index_catalog()
+
+
+@app.get("/v1/indices/map")
+def indices_map(index_id: str, market: str = "se"):
+    try:
+        return index_map(index_id, market=market, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/indices/assess")
+def indices_assess(req: AssessRequest):
+    try:
+        return city_assessment(req.kommun_kod, market=req.market,
+                               resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

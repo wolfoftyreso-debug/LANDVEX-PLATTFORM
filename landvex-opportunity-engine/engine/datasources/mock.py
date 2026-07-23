@@ -90,6 +90,9 @@ class MockSource(DataSource):
             "care_supply": round(rng.uniform(1, 9), 1),
             "vacancy_rate": round(max(0.5, 11 - u * 7 + rng.uniform(-2, 3)), 1),
             "rent_index": round(85 + u * 55 + rng.uniform(-8, 10), 0),
+            "crime_index": round(80 + u * 35 + rng.uniform(-12, 18), 0),
+            "climate_risk_index": round(max(5, min(90, 20 + (1 - u) * 15 +
+                                                   rng.uniform(0, 35))), 0),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)

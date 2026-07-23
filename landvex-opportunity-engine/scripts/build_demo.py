@@ -14,6 +14,7 @@ import pathlib
 import sys
 
 from engine.ask import ask
+from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
 from engine.plan import establishment_plan
@@ -69,7 +70,16 @@ def build(out_path: str) -> None:
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
         "risk": {}, "plans": {},
+        "index_catalog": index_catalog(),
+        "index_maps": {}, "assessments": {},
     }
+    for market in DEMO_MARKETS:
+        for ix in index_catalog():
+            demo["index_maps"][f"{market}:{ix['id']}"] = index_map(
+                ix["id"], market=market)
+        for kod, *_ in MARKETS[market].regions:
+            demo["assessments"][f"{market}:{kod}"] = city_assessment(
+                kod, market=market)
     # Följdfrågor i demon pekar alltid på bakade frågor.
     for q, svar in demo["ask"].items():
         svar["forslag_sv"] = [f for f in FRAGOR if f != q][:3]
@@ -143,6 +153,17 @@ async function api(path, body) {
   }
   if (path === "/v1/workforce/simulate") {
     const r = D.simulate[`${body.market || "se"}:${body.kommun_kod}:${body.occupation_id}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/indices") return D.index_catalog;
+  if (path.startsWith("/v1/indices/map")) {
+    const r = D.index_maps[`${qp(path, "market") || "se"}:${qp(path, "index_id")}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/indices/assess") {
+    const r = D.assessments[`${body.market || "se"}:${body.kommun_kod}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }

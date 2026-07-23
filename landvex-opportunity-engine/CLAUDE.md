@@ -201,6 +201,19 @@ OIDC.
   Endast Sverige har verkliga källor; övriga marknader mock tills
   lokala adaptrar (backlog #16). Engelsk lokalisering (label_en-lager
   för US-marknaden) är nästa språksteg – medvetet EJ påbörjat halvvägs.
+- **Index Engine / Intelligence Map (v0.15):** `engine/indices.py` –
+  moderproduktens kartlager: fem stadsindex som data
+  (infrastrukturrisk, kommersiell aktivitet, trygghet, klimatrisk
+  [free], urban tillväxt [live]) + **Kontradiktionsindexet**
+  (divergens officiellt planerat vs observerat – flaggas ≥ tröskel).
+  Band enligt kartlegenden (låg/måttlig/förhöjd/hög →
+  grön/gul/orange/röd). "All sourced, all traceable": varje
+  indexvärde bär signalnedbrytning med källa. Nya signaler:
+  crime_index, climate_risk_index. QuixzoomSource-stub i källkedjan
+  (observationslagret som lyfter kontradiktionsprecisionen). API:
+  `GET /v1/indices`, `GET /v1/indices/map`, `POST /v1/indices/assess`.
+  Frontend har Index-flik med lagerval, marknadsval och
+  stadsbedömning per klick.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -220,6 +233,7 @@ python3 -m tests.test_gaps_plan    # obalanser + etableringsplan (7 st)
 python3 -m tests.test_segments     # målgruppsmotorn (4 st)
 python3 -m tests.test_installed_base  # installerad bas/service (5 st)
 python3 -m tests.test_platform     # hälsa/metrics/audit/manifest (6 st)
+python3 -m tests.test_indices      # Intelligence Map-index (3 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000

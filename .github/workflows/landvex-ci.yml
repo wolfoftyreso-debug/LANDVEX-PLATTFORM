@@ -32,7 +32,8 @@ jobs:
           for t in test_scoring test_scb test_storage test_scan \
                    test_workforce test_risk_compare test_ask \
                    test_markets test_security test_gaps_plan \
-                   test_segments test_installed_base test_platform; do
+                   test_segments test_installed_base test_platform \
+                   test_indices; do
             echo "── tests.$t"
             python -m tests.$t
           done

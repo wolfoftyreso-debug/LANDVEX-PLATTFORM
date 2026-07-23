@@ -135,7 +135,8 @@ class ScbSource(DataSource):
 
 def production_sources() -> list[DataSource]:
     """Källkedjan före MockSource i produktion (ordning = prioritet)."""
-    return [ScbSource(), PermitsSource(), PlacesSource(), MovementSource()]
+    return [ScbSource(), PermitsSource(), PlacesSource(), MovementSource(),
+            QuixzoomSource()]
 
 
 class MovementSource(_NotWiredSource):
@@ -148,3 +149,12 @@ class PermitsSource(_NotWiredSource):
 
 class PlacesSource(_NotWiredSource):
     name = "places"
+
+
+class QuixzoomSource(_NotWiredSource):
+    """Fältobservationer (quiXzoom) – Landvex-ekosystemets observations-
+    lager. Nyckelkälla för kontradiktionsindexet: officiell plandata vs
+    faktiskt observerad aktivitet. Signaler vid anslutning:
+    development_m2 (observerat), renovation_index, foot_traffic,
+    vacancy_rate, crime_index, climate_risk_index."""
+    name = "quixzoom"

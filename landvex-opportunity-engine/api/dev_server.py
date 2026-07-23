@@ -43,6 +43,7 @@ from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
@@ -158,6 +159,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
             return self._send(200, product_catalog())
+        if parsed.path == "/v1/indices":
+            return self._send(200, index_catalog())
+        if parsed.path == "/v1/indices/map":
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, index_map(
+                    q.get("index_id", [""])[0],
+                    market=q.get("market", ["se"])[0], resolver=RESOLVER))
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/service/map":
             q = parse_qs(parsed.query)
             try:
@@ -247,6 +258,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/ask":
                 return self._send(200, ask(str(req.get("question", "")),
                                            resolver=RESOLVER))
+            if self.path == "/v1/indices/assess":
+                return self._send(200, city_assessment(
+                    req["kommun_kod"], market=req.get("market", "se"),
+                    resolver=RESOLVER))
             if self.path == "/v1/service/analyze":
                 return self._send(200, service_analysis(
                     req["kommun_kod"], market=req.get("market", "se"),

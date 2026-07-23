@@ -92,4 +92,6 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     # ── Riskindikatorer ───────────────────────────────────────────────
     _s("vacancy_rate",      "Vakansgrad lokaler",           "%",      "inverse", 2, 15),
     _s("rent_index",        "Hyresnivå (snitt=100)",        "index",  "inverse", 90, 160),
+    _s("crime_index",       "Brottsindex (snitt=100)",      "index",  "inverse", 70, 140),
+    _s("climate_risk_index","Klimatriskindex",              "0–100",  "inverse", 10, 80),
 ]}
