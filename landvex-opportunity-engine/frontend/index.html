@@ -8,11 +8,11 @@
   :root {
     /* Apple iPhone Native (iOS 18) – REXO-designstandard. */
     --ios-blue: #007AFF;
+    --kartbg: #E4ECF6; --land: #CBD6E6; --landkant: #9AA6B8;
     --bg: #F2F2F7; --panel: rgba(255,255,255,.8); --panel2: #FFFFFF;
     --line: rgba(60,60,67,.18); --text: #1C1C1E;
     --muted: rgba(60,60,67,.6); --gron: #34C759; --gul: #E0A800;
     --rod: #FF3B30; --orange: #FF9500; --accent: var(--ios-blue);
-    --land: #FFFFFF; --landkant: #C7C7CC;
     --prickkant: rgba(0,0,0,.22); --prickkant-hover: rgba(0,0,0,.5);
     --accent-tint: rgba(0,122,255,.12);
     --fjader: cubic-bezier(0.32, 0.72, 0, 1);
@@ -23,7 +23,7 @@
       --line: rgba(84,84,88,.42); --text: #FFFFFF;
       --muted: rgba(235,235,245,.6); --gron: #30D158; --gul: #FFD60A;
       --rod: #FF453A; --orange: #FF9F0A; --ios-blue: #0A84FF;
-      --land: #1C1C1E; --landkant: #3A3A3C;
+      --kartbg: #0B0F16; --land: #1C2230; --landkant: #3A4358;
       --prickkant: rgba(255,255,255,.28); --prickkant-hover: rgba(255,255,255,.55);
       --accent-tint: rgba(10,132,255,.22);
     }
@@ -76,9 +76,10 @@
 
   /* Karta */
   .karta { position: relative; display: flex; align-items: center;
-           justify-content: center; padding: 10px; }
+           justify-content: center; padding: 10px;
+           background: var(--kartbg); }
   svg { max-height: 100%; max-width: 100%; }
-  #kontur { fill: var(--land, #FFFFFF); stroke: var(--landkant, #C7C7CC); }
+  #kontur { fill: var(--land); stroke: var(--landkant); stroke-width: 1.4; }
   .prick { cursor: pointer; stroke: var(--prickkant); stroke-width: .6;
            transition: r .1s; }
   .prick:hover { stroke: var(--prickkant-hover); stroke-width: 1.2; }
