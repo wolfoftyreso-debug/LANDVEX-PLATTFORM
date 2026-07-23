@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.3 — SCB-adapter + persistens
+## Nuläge: v0.4 — profilstyrt Sverigesvep med beslutskort
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -46,6 +46,21 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   + `GET /v1/reports/{id}` i båda API-lagren. `CachedSource` i
   `engine/datasources/cache.py` cachar verkliga källor per plats
   med TTL per källa (`DEFAULT_TTLS`).
+- **Opportunity Engine-svepet (v0.4):** användaren bygger en
+  `BusinessProfile` (`engine/profile.py` – bransch, budget, team,
+  affärsmodell, risktolerans, pendlingsgräns, miljötyp, horisont,
+  mål; alla val är data i `PROFILE_OPTIONS`) och kör "Analysera
+  Sverige" (`engine/scan.py`): kandidatorter → pendlings-/miljöfilter
+  → analyze per ort → värmekarta (grön/gul/röd) + rankade hotspots
+  med **beslutskort**: Opportunity Score, Confidence (täckning ×
+  kvalitet), Risk Index, Market Momentum, Competition Gap, Time
+  Window (märkt heuristik), topp-10 drivkrafter, miljötaggar,
+  ekonomiskt schablonscenario (märkt "INTE prognos") och
+  `expected_roi.status="ej_tillgangligt"` tills utfallsdata finns
+  (princip 3). Rapporter bär nu full signalnedbrytning
+  (`OpportunityReport.signals`) + `risk_score`. Profiler sparas via
+  `POST /v1/profiles`; svep via `POST /v1/scan` (inline profil eller
+  `profile_id`); formulärdata via `GET /v1/profile-options`.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -55,6 +70,7 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 python3 -m tests.test_scoring      # motortester (8 st, utan pytest)
 python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
 python3 -m tests.test_storage      # persistens/cachetester (7 st)
+python3 -m tests.test_scan         # profil- och sveptester (9 st)
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
 python3 -m engine.datasources.scb 59.31 18.07   # live-prob mot SCB (kräver nät)
@@ -106,7 +122,15 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 10. **Frontend-rapportvy** — S3 + CloudFront.
 11. **Utfallslogging från dag 1** — etableringar + faktiskt utfall är
     träningsdatan för v2 (viktkalibrering) och v3 (ERP-modell i
-    SageMaker).
+    SageMaker). Låser även upp `expected_roi` i beslutskorten.
+12. **Fler vertikaler** (bilverkstad, veterinär, lager m.fl.) — endast
+    data: ny `VerticalProfile` + schablonrader i `engine/scan.py`.
+13. **Fler signaler ur produktvisionen** — arbetslöshet, konkurser,
+    sökvolym, kriminalitet, skolor, vårdcentraler, inflyttning:
+    utöka katalogen + resp. adapter, motorn oförändrad.
+14. **Finmaskigare svep** — från 40 kommuncentroider till DeSO/rutnät
+    när geodata + isokroner finns; kontinuerlig omscanning via
+    EventBridge så rekommendationer uppdateras när marknaden ändras.
 
 ## Filkarta
 
@@ -116,6 +140,8 @@ engine/            kärnmotor (stdlib-only)
   signals.py       signalkatalog + normalize()
   verticals.py     branschprofiler (vikter) + RISK_SIGNALS
   scoring.py       analyze() – huvudingången
+  profile.py       BusinessProfile + PROFILE_OPTIONS
+  scan.py          Sverigesvepet: profil → hotspots med beslutskort
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),

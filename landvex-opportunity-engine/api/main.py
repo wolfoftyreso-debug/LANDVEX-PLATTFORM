@@ -19,11 +19,13 @@ from engine.datasources.base import Resolver
 from engine.datasources.cache import CachedSource
 from engine.datasources.mock import MockSource
 from engine.models import Location
+from engine.profile import profile_from_dict, profile_options
+from engine.scan import scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.3.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.4.0")
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 # I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)
@@ -79,6 +81,64 @@ def analyze_location(req: AnalyzeRequest):
     if STORE is not None:
         report["report_id"] = STORE.save_report(report, created_at=time.time())
     return report
+
+
+class ScanRequest(BaseModel):
+    profile: dict | None = None      # inline-profil ...
+    profile_id: str | None = None    # ... eller sparad profil
+    top_n: int = Field(5, ge=1, le=20)
+
+
+@app.get("/v1/profile-options")
+def get_profile_options():
+    return profile_options()
+
+
+@app.post("/v1/profiles")
+def save_profile(profile: dict):
+    if STORE is None:
+        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+    try:
+        p = profile_from_dict(profile)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"profile_id": STORE.save_profile(p.to_dict(), created_at=time.time())}
+
+
+@app.get("/v1/profiles")
+def list_profiles(limit: int = 50):
+    if STORE is None:
+        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+    return STORE.list_profiles(min(max(limit, 1), 200))
+
+
+@app.get("/v1/profiles/{profile_id}")
+def get_profile(profile_id: str):
+    if STORE is None:
+        raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+    doc = STORE.get_profile(profile_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Okänd profil.")
+    return doc
+
+
+@app.post("/v1/scan")
+def scan_sweden(req: ScanRequest):
+    if req.profile is None and req.profile_id is None:
+        raise HTTPException(status_code=422,
+                            detail="Ange profile (inline) eller profile_id (sparad).")
+    raw = req.profile
+    if raw is None:
+        if STORE is None:
+            raise HTTPException(status_code=503, detail="Persistens avstängd (LANDVEX_DB=off).")
+        raw = STORE.get_profile(req.profile_id)
+        if raw is None:
+            raise HTTPException(status_code=404, detail="Okänd profil.")
+    try:
+        p = profile_from_dict(raw)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return scan(p, resolver=RESOLVER, top_n=req.top_n)
 
 
 @app.get("/v1/reports")

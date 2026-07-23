@@ -42,11 +42,15 @@ class OpportunityReport:
     opportunity_score: float            # 0..100
     factors: list[FactorScore] = field(default_factory=list)
     risk_level: str = "Medel"           # "Låg" | "Medel" | "Hög"
+    risk_score: float = 0.5             # 0..1 (högre = mer risk)
     risk_narrative_sv: str = ""
     recommendation_sv: str = ""
     insights_sv: list[str] = field(default_factory=list)
     data_coverage: float = 0.0          # andel signaler med verklig (icke-mock) källa
     caveats_sv: list[str] = field(default_factory=list)
+    # Full signalnedbrytning (förklarbarhet): {signal_id: {value, source,
+    # quality, normalized}}. Grund för drivkraftslistor och confidence.
+    signals: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

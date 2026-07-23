@@ -87,9 +87,13 @@ def analyze(location: Location, vertical_id: str,
     total_w = sum(f.weight for f in factors) or 1.0
     score = round(sum(f.score * f.weight for f in factors) / total_w, 0)
 
-    risk_level, risk_text, _ = _risk(values)
+    risk_level, risk_text, risk_score = _risk(values)
     coverage = (sum(1 for v in values.values() if v.source != "mock") /
                 max(1, len(values)))
+    signal_breakdown = {
+        sid: {"value": sv.value, "source": sv.source, "quality": sv.quality,
+              "normalized": round(normalize(CATALOG[sid], sv.value), 3)}
+        for sid, sv in sorted(values.items()) if sv.value is not None}
 
     caveats = []
     if coverage < 1.0:
@@ -106,9 +110,11 @@ def analyze(location: Location, vertical_id: str,
         opportunity_score=score,
         factors=factors,
         risk_level=risk_level,
+        risk_score=round(risk_score, 3),
         risk_narrative_sv=risk_text,
         recommendation_sv=_recommendation(score, risk_level),
         insights_sv=pattern_insights(vertical_id, extras),
         data_coverage=round(coverage, 2),
         caveats_sv=caveats,
+        signals=signal_breakdown,
     )

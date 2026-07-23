@@ -28,6 +28,15 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS idx_reports_created ON reports(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS profiles (
+    id          TEXT PRIMARY KEY,
+    created_at  REAL NOT NULL,
+    name        TEXT NOT NULL DEFAULT '',
+    vertical_id TEXT NOT NULL,
+    payload     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_created ON profiles(created_at DESC);
+
 CREATE TABLE IF NOT EXISTS signal_cache (
     source    TEXT NOT NULL,
     loc_key   TEXT NOT NULL,
@@ -91,6 +100,38 @@ class SqliteStore(Store):
                 "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
+        return [dict(zip(keys, r)) for r in rows]
+
+    # ── Affärsprofiler ───────────────────────────────────────────────
+
+    def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
+        profile_id = uuid.uuid4().hex[:16]
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO profiles VALUES (?,?,?,?,?)",
+                (profile_id, created_at, profile.get("name", ""),
+                 profile["vertical_id"],
+                 json.dumps(profile, ensure_ascii=False)))
+        return profile_id
+
+    def get_profile(self, profile_id: str) -> Optional[dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT payload, created_at FROM profiles WHERE id = ?",
+                (profile_id,)).fetchone()
+        if row is None:
+            return None
+        doc = json.loads(row[0])
+        doc["profile_id"] = profile_id
+        doc["created_at"] = row[1]
+        return doc
+
+    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, created_at, name, vertical_id FROM profiles "
+                "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
+        keys = ("profile_id", "created_at", "name", "vertical_id")
         return [dict(zip(keys, r)) for r in rows]
 
     # ── Signalcache ──────────────────────────────────────────────────

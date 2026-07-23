@@ -5,9 +5,12 @@
 Samma endpoints som produktions-API:t:
     GET  /health
     GET  /v1/verticals
-    GET  /v1/reports?limit=20
-    GET  /v1/reports/<id>
+    GET  /v1/profile-options
+    GET  /v1/profiles          ·  POST /v1/profiles
+    GET  /v1/profiles/<id>
+    GET  /v1/reports?limit=20  ·  GET /v1/reports/<id>
     POST /v1/analyze   {"lat":..,"lon":..,"vertical":"frisor","radius_minutes":10}
+    POST /v1/scan      {"profile":{...}} eller {"profile_id":"..."}
 
 Endast för lokal utveckling/demo – i AWS körs api/main.py (FastAPI).
 """
@@ -24,6 +27,8 @@ from engine.datasources.base import Resolver
 from engine.datasources.cache import CachedSource
 from engine.datasources.mock import MockSource
 from engine.models import Location
+from engine.profile import profile_from_dict, profile_options
+from engine.scan import scan
 from engine.scoring import analyze
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
@@ -56,6 +61,22 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/verticals":
             return self._send(200, [{"id": v.id, "label_sv": v.label_sv}
                                     for v in VERTICALS.values()])
+        if parsed.path == "/v1/profile-options":
+            return self._send(200, profile_options())
+        if parsed.path == "/v1/profiles":
+            if STORE is None:
+                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+            try:
+                limit = int(parse_qs(parsed.query).get("limit", ["50"])[0])
+            except ValueError:
+                return self._send(422, {"error": "limit måste vara ett heltal"})
+            return self._send(200, STORE.list_profiles(min(max(limit, 1), 200)))
+        if parsed.path.startswith("/v1/profiles/"):
+            if STORE is None:
+                return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+            doc = STORE.get_profile(parsed.path.rsplit("/", 1)[1])
+            return self._send(200, doc) if doc is not None else \
+                self._send(404, {"error": "Okänd profil."})
         if parsed.path == "/v1/reports":
             if STORE is None:
                 return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
@@ -73,19 +94,38 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path != "/v1/analyze":
-            return self._send(404, {"error": "not found"})
         try:
             length = int(self.headers.get("Content-Length", 0))
             req = json.loads(self.rfile.read(length) or b"{}")
-            loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
-                           address=req.get("address", ""),
-                           radius_minutes=int(req.get("radius_minutes", 10)))
-            report = analyze(loc, req["vertical"], resolver=RESOLVER).to_dict()
-            if STORE is not None:
-                report["report_id"] = STORE.save_report(report, created_at=time.time())
-            self._send(200, report)
-        except (KeyError, ValueError, json.JSONDecodeError) as e:
+            if self.path == "/v1/analyze":
+                loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
+                               address=req.get("address", ""),
+                               radius_minutes=int(req.get("radius_minutes", 10)))
+                report = analyze(loc, req["vertical"], resolver=RESOLVER).to_dict()
+                if STORE is not None:
+                    report["report_id"] = STORE.save_report(report, created_at=time.time())
+                return self._send(200, report)
+            if self.path == "/v1/profiles":
+                if STORE is None:
+                    return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                p = profile_from_dict(req)
+                return self._send(200, {"profile_id": STORE.save_profile(
+                    p.to_dict(), created_at=time.time())})
+            if self.path == "/v1/scan":
+                raw = req.get("profile")
+                if raw is None and req.get("profile_id"):
+                    if STORE is None:
+                        return self._send(503, {"error": "Persistens avstängd (LANDVEX_DB=off)."})
+                    raw = STORE.get_profile(req["profile_id"])
+                    if raw is None:
+                        return self._send(404, {"error": "Okänd profil."})
+                if raw is None:
+                    return self._send(422, {"error": "Ange profile eller profile_id."})
+                p = profile_from_dict(raw)
+                top_n = min(max(int(req.get("top_n", 5)), 1), 20)
+                return self._send(200, scan(p, resolver=RESOLVER, top_n=top_n))
+            self._send(404, {"error": "not found"})
+        except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
             self._send(422, {"error": str(e)})
 
     def log_message(self, fmt, *args):  # tystare logg

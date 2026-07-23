@@ -36,6 +36,15 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE INDEX IF NOT EXISTS idx_reports_created ON reports(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_geom ON reports USING GIST(geom);
 
+CREATE TABLE IF NOT EXISTS profiles (
+    id          TEXT PRIMARY KEY,
+    created_at  DOUBLE PRECISION NOT NULL,
+    name        TEXT NOT NULL DEFAULT '',
+    vertical_id TEXT NOT NULL,
+    payload     JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_created ON profiles(created_at DESC);
+
 CREATE TABLE IF NOT EXISTS signal_cache (
     source    TEXT NOT NULL,
     loc_key   TEXT NOT NULL,
@@ -100,6 +109,37 @@ class PostgresStore(Store):
             rows = cur.fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
+        return [dict(zip(keys, r)) for r in rows]
+
+    def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
+        profile_id = uuid.uuid4().hex[:16]
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO profiles VALUES (%s,%s,%s,%s,%s)",
+                (profile_id, created_at, profile.get("name", ""),
+                 profile["vertical_id"],
+                 json.dumps(profile, ensure_ascii=False)))
+        return profile_id
+
+    def get_profile(self, profile_id: str) -> Optional[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload, created_at FROM profiles WHERE id = %s",
+                        (profile_id,))
+            row = cur.fetchone()
+        if row is None:
+            return None
+        doc = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+        doc["profile_id"] = profile_id
+        doc["created_at"] = row[1]
+        return doc
+
+    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, created_at, name, vertical_id FROM profiles "
+                "ORDER BY created_at DESC, id LIMIT %s", (limit,))
+            rows = cur.fetchall()
+        keys = ("profile_id", "created_at", "name", "vertical_id")
         return [dict(zip(keys, r)) for r in rows]
 
     def get_cached_signals(self, source: str, loc_key: str
