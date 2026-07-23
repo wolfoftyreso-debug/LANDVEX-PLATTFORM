@@ -132,16 +132,18 @@
     <div id="vyEtab" style="display:none">
       <h2>Min affärsprofil</h2>
       <div id="formular"></div>
+      <div class="falt"><label>Marknad</label><select id="marknadEtab"></select></div>
       <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
-      <button id="analysera">Analysera Sverige</button>
+      <button id="analysera">Analysera marknaden</button>
     </div>
     <div id="vyKomp" style="display:none">
       <h2>Kompetensprognos</h2>
       <div class="falt"><label>Yrke</label><select id="yrke"></select></div>
+      <div class="falt"><label>Marknad</label><select id="marknadKomp"></select></div>
       <div class="falt"><label>Målår</label><select id="malar">
         <option>2030</option><option selected>2035</option><option>2040</option>
       </select></div>
-      <button id="prognostisera">Prognostisera Sverige</button>
+      <button id="prognostisera">Prognostisera marknaden</button>
     </div>
     <div class="status" id="status">Ställ en fråga – svaret byggs av Landvex motorer, med konfidens och antaganden.</div>
   </aside>
@@ -163,9 +165,10 @@
       <div><i style="background:var(--rod)"></i>&lt; 45 · svagt underlag</div>
     </div>
     <div class="legend" id="legendKomp" style="display:none">
-      <div><i style="background:var(--gron)"></i>God balans</div>
-      <div><i style="background:var(--gul)"></i>Ökande brist</div>
-      <div><i style="background:var(--rod)"></i>Kritisk brist</div>
+      <div><i style="background:var(--rod)"></i>Extrem efterfrågan</div>
+      <div><i style="background:var(--orange)"></i>Hög efterfrågan</div>
+      <div><i style="background:var(--gul)"></i>Växande efterfrågan</div>
+      <div><i style="background:var(--gron)"></i>Mättad marknad</div>
     </div>
     <div id="tooltip"></div>
   </main>
@@ -401,10 +404,12 @@ function ritaHotspots(res) {
             <span class="${d.direction === "driver" ? "pos" : "neg"}">${esc(d.value)} ${esc(d.unit)}</span>
           </div>`).join("")}
         <h4>Ekonomi – schablonscenario</h4>
-        <p class="motiv">Omsättningsscenario: <b>${eko.omsattningsscenario_tkr_ar} tkr/år</b> ·
-          Startkapital typiskt ${eko.startkapital_typiskt_tkr[0]}–${eko.startkapital_typiskt_tkr[1]} tkr</p>
-        <p class="motiv">${esc(eko.budget_fit_sv)}</p>
-        <p class="roi-notis">${esc(eko.notis_sv)}</p>
+        ${eko.status === "ej_kalibrerad"
+          ? `<p class="roi-notis">${esc(eko.notis_sv)}</p>`
+          : `<p class="motiv">Omsättningsscenario: <b>${eko.omsattningsscenario_tkr_ar} tkr/år</b> ·
+               Startkapital typiskt ${eko.startkapital_typiskt_tkr[0]}–${eko.startkapital_typiskt_tkr[1]} tkr</p>
+             <p class="motiv">${esc(eko.budget_fit_sv)}</p>
+             <p class="roi-notis">${esc(eko.notis_sv)}</p>`}
         <p class="roi-notis">Förväntad ROI: ${esc(h.expected_roi.notis_sv)}</p>
         <h4>Nästa steg</h4>
         <div class="steg">${h.next_steps_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>
@@ -442,7 +447,8 @@ $("analysera").onclick = async () => {
   st.textContent = "Analyserar Sverige …";
   try {
     const res = await api("/v1/scan", { profile: lasProfil(), top_n: 5,
-                                        level: $("niva").value });
+                                        level: $("niva").value,
+                                        market: $("marknadEtab").value });
     senasteScan = res;
     ritaKarta(res); ritaHotspots(res);
     st.textContent = `${res.candidates_scanned} punkter i ${res.kommuner_scanned} kommuner analyserade` +
@@ -483,15 +489,13 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("status").textContent = LAGEN[MODE].status;
 });
 
-const KOMPBAND = { balans: "gron", okande_brist: "gul", kritisk_brist: "rod" };
-
 function ritaKompKarta(res) {
   tomKarta();
   setBox(res.bbox || SE_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
   for (const k of res.kommuner) {
-    laggPunkt(k.lat, k.lon, KOMPBAND[k.band], 7,
-      `${k.kommun} — brist ${k.brist} (${BANDTEXT[k.band].toLowerCase()})`,
+    laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
+      `${k.kommun} — brist ${k.brist} (${EFTERTEXT[k.efterfragan].toLowerCase()})`,
       k.kommun_kod, () => visaKompKommun(k.kommun_kod, k.kommun));
   }
 }
@@ -502,13 +506,14 @@ function ritaKompLista(res) {
   for (const k of res.kommuner.slice(0, 8)) {
     const div = document.createElement("div");
     div.className = "kort"; div.dataset.kommun = k.kommun_kod;
+    const bandKl = "s-" + (EFTERBAND[k.efterfragan] === "orange"
+                           ? "orange" : EFTERBAND[k.efterfragan]);
     div.innerHTML = `
       <div class="rubrik">
-        <span class="plats">📍 ${esc(k.kommun)}</span>
-        <span class="score ${k.band === "balans" ? "s-gron" :
-          k.band === "okande_brist" ? "s-gul" : "s-rod"}">${k.brist}</span>
+        <span class="plats">📍 ${esc(k.kommun)}${k.trend ? ` <small style="color:var(--muted)">· ${esc(k.trend)}</small>` : ""}</span>
+        <span class="score ${bandKl}">${k.brist}</span>
       </div>
-      <p class="motiv">${BANDTEXT[k.band]} · behov ${k.behov_prognos} till
+      <p class="motiv">${EFTERTEXT[k.efterfragan]} · behov ${k.behov_prognos} till
         ${res.malar} · konfidens ${k.konfidens} (heuristik)</p>
       <div class="detalj"><p class="motiv">Hämtar detaljer …</p></div>`;
     div.onclick = () => visaKompKommun(k.kommun_kod, k.kommun);
@@ -527,7 +532,8 @@ async function visaKompKommun(kod, namn) {
   const yrke = $("yrke").value, ar = +$("malar").value;
   try {
     const res = await api("/v1/workforce/forecast",
-      { kommun_kod: kod, target_year: ar, occupation_ids: [yrke] });
+      { kommun_kod: kod, target_year: ar, occupation_ids: [yrke],
+        market: $("marknadKomp").value });
     const f = res.prognoser[0];
     detalj.innerHTML = `
       <h4>Kompetensprognos ${ar} · ${esc(f.label_sv)}</h4>
@@ -538,7 +544,11 @@ async function visaKompKommun(kod, namn) {
       </div>
       <p class="intervall">Intervall ${f.intervall[0]}–${f.intervall[1]} ·
         konfidens ${f.konfidens} (heuristik) ·
-        efterfrågetakt ${f.efterfragetakt_pct_ar} %/år</p>
+        efterfrågetakt ${f.efterfragetakt_pct_ar} %/år ·
+        pensionsavgångar ${f.pensionsavgangar}</p>
+      ${f.milstolpar ? `<p class="intervall">Gap på 1/3/5/10/20 års sikt: ` +
+        f.milstolpar.map(m => `${m.gap} <small>(${m.ar})</small>`).join(" · ") +
+        `</p>` : ""}
       <h4>Antaganden</h4>
       ${f.antaganden.map(a => `<p class="motiv"><b>${esc(a.antagande_sv)}:</b>
         ${esc(a.varde_sv)}</p>`).join("")}
@@ -559,7 +569,8 @@ async function visaKompKommun(kod, namn) {
       const n = +$("simN_" + kod).value || 0;
       const s = await api("/v1/workforce/simulate",
         { kommun_kod: kod, occupation_id: yrke,
-          extra_places_per_year: n, target_year: ar });
+          extra_places_per_year: n, target_year: ar,
+          market: $("marknadKomp").value });
       $("simUt_" + kod).innerHTML =
         `Med <b>${n}</b> extra platser/år: brist ${s.brist_utan_atgard} → ` +
         `<b>${s.brist_med_atgard}</b> (−${s.minskning})` +
@@ -577,7 +588,8 @@ $("prognostisera").onclick = async () => {
   st.textContent = "Prognostiserar Sverige …";
   try {
     const res = await api(`/v1/workforce/map?occupation_id=${$("yrke").value}` +
-                          `&target_year=${$("malar").value}`);
+                          `&target_year=${$("malar").value}` +
+                          `&market=${$("marknadKomp").value}`);
     senasteKarta = res;
     ritaKompKarta(res); ritaKompLista(res);
     const kritiska = res.kommuner.filter(k => k.band === "kritisk_brist").length;
@@ -708,6 +720,12 @@ $("fragaText").addEventListener("keydown", e => {
     byggFormular();
     for (const o of await api("/v1/workforce/occupations"))
       $("yrke").add(new Option(o.label_sv, o.id));
+    for (const m of await api("/v1/markets")) {
+      const label = `${m.label_sv} (${m.antal_regioner} ${m.region_label_sv}er` +
+                    `${m.kalibrerad ? "" : " · simulerad data"})`;
+      $("marknadEtab").add(new Option(label, m.id));
+      $("marknadKomp").add(new Option(label, m.id));
+    }
   } catch (e) {
     $("status").textContent = "Kunde inte nå API:t: " + e.message;
   }
