@@ -633,7 +633,7 @@ def _rows_service_karta(query: Query, resolver) -> dict[str, Any]:
             "servicetillfallen_per_ar": r["servicetillfallen_per_ar"],
             "teknikerbehov": r["teknikerbehov"],
             "narrativ_sv": r["teknikerlage"]["text_sv"],
-            "motivering_sv": (["⚠ Mismatch: stor installerad bas men "
+            "motivering_sv": (["Mismatch: stor installerad bas men "
                                "teknikerbrist – affärsmöjlighet."]
                               if r["mismatch"] else []),
         }} for r in res["regioner"][:query.top_n]]

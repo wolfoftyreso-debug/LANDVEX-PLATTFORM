@@ -105,19 +105,54 @@
                border: 1px solid var(--line); }
   .sim button { width: auto; padding: 7px 12px; cursor: pointer; }
   .intervall { font-size: 12px; color: var(--muted); }
+
+  /* Ikonsystem: streckade SVG-ikoner i currentColor – inga emojis. */
+  .ikon { width: 15px; height: 15px; fill: none; stroke: currentColor;
+          stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+          vertical-align: -2.5px; }
+  .ikon.pos { color: var(--gron); } .ikon.neg { color: var(--rod); }
+  .ikon.varn { color: var(--gul); }
+  .tab .ikon { width: 13px; height: 13px; vertical-align: -2px;
+               margin-right: 3px; }
+  .logomark { width: 26px; height: 26px; flex: none; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-kompass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></symbol>
+  <symbol id="i-fraga" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-byggnad" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></symbol>
+  <symbol id="i-examen" viewBox="0 0 24 24"><path d="M22 9L12 4 2 9l10 5 10-5z"/><path d="M6 11.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5"/><path d="M22 9v5"/></symbol>
+  <symbol id="i-lager" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></symbol>
+  <symbol id="i-paket" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v9"/></symbol>
+  <symbol id="i-kugge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-diamant" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/><path d="M2 9h20"/><path d="M12 21L8 9l2-6"/><path d="M12 21l4-12-2-6"/></symbol>
+  <symbol id="i-varning" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-bock" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="i-om" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+  <symbol id="i-upp" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
+  <symbol id="i-ned" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></symbol>
+</defs></svg>
 <header>
+  <svg class="logomark" viewBox="0 0 24 24" aria-hidden="true">
+    <defs><linearGradient id="lvxg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b8def"/><stop offset="1" stop-color="#3ecf8e"/>
+    </linearGradient></defs>
+    <polygon points="12 2 22 7 12 12 2 7" fill="url(#lvxg)"/>
+    <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
   <h1>LANDVEX</h1><span id="undertitel">Landvex · Guiden frågar, motorerna svarar</span>
   <nav id="tabs">
-    <button class="tab on" data-mode="guide">Guide</button>
-    <button class="tab" data-mode="fraga">Fråga</button>
-    <button class="tab" data-mode="etab">Etablering</button>
-    <button class="tab" data-mode="komp">Kompetens</button>
-    <button class="tab" data-mode="index">Index</button>
-    <button class="tab" data-mode="paket">Paket</button>
-    <button class="tab" data-mode="install">⚙ Inställningar</button>
+    <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
+    <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Fråga</button>
+    <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Etablering</button>
+    <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Kompetens</button>
+    <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
+    <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Paket</button>
+    <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Inställningar</button>
   </nav>
 </header>
 
@@ -133,7 +168,7 @@
         <button id="guideNasta" style="background:var(--accent);border:none;color:#fff;font-weight:600">Nästa ›</button>
       </div>
       <div class="falt" style="margin-top:10px">
-        <button id="guideOm" class="chip exempel" style="border:1px solid var(--line)">↺ Börja om guiden</button>
+        <button id="guideOm" class="chip exempel" style="border:1px solid var(--line)"><svg class="ikon"><use href="#i-om"/></svg> Börja om guiden</button>
       </div>
     </div>
     <div id="vyFraga" style="display:none">
@@ -250,11 +285,12 @@ const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)",
                orange: "var(--orange)" };
 const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)",
                rod: "url(#glodRod)", orange: "url(#glodOrange)" };
-// Opportunity Map: 🔴 extrem · 🟠 hög · 🟡 växande · 🟢 mättad efterfrågan
+// Opportunity Map: extrem (röd) · hög (orange) · växande (gul) · mättad (grön)
 const EFTERBAND = { extrem: "rod", hog: "orange", vaxande: "gul", mattad: "gron" };
 const EFTERTEXT = { extrem: "Extrem efterfrågan", hog: "Hög efterfrågan",
                     vaxande: "Växande efterfrågan", mattad: "Mättad marknad" };
 const $ = id => document.getElementById(id);
+const ikon = (n, kl) => `<svg class="ikon ${kl || ""}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
 // Förenklad Sverigekontur (lat,lon) – illustrativ, inte kartografisk.
 const KONTUR = [
@@ -438,7 +474,7 @@ function ritaHotspots(res) {
     const m = h.market_momentum, eko = h.economy_scenario;
     div.innerHTML = `
       <div class="rubrik">
-        <span class="plats">📍 ${esc(h.lage_sv)} <small style="color:var(--muted)">#${h.rank}</small></span>
+        <span class="plats">${ikon("pin")} ${esc(h.lage_sv)} <small style="color:var(--muted)">#${h.rank}</small></span>
         <span class="score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</span>
       </div>
       <div class="metrik">
@@ -453,7 +489,7 @@ function ritaHotspots(res) {
       <div class="detalj">
         <h4>Vad ligger bakom?</h4>
         ${h.drivers.map(d => `<div class="driver">
-            <span>${d.direction === "driver" ? "✔" : "▼"} ${esc(d.label_sv)}</span>
+            <span>${ikon(d.direction === "driver" ? "upp" : "ned", d.direction === "driver" ? "pos" : "neg")} ${esc(d.label_sv)}</span>
             <span class="${d.direction === "driver" ? "pos" : "neg"}">${esc(d.value)} ${esc(d.unit)}</span>
           </div>`).join("")}
         <h4>Ekonomi – schablonscenario</h4>
@@ -484,11 +520,11 @@ function ritaHotspots(res) {
           vertical: senasteScan.profile.vertical_id });
         ut.innerHTML = `<p class="motiv"><b>${esc(rp.narrativ_sv)}</b></p>` +
           rp.dimensioner.map(d => `<div class="driver">
-            <span>${esc(d.label_sv)}${d.atgard_sv ? " ⚠" : ""}</span>
+            <span>${esc(d.label_sv)}${d.atgard_sv ? " " + ikon("varning", "varn") : ""}</span>
             <span class="${d.risk >= 60 ? "neg" : "pos"}">${Math.round(d.risk)} · ${esc(d.band)}</span>
           </div>`).join("") +
           rp.dimensioner.filter(d => d.atgard_sv).map(d =>
-            `<p class="roi-notis">⚠ ${esc(d.label_sv)}: ${esc(d.atgard_sv)}</p>`).join("");
+            `<p class="roi-notis">${ikon("varning", "varn")} ${esc(d.label_sv)}: ${esc(d.atgard_sv)}</p>`).join("");
       } catch (err) { ut.innerHTML = `<p class="motiv">Fel: ${esc(err.message)}</p>`; }
     };
     div.querySelector(".planBtn").onclick = async (e) => {
@@ -526,7 +562,7 @@ function planHTML(p) {
           <p class="motiv">${esc(p.personal.notis_sv)}</p>
           <p class="motiv"><b>Finansiering:</b> ${p.finansiering.map(f => esc(f.alternativ_sv)).join(" · ")}</p>
           <p class="motiv"><b>Leverantörer:</b> ${p.leverantorer_sv.map(esc).join(" · ")}</p>
-          ${p.risker.map(r => `<p class="roi-notis">⚠ ${esc(r.label_sv)} ${Math.round(r.risk)}/100${r.atgard_sv ? " – " + esc(r.atgard_sv) : ""}</p>`).join("")}
+          ${p.risker.map(r => `<p class="roi-notis">${ikon("varning", "varn")} ${esc(r.label_sv)} ${Math.round(r.risk)}/100${r.atgard_sv ? " – " + esc(r.atgard_sv) : ""}</p>`).join("")}
           <div class="steg">${p.nasta_steg_sv.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
 }
 
@@ -616,7 +652,7 @@ function ritaKompLista(res) {
                            ? "orange" : EFTERBAND[k.efterfragan]);
     div.innerHTML = `
       <div class="rubrik">
-        <span class="plats">📍 ${esc(k.kommun)}${k.trend ? ` <small style="color:var(--muted)">· ${esc(k.trend)}</small>` : ""}</span>
+        <span class="plats">${ikon("pin")} ${esc(k.kommun)}${k.trend ? ` <small style="color:var(--muted)">· ${esc(k.trend)}</small>` : ""}</span>
         <span class="score ${bandKl}">${k.brist}</span>
       </div>
       <p class="motiv">${EFTERTEXT[k.efterfragan]} · behov ${k.behov_prognos} till
@@ -836,13 +872,13 @@ const GUIDE_FLOWS = {
     fraga: "Vad vill du att Landvex hjälper dig med?",
     typ: "val",
     val: [
-      { id: "starta", label: "🏪 Starta eller etablera verksamhet",
+      { id: "starta", ikon: "byggnad", label: "Starta eller etablera verksamhet",
         info: "Hitta bästa läget, få etableringsplan och riskbild." },
-      { id: "kompetens", label: "🎓 Planera kompetensförsörjning",
+      { id: "kompetens", ikon: "examen", label: "Planera kompetensförsörjning",
         info: "Prognoser, bristkartor och utbildningssimulering." },
-      { id: "lage", label: "📍 Djupanalysera föreslagna lägen",
+      { id: "lage", ikon: "pin", label: "Djupanalysera föreslagna lägen",
         info: "Beslutskort, riskprofil och plan för toppkandidater." },
-      { id: "obalans", label: "💎 Hitta obalanser & investeringslägen",
+      { id: "obalans", ikon: "diamant", label: "Hitta obalanser & investeringslägen",
         info: "Hög efterfrågan, lågt utbud, positiv utveckling." },
     ],
   },
@@ -900,14 +936,14 @@ function guideRita() {
   const steg = guideStegLista();
   const p = $("guideProgress"), f = $("guideFraga"), s = $("guideSvar");
   $("guideTillbaka").style.visibility = guide.steg >= 0 ? "visible" : "hidden";
-  $("guideNasta").textContent = (guide.steg === steg.length - 1)
-    ? "Kör analysen ✓" : "Nästa ›";
+  $("guideNasta").innerHTML = (guide.steg === steg.length - 1)
+    ? `Kör analysen ${ikon("bock")}` : "Nästa ›";
   if (guide.steg < 0) {
     p.textContent = "Välj uppdrag";
     f.textContent = GUIDE_FLOWS.start.fraga;
     s.innerHTML = GUIDE_FLOWS.start.val.map(v => `
       <div class="kort guideval ${guide.flode === v.id ? "vald" : ""}" data-val="${v.id}" style="padding:10px">
-        <div class="plats" style="font-size:13.5px">${v.label}</div>
+        <div class="plats" style="font-size:13.5px">${ikon(v.ikon)} ${v.label}</div>
         <p class="motiv">${v.info}</p>
       </div>`).join("");
     s.querySelectorAll(".guideval").forEach(k => k.onclick = () => {
@@ -925,18 +961,18 @@ function guideRita() {
     const alternativ = falt.kalla();
     s.innerHTML = `<select id="guideInput">` + alternativ.map(o =>
       `<option value='${JSON.stringify(o.id)}' ${JSON.stringify(o.id) === nuv ? "selected" : ""}>${esc(o.label_sv)}</option>`).join("") + `</select>` +
-      `<p class="motiv" style="margin-top:6px">ⓘ ${esc(falt.info)}</p>`;
+      `<p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
   } else if (falt.typ === "chips") {
     s.innerHTML = `<div class="chips">` + falt.kalla().map(o => `
       <span class="chip ${nuv === JSON.stringify(o.id) ? "on" : ""}" data-v='${JSON.stringify(o.id)}'>${esc(o.label_sv)}</span>`).join("") +
-      `</div><p class="motiv" style="margin-top:6px">ⓘ ${esc(falt.info)}</p>`;
+      `</div><p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
     s.querySelectorAll(".chip").forEach(c => c.onclick = () => {
       guide.svar[steg[guide.steg]] = c.dataset.v; guideRita();
     });
   } else {
     s.innerHTML = `<input type="number" id="guideInput" data-guide="platser" min="0" ` +
       `value="${nuv ? JSON.parse(nuv) : falt.standard}">` +
-      `<p class="motiv" style="margin-top:6px">ⓘ ${esc(falt.info)}</p>`;
+      `<p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
   }
 }
 
@@ -990,7 +1026,7 @@ async function guideKor() {
       for (const e of res.obalanser) {
         wrap.insertAdjacentHTML("beforeend", `
           <div class="kort open" data-kommun="${e.kommun_kod}">
-            <div class="rubrik"><span class="plats">📍 ${esc(e.kommun)}</span>
+            <div class="rubrik"><span class="plats">${ikon("pin")} ${esc(e.kommun)}</span>
               <span class="score ${scoreKlass(e.obalans_score)}">${Math.round(e.obalans_score)}</span></div>
             <p class="motiv">${esc(e.narrativ_sv)}</p>
             <div class="detalj">
@@ -1065,7 +1101,7 @@ async function visaPaket() {
         </div>
         <p class="motiv">${esc(p.beskrivning_sv)}</p>
         <div class="detalj">
-          ${p.ingar_sv.map(i => `<div class="driver"><span>✔ ${esc(i)}</span><span></span></div>`).join("")}
+          ${p.ingar_sv.map(i => `<div class="driver"><span>${ikon("bock", "pos")} ${esc(i)}</span><span></span></div>`).join("")}
           <p class="roi-notis">Anropstak: ${p.rate_limit_per_min} anrop/min</p>
         </div>`;
       wrap.appendChild(div);
@@ -1099,7 +1135,7 @@ async function visaIndexStad(kod, namn) {
       <h4>Stadsbedömning · alla index</h4>
       ${res.index.map(ix => `
         <div class="driver">
-          <span>${esc(ix.label_sv)} <small style="color:var(--muted)">${ix.niva.toUpperCase()}</small>${ix.kontradiktion_upptackt ? " ⚠" : ""}</span>
+          <span>${esc(ix.label_sv)} <small style="color:var(--muted)">${ix.niva.toUpperCase()}</small>${ix.kontradiktion_upptackt ? " " + ikon("varning", "varn") : ""}</span>
           <span class="${ix.band === "lag" ? "pos" : ix.band === "hog" ? "neg" : ""}">${ix.varde} · ${esc(ix.band_sv)}</span>
         </div>
         ${(ix.drivare || []).map(d => `<p class="roi-notis" style="margin-left:10px">${esc(d.label_sv)}: ${esc(d.varde)} ${esc(d.enhet)} (källa ${esc(d.kalla)}${d.roll ? ", " + esc(d.roll).replace("_", " ") : ""})</p>`).join("")}`).join("")}
@@ -1132,7 +1168,7 @@ $("ritaIndex").onclick = async () => {
                : r.band === "forhojd" ? "s-orange" : "s-rod";
       div.innerHTML = `
         <div class="rubrik">
-          <span class="plats">📍 ${esc(r.kommun)}${r.kontradiktion_upptackt ? " ⚠" : ""}</span>
+          <span class="plats">${ikon("pin")} ${esc(r.kommun)}${r.kontradiktion_upptackt ? " " + ikon("varning", "varn") : ""}</span>
           <span class="score ${kl}">${r.varde}</span>
         </div>
         <p class="motiv">${esc(r.band_sv)} · klicka för full stadsbedömning</p>

@@ -188,7 +188,7 @@ def city_assessment(kommun_kod: str, market: str = "se",
             "sammanfattning_sv": (
                 f"{namn}: " + " · ".join(
                     f"{r['label_sv']} {r['varde']}" for r in rows[:5]) +
-                (". ⚠ Kontradiktion upptäckt."
+                (". Kontradiktion upptäckt."
                  if kontr["kontradiktion_upptackt"] else ".")),
             "caveats_sv": list(_CAVEATS)}
 

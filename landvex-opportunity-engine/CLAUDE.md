@@ -239,6 +239,15 @@ OIDC.
   systemet" visar motorversion, källstatus och endpointantal från
   `/health` + `/v1/catalog`. Demon bakar även gap-analyser, health
   och katalog; låsta fält (platser=30, top-N=5) märks med titel.
+- **Riktig grafik i stället för emojis (v0.18):** Ett SVG-ikonsystem
+  (sprite med `<symbol>`-definitioner + `ikon(namn, klass)`-hjälpare,
+  streckade ikoner i `currentColor`) ersätter samtliga emojis:
+  logotypmärke i headern, ikoner på alla sju flikar, guidens
+  uppdragskort, kartnålar i beslutskort, trendpilar (upp/ned) för
+  drivare, varningstrianglar, bock-, info- och omstartsikoner. Även
+  motorsträngar rensade (`⚠` borta ur `ask.py`/`indices.py`). Inga
+  emojis kvar i frontend – nya ikoner läggs till som `<symbol>` i
+  spriten och används via `ikon("namn")`.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
