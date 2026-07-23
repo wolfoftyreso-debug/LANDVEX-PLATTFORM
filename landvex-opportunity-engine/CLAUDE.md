@@ -160,6 +160,16 @@ OIDC.
   topp-3 risker med åtgärder, nästa steg. `PLAN_DATA` är data per
   vertikal. `POST /v1/plan`. Frågetolken förstår obalans- och
   planfrågor; frontend har "Skapa etableringsplan" i hotspotkorten.
+- **Målgruppsmotorn (v0.11):** `engine/segments.py` – 10 segment som
+  data (djurägare, barnfamiljer, seniorer, unga vuxna, bilägare,
+  pendlare, villaägare, höginkomsttagare, företagare, besökare):
+  uppskattat antal (signal × befolkning, märkt uppskattning), index
+  mot marknadssnittet, band och vilka vertikaler som betjänar
+  segmentet → direkt vidare till svep/gap/plan. Regionprofil
+  (`POST /v1/segments/analyze`), segmentkarta
+  (`GET /v1/segments/map`), katalog (`GET /v1/segments`).
+  Frågetolken: "Var finns flest djurägare?", "Hur ser målgrupperna
+  ut i Umeå?", "Hur många barnfamiljer finns i Örebro?".
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -176,6 +186,7 @@ python3 -m tests.test_ask          # NL-tolk och svarstester (12 st)
 python3 -m tests.test_markets      # marknads- och globaltester (7 st)
 python3 -m tests.test_security     # auth/RBAC/rate limit/audit (6 st)
 python3 -m tests.test_gaps_plan    # obalanser + etableringsplan (7 st)
+python3 -m tests.test_segments     # målgruppsmotorn (4 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000

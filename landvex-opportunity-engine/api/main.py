@@ -32,6 +32,7 @@ from engine.gaps import gap_analysis
 from engine.markets import market_catalog
 from engine.plan import establishment_plan
 from engine.risk import assess
+from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 from engine.workforce import (forecast as wf_forecast, global_map,
@@ -290,6 +291,33 @@ def plan(req: PlanRequest):
                                   market=req.market, team_size=req.team_size,
                                   budget_band=req.budget_band,
                                   resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class SegmentAnalyzeRequest(BaseModel):
+    kommun_kod: str
+    market: str = "se"
+
+
+@app.get("/v1/segments")
+def segments():
+    return segment_catalog()
+
+
+@app.post("/v1/segments/analyze")
+def segments_analyze(req: SegmentAnalyzeRequest):
+    try:
+        return segment_analysis(req.kommun_kod, market=req.market,
+                                resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/segments/map")
+def segments_map(segment_id: str, market: str = "se"):
+    try:
+        return segment_map(segment_id, market=market, resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

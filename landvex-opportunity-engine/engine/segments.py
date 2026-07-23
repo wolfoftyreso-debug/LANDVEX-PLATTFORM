@@ -10,8 +10,6 @@ ny rad. Antal är UPPSKATTNINGAR härledda ur signalvärden × befolkning
 och märks så; indexet jämför regionen mot marknadssnittet (beräknat
 över marknadens regioner med samma källkedja – deterministiskt).
 
-OBS: ännu EJ inkopplad i API/ask – wiring är nästa steg.
-
 Kopplingen till affären: varje segment pekar på vertikaler, så en hög
 djurägartäthet leder direkt vidare till veterinärsvep, gap-analys och
 etableringsplan i samma plattform.

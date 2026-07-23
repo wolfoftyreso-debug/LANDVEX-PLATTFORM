@@ -33,6 +33,7 @@ from .models import Location
 from .profile import BusinessProfile
 from .risk import assess
 from .scan import economy_scenario, scan
+from .segments import SEGMENTS, segment_analysis, segment_map
 from .scoring import analyze
 from .verticals import VERTICALS
 from .workforce import (BASE_YEAR, MAX_HORIZON_YEARS, OCCUPATIONS,
@@ -106,6 +107,19 @@ _START_WORDS = ("starta", "öppna", "etablera", "affärsmöjlighet",
 _RISK_WORDS = ("risk", "riskabelt", "riskfyllt", "farligt", "vågar")
 _GAP_WORDS = ("obalans", "outnyttjad", "underförsörjd", "underetablerad",
               "gap", "lucka", "vita fläckar")
+_SEGMENT_SYNONYMS: dict[str, str] = {
+    "djurägare": "djuragare", "hundägare": "djuragare",
+    "kattägare": "djuragare", "husdjur": "djuragare",
+    "barnfamilj": "barnfamiljer",
+    "seniorer": "seniorer", "pensionär": "seniorer", "äldre": "seniorer",
+    "unga vuxna": "unga_vuxna",
+    "bilägare": "bilagare",
+    "pendlare": "pendlare",
+    "villaägare": "villaagare",
+    "höginkomsttagare": "hoginkomsttagare",
+    "företagare": "foretagare",
+    "turister": "besokare", "besökare": "besokare",
+}
 _PLAN_WORDS = ("etableringsplan", "affärsplan", "hur startar jag",
                "vad krävs för att starta", "beslutsunderlag")
 
@@ -114,6 +128,7 @@ _PLAN_WORDS = ("etableringsplan", "affärsplan", "hur startar jag",
 class Query:
     intent: str
     kommun: tuple | None = None            # (kod, namn, lat, lon)
+    segment_id: str | None = None
     region_market: str = "se"              # marknad regionen tillhör
     market: str | None = None              # explicit nämnd marknad
     group: str | None = None               # "eu" | "varlden"
@@ -211,6 +226,9 @@ def parse(question: str) -> Query:
 
     gap = any(w in q for w in _GAP_WORDS)
     plan = any(w in q for w in _PLAN_WORDS)
+    segment = _find_in_lexicon(q, _SEGMENT_SYNONYMS)
+    malgrupp = "målgrupp" in q
+    query.segment_id = segment
 
     if kommun is None and query.unmatched_kommun:
         query.intent = "okand_kommun"
@@ -218,6 +236,10 @@ def parse(question: str) -> Query:
         query.intent = "etableringsplan"
     elif gap and vert:
         query.intent = "gap_analys"
+    elif (segment or malgrupp) and kommun:
+        query.intent = "malgrupper_kommun"
+    elif segment:
+        query.intent = "segment_karta"
     elif risky and vert and kommun:
         query.intent = "riskprofil"
     elif occ and move:
@@ -534,6 +556,62 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
     }
 
 
+def _rows_malgrupper(query: Query, resolver) -> dict[str, Any]:
+    kod = query.kommun[0]
+    res = segment_analysis(kod, market=query.region_market, resolver=resolver)
+    seg_filter = ([query.segment_id] if query.segment_id else
+                  [s["segment_id"] for s in res["segment"]])
+    rows = [{
+        "typ": "malgrupp", "id": s["segment_id"], "label_sv": s["label_sv"],
+        "score": s["index_mot_marknadssnitt"], "trend": None,
+        "detalj": {
+            "antal_uppskattat": (f"{s['antal_uppskattat']} {s['enhet_sv']}"
+                                 if s["antal_uppskattat"] is not None
+                                 else "index-segment"),
+            "index_mot_marknadssnitt": s["index_mot_marknadssnitt"],
+            "narrativ_sv": s["narrativ_sv"],
+            "motivering_sv": ["Betjänas av: " + ", ".join(
+                b["label_sv"] for b in s["betjanas_av"]) + "."],
+        }} for s in res["segment"] if s["segment_id"] in seg_filter]
+    topp = rows[0]
+    return {
+        "svar_sv": res["sammanfattning_sv"] if not query.segment_id else (
+            f"{topp['label_sv']} i {res['kommun']}: "
+            f"{topp['detalj']['antal_uppskattat']} (uppskattat), index "
+            f"{topp['score']} mot marknadssnittet."),
+        "rader": rows,
+        "forslag_sv": [f"Var i Sverige finns flest "
+                       f"{topp['label_sv'].lower()}?",
+                       f"Vilka är de största affärsmöjligheterna i "
+                       f"{res['kommun']}?"],
+        "caveats_sv": res["caveats_sv"],
+    }
+
+
+def _rows_segment_karta(query: Query, resolver) -> dict[str, Any]:
+    res = segment_map(query.segment_id, market=query.market or "se",
+                      resolver=resolver)
+    rows = [{
+        "typ": "segment_region", "id": r["kommun_kod"],
+        "label_sv": r["kommun"], "score": r["index"], "trend": None,
+        "detalj": {
+            "antal_uppskattat": (f"{r['antal_uppskattat']} "
+                                 if r["antal_uppskattat"] is not None else "–"),
+            "index_mot_marknadssnitt": r["index"],
+            "narrativ_sv": f"Index {r['index']} mot marknadssnittet.",
+        }} for r in res["regioner"][:query.top_n]]
+    verts = res["betjanas_av"]
+    return {
+        "svar_sv": res["sammanfattning_sv"],
+        "rader": rows,
+        "karta": {"typ": "heatmap", "heatmap": res["heatmap"],
+                  "hotspots": [], "bbox": res["bbox"], "level": "oversikt"},
+        "forslag_sv": ([f"Var finns störst obalans för "
+                        f"{verts[0]['label_sv'].lower()}?"] if verts else []),
+        "caveats_sv": res["caveats_sv"],
+    }
+
+
 def _rows_risk(query: Query, resolver) -> dict[str, Any]:
     kod, namn, lat, lon = query.kommun
     rp = assess(Location(lat, lon, address=namn), query.vertical_id,
@@ -580,6 +658,8 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
                "basta_lage_vertikal": _rows_basta_lage,
                "gap_analys": _rows_gap,
                "etableringsplan": _rows_plan,
+               "malgrupper_kommun": _rows_malgrupper,
+               "segment_karta": _rows_segment_karta,
                "riskprofil": _rows_risk}[query.intent]
     result = handler(query, resolver)
     caveats = result.pop("caveats_sv", []) + [

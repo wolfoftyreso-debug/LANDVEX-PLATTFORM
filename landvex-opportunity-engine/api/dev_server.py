@@ -45,6 +45,7 @@ from engine.gaps import gap_analysis
 from engine.markets import market_catalog
 from engine.plan import establishment_plan
 from engine.risk import assess
+from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
 from engine.workforce import (forecast as wf_forecast, global_map,
@@ -131,6 +132,16 @@ class Handler(BaseHTTPRequestHandler):
                                     "scan_levels": SCAN_LEVEL_OPTIONS})
         if parsed.path == "/v1/markets":
             return self._send(200, market_catalog())
+        if parsed.path == "/v1/segments":
+            return self._send(200, segment_catalog())
+        if parsed.path == "/v1/segments/map":
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, segment_map(
+                    q.get("segment_id", [""])[0],
+                    market=q.get("market", ["se"])[0], resolver=RESOLVER))
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/workforce/occupations":
             return self._send(200, occupation_catalog())
         if parsed.path == "/v1/workforce/map":
@@ -202,6 +213,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/ask":
                 return self._send(200, ask(str(req.get("question", "")),
                                            resolver=RESOLVER))
+            if self.path == "/v1/segments/analyze":
+                return self._send(200, segment_analysis(
+                    req["kommun_kod"], market=req.get("market", "se"),
+                    resolver=RESOLVER))
             if self.path == "/v1/gaps":
                 return self._send(200, gap_analysis(
                     req["vertical"], market=req.get("market", "se"),

@@ -38,6 +38,8 @@ FRAGOR = [
     "Hur riskabelt är det att starta gym i Solna?",
     "Var finns störst obalans för bilverkstäder?",
     "Gör en etableringsplan för bilverkstad i Skellefteå.",
+    "Var i Sverige finns flest djurägare?",
+    "Hur ser målgrupperna ut i Umeå?",
 ]
 # Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
 # data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
