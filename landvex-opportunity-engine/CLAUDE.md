@@ -226,6 +226,19 @@ OIDC.
   historical / live requires subscription") med uppgraderings-
   hänvisning till `GET /v1/plans`. `GET /v1/entitlements` visar
   nyckelns paket. Frontend har Paket-flik.
+- **Guidat gränssnitt + inställningar (v0.17):** Guiden är ny
+  standardflik – fyra steg-för-steg-flöden (starta verksamhet /
+  kompetensförsörjning / djupanalysera lägen / hitta obalanser) som
+  frågar användaren fram valen (med ⓘ-förklaring per steg) och sedan
+  kör motorerna själv: svep + auto-öppnad etableringsplan och
+  riskprofil för toppkandidaten, bristkarta + prognos + simulering,
+  respektive gap-analys med obalanskort. Ny ⚙ Inställningar-flik:
+  standardmarknad/målår/top-N/API-nyckel sparas i localStorage
+  (`landvex_settings`), prefylls vid start, styr guidens förval och
+  skickas som `X-API-Key` på alla anrop mot skyddat live-API. "Om
+  systemet" visar motorversion, källstatus och endpointantal från
+  `/health` + `/v1/catalog`. Demon bakar även gap-analyser, health
+  och katalog; låsta fält (platser=30, top-N=5) märks med titel.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

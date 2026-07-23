@@ -13,8 +13,13 @@ import json
 import pathlib
 import sys
 
+from api.catalog import API_CATALOG
+from api.health import build_health
 from api.licensing import plans_catalog
 from engine.ask import ask
+from engine.datasources.base import Resolver
+from engine.datasources.mock import MockSource
+from engine.gaps import gap_analysis
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
@@ -70,11 +75,19 @@ def build(out_path: str) -> None:
         "markets": [m for m in market_catalog() if m["id"] in DEMO_MARKETS],
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
-        "risk": {}, "plans": {},
+        "risk": {}, "plans": {}, "gaps": {},
         "index_catalog": index_catalog(),
         "index_maps": {}, "assessments": {},
-        "plans": plans_catalog(),
+        "plans_catalog": plans_catalog(),
+        # Om systemet: demon kör enbart på förberäknad/simulerad data,
+        # därför visas mock-kedjan – inte produktionens källstatus.
+        "health": build_health(Resolver([MockSource()]), None),
+        "catalog": API_CATALOG,
     }
+    for market in DEMO_MARKETS:
+        for vid in VERTICALS:
+            demo["gaps"][f"{market}:{vid}"] = gap_analysis(
+                vid, market=market, top_n=5)
     for market in DEMO_MARKETS:
         for ix in index_catalog():
             demo["index_maps"][f"{market}:{ix['id']}"] = index_map(
@@ -112,10 +125,14 @@ def build(out_path: str) -> None:
     html = (pathlib.Path(__file__).resolve().parent.parent /
             "frontend" / "index.html").read_text(encoding="utf-8")
     old_api = '''async function api(path, body) {
+  // API-nyckeln från Inställningar följer med varje anrop (skyddat live-API).
+  const huvud = {};
+  if (INSTALL.nyckel) huvud["X-API-Key"] = INSTALL.nyckel;
   const res = await fetch(path, body
-    ? { method: "POST", headers: { "Content-Type": "application/json" },
+    ? { method: "POST",
+        headers: { "Content-Type": "application/json", ...huvud },
         body: JSON.stringify(body) }
-    : undefined);
+    : { headers: huvud });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || data.error || res.status);
   return data;
@@ -158,7 +175,14 @@ async function api(path, body) {
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
-  if (path === "/v1/plans") return D.plans;
+  if (path === "/v1/plans") return D.plans_catalog;
+  if (path === "/health") return D.health;
+  if (path === "/v1/catalog") return D.catalog;
+  if (path === "/v1/gaps") {
+    const r = D.gaps[`${body.market || "se"}:${body.vertical}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
   if (path === "/v1/indices") return D.index_catalog;
   if (path.startsWith("/v1/indices/map")) {
     const r = D.index_maps[`${qp(path, "market") || "se"}:${qp(path, "index_id")}`];
@@ -193,6 +217,22 @@ async function api(path, body) {
         '<input type="number" min="0" value="30" id="simN_${kod}">',
         '<input type="number" value="30" id="simN_${kod}" readonly '
         'title="Demon simulerar 30 platser/år – live-läget tar valfritt antal">')
+    # Guidens platser-fråga är låst till det bakade värdet 30.
+    assert 'data-guide="platser" min="0"' in html, \
+        "guidens platser-fält hittades inte i frontend/index.html"
+    html = html.replace(
+        '<input type="number" id="guideInput" data-guide="platser" min="0" ` +\n'
+        '      `value="${nuv ? JSON.parse(nuv) : falt.standard}">',
+        '<input type="number" id="guideInput" data-guide="platser" readonly '
+        'title="Demon simulerar 30 platser/år – live-läget tar valfritt antal" ` +\n'
+        '      `value="30">')
+    # Topplistorna är bakade med fem träffar – andra top-N erbjuds inte.
+    assert '<select id="instTopN">' in html, \
+        "instTopN hittades inte i frontend/index.html"
+    html = html.replace(
+        '<select id="instTopN"><option>3</option><option selected>5</option>'
+        '<option>8</option><option>10</option></select>',
+        '<select id="instTopN"><option selected>5</option></select>')
     html = html.replace("<title>LANDVEX · Opportunity Engine</title>",
                         "<title>LANDVEX · Opportunity Engine (demo)</title>")
     html = html.replace("</header>", """</header>
@@ -208,7 +248,8 @@ async function api(path, body) {
     out.write_text(html, encoding="utf-8")
     print(f"demo: {out} ({round(out.stat().st_size / 1024)} kB) · "
           f"{len(demo['ask'])} frågor · {len(demo['scans'])} svep · "
-          f"{len(demo['wf_maps'])} kartor · {len(demo['forecasts'])} prognoser")
+          f"{len(demo['wf_maps'])} kartor · {len(demo['forecasts'])} prognoser · "
+          f"{len(demo['gaps'])} gap-analyser")
 
 
 if __name__ == "__main__":
