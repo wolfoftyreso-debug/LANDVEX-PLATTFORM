@@ -47,6 +47,7 @@ from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
+from engine.report import decision_report
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
@@ -58,7 +59,8 @@ from engine.workforce import (forecast as wf_forecast, global_map,
 from api.health import build_health, source_status
 from api.licensing import plans_catalog, upgrade_hint_en
 from api.security import AuthError, Gate
-from integrations.aamos import (AamosClient, agent_chat_safe,
+from integrations.aamos import (AamosClient, AamosUnavailable,
+                                agent_chat_safe,
                                 agents as aamos_agents,
                                 cognition_brief_safe,
                                 platform_status, watch)
@@ -294,8 +296,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
             if self.path == "/v1/ask":
-                return self._send(200, ask(str(req.get("question", "")),
-                                           resolver=RESOLVER))
+                svar = ask(str(req.get("question", "")), resolver=RESOLVER)
+                if AAMOS.connected:
+                    # Berikning i API-lagret – aldrig i kärnan, aldrig
+                    # blockerande: kognitiv not utöver motorsvaret.
+                    try:
+                        svar["aamos_cognition"] = AAMOS.cognition_analysis(
+                            str(req.get("question", "")))
+                    except AamosUnavailable:
+                        pass
+                return self._send(200, svar)
             if self.path == "/v1/indices/assess":
                 res = city_assessment(req["kommun_kod"],
                                       market=req.get("market", DEFAULT_MARKET),
@@ -319,6 +329,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, segment_analysis(
                     req["kommun_kod"], market=req.get("market", DEFAULT_MARKET),
                     resolver=RESOLVER))
+            if self.path == "/v1/report":
+                rep = decision_report(
+                    req["kommun_kod"], req["vertical"],
+                    market=req.get("market", DEFAULT_MARKET),
+                    resolver=RESOLVER)
+                p = getattr(self, "_principal", None)
+                if (p is not None
+                        and "demand_intelligence" not in p.capabilities):
+                    rep["service"] = {
+                        "status": "locked",
+                        "notis_en": upgrade_hint_en("demand_intelligence")}
+                return self._send(200, rep)
             if self.path == "/v1/gaps":
                 return self._send(200, gap_analysis(
                     req["vertical"], market=req.get("market", DEFAULT_MARKET),

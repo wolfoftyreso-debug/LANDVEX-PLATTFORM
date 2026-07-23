@@ -13,7 +13,8 @@ from engine.workforce import forecast, global_map
 def test_markets_are_valid_data():
     # USA-först: USA är största marknaden med 60 metroregioner.
     assert {"se", "de", "us", "es", "pl", "fr", "it", "nl", "be", "at",
-            "pt", "dk", "fi", "no", "ie", "cz"} == set(MARKETS)
+            "pt", "dk", "fi", "no", "ie", "cz",
+            "ca", "mx", "co", "ma", "ng", "sn"} == set(MARKETS)
     assert len(MARKETS["us"].regions) == 60
     assert len(MARKETS["us"].regions) == max(
         len(m.regions) for m in MARKETS.values())   # USA störst

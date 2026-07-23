@@ -37,6 +37,8 @@ DEFAULT_MARKET = "us"
 # Schablonkurser SEK -> lokal valuta (dokumenterad heuristik för
 # beloppskonvertering i planer – lokala kostnadslägen ej kalibrerade).
 FX_PER_SEK = {"SEK": 1.0, "USD": 0.095, "EUR": 0.088, "PLN": 0.38,
+              "CAD": 0.13, "MXN": 1.8, "COP": 400.0, "MAD": 0.95,
+              "NGN": 150.0, "XOF": 55.0,
               "DKK": 0.66, "NOK": 1.0, "CZK": 2.2}
 
 
@@ -112,6 +114,67 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
     Market("se", "Sweden", "SEK", "municipality",
            (55.0, 69.5, 10.5, 24.5), tuple(KOMMUNER), calibrated=True),
 
+
+
+    Market("ca", "Canada", "CAD", "metro region",
+           (42.0, 54.0, -128.0, -60.0), _r(
+        ("ca-toronto", "Toronto", 43.65, -79.38),
+        ("ca-montreal", "Montreal", 45.50, -73.57),
+        ("ca-vancouver", "Vancouver", 49.28, -123.12),
+        ("ca-calgary", "Calgary", 51.05, -114.07),
+        ("ca-edmonton", "Edmonton", 53.55, -113.49),
+        ("ca-ottawa", "Ottawa", 45.42, -75.70),
+        ("ca-winnipeg", "Winnipeg", 49.90, -97.14),
+        ("ca-quebec", "Quebec City", 46.81, -71.21),
+        ("ca-hamilton", "Hamilton", 43.26, -79.87),
+        ("ca-halifax", "Halifax", 44.65, -63.58))),
+
+    Market("mx", "Mexico", "MXN", "metro region",
+           (14.5, 32.7, -117.5, -86.5), _r(
+        ("mx-mexicocity", "Mexico City", 19.43, -99.13),
+        ("mx-guadalajara", "Guadalajara", 20.66, -103.35),
+        ("mx-monterrey", "Monterrey", 25.69, -100.32),
+        ("mx-puebla", "Puebla", 19.04, -98.20),
+        ("mx-tijuana", "Tijuana", 32.51, -117.04),
+        ("mx-leon", "León", 21.12, -101.68),
+        ("mx-queretaro", "Querétaro", 20.59, -100.39),
+        ("mx-merida", "Mérida", 20.97, -89.62),
+        ("mx-cancun", "Cancún", 21.16, -86.85),
+        ("mx-chihuahua", "Chihuahua", 28.63, -106.09))),
+
+    Market("co", "Colombia", "COP", "metro region",
+           (0.5, 12.5, -78.5, -70.0), _r(
+        ("co-bogota", "Bogotá", 4.71, -74.07),
+        ("co-medellin", "Medellín", 6.24, -75.58),
+        ("co-cali", "Cali", 3.44, -76.52),
+        ("co-barranquilla", "Barranquilla", 10.97, -74.80),
+        ("co-cartagena", "Cartagena", 10.39, -75.51),
+        ("co-bucaramanga", "Bucaramanga", 7.12, -73.12))),
+
+    Market("ma", "Morocco", "MAD", "metro region",
+           (27.5, 36.0, -13.5, -1.0), _r(
+        ("ma-casablanca", "Casablanca", 33.57, -7.59),
+        ("ma-rabat", "Rabat", 34.02, -6.84),
+        ("ma-marrakesh", "Marrakesh", 31.63, -8.01),
+        ("ma-fes", "Fès", 34.03, -5.00),
+        ("ma-tangier", "Tangier", 35.76, -5.83),
+        ("ma-agadir", "Agadir", 30.42, -9.60))),
+
+    Market("ng", "Nigeria", "NGN", "metro region",
+           (4.0, 14.0, 2.5, 15.0), _r(
+        ("ng-lagos", "Lagos", 6.52, 3.38),
+        ("ng-abuja", "Abuja", 9.06, 7.50),
+        ("ng-kano", "Kano", 12.00, 8.52),
+        ("ng-ibadan", "Ibadan", 7.38, 3.95),
+        ("ng-portharcourt", "Port Harcourt", 4.82, 7.03),
+        ("ng-benincity", "Benin City", 6.34, 5.63))),
+
+    Market("sn", "Senegal", "XOF", "metro region",
+           (12.0, 17.0, -17.8, -11.0), _r(
+        ("sn-dakar", "Dakar", 14.72, -17.47),
+        ("sn-thies", "Thiès", 14.79, -16.93),
+        ("sn-touba", "Touba", 14.85, -15.88),
+        ("sn-saintlouis", "Saint-Louis", 16.03, -16.49))),
 
     Market("de", "Germany", "EUR", "metro region",
            (47.0, 55.2, 5.5, 15.5), _r(
@@ -295,14 +358,20 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
 ]}
 
 # Marknadsgrupper för flerlandsfrågor ("Var i Europa ...?").
-EU_MARKETS = tuple(m for m in MARKETS if m != "us")
+EU_MARKETS = tuple(m for m in MARKETS if m not in
+                   ("us", "ca", "mx", "co", "ma", "ng", "sn"))
 MARKET_GROUPS: dict[str, tuple[str, ...]] = {
     "eu": EU_MARKETS,
+    "amerika": ("us", "ca", "mx", "co"),
+    "afrika": ("ma", "ng", "sn"),
     "varlden": tuple(MARKETS),
 }
 GROUP_BBOX = {"eu": (35.5, 71.0, -11.0, 32.0),
-              "varlden": (23.0, 71.0, -126.0, 32.0)}
-GROUP_LABEL_SV = {"eu": "Europe", "varlden": "the world"}
+              "amerika": (0.5, 54.0, -128.0, -60.0),
+              "afrika": (4.0, 36.0, -17.8, 15.0),
+              "varlden": (0.5, 71.0, -128.0, 32.0)}
+GROUP_LABEL_SV = {"eu": "Europe", "amerika": "the Americas",
+                  "afrika": "Africa", "varlden": "the world"}
 
 
 def get_market(market_id: str) -> Market:

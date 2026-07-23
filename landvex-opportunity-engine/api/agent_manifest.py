@@ -56,6 +56,15 @@ AGENT_MANIFEST: dict = {
               {"profile": {"type": "object"}, "market": {"type": "string"},
                "top_n": {"type": "integer"}, "level": {"type": "string"}},
               ["profile"]),
+        _tool("decision_report",
+              "Full decision report for one region and vertical: "
+              "opportunity analysis, risk, establishment plan, segments, "
+              "service demand and all city indices in one response.",
+              "POST", "/v1/report",
+              {"kommun_kod": {"type": "string"},
+               "vertical": {"type": "string"},
+               "market": {"type": "string"}},
+              ["kommun_kod", "vertical"]),
         _tool("workforce_forecast",
               "Skills forecast per region with intervals and milestones.",
               "POST", "/v1/workforce/forecast",

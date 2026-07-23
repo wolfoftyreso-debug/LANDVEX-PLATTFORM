@@ -37,6 +37,7 @@ API_CATALOG: dict = {
                            "sweeps with decision cards.",
          "endpoints": [{"method": "POST", "path": "/v1/analyze"},
                        {"method": "POST", "path": "/v1/scan"},
+                       {"method": "POST", "path": "/v1/report"},
                        {"method": "GET", "path": "/v1/profile-options"},
                        {"method": "POST", "path": "/v1/profiles"},
                        {"method": "GET", "path": "/v1/profiles"}]},

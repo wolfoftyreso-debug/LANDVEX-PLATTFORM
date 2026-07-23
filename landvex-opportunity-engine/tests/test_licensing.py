@@ -99,6 +99,26 @@ def test_upgrade_hint_mentions_unlocking_products():
     assert "Growth" in hint and "Workforce" in hint
 
 
+def test_monthly_quota_per_plan():
+    """Free 100/mån, Growth 10 000/mån, Enterprise obegränsad."""
+    from api.licensing import PLANS
+    from api.security import MonthlyQuota
+    assert PLANS["free"]["quota_per_month"] == 100
+    assert PLANS["pro"]["quota_per_month"] == 10000
+    assert PLANS["enterprise"]["quota_per_month"] is None
+    q = MonthlyQuota(clock=lambda: 1_750_000_000.0)
+    for _ in range(100):
+        q.check("acme", 100)
+    try:
+        q.check("acme", 100)
+    except AuthError as e:
+        assert e.status == 429 and "plans" in e.message_en
+    else:
+        raise AssertionError("Kvottaket slog inte till")
+    q.check("annan-tenant", 100)         # per tenant, inte globalt
+    q.check("acme", None)                # enterprise: obegränsat
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

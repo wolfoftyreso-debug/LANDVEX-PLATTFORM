@@ -43,6 +43,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
+    "/v1/report": "opportunity",
     "/v1/platform/status": "core",
     "/v1/watch": "platform_ops",
     "/v1/agents": "partner_api",
@@ -79,6 +80,7 @@ PLANS: dict[str, dict] = _PlanMap({
                           "Historical base – live requires a subscription.",
         "pris_manad": {"USD": 0, "EUR": 0},
         "rate_limit_per_min": 60,
+        "quota_per_month": 100,
         "capabilities": ("core", "intelligence_map_free"),
         "ingar_en": ["Ask Landvex (/v1/ask)",
                      "Free Intelligence Map layers (historical)",
@@ -90,6 +92,7 @@ PLANS: dict[str, dict] = _PlanMap({
                           "one organization.",
         "pris_manad": {"USD": 499, "EUR": 459},
         "rate_limit_per_min": 600,
+        "quota_per_month": 10000,
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live"),
@@ -108,6 +111,7 @@ PLANS: dict[str, dict] = _PlanMap({
                           "audit visibility, tenant isolation and SLA.",
         "pris_manad": None,          # offert
         "rate_limit_per_min": 3000,
+        "quota_per_month": None,   # obegränsat
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "partner_api",

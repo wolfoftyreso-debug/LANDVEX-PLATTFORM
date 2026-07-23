@@ -40,6 +40,7 @@ from engine.indices import city_assessment, index_catalog, index_map
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
+from engine.report import decision_report
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
@@ -430,6 +431,23 @@ def agents_chat_ep(body: AgentChatIn):
 
 class BriefIn(BaseModel):
     topic: str
+
+
+class ReportIn(BaseModel):
+    kommun_kod: str
+    vertical: str
+    market: str = DEFAULT_MARKET
+
+
+@app.post("/v1/report")
+def report_ep(body: ReportIn, request: Request):
+    rep = decision_report(body.kommun_kod, body.vertical,
+                          market=body.market, resolver=RESOLVER)
+    p = getattr(request.state, "principal", None)
+    if p is not None and "demand_intelligence" not in p.capabilities:
+        rep["service"] = {"status": "locked",
+                          "notis_en": upgrade_hint_en("demand_intelligence")}
+    return rep
 
 
 @app.post("/v1/cognition/brief")

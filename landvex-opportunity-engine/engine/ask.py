@@ -141,6 +141,12 @@ _MARKET_SYNONYMS: dict[str, str] = {
     "norway": "no", "norwegian": "no",
     "ireland": "ie", "irish": "ie",
     "czechia": "cz", "czech republic": "cz", "czech": "cz",
+    "canada": "ca", "canadian": "ca",
+    "mexico": "mx", "mexican": "mx",
+    "colombia": "co", "colombian": "co",
+    "morocco": "ma", "moroccan": "ma",
+    "nigeria": "ng", "nigerian": "ng",
+    "senegal": "sn", "senegalese": "sn",
     # Swedish (kept as synonyms)
     "sverige": "se", "svensk": "se",
     "tyskland": "de", "tysk": "de",
@@ -167,6 +173,9 @@ _GROUP_SYNONYMS: dict[str, str] = {
     "europa": "eu", "europeisk": "eu",
     "världen": "varlden", "globalt": "varlden",
     "internationellt": "varlden",
+    "americas": "amerika", "north america": "amerika",
+    "latin america": "amerika",
+    "africa": "afrika", "african": "afrika", "west africa": "afrika",
 }
 
 _OCCUPATION_SYNONYMS: dict[str, str] = {

@@ -370,6 +370,30 @@ class AuditLog:
         return out
 
 
+
+class MonthlyQuota:
+    """Månadskvot per tenant och plan (Bernts pristabell: Free 100,
+    Growth 10 000, Enterprise obegränsat). In-memory per process –
+    nollställs vid omstart; persistent metering är en dokumenterad
+    uppföljning. Klockan är injicerbar för deterministiska tester."""
+
+    def __init__(self, clock=None):
+        self._clock = clock or time.time
+        self._used: dict[tuple[str, str], int] = {}
+
+    def check(self, tenant: str, quota: int | None) -> None:
+        if quota is None:
+            return
+        month = time.strftime("%Y-%m", time.gmtime(self._clock()))
+        key = (tenant, month)
+        n = self._used.get(key, 0)
+        if n >= quota:
+            raise AuthError(429, f"Monthly quota reached ({quota} calls/"
+                                 f"month on this plan) – resets next "
+                                 f"month, or upgrade (see /v1/plans).")
+        self._used[key] = n + 1
+
+
 class Gate:
     """Samlad ingång: auth → rate limit → audit + metrics."""
 
@@ -381,12 +405,15 @@ class Gate:
         self.limiter = limiter or RateLimiter()
         self.metrics = metrics or Metrics()
         self.audit = audit or AuditLog()
+        self.quota = MonthlyQuota()
 
     def enter(self, api_key: str | None, method: str, path: str) -> tuple[Principal, str]:
         principal = self.auth.authorize(api_key, method, path)
         plan_limit = licensing.PLANS.get(principal.plan, {}).get(
             "rate_limit_per_min")
         self.limiter.check(principal.key_id, plan_limit)
+        self.quota.check(principal.tenant, licensing.PLANS.get(
+            principal.plan, {}).get("quota_per_month"))
         return principal, uuid.uuid4().hex[:12]
 
     def exit(self, principal: Principal | None, request_id: str,

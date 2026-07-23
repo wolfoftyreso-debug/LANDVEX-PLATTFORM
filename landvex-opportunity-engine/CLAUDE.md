@@ -303,6 +303,24 @@ OIDC.
   (plattformsstatus, källor, alerts, agent-chat) + obligatorisk dark
   mode (prefers-color-scheme, iOS-mörk palett) + fjäderfysik-
   transitions. 16:e testsviten tests/test_aamos.py; CI uppdaterad.
+- **Relevanta funktioner in fullt ut (v0.23):** (1) Geografierna
+  från landvex.com-kartan: Kanada, Mexiko, Colombia, Marocko,
+  Nigeria, Senegal – 22 marknader/280 regioner, nya grupper
+  "amerika" och "afrika" i MARKET_GROUPS, FX-schabloner för
+  CAD/MXN/COP/MAD/NGN/XOF, engelska synonymer i Ask ("Where in
+  Africa...", "gym in Canada"). (2) `POST /v1/report`
+  (engine/report.py): komplett beslutsunderlag i ETT svar –
+  opportunity-analys + risk + etableringsplan + målgrupper +
+  servicebehov + stadens alla index, deterministisk komposition med
+  caveat-union; kapabilitet opportunity, service-blocket låses
+  ärligt utan demand_intelligence; 13:e agentverktyget
+  decision_report. (3) Månadskvoter enligt Bernts pristabell
+  (Free 100/mån, Growth 10 000/mån, Enterprise obegränsat) –
+  MonthlyQuota per tenant i Gate, 429 + uppgraderingshänvisning;
+  in-memory per process (persistent metering = uppföljning).
+  (4) Ask-svar berikas med AAMOS cognition-not när AAMOS_CORE_URL
+  är satt (API-lagret, aldrig kärnan, aldrig blockerande).
+  Vision/Reality/RALE medvetet utelämnade tills scheman finns.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
