@@ -8,14 +8,24 @@ För en beroendefri utvecklingsserver, se api/dev_server.py.
 """
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from engine.datasources.adapters import production_sources
+from engine.datasources.base import Resolver
+from engine.datasources.mock import MockSource
 from engine.models import Location
 from engine.scoring import analyze
 from engine.verticals import VERTICALS
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.1.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.2.0")
+
+# Verkliga källor först, mock som fallback per signal.
+# LANDVEX_LIVE=0 stänger av live-källor (demo/offline/test).
+_LIVE = os.environ.get("LANDVEX_LIVE", "1") != "0"
+RESOLVER = Resolver((production_sources() if _LIVE else []) + [MockSource()])
 
 
 class AnalyzeRequest(BaseModel):
@@ -46,4 +56,4 @@ def analyze_location(req: AnalyzeRequest):
                             detail=f"Okänd vertikal: {req.vertical}")
     loc = Location(lat=req.lat, lon=req.lon, address=req.address,
                    radius_minutes=req.radius_minutes)
-    return analyze(loc, req.vertical).to_dict()
+    return analyze(loc, req.vertical, resolver=RESOLVER).to_dict()

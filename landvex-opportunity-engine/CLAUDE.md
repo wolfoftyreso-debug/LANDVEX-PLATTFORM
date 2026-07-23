@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.1 — klar, testad, körbar
+## Nuläge: v0.2 — SCB-adapter implementerad
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -25,16 +25,29 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 - Datakällslager med Resolver-kedja: verklig källa vinner per signal,
   MockSource (deterministisk, platsseedad) som fallback.
 - API: `api/main.py` (FastAPI, produktion) och `api/dev_server.py`
-  (stdlib, noll beroenden).
-- **All data är ännu mockad.** Varje rapport redovisar `data_coverage`
-  och bär caveats tills riktiga källor kopplats in.
+  (stdlib, noll beroenden). Båda kör källkedjan verkliga adaptrar →
+  mock; `LANDVEX_LIVE=0` stänger av live-källor.
+- **SCB-adapter (v0.2):** `ScbSource` i `engine/datasources/adapters.py`
+  + PxWeb-klient i `engine/datasources/scb.py` (stdlib, injicerbar
+  transport, metadatadriven frågebyggnad, cache, felpaus med
+  mock-fallback). Levererar `pop_growth_pct`, `income_index`,
+  `age_20_45_share`, `share_65plus`, `residential_density` på
+  KOMMUNNIVÅ (lat/lon → kommun via närmaste-centroid-lokalisering).
+  **Tabellsökvägarna ska live-verifieras** mot api.scb.se med
+  `python3 -m engine.datasources.scb <lat> <lon>` — utvecklingsmiljöns
+  nätverkspolicy tillät inte SCB-anrop vid implementationen; tester
+  körs mot fixturer i PxWeb-format.
+- Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
+  och bär caveats tills fler källor kopplats in.
 
 ## Kommandon
 
 ```bash
-python3 -m tests.test_scoring      # testsvit (8 tester, utan pytest)
+python3 -m tests.test_scoring      # motortester (8 st, utan pytest)
+python3 -m tests.test_scb          # SCB-adaptertester (10 st, utan nätverk)
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
+python3 -m engine.datasources.scb 59.31 18.07   # live-prob mot SCB (kräver nät)
 pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 ```
 
@@ -56,9 +69,11 @@ pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 
 ## Produktionsbacklog (prioriterad)
 
-1. **SCB-adapter** — öppna API:er (befolkning, inkomst, ålder, hushåll
-   på DeSO/rutnät). Implementera `ScbSource.fetch()` i
-   `engine/datasources/adapters.py`. Gratis, ingen licens → börja här.
+1. ~~**SCB-adapter**~~ — KLAR (v0.2) på kommunnivå. Återstår:
+   (a) live-verifiera tabellsökvägar med proben när nätverk finns,
+   (b) DeSO/rutnätsnivå + `pop_radius`/`families_share` när geodata
+   (PostGIS) finns, (c) ersätta närmaste-centroid-lokalisering med
+   riktiga kommunpolygoner.
 2. **Persistens** — Aurora PostgreSQL + PostGIS: platser, rapporter,
    signalcache med TTL per källa.
 3. **Isokroner** — AWS Location Service (Routes) för verklig
@@ -90,9 +105,10 @@ engine/            kärnmotor (stdlib-only)
   verticals.py     branschprofiler (vikter) + RISK_SIGNALS
   scoring.py       analyze() – huvudingången
   explain.py       narrativ + pattern_insights()
-  datasources/     base.py (Resolver), mock.py, adapters.py (stubbar)
+  datasources/     base.py (Resolver), mock.py, adapters.py,
+                   scb.py (PxWeb-klient + kommunlokalisering)
 api/               main.py (FastAPI) + dev_server.py (stdlib)
-tests/             test_scoring.py (körbar som modul)
+tests/             test_scoring.py + test_scb.py (körbara som moduler)
 infra/             aws-notes.md (deploymentblueprint)
 ARCHITECTURE.md    designbeslut, dataflöde, roadmap
 ```

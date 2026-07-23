@@ -12,11 +12,19 @@ Endast för lokal utveckling/demo – i AWS körs api/main.py (FastAPI).
 from __future__ import annotations
 
 import json
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from engine.datasources.adapters import production_sources
+from engine.datasources.base import Resolver
+from engine.datasources.mock import MockSource
 from engine.models import Location
 from engine.scoring import analyze
 from engine.verticals import VERTICALS
+
+# Samma källkedja som produktions-API:t; LANDVEX_LIVE=0 → endast mock.
+_LIVE = os.environ.get("LANDVEX_LIVE", "1") != "0"
+RESOLVER = Resolver((production_sources() if _LIVE else []) + [MockSource()])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -45,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
             loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
                            address=req.get("address", ""),
                            radius_minutes=int(req.get("radius_minutes", 10)))
-            report = analyze(loc, req["vertical"])
+            report = analyze(loc, req["vertical"], resolver=RESOLVER)
             self._send(200, report.to_dict())
         except (KeyError, ValueError, json.JSONDecodeError) as e:
             self._send(422, {"error": str(e)})
