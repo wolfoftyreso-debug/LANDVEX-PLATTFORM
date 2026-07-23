@@ -1,0 +1,31 @@
+# LANDVEX Opportunity Engine — systemd unit (REXO: systemd only, no pm2).
+# Föreslagen port: 8087 (8081 = legacy landvex-api, 8083/8084/8086 upptagna).
+# Installeras: cp infra/landvex-opportunity.service /etc/systemd/system/
+#              systemctl daemon-reload && systemctl enable --now landvex-opportunity
+[Unit]
+Description=Landvex Opportunity Engine (Decision Intelligence API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bernt
+WorkingDirectory=/opt/landvex/opportunity-engine
+# Beroendefri stdlib-server. Byt till uvicorn api.main:app för FastAPI-läget.
+ExecStart=/usr/bin/python3 -m api.dev_server
+Environment=LANDVEX_PORT=8087
+EnvironmentFile=-/etc/landvex/opportunity.env
+# /etc/landvex/opportunity.env sätter:
+#   LANDVEX_API_KEYS=nyckel:tenant:roll:plan[,...]
+#   LANDVEX_PG_DSN=postgresql://...@127.0.0.1:6432/...   (pgbouncer)
+#   LANDVEX_DB=off                    (SQLite av när Postgres används)
+#   LANDVEX_QUIXZOOM_URL=http://127.0.0.1:3209
+#   LANDVEX_AUDIT_LOG=/var/log/landvex/audit.jsonl
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -362,7 +362,8 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def main(port: int = 8000) -> None:
+def main(port: int | None = None) -> None:
+    port = port or int(os.environ.get("LANDVEX_PORT", "8000"))
     print(f"Opportunity Engine dev server: http://localhost:{port}")
     HTTPServer(("0.0.0.0", port), Handler).serve_forever()
 

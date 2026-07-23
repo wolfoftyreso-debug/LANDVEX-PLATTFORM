@@ -1,7 +1,7 @@
 """Index Engine – Intelligence Map-lagren.
 
-Speglar Landvex-plattformens kartprodukt: fem index per stad/region
-(Infrastructure Risk, Commercial Activity, Safety, Climate Risk,
+Speglar Landvex-plattformens kartprodukt: sex index per stad/region
+(Infrastructure Risk, Commercial Vitality, Safety, Climate Risk,
 Urban Growth) plus Kontradiktionsindexet – allt "sourced & traceable":
 varje indexvärde bär sin signalnedbrytning med källa per rad.
 
@@ -51,7 +51,7 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "risk", "free",
              (("infra_invest", 0.4), ("transit_score", 0.3),
               ("development_m2", 0.3))),
-    IndexDef("commercial_activity", "Commercial Activity",
+    IndexDef("commercial_activity", "Commercial Vitality",
              "The pulse of the business community: business density, "
              "flows and office workplaces.",
              "styrka", "free",
@@ -71,6 +71,13 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "styrka", "live",
              (("pop_growth_pct", 0.4), ("building_permits", 0.3),
               ("development_m2", 0.3))),
+    IndexDef("city_health", "City Health",
+             "Composite city health: safety, transit access, public "
+             "investment, growth and commercial base.",
+             "styrka", "free",
+             (("crime_index", 0.25), ("transit_score", 0.25),
+              ("infra_invest", 0.2), ("pop_growth_pct", 0.15),
+              ("business_density", 0.15))),
 ]}
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.

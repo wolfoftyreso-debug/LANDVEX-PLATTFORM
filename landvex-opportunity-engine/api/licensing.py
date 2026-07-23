@@ -48,7 +48,7 @@ PLANS: dict[str, dict] = {
         "label_en": "Landvex Free",
         "beskrivning_en": "Ask the platform and view the free map layers. "
                           "Historical base – live requires a subscription.",
-        "pris_manad": {"SEK": 0, "EUR": 0, "USD": 0},
+        "pris_manad": {"USD": 0, "EUR": 0},
         "rate_limit_per_min": 60,
         "capabilities": ("core", "intelligence_map_free"),
         "ingar_en": ["Ask Landvex (/v1/ask)",
@@ -59,7 +59,7 @@ PLANS: dict[str, dict] = {
         "label_en": "Landvex Pro",
         "beskrivning_en": "All decision engines and live map layers for "
                           "one organization.",
-        "pris_manad": {"SEK": 4900, "EUR": 450, "USD": 490},
+        "pris_manad": {"USD": 499, "EUR": 459},
         "rate_limit_per_min": 600,
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
@@ -92,23 +92,23 @@ PLANS: dict[str, dict] = {
 # Produktmoduler som tillägg (t.ex. Free + enbart Workforce).
 ADDONS: dict[str, dict] = {
     "opportunity": {"label_en": "Opportunity Engine",
-                    "pris_manad": {"SEK": 1490, "EUR": 135, "USD": 149},
+                    "pris_manad": {"USD": 149, "EUR": 139},
                     "capabilities": ("opportunity",)},
     "workforce": {"label_en": "Workforce Intelligence",
-                  "pris_manad": {"SEK": 1990, "EUR": 180, "USD": 199},
+                  "pris_manad": {"USD": 199, "EUR": 185},
                   "capabilities": ("workforce",)},
     "demand_intelligence": {"label_en": "Demand Intelligence",
-                            "pris_manad": {"SEK": 1990, "EUR": 180, "USD": 199},
+                            "pris_manad": {"USD": 199, "EUR": 185},
                             "capabilities": ("demand_intelligence",)},
     "intelligence_map": {"label_en": "Intelligence Map Live",
-                         "pris_manad": {"SEK": 1490, "EUR": 135, "USD": 149},
+                         "pris_manad": {"USD": 149, "EUR": 139},
                          "capabilities": ("intelligence_map_live",)},
     "partner_api": {"label_en": "Partner API & Agents",
-                    "pris_manad": {"SEK": 4900, "EUR": 450, "USD": 490},
+                    "pris_manad": {"USD": 499, "EUR": 459},
                     "capabilities": ("partner_api",)},
 }
 
-PRISNOT_EN = ("List prices (examples) per month excl. VAT – "
+PRISNOT_EN = ("List prices (examples) in USD per month excl. taxes – "
               "configured per contract, market and volume.")
 
 

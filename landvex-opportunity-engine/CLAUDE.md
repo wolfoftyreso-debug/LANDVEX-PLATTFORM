@@ -271,6 +271,22 @@ OIDC.
   plansvaret. Demon bakas USA+Sverige med US-first-frågor. Sverige
   är fortsatt enda marknaden med verklig datakälla (SCB) – allt
   annat är märkt simulerat.
+- **Rekonsiliering mot sanningskällorna (v0.21):** Åtgärder från
+  Bernts rekonsilieringsrapport (landvex.com/aamos.ai/server/REXO):
+  (1) Prissättning USD-först utan SEK någonstans (låst regel) – Pro
+  $499/mo, tillägg $149–$499; (2) frontenden omgjord till REXO:s
+  Apple iPhone Native-tema (iOS 18: #007AFF, #F2F2F7, SF Pro, 13px
+  squircle, Liquid Glass-blur; bannade färger verifierat noll);
+  (3) "Commercial Vitality" (fd Commercial Activity) + nytt "City
+  Health"-index (7 index totalt); (4) tagline "Decision Intelligence
+  for the Physical World" + RIOS-familj i /v1/catalog; (5) quiXzoom-
+  adaptern är nu en riktig HTTP-klient mot /v1/observations
+  (LANDVEX_QUIXZOOM_URL, felpaus, ärlig /health-status, fixturtest);
+  (6) deployment-underlag i infra/: systemd-unit (:8087, ej pm2),
+  nginx-mount för api.landvex.io/v1/, REXO-task/manual/artifact-
+  utkast; LANDVEX_PORT stöds. Öppna beslut (Erik/Johan) listade i
+  docs/BUILD-STATE-PROMPT.md §2b: domän/port, quiXzoom-väg,
+  AAMOS-produktregistrering, plannamn, JWT-auth.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

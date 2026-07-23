@@ -25,6 +25,11 @@ def source_status(resolver) -> list[dict[str, Any]]:
             out.append({"source": name, "status": "ej_ansluten",
                         "notis_en": "Adapter stub – awaiting data source."})
             continue
+        if name == "quixzoom" and not getattr(inner, "base_url", ""):
+            out.append({"source": name, "status": "ej_ansluten",
+                        "notis_en": "Client ready – set LANDVEX_QUIXZOOM_URL "
+                                    "to connect the observation network."})
+            continue
         down_until = getattr(inner, "_down_until", 0.0)
         clock = getattr(inner, "_clock", None)
         pausad = bool(down_until and clock and clock() < down_until)

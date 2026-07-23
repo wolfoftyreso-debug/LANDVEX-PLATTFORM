@@ -6,15 +6,22 @@
 <title>LANDVEX · Opportunity Engine</title>
 <style>
   :root {
-    --bg: #0e1420; --panel: #161e2e; --panel2: #1c2740; --line: #263452;
-    --text: #e8edf6; --muted: #8fa0bd; --gron: #3ecf8e; --gul: #f2c14e;
-    --rod: #e5636c; --accent: #5b8def;
+    /* Apple iPhone Native (iOS 18) – REXO-designstandard. */
+    --ios-blue: #007AFF;
+    --bg: #F2F2F7; --panel: rgba(255,255,255,.8); --panel2: #FFFFFF;
+    --line: rgba(60,60,67,.18); --text: #1C1C1E;
+    --muted: rgba(60,60,67,.6); --gron: #34C759; --gul: #E0A800;
+    --rod: #FF3B30; --accent: var(--ios-blue);
   }
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--bg); color: var(--text);
-         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+         font: 14px/1.45 -apple-system, "SF Pro Text", "SF Pro Display",
+           "Helvetica Neue", system-ui, sans-serif; }
   header { display: flex; align-items: center; gap: 12px;
-           padding: 10px 20px; border-bottom: 1px solid var(--line); }
+           padding: 10px 20px; border-bottom: 1px solid var(--line);
+           background: var(--panel);
+           backdrop-filter: saturate(180%) blur(20px);
+           -webkit-backdrop-filter: saturate(180%) blur(20px); }
   header h1 { font-size: 17px; letter-spacing: 2px; }
   header span { color: var(--muted); font-size: 12px; }
   #tabs { margin-left: auto; display: flex; gap: 6px; }
@@ -33,7 +40,7 @@
   .falt { margin-bottom: 12px; }
   .falt label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   select, button, textarea {
-    width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+    width: 100%; padding: 8px 10px; border-radius: 13px; font-size: 13px;
     background: var(--panel2); color: var(--text); border: 1px solid var(--line);
     font-family: inherit; resize: vertical;
   }
@@ -41,13 +48,13 @@
               font-weight: 600; padding: 11px; cursor: pointer; }
   .chip.exempel { display: block; width: 100%; border-radius: 10px;
                   padding: 8px 10px; line-height: 1.35; }
-  :root { --orange: #f28a4e; }
+  :root { --orange: #FF9500; }
   .s-orange { color: var(--orange); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
           cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
   .chip.on { border-color: var(--accent); color: var(--text);
-             background: rgba(91,141,239,.15); }
+             background: rgba(0,122,255,.12); }
   #analysera { margin-top: 14px; background: var(--accent); border: none;
                color: #fff; font-weight: 600; padding: 11px; cursor: pointer; }
   #analysera:disabled { opacity: .5; cursor: wait; }
@@ -57,23 +64,29 @@
   .karta { position: relative; display: flex; align-items: center;
            justify-content: center; padding: 10px; }
   svg { max-height: 100%; max-width: 100%; }
-  .prick { cursor: pointer; stroke: rgba(0,0,0,.5); stroke-width: .6;
+  .prick { cursor: pointer; stroke: rgba(0,0,0,.22); stroke-width: .6;
            transition: r .1s; }
-  .prick:hover { stroke: #fff; stroke-width: 1.2; }
-  .prick.vald { stroke: #fff; stroke-width: 1.6; }
+  .prick:hover { stroke: rgba(0,0,0,.5); stroke-width: 1.2; }
+  .prick.vald { stroke: var(--accent); stroke-width: 1.8; }
   .legend { position: absolute; left: 18px; bottom: 14px; background: var(--panel);
-            border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px;
             font-size: 12px; color: var(--muted); }
   .legend i { display: inline-block; width: 10px; height: 10px;
               border-radius: 50%; margin-right: 6px; }
   #tooltip { position: absolute; pointer-events: none; background: var(--panel);
-             border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+             backdrop-filter: saturate(180%) blur(20px);
+             -webkit-backdrop-filter: saturate(180%) blur(20px);
+             border: 1px solid var(--line); border-radius: 13px; padding: 7px 10px;
              font-size: 12px; display: none; z-index: 5; }
 
   /* Resultatpanel */
   .resultat { padding: 16px; border-left: 1px solid var(--line); overflow-y: auto; }
   .kort { background: var(--panel); border: 1px solid var(--line);
-          border-radius: 12px; padding: 14px; margin-bottom: 12px; cursor: pointer; }
+          border-radius: 13px; padding: 14px; margin-bottom: 12px;
+          cursor: pointer; backdrop-filter: saturate(180%) blur(20px);
+          -webkit-backdrop-filter: saturate(180%) blur(20px); }
   .kort.vald { border-color: var(--accent); }
   .kort .rubrik { display: flex; justify-content: space-between; align-items: baseline; }
   .kort .plats { font-weight: 650; font-size: 15px; }
@@ -138,13 +151,13 @@
 <header>
   <svg class="logomark" viewBox="0 0 24 24" aria-hidden="true">
     <defs><linearGradient id="lvxg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5b8def"/><stop offset="1" stop-color="#3ecf8e"/>
+      <stop offset="0" stop-color="#007AFF"/><stop offset="1" stop-color="#34C759"/>
     </linearGradient></defs>
     <polygon points="12 2 22 7 12 12 2 7" fill="url(#lvxg)"/>
     <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <h1>LANDVEX</h1><span id="undertitel">Landvex · The guide asks, the engines answer</span>
+  <h1>LANDVEX</h1><span id="undertitel">Decision Intelligence for the Physical World</span>
   <nav id="tabs">
     <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
     <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Ask</button>
@@ -229,12 +242,12 @@
   <main class="karta" id="kartyta">
     <svg id="karta" viewBox="0 0 560 1000" role="img" aria-label="Market heatmap">
       <defs>
-        <radialGradient id="glodGron"><stop offset="0%" stop-color="#3ecf8e" stop-opacity=".5"/><stop offset="100%" stop-color="#3ecf8e" stop-opacity="0"/></radialGradient>
-        <radialGradient id="glodGul"><stop offset="0%" stop-color="#f2c14e" stop-opacity=".5"/><stop offset="100%" stop-color="#f2c14e" stop-opacity="0"/></radialGradient>
-        <radialGradient id="glodRod"><stop offset="0%" stop-color="#e5636c" stop-opacity=".5"/><stop offset="100%" stop-color="#e5636c" stop-opacity="0"/></radialGradient>
-        <radialGradient id="glodOrange"><stop offset="0%" stop-color="#f28a4e" stop-opacity=".5"/><stop offset="100%" stop-color="#f28a4e" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodGron"><stop offset="0%" stop-color="#34C759" stop-opacity=".45"/><stop offset="100%" stop-color="#34C759" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodGul"><stop offset="0%" stop-color="#FFCC00" stop-opacity=".5"/><stop offset="100%" stop-color="#FFCC00" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodRod"><stop offset="0%" stop-color="#FF3B30" stop-opacity=".45"/><stop offset="100%" stop-color="#FF3B30" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodOrange"><stop offset="0%" stop-color="#FF9500" stop-opacity=".45"/><stop offset="100%" stop-color="#FF9500" stop-opacity="0"/></radialGradient>
       </defs>
-      <path id="kontur" fill="#141d30" stroke="#2a3a5c" stroke-width="1.2" d=""/>
+      <path id="kontur" fill="#FFFFFF" stroke="#C7C7CC" stroke-width="1.2" d=""/>
       <g id="glod"></g><g id="prickar"></g>
     </svg>
     <div class="legend" id="legendEtab">
@@ -622,7 +635,7 @@ const LAGEN = {
                    "for a full assessment." },
   paket: { rubrik: "Plans & pricing", titel: "Landvex · Plans and products",
            status: "List prices – configured per contract and market." },
-  guide: { rubrik: "Guide", titel: "Landvex · The guide asks, the engines answer",
+  guide: { rubrik: "Guide", titel: "Decision Intelligence for the Physical World",
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
              status: "Defaults are saved locally in your browser." },
@@ -1118,7 +1131,7 @@ $("instSpara").onclick = () => {
 
 // ── Paket & priser ───────────────────────────────────────────────────
 const pris = p => p ? `$${p.USD.toLocaleString("en-US")}/mo` +
-  ` <small style="color:var(--muted)">· €${p.EUR} · ${p.SEK.toLocaleString("en-US")} SEK</small>` : "Custom quote";
+  ` <small style="color:var(--muted)">· €${p.EUR}</small>` : "Custom quote";
 
 async function visaPaket() {
   const wrap = $("hotspots");

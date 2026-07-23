@@ -208,6 +208,50 @@ def test_scb_source_outside_sweden_returns_empty():
     assert signals == {} and extras == {}
 
 
+def test_quixzoom_adapter_maps_observations():
+    """quiXzoom-klienten: URL-bygge, signalmappning, felpaus, ej-ansluten."""
+    from engine.datasources.adapters import QuixzoomSource
+    from engine.models import Location
+    loc = Location(29.76, -95.37)
+    assert QuixzoomSource(base_url="").fetch(loc, "gym",
+                                             ["development_m2"]) == ({}, {})
+    urls = []
+    def transport(url):
+        urls.append(url)
+        return {"observations": {"development_m2": {"value": 1250.0},
+                                 "foot_traffic": 4200},
+                "observed_at": "2026-07-20"}
+    src = QuixzoomSource(base_url="http://localhost:3209",
+                         transport=transport)
+    vals, extras = src.fetch(loc, "gym",
+                             ["development_m2", "foot_traffic", "crime_index"])
+    assert "/v1/observations" in urls[0] and "lat=29.76" in urls[0]
+    assert vals["development_m2"].value == 1250.0
+    assert vals["development_m2"].source == "quixzoom"
+    assert vals["foot_traffic"].value == 4200.0
+    assert "crime_index" not in vals            # ej quiXzoom-signal
+    assert extras["quixzoom"]["observed_at"] == "2026-07-20"
+
+
+def test_quixzoom_adapter_pauses_on_error():
+    from engine.datasources.adapters import QuixzoomSource
+    from engine.models import Location
+    t = [0.0]
+    def boom(url):
+        raise OSError("connection refused")
+    src = QuixzoomSource(base_url="http://x", transport=boom,
+                         retry_after_s=300.0, clock=lambda: t[0])
+    loc = Location(29.76, -95.37)
+    assert src.fetch(loc, "gym", ["development_m2"]) == ({}, {})
+    kallades = []
+    src._transport = lambda u: (kallades.append(u), {})[1]
+    assert src.fetch(loc, "gym", ["development_m2"]) == ({}, {})
+    assert not kallades                          # pausad – inget anrop
+    t[0] = 301.0
+    src.fetch(loc, "gym", ["development_m2"])
+    assert kallades                              # provar igen efter paus
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -17,9 +17,9 @@ def test_plans_and_addons_are_valid_data():
     for p in PLANS.values():
         assert p["rate_limit_per_min"] > 0 and p["ingar_en"]
         if p["pris_manad"] is not None:
-            assert set(p["pris_manad"]) == {"SEK", "EUR", "USD"}
+            assert set(p["pris_manad"]) == {"USD", "EUR"}   # aldrig SEK (låst regel)
     for a in ADDONS.values():
-        assert a["capabilities"] and a["pris_manad"]["SEK"] > 0
+        assert a["capabilities"] and a["pris_manad"]["USD"] > 0
     kat = plans_catalog()
     assert len(kat["plans"]) == 3 and len(kat["tillagg"]) == 5
     assert "list price" in kat["prisnot_en"].lower() or \

@@ -124,6 +124,32 @@ as a private artifact.
 
 ---
 
+## 2b. RECONCILIATION STATUS (against Bernt's report, 2026-07-23)
+**Fixed in build:** pricing is USD-first with no SEK anywhere (locked
+rule; Pro $499/mo, add-ons $149–$499, list-price note in USD) · frontend
+rebuilt to the REXO Apple iPhone Native theme (iOS 18: `--ios-blue
+#007AFF`, `#F2F2F7` background, SF Pro stack, 13px squircle, Liquid
+Glass blur; banned color check clean) · "Commercial Activity" renamed
+**Commercial Vitality** and a **City Health** composite index added
+(7 indices total incl. Contradiction) · tagline "Decision Intelligence
+for the Physical World" + RIOS family stamped in `/v1/catalog` ·
+**QuixzoomSource is now a real HTTP client** against
+`/v1/observations` (set `LANDVEX_QUIXZOOM_URL=http://127.0.0.1:3209`;
+error-pause + honest /health status; fixture-tested) · systemd unit
+(port 8087 proposal) and nginx `/v1/` mount drafts in `infra/`, plus
+REXO task/manual/artifact drafts in `infra/rexo-deliverables.md` ·
+`LANDVEX_PORT` env var supported.
+**Open decisions (Erik/Johan):** domain mount (replace v0 vs parallel
+/v1/), final port, quiXzoom direct vs via AAMOS Core, register as an
+AAMOS product (`/v1/opportunity/<action>` path convention) vs
+standalone Landvex product, plan names (Free/Growth/Enterprise?) and
+final USD price points, who claims the REXO deployment task.
+**Accepted follow-ups (not yet built):** JWT bearer auth alongside API
+keys (AAMOS standard), AAMOS Core tenant verification (:3100),
+geographies Canada/Mexico/Colombia/Morocco/West Africa, RALE
+(landvex.com: "asks targeted micro-questions only when valuable") —
+documented concept, not yet an engine.
+
 ## 3. RECONCILIATION QUESTIONS — what we need from the truth sources
 When matching against **landvex.com**: exact index names/definitions/tiers
 shown publicly; city list on the Intelligence Map; wording of

@@ -14,7 +14,9 @@ from __future__ import annotations
 from engine.version import ENGINE_VERSION
 
 API_CATALOG: dict = {
-    "platform": "LANDVEX Opportunity Engine",
+    "platform": "Landvex Opportunity Engine",
+    "plattformsfamilj": "RIOS – Reality Intelligence Operating System",
+    "tagline_en": "Decision Intelligence for the Physical World",
     "engine_version": ENGINE_VERSION,
     "api_version": "v1",
     "beskrivning_en": "Decision engines for future workforce and "
