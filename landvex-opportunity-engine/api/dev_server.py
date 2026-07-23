@@ -11,6 +11,7 @@ Samma endpoints som produktions-API:t:
     GET  /v1/reports?limit=20  ·  GET /v1/reports/<id>
     POST /v1/analyze   {"lat":..,"lon":..,"vertical":"frisor","radius_minutes":10}
     POST /v1/scan      {"profile":{...}} eller {"profile_id":"..."}
+    POST /v1/ask       {"question":"Var är behovet av elektriker störst?"}
     POST /v1/risk      {"lat":..,"lon":..,"vertical":"frisor"}
     POST /v1/compare   {"vertical":"frisor","locations":[{...},{...}]}
     GET  /v1/workforce/occupations
@@ -38,6 +39,7 @@ from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
+from engine.ask import ask
 from engine.compare import compare
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
@@ -143,6 +145,9 @@ class Handler(BaseHTTPRequestHandler):
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
+            if self.path == "/v1/ask":
+                return self._send(200, ask(str(req.get("question", "")),
+                                           resolver=RESOLVER))
             if self.path == "/v1/risk":
                 loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
                                address=req.get("address", ""),

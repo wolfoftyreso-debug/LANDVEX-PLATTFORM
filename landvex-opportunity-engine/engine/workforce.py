@@ -51,48 +51,53 @@ class Occupation:
     per_1000: float           # sysselsatta per 1000 invånare (schablon)
     pension_rate: float       # årlig avgångstakt (schablon)
     edu_per_100k: float       # utbildningsplatser/år per 100k inv (schablon)
+    salary_tkr_month: float   # medellön tkr/mån (schablon, lönestatistiknivå)
+    automation_risk: float    # 0..1 automations-/AI-exponering (schablon)
     drivers: tuple            # ((signal_id, vikt), ...) – efterfrågedrivare
 
 
-def _o(id, label, sector, per_1000, pension, edu, *drivers):
-    return Occupation(id, label, sector, per_1000, pension, edu, tuple(drivers))
+def _o(id, label, sector, per_1000, pension, edu, salary, autom, *drivers):
+    return Occupation(id, label, sector, per_1000, pension, edu,
+                      salary, autom, tuple(drivers))
 
 
 OCCUPATIONS: dict[str, Occupation] = {o.id: o for o in [
-    _o("elektriker", "Elektriker", "Bygg & installation", 3.8, 0.028, 6.0,
+    _o("elektriker", "Elektriker", "Bygg & installation", 3.8, 0.028, 6.0, 38, 0.20,
        ("building_permits", 0.30), ("development_m2", 0.20),
        ("infra_invest", 0.15), ("ev_per_capita", 0.15), ("pop_growth_pct", 0.20)),
-    _o("vvs_montor", "VVS-montör", "Bygg & installation", 2.0, 0.030, 3.0,
+    _o("vvs_montor", "VVS-montör", "Bygg & installation", 2.0, 0.030, 3.0, 37, 0.20,
        ("building_permits", 0.40), ("development_m2", 0.25),
        ("infra_invest", 0.15), ("pop_growth_pct", 0.20)),
-    _o("snickare", "Snickare", "Bygg & installation", 6.5, 0.032, 8.0,
+    _o("snickare", "Snickare", "Bygg & installation", 6.5, 0.032, 8.0, 36, 0.30,
        ("building_permits", 0.45), ("development_m2", 0.25), ("pop_growth_pct", 0.30)),
-    _o("betongarbetare", "Betongarbetare", "Anläggning", 1.2, 0.035, 1.5,
+    _o("betongarbetare", "Betongarbetare", "Anläggning", 1.2, 0.035, 1.5, 35, 0.50,
        ("development_m2", 0.40), ("infra_invest", 0.35), ("detail_plans", 0.25)),
-    _o("plattsattare", "Plattsättare", "Bygg & installation", 0.8, 0.030, 1.0,
+    _o("plattsattare", "Plattsättare", "Bygg & installation", 0.8, 0.030, 1.0, 35, 0.30,
        ("building_permits", 0.50), ("renovation_index", 0.30), ("pop_growth_pct", 0.20)),
-    _o("maskinforare", "Anläggningsmaskinförare", "Anläggning", 2.4, 0.034, 3.0,
+    _o("maskinforare", "Anläggningsmaskinförare", "Anläggning", 2.4, 0.034, 3.0, 36, 0.55,
        ("infra_invest", 0.40), ("development_m2", 0.35), ("detail_plans", 0.25)),
-    _o("arkitekt", "Arkitekt", "Samhällsbyggnad", 1.1, 0.022, 1.2,
+    _o("arkitekt", "Arkitekt", "Samhällsbyggnad", 1.1, 0.022, 1.2, 47, 0.30,
        ("detail_plans", 0.40), ("development_m2", 0.35), ("pop_growth_pct", 0.25)),
-    _o("ingenjor_bygg", "Byggnadsingenjör", "Samhällsbyggnad", 3.0, 0.025, 4.0,
+    _o("ingenjor_bygg", "Byggnadsingenjör", "Samhällsbyggnad", 3.0, 0.025, 4.0, 48, 0.25,
        ("development_m2", 0.30), ("infra_invest", 0.30),
        ("business_density", 0.20), ("detail_plans", 0.20)),
-    _o("larare", "Lärare (grundskola)", "Utbildning", 11.0, 0.030, 12.0,
+    _o("larare", "Lärare (grundskola)", "Utbildning", 11.0, 0.030, 12.0, 38, 0.10,
        ("families_share", 0.50), ("pop_growth_pct", 0.50)),
-    _o("forskollarare", "Förskollärare", "Utbildning", 5.5, 0.028, 7.0,
+    _o("forskollarare", "Förskollärare", "Utbildning", 5.5, 0.028, 7.0, 34, 0.08,
        ("families_share", 0.60), ("pop_growth_pct", 0.40)),
-    _o("sjukskoterska", "Sjuksköterska", "Vård & omsorg", 11.5, 0.032, 13.0,
+    _o("sjukskoterska", "Sjuksköterska", "Vård & omsorg", 11.5, 0.032, 13.0, 40, 0.10,
        ("share_65plus", 0.55), ("pop_growth_pct", 0.45)),
-    _o("fastighetstekniker", "Fastighetstekniker", "Drift & fastighet", 1.8, 0.033, 2.0,
+    _o("fastighetstekniker", "Fastighetstekniker", "Drift & fastighet", 1.8, 0.033, 2.0, 35, 0.30,
        ("residential_density", 0.40), ("development_m2", 0.30), ("pop_growth_pct", 0.30)),
-    _o("drifttekniker", "Drifttekniker", "Drift & fastighet", 1.5, 0.030, 2.0,
+    _o("drifttekniker", "Drifttekniker", "Drift & fastighet", 1.5, 0.030, 2.0, 38, 0.35,
        ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
 ]}
 
 
 def occupation_catalog() -> list[dict[str, Any]]:
-    return [{"id": o.id, "label_sv": o.label_sv, "sector_sv": o.sector_sv}
+    return [{"id": o.id, "label_sv": o.label_sv, "sector_sv": o.sector_sv,
+             "medellon_tkr_manad": o.salary_tkr_month,
+             "automationsrisk_schablon": o.automation_risk}
             for o in OCCUPATIONS.values()]
 
 
@@ -170,6 +175,22 @@ def _band(gap: float, need: float) -> str:
     return "okande_brist" if share <= 0.15 else "kritisk_brist"
 
 
+def _demand_band(gap: float, need: float) -> str:
+    """Efterfrågeband för Opportunity Map: mättad→växande→hög→extrem."""
+    share = gap / need if need > 0 else 0.0
+    if share <= 0.05:
+        return "mattad"
+    if share <= 0.15:
+        return "vaxande"
+    return "hog" if share <= 0.25 else "extrem"
+
+
+def _trend(growth: float) -> str:
+    if growth >= 0.005:
+        return "stigande"
+    return "minskande" if growth <= -0.005 else "stabil"
+
+
 _CAVEATS = [
     "Prognosen är modellberäknad, inte en sanning: teknikskiften, migration, "
     "konjunktur och politiska beslut ligger utanför modellen.",
@@ -220,6 +241,11 @@ def _forecast_one(occ: Occupation, values: dict, horizon: int,
         "intervall": [round(need_h - half), round(need_h + half)],
         "konfidens": _confidence(q, horizon),
         "band": _band(gap, need_h),
+        "efterfragan": _demand_band(gap, need_h),
+        "trend": _trend(growth),
+        "pensionsavgangar": round(need_now * (1 - (1 - occ.pension_rate) ** horizon)),
+        "medellon_tkr_manad": occ.salary_tkr_month,
+        "automationsrisk_schablon": occ.automation_risk,
         "efterfragetakt_pct_ar": round(100 * growth, 2),
         "drivare": driver_parts,
         "antaganden": assumptions,
@@ -328,6 +354,8 @@ def national_map(occupation_id: str, target_year: int = 2035,
                          "lat": lat, "lon": lon,
                          "behov_prognos": f["behov_prognos"],
                          "brist": f["brist"], "band": f["band"],
+                         "efterfragan": f["efterfragan"],
+                         "trend": f["trend"],
                          "konfidens": f["konfidens"]})
     kommuner.sort(key=lambda k: -k["brist"])
     return {"occupation_id": occupation_id, "label_sv": occ.label_sv,

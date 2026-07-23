@@ -24,6 +24,7 @@ from engine.models import Location
 from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
+from engine.ask import ask
 from engine.compare import compare
 from engine.risk import assess
 from engine.storage.sqlite import SqliteStore
@@ -183,6 +184,18 @@ class RiskRequest(BaseModel):
 class CompareRequest(BaseModel):
     vertical: str
     locations: list[dict]
+
+
+class AskRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+
+
+@app.post("/v1/ask")
+def ask_landvex(req: AskRequest):
+    try:
+        return ask(req.question, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.post("/v1/risk")

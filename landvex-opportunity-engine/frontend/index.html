@@ -32,10 +32,17 @@
     letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
   .falt { margin-bottom: 12px; }
   .falt label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  select, button {
+  select, button, textarea {
     width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 13px;
     background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    font-family: inherit; resize: vertical;
   }
+  #fragaBtn { background: var(--accent); border: none; color: #fff;
+              font-weight: 600; padding: 11px; cursor: pointer; }
+  .chip.exempel { display: block; width: 100%; border-radius: 10px;
+                  padding: 8px 10px; line-height: 1.35; }
+  :root { --orange: #f28a4e; }
+  .s-orange { color: var(--orange); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
           cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
@@ -102,16 +109,27 @@
 </head>
 <body>
 <header>
-  <h1>LANDVEX</h1><span id="undertitel">Opportunity Engine · Analysera Sverige</span>
+  <h1>LANDVEX</h1><span id="undertitel">Fråga Landvex · Vad vill du veta?</span>
   <nav id="tabs">
-    <button class="tab on" data-mode="etab">Etablering</button>
+    <button class="tab on" data-mode="fraga">Fråga</button>
+    <button class="tab" data-mode="etab">Etablering</button>
     <button class="tab" data-mode="komp">Kompetens</button>
   </nav>
 </header>
 
 <div class="layout">
   <aside class="profil">
-    <div id="vyEtab">
+    <div id="vyFraga">
+      <h2>Fråga Landvex</h2>
+      <div class="falt">
+        <textarea id="fragaText" rows="3" placeholder="T.ex. Vilka är de fem största affärsmöjligheterna i Örebro just nu?"></textarea>
+      </div>
+      <button id="fragaBtn">Fråga →</button>
+      <div class="falt" style="margin-top:12px"><label>Exempel</label>
+        <div class="chips" id="exempelChips"></div>
+      </div>
+    </div>
+    <div id="vyEtab" style="display:none">
       <h2>Min affärsprofil</h2>
       <div id="formular"></div>
       <div class="falt"><label>Analysnivå</label><select id="niva"></select></div>
@@ -125,7 +143,7 @@
       </select></div>
       <button id="prognostisera">Prognostisera Sverige</button>
     </div>
-    <div class="status" id="status">Bygg din profil och klicka på Analysera Sverige.</div>
+    <div class="status" id="status">Ställ en fråga – svaret byggs av Landvex motorer, med konfidens och antaganden.</div>
   </aside>
 
   <main class="karta" id="kartyta">
@@ -134,6 +152,7 @@
         <radialGradient id="glodGron"><stop offset="0%" stop-color="#3ecf8e" stop-opacity=".5"/><stop offset="100%" stop-color="#3ecf8e" stop-opacity="0"/></radialGradient>
         <radialGradient id="glodGul"><stop offset="0%" stop-color="#f2c14e" stop-opacity=".5"/><stop offset="100%" stop-color="#f2c14e" stop-opacity="0"/></radialGradient>
         <radialGradient id="glodRod"><stop offset="0%" stop-color="#e5636c" stop-opacity=".5"/><stop offset="100%" stop-color="#e5636c" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glodOrange"><stop offset="0%" stop-color="#f28a4e" stop-opacity=".5"/><stop offset="100%" stop-color="#f28a4e" stop-opacity="0"/></radialGradient>
       </defs>
       <path id="kontur" fill="#141d30" stroke="#2a3a5c" stroke-width="1.2" d=""/>
       <g id="glod"></g><g id="prickar"></g>
@@ -152,7 +171,7 @@
   </main>
 
   <aside class="resultat">
-    <h2 id="resultatRubrik">Hotspots</h2>
+    <h2 id="resultatRubrik">Svar</h2>
     <div id="hotspots"><p class="motiv">Inga resultat ännu.</p></div>
     <div id="caveats"></div>
   </aside>
@@ -165,8 +184,14 @@ const BOX = { latMin: 55.0, latMax: 69.5, lonMin: 10.5, lonMax: 24.5 };
 const W = 560, H = 1000;
 const px = lon => (lon - BOX.lonMin) / (BOX.lonMax - BOX.lonMin) * (W - 60) + 30;
 const py = lat => (BOX.latMax - lat) / (BOX.latMax - BOX.latMin) * (H - 60) + 30;
-const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)" };
-const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)", rod: "url(#glodRod)" };
+const FARG = { gron: "var(--gron)", gul: "var(--gul)", rod: "var(--rod)",
+               orange: "var(--orange)" };
+const GLOD = { gron: "url(#glodGron)", gul: "url(#glodGul)",
+               rod: "url(#glodRod)", orange: "url(#glodOrange)" };
+// Opportunity Map: 🔴 extrem · 🟠 hög · 🟡 växande · 🟢 mättad efterfrågan
+const EFTERBAND = { extrem: "rod", hog: "orange", vaxande: "gul", mattad: "gron" };
+const EFTERTEXT = { extrem: "Extrem efterfrågan", hog: "Hög efterfrågan",
+                    vaxande: "Växande efterfrågan", mattad: "Mättad marknad" };
 const $ = id => document.getElementById(id);
 
 // Förenklad Sverigekontur (lat,lon) – illustrativ, inte kartografisk.
@@ -423,23 +448,28 @@ const BANDTEXT = { balans: "God balans", okande_brist: "Ökande brist",
                    kritisk_brist: "Kritisk brist" };
 let MODE = "etab", senasteKarta = null;
 
+const LAGEN = {
+  fraga: { rubrik: "Svar", titel: "Fråga Landvex · Vad vill du veta?",
+           status: "Ställ en fråga – svaret byggs av Landvex motorer." },
+  etab: { rubrik: "Hotspots", titel: "Opportunity Engine · Analysera Sverige",
+          status: "Bygg din profil och klicka på Analysera Sverige." },
+  komp: { rubrik: "Störst brist", titel: "Workforce Intelligence · Kompetensprognos",
+          status: "Välj yrke och målår, klicka på Prognostisera Sverige." },
+};
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
   document.querySelectorAll(".tab").forEach(x =>
     x.classList.toggle("on", x === t));
+  $("vyFraga").style.display = MODE === "fraga" ? "" : "none";
   $("vyEtab").style.display = MODE === "etab" ? "" : "none";
   $("vyKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
-  $("resultatRubrik").textContent = MODE === "etab" ? "Hotspots" : "Störst brist";
-  $("undertitel").textContent = MODE === "etab"
-    ? "Opportunity Engine · Analysera Sverige"
-    : "Workforce Intelligence · Kompetensprognos";
+  $("resultatRubrik").textContent = LAGEN[MODE].rubrik;
+  $("undertitel").textContent = LAGEN[MODE].titel;
   tomKarta(); $("hotspots").innerHTML =
     "<p class='motiv'>Inga resultat ännu.</p>"; $("caveats").innerHTML = "";
-  $("status").textContent = MODE === "etab"
-    ? "Bygg din profil och klicka på Analysera Sverige."
-    : "Välj yrke och målår, klicka på Prognostisera Sverige.";
+  $("status").textContent = LAGEN[MODE].status;
 });
 
 const KOMPBAND = { balans: "gron", okande_brist: "gul", kritisk_brist: "rod" };
@@ -546,8 +576,119 @@ $("prognostisera").onclick = async () => {
   } finally { btn.disabled = false; }
 };
 
+// ── Fråga Landvex ────────────────────────────────────────────────────
+const EXEMPEL = [
+  "Vilka är de fem största affärsmöjligheterna i Örebro just nu?",
+  "Vilka yrkesgrupper saknas mest i Umeå de kommande fem åren?",
+  "Var i Sverige är behovet av elektriker störst?",
+  "Var ska jag öppna café?",
+  "Hur riskabelt är det att starta gym i Solna?",
+];
+
+function nyckelRad(k, v) {
+  if (v === null || v === undefined) return "";
+  if (Array.isArray(v)) v = v.join(" – ");
+  if (typeof v === "object") return "";
+  return `<div class="driver"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
+}
+
+const DETALJNAMN = {
+  behov_nu: "Behov nu", behov_prognos: "Behov vid målåret",
+  intervall: "Konfidensintervall", konfidens: "Konfidens (heuristik)",
+  pensionsavgangar: "Pensionsavgångar till målåret",
+  medellon_tkr_manad: "Medellön tkr/mån (schablon)",
+  automationsrisk_schablon: "Automationsrisk 0–1 (schablon)",
+  risk_total: "Samlad risk", risk_band: "Riskband",
+  confidence: "Confidence", risk_index: "Riskindex",
+  time_window_months: "Tidsfönster (mån)", data_coverage: "Datatäckning",
+  band: "Band", narrativ_sv: "Narrativ", atgard_sv: "Åtgärd",
+};
+
+function ritaSvar(res) {
+  const wrap = $("hotspots");
+  wrap.innerHTML = `<p class="motiv" style="font-size:13.5px"><b>${esc(res.svar_sv || "")}</b></p>`;
+  for (const rad of res.rader || []) {
+    const div = document.createElement("div");
+    div.className = "kort";
+    if (rad.id) div.dataset.kommun = rad.id;
+    const scoreKl = rad.efterfragan
+      ? "s-" + (EFTERBAND[rad.efterfragan] === "orange" ? "orange" : EFTERBAND[rad.efterfragan])
+      : scoreKlass(rad.score);
+    const d = rad.detalj || {};
+    div.innerHTML = `
+      <div class="rubrik">
+        <span class="plats">${esc(rad.label_sv)}${rad.trend ? ` <small style="color:var(--muted)">· ${esc(rad.trend)}</small>` : ""}</span>
+        <span class="score ${scoreKl}">${Math.round(rad.score)}</span>
+      </div>
+      ${rad.efterfragan ? `<p class="motiv">${EFTERTEXT[rad.efterfragan]}${"brist" in rad ? ` · brist ${rad.brist}` : ""}</p>` : ""}
+      <div class="detalj">
+        ${Object.entries(d).map(([k, v]) => nyckelRad(DETALJNAMN[k] || k, v)).join("")}
+        ${(d.faktorer || []).map(f => `<div class="driver"><span>${esc(f.label_sv)}</span><span>${Math.round(f.score)}</span></div>`).join("")}
+        ${(d.motivering_sv || d.insikter_sv || []).map(t => `<p class="motiv">${esc(t)}</p>`).join("")}
+        ${(d.drivare || []).map(x => `<div class="driver"><span>${esc(x.label_sv)} (${esc(x.kalla)})</span><span>${x.bidrag_pct_ar >= 0 ? "+" : ""}${x.bidrag_pct_ar} %/år</span></div>`).join("")}
+        ${(d.antaganden || []).map(a => `<p class="roi-notis">${esc(a.antagande_sv)}: ${esc(a.varde_sv)}</p>`).join("")}
+        ${d.ekonomi_schablon ? `<p class="motiv">Omsättningsscenario ${d.ekonomi_schablon.omsattningsscenario_tkr_ar} tkr/år · ${esc(d.ekonomi_schablon.budget_fit_sv)}</p><p class="roi-notis">${esc(d.ekonomi_schablon.notis_sv)}</p>` : ""}
+      </div>`;
+    div.onclick = () => { div.classList.toggle("open");
+                          if (rad.id) valjKommun(rad.id); };
+    wrap.appendChild(div);
+  }
+  const forslag = (res.forslag_sv || []).map(f =>
+    `<span class="chip exempel" style="cursor:pointer">${esc(f)}</span>`).join("");
+  if (forslag) wrap.insertAdjacentHTML("beforeend",
+    `<h2 style="margin-top:14px">Följdfrågor</h2><div class="chips">${forslag}</div>`);
+  wrap.querySelectorAll(".chip.exempel").forEach(c =>
+    c.onclick = () => { $("fragaText").value = c.textContent; stallFraga(); });
+  $("caveats").innerHTML = (res.caveats_sv || [])
+    .map(c => `<div class="caveat">${esc(c)}</div>`).join("");
+
+  tomKarta();
+  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
+  const karta = res.karta;
+  if (karta && karta.typ === "efterfragan") {
+    for (const k of karta.kommuner)
+      laggPunkt(k.lat, k.lon, EFTERBAND[k.efterfragan], 7,
+        `${k.kommun} — ${EFTERTEXT[k.efterfragan].toLowerCase()}, brist ${k.brist}`,
+        k.kommun_kod, () => valjKommun(k.kommun_kod));
+  } else if (karta && karta.typ === "heatmap") {
+    const nycklar = new Set(karta.hotspots.map(h => h.kommun_kod + ":" + h.punkt));
+    for (const p of karta.heatmap)
+      laggPunkt(p.lat, p.lon, p.band,
+        nycklar.has(p.kommun_kod + ":" + p.punkt) ? 10 : 7,
+        `${p.kommun} — score ${p.score}`, p.kommun_kod,
+        () => valjKommun(p.kommun_kod));
+  }
+}
+
+async function stallFraga() {
+  const q = $("fragaText").value.trim();
+  if (!q) return;
+  const btn = $("fragaBtn"), st = $("status");
+  btn.disabled = true;
+  st.textContent = "Landvex motorer arbetar …";
+  try {
+    const res = await api("/v1/ask", { question: q });
+    ritaSvar(res);
+    st.textContent = `Tolkad som: ${res.intent.replace(/_/g, " ")}` +
+      (res.malar && res.intent !== "hjalp" ? ` · målår ${res.malar}` : "");
+  } catch (e) {
+    st.textContent = "Fel: " + e.message;
+  } finally { btn.disabled = false; }
+}
+$("fragaBtn").onclick = stallFraga;
+$("fragaText").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); stallFraga(); }
+});
+
 (async () => {
   initKarta();
+  const chips = $("exempelChips");
+  for (const f of EXEMPEL) {
+    const c = document.createElement("span");
+    c.className = "chip exempel"; c.textContent = f;
+    c.onclick = () => { $("fragaText").value = f; stallFraga(); };
+    chips.appendChild(c);
+  }
   try {
     OPTIONS = await api("/v1/profile-options");
     byggFormular();

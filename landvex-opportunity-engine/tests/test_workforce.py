@@ -16,8 +16,10 @@ def test_catalog_is_valid_data():
         assert abs(total_w - 1.0) < 1e-6, (o.id, total_w)
         for sid, _ in o.drivers:
             assert sid in CATALOG, (o.id, sid)
-    assert all(set(c) == {"id", "label_sv", "sector_sv"}
-               for c in occupation_catalog())
+    for c in occupation_catalog():
+        assert set(c) == {"id", "label_sv", "sector_sv",
+                          "medellon_tkr_manad", "automationsrisk_schablon"}
+        assert 0.0 <= c["automationsrisk_schablon"] <= 1.0
 
 
 def test_forecast_contract_and_honesty():

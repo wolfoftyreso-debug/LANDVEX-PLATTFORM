@@ -198,6 +198,8 @@ def _economy_scenario(profile: BusinessProfile, opportunity_score: float) -> dic
     }
 
 
+economy_scenario = _economy_scenario   # publikt namn (används av ask-modulen)
+
 _ROI_UNAVAILABLE = {
     "status": "ej_tillgangligt",
     "notis_sv": "Förväntad ROI redovisas när utfallsdata finns (v2/v3). "

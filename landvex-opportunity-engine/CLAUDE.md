@@ -11,7 +11,7 @@ faktornedbrytning, riskbedömning, mönsterinsikter och rekommendation –
 branschanpassat ("Know before you build"). En modul i Landvex-plattformen;
 datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
 
-## Nuläge: v0.7 — Risk Engine, jämförelser, interaktiv karta
+## Nuläge: v0.8 — "Fråga Landvex" som startsida
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.
@@ -104,6 +104,23 @@ datakällslagret ska på sikt delas med Risk/Investment/Retail-motorerna.
   glödande värmepunkter (radial-gradient), zoom mot muspekaren +
   panorering + dubbelklick-återställning, punktstorlek skalar med
   zoomnivå. Riskprofilen kan öppnas direkt i varje hotspotkort.
+- **Fråga Landvex (v0.8):** `engine/ask.py` + `POST /v1/ask` –
+  naturligt språk in, motordata ut. Två separerade lager:
+  (1) deterministisk svensk tolk (intent + kommun/yrke/bransch/
+  antal/målår, synonym- och plurallexikon, genitivtålig) som i
+  produktionsfasen kan ersättas av LLM-lager i `api/` – aldrig i
+  kärnan; (2) routning till motorerna (scan/workforce/risk/scoring)
+  – all fakta i svaret kommer därifrån med konfidens, intervall och
+  antaganden intakta. Intents: affärsmöjligheter per kommun,
+  bristyrken per kommun, nationell yrkesbrist (med Opportunity Map),
+  bästa läge för bransch, riskprofil, okänd kommun (ärligt
+  hjälpsvar), hjälp. Frontendens startsida är nu Fråga-fliken med
+  exempelfrågor, expanderbara svarsrader och följdfrågor.
+- **Opportunity Map (v0.8):** 4-gradigt efterfrågeband i workforce-
+  svaren (`efterfragan`: extrem/hog/vaxande/mattad → röd/orange/gul/
+  grön) + `trend` (stigande/stabil/minskande) och
+  `pensionsavgangar`. Yrkeskatalogen bär `medellon_tkr_manad` och
+  `automationsrisk_schablon` (schabloner, märkta).
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -116,6 +133,7 @@ python3 -m tests.test_storage      # persistens/cachetester (7 st)
 python3 -m tests.test_scan         # profil- och sveptester (11 st)
 python3 -m tests.test_workforce    # kompetensprognostester (6 st)
 python3 -m tests.test_risk_compare # risk- och jämförelsetester (7 st)
+python3 -m tests.test_ask          # NL-tolk och svarstester (12 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
@@ -195,6 +213,7 @@ engine/            kärnmotor (stdlib-only)
   workforce.py     kompetensprognoser, simulering, nationell bristkarta
   risk.py          riskdimensioner med narrativ + åtgärdsförslag
   compare.py       jämför 2–4 platser: faktormatris + rekommendation
+  ask.py           Fråga Landvex: svensk NL-tolk → motorroutning
   explain.py       narrativ + pattern_insights()
   datasources/     base.py (Resolver), mock.py, adapters.py,
                    scb.py (PxWeb-klient + kommunlokalisering),
