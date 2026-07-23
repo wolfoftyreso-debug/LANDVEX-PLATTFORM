@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from .explain import factor_narrative, pattern_insights
 from .models import FactorScore, Location, OpportunityReport
+from .version import ENGINE_VERSION
 from .signals import CATALOG, normalize
 from .verticals import RISK_SIGNALS, VERTICALS
 from .datasources.base import Resolver
@@ -117,4 +118,5 @@ def analyze(location: Location, vertical_id: str,
         data_coverage=round(coverage, 2),
         caveats_sv=caveats,
         signals=signal_breakdown,
+        engine_version=ENGINE_VERSION,
     )

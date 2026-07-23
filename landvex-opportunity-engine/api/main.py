@@ -12,9 +12,11 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
+
+from api.security import AuthError, Gate
 
 from engine.datasources.adapters import production_sources
 from engine.datasources.base import Resolver
@@ -34,7 +36,41 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               national_map, occupation_catalog,
                               simulate as wf_simulate)
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.7.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="0.9.0")
+
+GATE = Gate()
+_OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json")
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    """Auth → rate limit → routning → metrics + audit (se api/security.py)."""
+    path = request.url.path
+    if path in _OPEN_PATHS:
+        return await call_next(request)
+    t0 = time.monotonic()
+    principal, request_id, status = None, "-", 500
+    try:
+        principal, request_id = GATE.enter(
+            request.headers.get("X-API-Key"), request.method, path)
+        response = await call_next(request)
+        status = response.status_code
+        response.headers["X-Request-ID"] = request_id
+        return response
+    except AuthError as e:
+        status = e.status
+        return JSONResponse({"error": e.message_sv}, status_code=e.status,
+                            headers={"X-Request-ID": request_id})
+    finally:
+        GATE.exit(principal, request_id, request.method, path,
+                  status, (time.monotonic() - t0) * 1000)
+
+
+@app.get("/metrics")
+def metrics():
+    snap = GATE.metrics.snapshot()
+    snap["rate_limit_per_min"] = GATE.limiter.capacity
+    return snap
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 # I produktion ersätts SqliteStore av PostgresStore (Aurora + PostGIS)

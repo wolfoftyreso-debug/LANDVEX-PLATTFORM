@@ -14,7 +14,19 @@ from typing import Any, Optional
 
 from .base import Store
 
+# Migrationshantering: basschemat (_DDL) är version 1 och idempotent.
+# Senare schemaändringar läggs som (version, DDL) här och körs i
+# ordning; aktuell version lagras i schema_meta. Ändra aldrig en
+# redan utrullad migration – lägg en ny.
+_SCHEMA_VERSION = 1
+_MIGRATIONS: list[tuple[int, str]] = []
+
 _DDL = """
+CREATE TABLE IF NOT EXISTS schema_meta (
+    version    INTEGER NOT NULL,
+    applied_at REAL NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS reports (
     id                TEXT PRIMARY KEY,
     created_at        REAL NOT NULL,
@@ -64,6 +76,28 @@ class SqliteStore(Store):
         self._lock = threading.Lock()
         with self._lock, self._conn:
             self._conn.executescript(_DDL)
+            self._migrate()
+
+    def _migrate(self) -> None:
+        import time
+        row = self._conn.execute(
+            "SELECT MAX(version) FROM schema_meta").fetchone()
+        current = row[0] or 0
+        if current == 0:
+            self._conn.execute("INSERT INTO schema_meta VALUES (?, ?)",
+                               (_SCHEMA_VERSION, time.time()))
+            current = _SCHEMA_VERSION
+        for version, ddl in _MIGRATIONS:
+            if version > current:
+                self._conn.executescript(ddl)
+                self._conn.execute("INSERT INTO schema_meta VALUES (?, ?)",
+                                   (version, time.time()))
+
+    def schema_version(self) -> int:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT MAX(version) FROM schema_meta").fetchone()
+        return row[0] or 0
 
     # ── Rapporter ────────────────────────────────────────────────────
 

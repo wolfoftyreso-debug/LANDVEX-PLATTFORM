@@ -51,6 +51,8 @@ class OpportunityReport:
     # Full signalnedbrytning (förklarbarhet): {signal_id: {value, source,
     # quality, normalized}}. Grund för drivkraftslistor och confidence.
     signals: dict[str, Any] = field(default_factory=dict)
+    # Spårbarhet: motorversionen som beräknade rapporten.
+    engine_version: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

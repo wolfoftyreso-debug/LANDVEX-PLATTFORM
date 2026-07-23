@@ -49,6 +49,10 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               national_map, occupation_catalog,
                               simulate as wf_simulate)
 
+from api.security import AuthError, Gate
+
+GATE = Gate()
+
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
@@ -65,16 +69,50 @@ RESOLVER = Resolver(_sources + [MockSource()])
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, payload: dict | list) -> None:
+        self._status = code
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        if getattr(self, "_request_id", None):
+            self.send_header("X-Request-ID", self._request_id)
         self.end_headers()
         self.wfile.write(body)
 
+    _OPEN_PATHS = ("/", "/index.html", "/health")
+
+    def _gated(self, method: str, route) -> None:
+        """Auth → rate limit → routning → metrics + audit."""
+        path = self.path
+        if urlparse(path).path in self._OPEN_PATHS:
+            return route()
+        t0 = time.monotonic()
+        principal, self._request_id, self._status = None, None, 500
+        try:
+            principal, self._request_id = GATE.enter(
+                self.headers.get("X-API-Key"), method, path)
+            self._principal = principal
+            route()
+        except AuthError as e:
+            self._send(e.status, {"error": e.message_sv})
+        finally:
+            GATE.exit(principal, self._request_id or "-", method, path,
+                      self._status, (time.monotonic() - t0) * 1000)
+
     def do_GET(self):
+        self._gated("GET", self._route_get)
+
+    def do_POST(self):
+        self._gated("POST", self._route_post)
+
+    def _route_get(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/metrics":
+            snap = GATE.metrics.snapshot()
+            snap["rate_limit_per_min"] = GATE.limiter.capacity
+            return self._send(200, snap)
         if parsed.path in ("/", "/index.html"):
+            self._status = 200
             body = _FRONTEND.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -141,7 +179,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(404, {"error": "Okänt rapport-id."})
         self._send(404, {"error": "not found"})
 
-    def do_POST(self):
+    def _route_post(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
             req = json.loads(self.rfile.read(length) or b"{}")
