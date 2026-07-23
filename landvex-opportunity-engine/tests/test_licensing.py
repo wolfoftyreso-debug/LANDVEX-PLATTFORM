@@ -96,7 +96,7 @@ def test_rate_limit_per_plan():
 
 def test_upgrade_hint_mentions_unlocking_products():
     hint = upgrade_hint_en("workforce")
-    assert "Pro" in hint and "Workforce" in hint
+    assert "Growth" in hint and "Workforce" in hint
 
 
 if __name__ == "__main__":

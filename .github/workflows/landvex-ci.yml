@@ -33,7 +33,7 @@ jobs:
                    test_workforce test_risk_compare test_ask \
                    test_markets test_security test_gaps_plan \
                    test_segments test_installed_base test_platform \
-                   test_indices test_licensing; do
+                   test_indices test_licensing test_aamos; do
             echo "── tests.$t"
             python -m tests.$t
           done

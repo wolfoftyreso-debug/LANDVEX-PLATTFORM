@@ -14,7 +14,9 @@ import pathlib
 import sys
 
 from api.catalog import API_CATALOG
-from api.health import build_health
+from api.health import build_health, source_status
+from integrations.aamos import (AamosClient, agent_chat_safe,
+                                agents, platform_status, watch)
 from api.licensing import plans_catalog
 from engine.ask import ask
 from engine.datasources.base import Resolver
@@ -83,6 +85,14 @@ def build(out_path: str) -> None:
         # därför visas mock-kedjan – inte produktionens källstatus.
         "health": build_health(Resolver([MockSource()]), None),
         "catalog": API_CATALOG,
+        # AAMOS-integrationen: demon visar det ärliga ej-anslutna läget.
+        "platform_status": platform_status(
+            AamosClient(base_url=""), Resolver([MockSource()]), None,
+            build_health, source_status),
+        "watch": watch(AamosClient(base_url=""), Resolver([MockSource()]),
+                       source_status),
+        "agents": agents(AamosClient(base_url="")),
+        "agent_chat": agent_chat_safe(AamosClient(base_url=""), ""),
     }
     for market in DEMO_MARKETS:
         for vid in VERTICALS:
@@ -178,6 +188,10 @@ async function api(path, body) {
   if (path === "/v1/plans") return D.plans_catalog;
   if (path === "/health") return D.health;
   if (path === "/v1/catalog") return D.catalog;
+  if (path === "/v1/platform/status") return D.platform_status;
+  if (path === "/v1/watch") return D.watch;
+  if (path === "/v1/agents") return D.agents;
+  if (path === "/v1/agents/chat") return D.agent_chat;
   if (path === "/v1/gaps") {
     const r = D.gaps[`${body.market || "us"}:${body.vertical}`];
     if (!r) throw new Error(DEMOFEL);

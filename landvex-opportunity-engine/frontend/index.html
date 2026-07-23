@@ -11,7 +11,22 @@
     --bg: #F2F2F7; --panel: rgba(255,255,255,.8); --panel2: #FFFFFF;
     --line: rgba(60,60,67,.18); --text: #1C1C1E;
     --muted: rgba(60,60,67,.6); --gron: #34C759; --gul: #E0A800;
-    --rod: #FF3B30; --accent: var(--ios-blue);
+    --rod: #FF3B30; --orange: #FF9500; --accent: var(--ios-blue);
+    --land: #FFFFFF; --landkant: #C7C7CC;
+    --prickkant: rgba(0,0,0,.22); --prickkant-hover: rgba(0,0,0,.5);
+    --accent-tint: rgba(0,122,255,.12);
+    --fjader: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --panel: rgba(28,28,30,.8); --panel2: #1C1C1E;
+      --line: rgba(84,84,88,.42); --text: #FFFFFF;
+      --muted: rgba(235,235,245,.6); --gron: #30D158; --gul: #FFD60A;
+      --rod: #FF453A; --orange: #FF9F0A; --ios-blue: #0A84FF;
+      --land: #1C1C1E; --landkant: #3A3A3C;
+      --prickkant: rgba(255,255,255,.28); --prickkant-hover: rgba(255,255,255,.55);
+      --accent-tint: rgba(10,132,255,.22);
+    }
   }
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--bg); color: var(--text);
@@ -48,13 +63,12 @@
               font-weight: 600; padding: 11px; cursor: pointer; }
   .chip.exempel { display: block; width: 100%; border-radius: 10px;
                   padding: 8px 10px; line-height: 1.35; }
-  :root { --orange: #FF9500; }
   .s-orange { color: var(--orange); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
           cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
   .chip.on { border-color: var(--accent); color: var(--text);
-             background: rgba(0,122,255,.12); }
+             background: var(--accent-tint); }
   #analysera { margin-top: 14px; background: var(--accent); border: none;
                color: #fff; font-weight: 600; padding: 11px; cursor: pointer; }
   #analysera:disabled { opacity: .5; cursor: wait; }
@@ -64,9 +78,10 @@
   .karta { position: relative; display: flex; align-items: center;
            justify-content: center; padding: 10px; }
   svg { max-height: 100%; max-width: 100%; }
-  .prick { cursor: pointer; stroke: rgba(0,0,0,.22); stroke-width: .6;
+  #kontur { fill: var(--land, #FFFFFF); stroke: var(--landkant, #C7C7CC); }
+  .prick { cursor: pointer; stroke: var(--prickkant); stroke-width: .6;
            transition: r .1s; }
-  .prick:hover { stroke: rgba(0,0,0,.5); stroke-width: 1.2; }
+  .prick:hover { stroke: var(--prickkant-hover); stroke-width: 1.2; }
   .prick.vald { stroke: var(--accent); stroke-width: 1.8; }
   .legend { position: absolute; left: 18px; bottom: 14px; background: var(--panel);
             backdrop-filter: saturate(180%) blur(20px);
@@ -128,6 +143,31 @@
   .tab .ikon { width: 13px; height: 13px; vertical-align: -2px;
                margin-right: 3px; }
   .logomark { width: 26px; height: 26px; flex: none; }
+
+  /* Rörelse: iOS-fjäderkurva – endast transform/färg, aldrig layout. */
+  .tab, .chip { transition: transform .25s var(--fjader),
+                background .25s var(--fjader), color .25s var(--fjader),
+                border-color .25s var(--fjader); }
+  .kort { transition: transform .25s var(--fjader),
+          background .25s var(--fjader), border-color .25s var(--fjader); }
+  button { transition: transform .25s var(--fjader),
+           opacity .25s var(--fjader); }
+  button:active, .tab:active, .chip:active { transform: scale(.97); }
+
+  /* Mobil-först: kompakt layout under 640px. */
+  @media (max-width: 640px) {
+    header { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
+    #tabs { margin-left: 0; width: 100%; overflow-x: auto;
+            flex-wrap: nowrap; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; padding-bottom: 2px; }
+    #tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: none; white-space: nowrap; }
+    .layout { grid-template-columns: 1fr; height: auto; }
+    .profil { border-right: none; border-bottom: 1px solid var(--line); }
+    .resultat { border-left: none; border-top: 1px solid var(--line); }
+    .karta { min-height: 320px; }
+    .metrik { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -147,6 +187,7 @@
   <symbol id="i-om" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
   <symbol id="i-upp" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
   <symbol id="i-ned" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></symbol>
+  <symbol id="i-puls" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
 </defs></svg>
 <header>
   <svg class="logomark" viewBox="0 0 24 24" aria-hidden="true">
@@ -165,6 +206,7 @@
     <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Workforce</button>
     <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
+    <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
 </header>
@@ -222,6 +264,16 @@
         the API enforces entitlements, live layers and rate limits per
         plan automatically.</p>
     </div>
+    <div id="vyWatch" style="display:none">
+      <h2>Platform watch</h2>
+      <p class="motiv">Live status of the Landvex engines and the AAMOS
+        Capability Platform. Sources, alerts and agents refresh every
+        time this tab opens.</p>
+      <div class="falt" style="margin-top:14px"><label>Agent chat</label>
+        <textarea id="watchChatText" rows="2" placeholder="Ask the platform agents a question …"></textarea></div>
+      <button id="watchChatSend" style="background:var(--accent);border:none;color:#fff;font-weight:600">Send</button>
+      <div id="watchChatUt" class="motiv" style="margin-top:10px"></div>
+    </div>
     <div id="vyInstall" style="display:none">
       <h2>Settings</h2>
       <div class="falt"><label title="Default market in guides and tabs">Default market</label>
@@ -247,7 +299,7 @@
         <radialGradient id="glodRod"><stop offset="0%" stop-color="#FF3B30" stop-opacity=".45"/><stop offset="100%" stop-color="#FF3B30" stop-opacity="0"/></radialGradient>
         <radialGradient id="glodOrange"><stop offset="0%" stop-color="#FF9500" stop-opacity=".45"/><stop offset="100%" stop-color="#FF9500" stop-opacity="0"/></radialGradient>
       </defs>
-      <path id="kontur" fill="#FFFFFF" stroke="#C7C7CC" stroke-width="1.2" d=""/>
+      <path id="kontur" stroke-width="1.2" d=""/>
       <g id="glod"></g><g id="prickar"></g>
     </svg>
     <div class="legend" id="legendEtab">
@@ -635,6 +687,8 @@ const LAGEN = {
                    "for a full assessment." },
   paket: { rubrik: "Plans & pricing", titel: "Landvex · Plans and products",
            status: "List prices – configured per contract and market." },
+  watch: { rubrik: "Watch", titel: "Platform watch – engines, sources, alerts, agents",
+           status: "Live status of the Landvex + AAMOS platform." },
   guide: { rubrik: "Guide", titel: "Decision Intelligence for the Physical World",
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
@@ -650,6 +704,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyKomp").style.display = MODE === "komp" ? "" : "none";
   $("vyIndex").style.display = MODE === "index" ? "" : "none";
   $("vyPaket").style.display = MODE === "paket" ? "" : "none";
+  $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
@@ -662,6 +717,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   tomKarta(); $("hotspots").innerHTML =
     "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
+  if (MODE === "watch") visaWatch();
 });
 
 function ritaKompKarta(res) {
@@ -1168,6 +1224,147 @@ async function visaPaket() {
     wrap.innerHTML = `<p class="motiv">Error: ${esc(e.message)}</p>`;
   }
 }
+
+// ── Watch – plattformsstatus, källor, larm och agenter ───────────────
+const WATCH_FARG = { ok: "var(--gron)", aktiv: "var(--gron)", active: "var(--gron)",
+                     pausad: "var(--gul)", paused: "var(--gul)",
+                     degraded: "var(--gul)", degraderad: "var(--gul)",
+                     ej_ansluten: "var(--rod)", fel: "var(--rod)", error: "var(--rod)" };
+const WATCH_TEXT = { ej_ansluten: "not connected", pausad: "paused",
+                     degraderad: "degraded", fel: "error", aktiv: "active" };
+const watchPrick = s =>
+  `<i style="display:inline-block;width:9px;height:9px;border-radius:50%;` +
+  `margin-right:6px;background:${WATCH_FARG[s] || "var(--muted)"}"></i>`;
+const watchStatus = s => WATCH_TEXT[s] || s || "unknown";
+
+function watchKort(titel, ikonNamn, inre) {
+  return `<div class="kort open">` +
+    `<div class="rubrik"><span class="plats">${ikon(ikonNamn)} ${esc(titel)}</span></div>` +
+    `<div class="detalj" style="display:block">${inre}</div></div>`;
+}
+
+function watchFel(e) {
+  const msg = e && e.message ? e.message : String(e);
+  return `<p class="motiv">Error: ${esc(msg)}</p>`;
+}
+
+function watchPlattformHTML(ps) {
+  const oe = ps.opportunity_engine || {};
+  const aa = ps.aamos || {};
+  let ut =
+    `<div class="driver"><span>${watchPrick(oe.status)}Opportunity Engine</span>` +
+    `<span>${esc(watchStatus(oe.status))}</span></div>` +
+    nyckelRad("Engine version", oe.engine_version) +
+    nyckelRad("Persistence", oe.persistens) +
+    `<div class="driver"><span>${watchPrick(aa.status)}AAMOS Capability Platform</span>` +
+    `<span>${esc(watchStatus(aa.status))}</span></div>`;
+  if (aa.status === "ok") {
+    const h = ps.aamos_health;
+    if (h && typeof h === "object")
+      ut += Object.entries(h)
+        .filter(([, v]) => typeof v !== "object" && v !== null && v !== undefined)
+        .map(([k, v]) => nyckelRad("Health · " + k.replace(/_/g, " "), v)).join("");
+    const sv = ps.aamos_services;
+    if (Array.isArray(sv)) ut += nyckelRad("AAMOS services", sv.length);
+    else if (sv && typeof sv === "object")
+      ut += nyckelRad("AAMOS services", Object.keys(sv).length);
+  }
+  if (aa.notis_en) ut += `<p class="roi-notis">${esc(aa.notis_en)}</p>`;
+  return ut;
+}
+
+function watchKallorHTML(ps) {
+  const kallor = (ps.opportunity_engine || {}).kallor || [];
+  if (!kallor.length) return `<p class="motiv">No data sources reported.</p>`;
+  return kallor.map(k =>
+    `<div class="driver"><span>${watchPrick(k.status)}${esc(k.source)}</span>` +
+    `<span>${esc(watchStatus(k.status))}</span></div>` +
+    (k.notis_en ? `<p class="roi-notis">${esc(k.notis_en)}</p>` : "")).join("");
+}
+
+function watchAlertsHTML(w) {
+  const alerts = w.alerts || [];
+  let ut = "";
+  if (alerts.length) {
+    ut += alerts.map(a => {
+      const label = a.label_en || a.message_en || a.notis_en || a.alert || a.id || "Alert";
+      const niva = a.severity || a.niva || a.status || "";
+      return `<div class="driver"><span>${ikon("varning", "varn")} ${esc(label)}</span>` +
+        `<span>${esc(niva)}</span></div>` +
+        (a.detail_en ? `<p class="roi-notis">${esc(a.detail_en)}</p>` : "");
+    }).join("");
+  } else {
+    ut += `<p class="motiv">${ikon("bock", "pos")} No active alerts.</p>`;
+  }
+  const pausade = w.paused_sources || [];
+  if (pausade.length)
+    ut += pausade.map(p => {
+      const namn = typeof p === "string" ? p : (p.source || JSON.stringify(p));
+      return `<div class="driver"><span>${watchPrick("pausad")}${esc(namn)}</span>` +
+        `<span>paused</span></div>`;
+    }).join("");
+  if (w.notis_en) ut += `<p class="roi-notis">${esc(w.notis_en)}</p>`;
+  return ut;
+}
+
+function watchAgentsHTML(ag) {
+  const agents = ag.agents || [];
+  let ut = "";
+  if (agents.length) {
+    ut += agents.map(a => {
+      const namn = a.name || a.label_en || a.id || "agent";
+      const id = a.id && a.id !== namn ? ` <small style="color:var(--muted)">· ${esc(a.id)}</small>` : "";
+      return `<div class="driver"><span>${watchPrick(a.status)}${esc(namn)}${id}</span>` +
+        `<span>${esc(watchStatus(a.status))}</span></div>`;
+    }).join("");
+  } else {
+    ut += `<p class="motiv">No agents registered.</p>`;
+  }
+  const notis = ag.notis_en || (ag.aamos && ag.aamos.notis_en);
+  if (notis) ut += `<p class="roi-notis">${esc(notis)}</p>`;
+  return ut;
+}
+
+async function visaWatch() {
+  if (MODE !== "watch") return;
+  const wrap = $("hotspots");
+  wrap.innerHTML = "<p class='motiv'>Loading platform status …</p>";
+  const [ps, w, ag] = await Promise.allSettled([
+    api("/v1/platform/status"), api("/v1/watch"), api("/v1/agents")]);
+  if (MODE !== "watch") return;
+  let html = "";
+  html += watchKort("Platform status", "puls", ps.status === "fulfilled"
+    ? watchPlattformHTML(ps.value) : watchFel(ps.reason));
+  html += watchKort("Data sources", "lager", ps.status === "fulfilled"
+    ? watchKallorHTML(ps.value) : watchFel(ps.reason));
+  html += watchKort("Alerts", "varning", w.status === "fulfilled"
+    ? watchAlertsHTML(w.value) : watchFel(w.reason));
+  html += watchKort("Agents", "kompass", ag.status === "fulfilled"
+    ? watchAgentsHTML(ag.value) : watchFel(ag.reason));
+  wrap.innerHTML = html;
+}
+
+$("watchChatSend").onclick = async () => {
+  const q = $("watchChatText").value.trim();
+  if (!q) return;
+  const btn = $("watchChatSend"), ut = $("watchChatUt");
+  btn.disabled = true;
+  ut.textContent = "Waiting for the agent …";
+  try {
+    const res = await api("/v1/agents/chat", { message: q });
+    const svar = res.svar_en || res.answer_en || res.answer || res.reply ||
+      res.message || (res.aamos && res.aamos.notis_en) || res.notis_en ||
+      JSON.stringify(res);
+    ut.innerHTML = `<b>Agent:</b> ${esc(svar)}`;
+  } catch (e) {
+    ut.textContent = "Error: " + e.message;
+  } finally { btn.disabled = false; }
+};
+$("watchChatText").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault(); $("watchChatSend").click();
+  }
+});
 
 // ── Intelligence Map (Index) ─────────────────────────────────────────
 async function visaIndexStad(kod, namn) {

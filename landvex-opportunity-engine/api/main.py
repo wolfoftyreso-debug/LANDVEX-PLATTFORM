@@ -19,6 +19,10 @@ from pydantic import BaseModel, Field
 from api.health import build_health, source_status
 from api.licensing import plans_catalog, upgrade_hint_en
 from api.security import AuthError, Gate
+from integrations.aamos import (AamosClient, agent_chat_safe,
+                                agents as aamos_agents,
+                                cognition_brief_safe,
+                                platform_status, watch)
 
 from engine.datasources.adapters import production_sources
 from engine.datasources.base import Resolver
@@ -61,7 +65,8 @@ async def security_middleware(request: Request, call_next):
     principal, request_id, status = None, "-", 500
     try:
         principal, request_id = GATE.enter(
-            request.headers.get("X-API-Key"), request.method, path)
+            request.headers.get("X-API-Key")
+            or request.headers.get("Authorization"), request.method, path)
         request.state.principal = principal
         response = await call_next(request)
         status = response.status_code
@@ -392,6 +397,44 @@ def entitlements(request: Request):
     return {"tenant": p.tenant, "roll": p.role, "plan": p.plan,
             "tillagg": list(p.addons),
             "capabilities": sorted(p.capabilities)}
+
+
+AAMOS = AamosClient()
+
+
+@app.get("/v1/platform/status")
+def platform_status_ep():
+    return platform_status(AAMOS, RESOLVER, STORE,
+                           build_health, source_status)
+
+
+@app.get("/v1/watch")
+def watch_ep():
+    return watch(AAMOS, RESOLVER, source_status)
+
+
+@app.get("/v1/agents")
+def agents_ep():
+    return aamos_agents(AAMOS)
+
+
+class AgentChatIn(BaseModel):
+    message: str
+    agent_id: str | None = None
+
+
+@app.post("/v1/agents/chat")
+def agents_chat_ep(body: AgentChatIn):
+    return agent_chat_safe(AAMOS, body.message, body.agent_id)
+
+
+class BriefIn(BaseModel):
+    topic: str
+
+
+@app.post("/v1/cognition/brief")
+def cognition_brief_ep(body: BriefIn):
+    return cognition_brief_safe(AAMOS, body.topic)
 
 
 def _live_locked(request: Request) -> bool:

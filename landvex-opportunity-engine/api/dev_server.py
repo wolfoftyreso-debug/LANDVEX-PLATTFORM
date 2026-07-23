@@ -58,8 +58,13 @@ from engine.workforce import (forecast as wf_forecast, global_map,
 from api.health import build_health, source_status
 from api.licensing import plans_catalog, upgrade_hint_en
 from api.security import AuthError, Gate
+from integrations.aamos import (AamosClient, agent_chat_safe,
+                                agents as aamos_agents,
+                                cognition_brief_safe,
+                                platform_status, watch)
 
 GATE = Gate()
+AAMOS = AamosClient()
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
@@ -102,7 +107,8 @@ class Handler(BaseHTTPRequestHandler):
         principal, self._request_id, self._status = None, None, 500
         try:
             principal, self._request_id = GATE.enter(
-                self.headers.get("X-API-Key"), method, path)
+                self.headers.get("X-API-Key")
+                or self.headers.get("Authorization"), method, path)
             self._principal = principal
             route()
         except AuthError as e:
@@ -171,6 +177,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"tenant": p.tenant, "roll": p.role,
                                     "plan": p.plan, "tillagg": list(p.addons),
                                     "capabilities": sorted(p.capabilities)})
+        if parsed.path == "/v1/platform/status":
+            return self._send(200, platform_status(
+                AAMOS, RESOLVER, STORE, build_health, source_status))
+        if parsed.path == "/v1/watch":
+            return self._send(200, watch(AAMOS, RESOLVER, source_status))
+        if parsed.path == "/v1/agents":
+            return self._send(200, aamos_agents(AAMOS))
         if parsed.path == "/v1/indices":
             kat = index_catalog()
             if self._live_locked():
@@ -311,6 +324,13 @@ class Handler(BaseHTTPRequestHandler):
                     req["vertical"], market=req.get("market", DEFAULT_MARKET),
                     resolver=RESOLVER,
                     top_n=min(max(int(req.get("top_n", 5)), 1), 20)))
+            if self.path == "/v1/agents/chat":
+                return self._send(200, agent_chat_safe(
+                    AAMOS, str(req.get("message", "")),
+                    req.get("agent_id")))
+            if self.path == "/v1/cognition/brief":
+                return self._send(200, cognition_brief_safe(
+                    AAMOS, str(req.get("topic", ""))))
             if self.path == "/v1/plan":
                 return self._send(200, establishment_plan(
                     req["kommun_kod"], req["vertical"],

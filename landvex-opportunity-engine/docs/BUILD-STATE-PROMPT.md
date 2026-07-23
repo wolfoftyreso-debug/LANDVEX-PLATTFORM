@@ -144,11 +144,24 @@ REXO task/manual/artifact drafts in `infra/rexo-deliverables.md` ·
 AAMOS product (`/v1/opportunity/<action>` path convention) vs
 standalone Landvex product, plan names (Free/Growth/Enterprise?) and
 final USD price points, who claims the REXO deployment task.
-**Accepted follow-ups (not yet built):** JWT bearer auth alongside API
-keys (AAMOS standard), AAMOS Core tenant verification (:3100),
-geographies Canada/Mexico/Colombia/Morocco/West Africa, RALE
-(landvex.com: "asks targeted micro-questions only when valuable") —
-documented concept, not yet an engine.
+**Built after Bernt's AAMOS integration prompt (v0.22):** stdlib
+AAMOS client (`integrations/aamos.py`) covering identity/graph/
+analytics/alerts/control-plane/cognition/Apollo/agent-loop · five new
+endpoints (/v1/platform/status, /v1/watch, /v1/agents, /v1/agents/chat,
+/v1/cognition/brief) with capability gating and honest not-connected
+degradation until `AAMOS_CORE_URL` is set · **JWT bearer auth (HS256,
+stdlib)** alongside API keys (`LANDVEX_JWT_SECRET`; claims
+sub/tenant/role/plan/addons; same RBAC/capability enforcement; tokens
+never logged) · plan naming per AAMOS convention: "Landvex Growth"
+($499/mo; plan id "pro" kept as key-format contract, alias "growth"
+accepted) · Watch tab in the UI (platform status, data sources,
+alerts, agent chat) · mandatory dark mode (prefers-color-scheme, iOS
+dark palette) + spring-physics transitions · 16th test suite.
+**Accepted follow-ups (not yet built):** AAMOS Core check-permission
+delegation for opaque tokens, Vision/Reality/Change engine wiring into
+the Contradiction Index (needs schemas), monthly usage quotas
+(rate-per-minute exists), geographies Canada/Mexico/Colombia/Morocco/
+West Africa, RALE (documented concept, not yet an engine).
 
 ## 3. RECONCILIATION QUESTIONS — what we need from the truth sources
 When matching against **landvex.com**: exact index names/definitions/tiers

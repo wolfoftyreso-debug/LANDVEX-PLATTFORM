@@ -1,6 +1,8 @@
 """Licens- och paketlagret – plattformsnivåer, produkter och priser.
 
-Tre plannivåer (Free/Pro/Enterprise) + produktmoduler som kan köpas
+Tre plannivåer (Free/Growth/Enterprise; plan-id:t för Growth är fort-
+farande "pro" – nyckelformatet är ett kontrakt, PLAN_ALIASES mappar
+"growth" → "pro") + produktmoduler som kan köpas
 separat som tillägg. Allt är data: nytt paket eller prisändring = ny
 rad, ingen kodändring. Priserna är LISTPRISER (prisexempel) och
 konfigureras per avtal/marknad i produktionsfasen – de är medvetet
@@ -41,9 +43,36 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
+    "/v1/platform/status": "core",
+    "/v1/watch": "platform_ops",
+    "/v1/agents": "partner_api",
+    "/v1/cognition": "partner_api",
 }
 
-PLANS: dict[str, dict] = {
+# Plannamn enligt AAMOS-konventionen: "growth" är alias för plan-id:t
+# "pro" (id:t är ett kontrakt i nyckelformatet och ändras inte).
+PLAN_ALIASES: dict[str, str] = {"growth": "pro"}
+
+
+class _PlanMap(dict):
+    """dict som slår upp via PLAN_ALIASES men itererar kanoniska id:n.
+
+    Gör att nycklar skrivna `key:tenant:role:growth` fungerar överallt
+    där planer valideras eller slås upp (t.ex. rate limit per plan i
+    api/security.py) – utan att kataloger/tester ser dubbletter.
+    """
+
+    def __getitem__(self, key):
+        return super().__getitem__(PLAN_ALIASES.get(key, key))
+
+    def get(self, key, default=None):
+        return super().get(PLAN_ALIASES.get(key, key), default)
+
+    def __contains__(self, key):
+        return super().__contains__(PLAN_ALIASES.get(key, key))
+
+
+PLANS: dict[str, dict] = _PlanMap({
     "free": {
         "label_en": "Landvex Free",
         "beskrivning_en": "Ask the platform and view the free map layers. "
@@ -56,7 +85,7 @@ PLANS: dict[str, dict] = {
                      "Market and product catalogs"],
     },
     "pro": {
-        "label_en": "Landvex Pro",
+        "label_en": "Landvex Growth",
         "beskrivning_en": "All decision engines and live map layers for "
                           "one organization.",
         "pris_manad": {"USD": 499, "EUR": 459},
@@ -69,7 +98,9 @@ PLANS: dict[str, dict] = {
                      "establishment plans, risk, comparisons, segments",
                      "Workforce: forecasts, simulation, shortage maps",
                      "Demand Intelligence: installed base & service needs",
-                     "Intelligence Map incl. live layers"],
+                     "Intelligence Map incl. live layers",
+                     "AAMOS platform status & integrations (live once "
+                     "AAMOS_CORE_URL is set)"],
     },
     "enterprise": {
         "label_en": "Landvex Enterprise",
@@ -81,13 +112,15 @@ PLANS: dict[str, dict] = {
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "partner_api",
                          "platform_ops"),
-        "ingar_en": ["Everything in Pro",
+        "ingar_en": ["Everything in Growth",
                      "Partner API + agent manifest",
+                     "AAMOS agents, watchlist and cognition endpoints "
+                     "(requires AAMOS_CORE_URL)",
                      "Metrics and audit visibility via API",
                      "OIDC/SSO and tenant isolation (AWS phase)",
                      "SLA and dedicated support"],
     },
-}
+})
 
 # Produktmoduler som tillägg (t.ex. Free + enbart Workforce).
 ADDONS: dict[str, dict] = {
@@ -113,6 +146,7 @@ PRISNOT_EN = ("List prices (examples) in USD per month excl. taxes – "
 
 
 def resolve_capabilities(plan: str, addons: tuple[str, ...] = ()) -> frozenset:
+    plan = PLAN_ALIASES.get(plan, plan)
     if plan not in PLANS:
         raise ValueError(f"Unknown plan: {plan}. "
                          f"Available: {', '.join(PLANS)}")

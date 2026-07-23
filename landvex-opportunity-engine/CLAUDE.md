@@ -287,6 +287,22 @@ OIDC.
   utkast; LANDVEX_PORT stöds. Öppna beslut (Erik/Johan) listade i
   docs/BUILD-STATE-PROMPT.md §2b: domän/port, quiXzoom-väg,
   AAMOS-produktregistrering, plannamn, JWT-auth.
+- **AAMOS-integrationen (v0.22):** `integrations/aamos.py` –
+  stdlib-klient mot AAMOS Capability Platform (:3100): identity/
+  agents, graph, analytics, alerts, control-plane, cognition, Apollo,
+  agent-loop. Fem nya endpoints i båda servrarna: GET
+  /v1/platform/status (core), GET /v1/watch (platform_ops), GET
+  /v1/agents + POST /v1/agents/chat + POST /v1/cognition/brief
+  (partner_api). Allt degraderar ärligt ("ej_ansluten" tills
+  AAMOS_CORE_URL sätts) – ett AAMOS-fel fäller aldrig en endpoint.
+  JWT-bearer-auth (HS256, stdlib) bredvid API-nycklar:
+  LANDVEX_JWT_SECRET + claims sub/tenant/roll/plan/addons, samma
+  RBAC/kapabilitets-enforcement; token loggas aldrig. Plannamn enligt
+  AAMOS-konventionen: "Landvex Growth" (plan-id "pro" kvarstår som
+  kontrakt, PLAN_ALIASES "growth"→"pro"). Ny Watch-flik i frontenden
+  (plattformsstatus, källor, alerts, agent-chat) + obligatorisk dark
+  mode (prefers-color-scheme, iOS-mörk palett) + fjäderfysik-
+  transitions. 16:e testsviten tests/test_aamos.py; CI uppdaterad.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

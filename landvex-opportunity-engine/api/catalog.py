@@ -89,5 +89,15 @@ API_CATALOG: dict = {
                        {"method": "GET", "path": "/v1/reports"},
                        {"method": "GET", "path": "/health"},
                        {"method": "GET", "path": "/metrics"}]},
+        {"id": "aamos_integration", "label_en": "AAMOS Integration",
+         "beskrivning_en": "Live integration with the AAMOS Capability "
+                           "Platform (12+ engines). Reports not-connected "
+                           "honestly until AAMOS_CORE_URL is set.",
+         "endpoints": [
+             {"method": "GET", "path": "/v1/platform/status"},
+             {"method": "GET", "path": "/v1/watch"},
+             {"method": "GET", "path": "/v1/agents"},
+             {"method": "POST", "path": "/v1/agents/chat"},
+             {"method": "POST", "path": "/v1/cognition/brief"}]},
     ],
 }

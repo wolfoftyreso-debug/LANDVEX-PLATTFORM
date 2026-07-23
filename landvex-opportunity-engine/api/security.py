@@ -2,12 +2,21 @@
 
 Delas av dev-servern och FastAPI-appen så att beteendet är identiskt:
 
-  AUTENTISERING  API-nycklar via LANDVEX_API_KEYS
-                 ("nyckel:tenant:roll,nyckel2:tenant2:roll").
-                 Tom variabel = öppet läge (lokal utveckling); när
-                 nycklar finns krävs headern X-API-Key på /v1/*.
-                 OIDC/Cognito ersätter nyckellagret i AWS-fasen –
-                 samma authorize()-kontrakt.
+  AUTENTISERING  Två lägen, kan kombineras (samma authorize()-
+                 kontrakt – credential är det servern läst ur
+                 headern, rå nyckel eller "Bearer <jwt>"):
+                 (1) API-nycklar via LANDVEX_API_KEYS
+                     ("nyckel:tenant:roll[:plan[:tillägg|tillägg]]"),
+                     headern X-API-Key.
+                 (2) JWT bearer-tokens (HS256, AAMOS-standard) med
+                     hemligheten LANDVEX_JWT_SECRET. Claims:
+                     sub→key_id (default "jwt"), tenant (KRÄVS),
+                     role (default "analyst"), plan (default
+                     "free"), addons (lista, default []), exp
+                     (epoksekunder). Tom hemlighet = JWT-auth
+                     avstängd (Bearer ger då 401).
+                 Båda tomma = öppet läge (lokal utveckling).
+                 OIDC/Cognito ersätter nyckellagret i AWS-fasen.
   RBAC           Roller: admin > analyst > partner. Partner är
                  read/analyze-only (får inte skriva profiler eller
                  läsa andras rapportlistor).
@@ -25,6 +34,9 @@ Delas av dev-servern och FastAPI-appen så att beteendet är identiskt:
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -53,6 +65,88 @@ class AuthError(Exception):
 
 
 from api import licensing
+
+
+# ── JWT (HS256) – stdlib-implementation, AAMOS-standard ──────────────
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(segment: str) -> bytes:
+    return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+
+
+def jwt_encode(claims: dict, secret: str) -> str:
+    """Signera claims som en HS256-JWT (header.payload.signature)."""
+    header = {"alg": "HS256", "typ": "JWT"}
+    h = _b64url(json.dumps(header, separators=(",", ":")).encode())
+    p = _b64url(json.dumps(claims, separators=(",", ":")).encode())
+    sig = hmac.new(secret.encode(), f"{h}.{p}".encode(),
+                   hashlib.sha256).digest()
+    return f"{h}.{p}.{_b64url(sig)}"
+
+
+def jwt_decode(token: str, secret: str, now: float | None = None) -> dict:
+    """Verifiera och läs en HS256-JWT. ValueError med ärligt engelskt
+    meddelande vid fel alg, trasig struktur, ogiltig signatur eller
+    passerad exp (epoksekunder; `now` injicerbar för tester)."""
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise ValueError("Malformed JWT: expected three dot-separated "
+                         "segments.")
+    h_b64, p_b64, s_b64 = parts
+    try:
+        header = json.loads(_b64url_decode(h_b64))
+    except Exception:
+        raise ValueError("Malformed JWT: header is not valid "
+                         "base64url-encoded JSON.")
+    if not isinstance(header, dict) or header.get("alg") != "HS256":
+        raise ValueError("Unsupported JWT algorithm: only HS256 is "
+                         "accepted.")
+    expected = hmac.new(secret.encode(), f"{h_b64}.{p_b64}".encode(),
+                        hashlib.sha256).digest()
+    try:
+        actual = _b64url_decode(s_b64)
+    except Exception:
+        raise ValueError("Malformed JWT: signature is not valid "
+                         "base64url.")
+    if not hmac.compare_digest(expected, actual):
+        raise ValueError("Invalid JWT signature.")
+    try:
+        claims = json.loads(_b64url_decode(p_b64))
+    except Exception:
+        raise ValueError("Malformed JWT: payload is not valid "
+                         "base64url-encoded JSON.")
+    if not isinstance(claims, dict):
+        raise ValueError("Malformed JWT: payload must be a JSON object.")
+    exp = claims.get("exp")
+    if exp is not None:
+        try:
+            exp_s = float(exp)
+        except (TypeError, ValueError):
+            raise ValueError("Malformed JWT: 'exp' must be a number "
+                             "(epoch seconds).")
+        current = now if now is not None else time.time()
+        if current >= exp_s:
+            raise ValueError("JWT has expired.")
+    return claims
+
+
+def _extract_jwt(credential: str) -> str | None:
+    """Bearer-detektering: skala ev. 'Bearer '-prefix (case-
+    insensitivt); en rest med exakt två punkter och base64url-
+    avkodbar header behandlas som JWT, annars API-nyckel."""
+    token = credential.strip()
+    if token[:7].lower() == "bearer ":
+        token = token[7:].strip()
+    if token.count(".") != 2:
+        return None
+    try:
+        _b64url_decode(token.split(".", 1)[0])
+    except Exception:
+        return None
+    return token
 
 
 @dataclass(frozen=True)
@@ -86,22 +180,70 @@ def _parse_keys(raw: str) -> dict[str, Principal]:
 
 
 class ApiAuth:
-    def __init__(self, keys_env: str | None = None):
-        raw = keys_env if keys_env is not None else os.environ.get("LANDVEX_API_KEYS", "")
+    def __init__(self, keys_env: str | None = None,
+                 jwt_secret: str | None = None):
+        raw = keys_env if keys_env is not None else os.environ.get(
+            "LANDVEX_API_KEYS", "")
         self.keys = _parse_keys(raw)
-        self.enabled = bool(self.keys)
+        self.jwt_secret = (jwt_secret if jwt_secret is not None
+                           else os.environ.get("LANDVEX_JWT_SECRET", ""))
+        self.enabled = bool(self.keys) or bool(self.jwt_secret)
 
     _OPEN = Principal("dev", "admin", "open", "enterprise", (),
                       licensing.resolve_capabilities("enterprise"))
 
-    def authorize(self, api_key: str | None, method: str, path: str) -> Principal:
+    def authorize(self, credential: str | None, method: str,
+                  path: str) -> Principal:
+        """credential = det servern läst ur headern: rå API-nyckel
+        (X-API-Key) eller ett Bearer-värde (Authorization)."""
         if not self.enabled:
             return self._OPEN
-        if not api_key:
+        if not credential:
+            if self.jwt_secret:
+                raise AuthError(401, "Credentials required: API key "
+                                     "(header X-API-Key) or JWT bearer "
+                                     "token (header Authorization).")
             raise AuthError(401, "API key required (header X-API-Key).")
-        p = self.keys.get(api_key)
-        if p is None:
-            raise AuthError(401, "Invalid API key.")
+        token = _extract_jwt(credential)
+        if token is not None:
+            p = self._principal_from_jwt(token)
+        else:
+            p = self.keys.get(credential)
+            if p is None:
+                raise AuthError(401, "Invalid API key.")
+        return self._enforce(p, method, path)
+
+    def _principal_from_jwt(self, token: str) -> Principal:
+        if not self.jwt_secret:
+            raise AuthError(401, "JWT authentication is not configured "
+                                 "on this server.")
+        try:
+            claims = jwt_decode(token, self.jwt_secret)
+        except ValueError as e:
+            raise AuthError(401, str(e))
+        tenant = claims.get("tenant")
+        if not tenant or not isinstance(tenant, str):
+            raise AuthError(401, "JWT is missing the required 'tenant' "
+                                 "claim.")
+        role = claims.get("role", "analyst")
+        if role not in _ROLE_RANK:
+            raise AuthError(401, f"Unknown role in JWT: {role!r}. "
+                                 f"Valid roles: "
+                                 f"{', '.join(sorted(_ROLE_RANK))}.")
+        plan = claims.get("plan", "free")
+        raw_addons = claims.get("addons", [])
+        if not isinstance(raw_addons, (list, tuple)):
+            raise AuthError(401, "JWT claim 'addons' must be a list.")
+        addons = tuple(str(a) for a in raw_addons)
+        try:
+            caps = licensing.resolve_capabilities(plan, addons)
+        except ValueError as e:
+            raise AuthError(401, str(e))
+        key_id = str(claims.get("sub") or "jwt")
+        return Principal(tenant, role, key_id, plan, addons, caps)
+
+    def _enforce(self, p: Principal, method: str, path: str) -> Principal:
+        """Gemensam RBAC- + kapabilitetskontroll för båda auth-lägena."""
         base = path.split("?")[0].rstrip("/")
         # Prefixmatch så /v1/profiles/{id} ärver /v1/profiles-kravet.
         needed = "partner"
