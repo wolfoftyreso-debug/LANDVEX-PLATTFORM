@@ -27,6 +27,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .gaps import gap_analysis
+from .installed_base import service_analysis, service_demand_map
 from .markets import MARKETS, get_market
 from .plan import establishment_plan
 from .models import Location
@@ -86,6 +87,7 @@ _OCCUPATION_SYNONYMS: dict[str, str] = {
     "plattsättare": "plattsattare",
     "maskinförare": "maskinforare", "anläggningsförare": "maskinforare",
     "anläggningsmaskinförare": "maskinforare",
+    "kyltekniker": "kyltekniker", "värmepumpstekniker": "kyltekniker",
     "arkitekt": "arkitekt",
     "ingenjör": "ingenjor_bygg", "byggnadsingenjör": "ingenjor_bygg",
     "byggingenjör": "ingenjor_bygg",
@@ -120,6 +122,18 @@ _SEGMENT_SYNONYMS: dict[str, str] = {
     "företagare": "foretagare",
     "turister": "besokare", "besökare": "besokare",
 }
+_PRODUCT_SYNONYMS: dict[str, str] = {
+    "värmepump": "varmepump_luft", "luftvärmepump": "varmepump_luft",
+    "bergvärme": "varmepump_berg", "bergvärmepump": "varmepump_berg",
+    "solcell": "solcellsanlaggning", "solpanel": "solcellsanlaggning",
+    "solcellsanläggning": "solcellsanlaggning",
+    "laddbox": "laddbox", "laddstation": "laddbox", "laddstolpe": "laddbox",
+    "hiss": "hiss",
+    "industrirobot": "industrirobot", "robot": "industrirobot",
+    "ventilation": "ventilation", "ftx": "ventilation",
+    "personbil": "personbil",
+    "servicebehov": "*",   # generell servicefråga utan specifik produkt
+}
 _PLAN_WORDS = ("etableringsplan", "affärsplan", "hur startar jag",
                "vad krävs för att starta", "beslutsunderlag")
 
@@ -129,6 +143,7 @@ class Query:
     intent: str
     kommun: tuple | None = None            # (kod, namn, lat, lon)
     segment_id: str | None = None
+    product_id: str | None = None
     region_market: str = "se"              # marknad regionen tillhör
     market: str | None = None              # explicit nämnd marknad
     group: str | None = None               # "eu" | "varlden"
@@ -229,6 +244,11 @@ def parse(question: str) -> Query:
     segment = _find_in_lexicon(q, _SEGMENT_SYNONYMS)
     malgrupp = "målgrupp" in q
     query.segment_id = segment
+    product = _find_in_lexicon(q, _PRODUCT_SYNONYMS)
+    service_ctx = any(w in q for w in ("service", "servar", "utbyte",
+                                       "utbytesålder", "reservdel",
+                                       "underhåll", "installerad"))
+    query.product_id = None if product == "*" else product
 
     if kommun is None and query.unmatched_kommun:
         query.intent = "okand_kommun"
@@ -236,6 +256,11 @@ def parse(question: str) -> Query:
         query.intent = "etableringsplan"
     elif gap and vert:
         query.intent = "gap_analys"
+    elif (query.product_id or product == "*" or service_ctx) \
+            and kommun and not occ:
+        query.intent = "servicebehov_kommun"
+    elif query.product_id and not occ:
+        query.intent = "service_karta"
     elif (segment or malgrupp) and kommun:
         query.intent = "malgrupper_kommun"
     elif segment:
@@ -556,6 +581,67 @@ def _rows_plan(query: Query, resolver) -> dict[str, Any]:
     }
 
 
+def _rows_service_karta(query: Query, resolver) -> dict[str, Any]:
+    res = service_demand_map(query.product_id, market=query.market or "se",
+                             resolver=resolver)
+    rows = [{
+        "typ": "servicebehov", "id": r["kommun_kod"], "label_sv": r["kommun"],
+        "score": r["utbyten_till_malar"],
+        "trend": None,
+        "detalj": {
+            "installerad_bas": f"{r['installerad_bas']} (uppskattning)",
+            "utbyten_till_malar": r["utbyten_till_malar"],
+            "servicetillfallen_per_ar": r["servicetillfallen_per_ar"],
+            "teknikerbehov": r["teknikerbehov"],
+            "narrativ_sv": r["teknikerlage"]["text_sv"],
+            "motivering_sv": (["⚠ Mismatch: stor installerad bas men "
+                               "teknikerbrist – affärsmöjlighet."]
+                              if r["mismatch"] else []),
+        }} for r in res["regioner"][:query.top_n]]
+    return {
+        "svar_sv": res["sammanfattning_sv"],
+        "rader": rows,
+        "karta": {"typ": "heatmap", "heatmap": res["heatmap"],
+                  "hotspots": [], "bbox": res["bbox"], "level": "oversikt"},
+        "forslag_sv": [f"Var finns störst obalans för "
+                       f"{res['betjanas_av']['label_sv'].lower()}?"],
+        "caveats_sv": res["antaganden_sv"],
+    }
+
+
+def _rows_servicebehov(query: Query, resolver) -> dict[str, Any]:
+    kod = query.kommun[0]
+    res = service_analysis(kod, market=query.region_market, resolver=resolver)
+    prods = ([p for p in res["produkter"] if p["product_id"] == query.product_id]
+             if query.product_id else res["produkter"])
+    rows = [{
+        "typ": "produkt", "id": p["product_id"], "label_sv": p["label_sv"],
+        "score": p["utbyten_till_malar"], "trend": None,
+        "detalj": {
+            "installerad_bas": f"{p['installerad_bas']} (uppskattning)",
+            "utbyten_till_malar": p["utbyten_till_malar"],
+            "servicetillfallen_per_ar": p["servicetillfallen_per_ar"],
+            "teknikerbehov": p["teknikerbehov"],
+            "livslangd": f"{p['livslangd_ar']} år, service vart "
+                         f"{p['serviceintervall_ar']}:e år",
+            "certifiering": p["certifiering_sv"],
+            "narrativ_sv": p["felmonster_sv"],
+            "motivering_sv": [p["teknikerlage"]["text_sv"],
+                              f"Reservdelar: {p['reservdelar_sv']}.",
+                              f"Säsong: {p['sasong_sv']}.",
+                              f"Betjänas av: {p['betjanas_av']['label_sv']}."],
+        }} for p in prods]
+    return {
+        "svar_sv": res["sammanfattning_sv"],
+        "rader": rows,
+        "forslag_sv": [f"Var i Sverige är servicebehovet för "
+                       f"{rows[0]['label_sv'].lower()} störst?" if rows else
+                       "Vilken region har flest värmepumpar som närmar sig "
+                       "utbytesålder?"],
+        "caveats_sv": res["antaganden_sv"],
+    }
+
+
 def _rows_malgrupper(query: Query, resolver) -> dict[str, Any]:
     kod = query.kommun[0]
     res = segment_analysis(kod, market=query.region_market, resolver=resolver)
@@ -660,6 +746,8 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
                "etableringsplan": _rows_plan,
                "malgrupper_kommun": _rows_malgrupper,
                "segment_karta": _rows_segment_karta,
+               "service_karta": _rows_service_karta,
+               "servicebehov_kommun": _rows_servicebehov,
                "riskprofil": _rows_risk}[query.intent]
     result = handler(query, resolver)
     caveats = result.pop("caveats_sv", []) + [

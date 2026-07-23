@@ -170,6 +170,22 @@ OIDC.
   (`GET /v1/segments/map`), katalog (`GET /v1/segments`).
   Frågetolken: "Var finns flest djurägare?", "Hur ser målgrupperna
   ut i Umeå?", "Hur många barnfamiljer finns i Örebro?".
+- **Installed Base Engine (v0.12):** `engine/installed_base.py` –
+  "varje installerad produkt är ett framtida servicebehov". EN
+  generell modell, produkttyper som data (`PRODUCT_TYPES`, 8 st:
+  luft-/bergvärmepumpar, solceller, laddboxar, hissar, personbilar,
+  industrirobotar, FTX): basproxy ur signaler, livslängd,
+  serviceintervall, certifieringskrav, felmönster, reservdelar,
+  säsong, serviceyrke (Workforce-länk) och betjänande vertikal.
+  Kedjan bas → ålder (jämn fördelning, dokumenterat) → utbyten →
+  servicetillfällen → teknikerbehov → kompetensläge → mismatch
+  (stor bas + teknikerbrist = affärsmöjlighet). Nytt yrke:
+  kyltekniker. API: `GET /v1/products`, `POST /v1/service/analyze`,
+  `GET /v1/service/map`. Frågor: "Vilken region har flest värme-
+  pumpar som närmar sig utbytesålder?", "Var är det bäst att starta
+  ett företag som servar laddboxar?", "Hur ser servicebehovet ut i
+  Umeå?". Verkliga installationsregister (F-gas, elnätsanslutningar,
+  besiktningar) är adapterkandidater i samma Resolver-mönster.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
@@ -187,6 +203,7 @@ python3 -m tests.test_markets      # marknads- och globaltester (7 st)
 python3 -m tests.test_security     # auth/RBAC/rate limit/audit (6 st)
 python3 -m tests.test_gaps_plan    # obalanser + etableringsplan (7 st)
 python3 -m tests.test_segments     # målgruppsmotorn (4 st)
+python3 -m tests.test_installed_base  # installerad bas/service (5 st)
 python3 -m api.dev_server          # → öppna http://localhost:8000/ för kartvyn
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000

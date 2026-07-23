@@ -30,6 +30,8 @@ from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.installed_base import (product_catalog, service_analysis,
+                                   service_demand_map)
 from engine.plan import establishment_plan
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
@@ -298,6 +300,37 @@ def plan(req: PlanRequest):
 class SegmentAnalyzeRequest(BaseModel):
     kommun_kod: str
     market: str = "se"
+
+
+class ServiceAnalyzeRequest(BaseModel):
+    kommun_kod: str
+    market: str = "se"
+    target_year: int = 2031
+
+
+@app.get("/v1/products")
+def products():
+    return product_catalog()
+
+
+@app.post("/v1/service/analyze")
+def service_analyze(req: ServiceAnalyzeRequest):
+    try:
+        return service_analysis(req.kommun_kod, market=req.market,
+                                target_year=req.target_year,
+                                resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/service/map")
+def service_map(product_id: str, market: str = "se",
+                target_year: int = 2031):
+    try:
+        return service_demand_map(product_id, market=market,
+                                  target_year=target_year, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/segments")

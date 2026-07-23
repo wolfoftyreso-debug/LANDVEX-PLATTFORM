@@ -92,6 +92,10 @@ OCCUPATIONS: dict[str, Occupation] = {o.id: o for o in [
        ("residential_density", 0.40), ("development_m2", 0.30), ("pop_growth_pct", 0.30)),
     _o("drifttekniker", "Drifttekniker", "Drift & fastighet", 1.5, 0.030, 2.0, 38, 0.35,
        ("business_density", 0.40), ("infra_invest", 0.30), ("development_m2", 0.30)),
+    _o("kyltekniker", "Kyl- & värmepumpstekniker", "Drift & installation",
+       0.6, 0.030, 0.8, 39, 0.15,
+       ("detached_homes", 0.35), ("renovation_index", 0.25),
+       ("ev_per_capita", 0.20), ("pop_growth_pct", 0.20)),
 ]}
 
 

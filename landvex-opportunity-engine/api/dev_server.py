@@ -43,6 +43,8 @@ from engine.ask import ask
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import market_catalog
+from engine.installed_base import (product_catalog, service_analysis,
+                                   service_demand_map)
 from engine.plan import establishment_plan
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
@@ -134,6 +136,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, market_catalog())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
+        if parsed.path == "/v1/products":
+            return self._send(200, product_catalog())
+        if parsed.path == "/v1/service/map":
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, service_demand_map(
+                    q.get("product_id", [""])[0],
+                    market=q.get("market", ["se"])[0],
+                    target_year=int(q.get("target_year", ["2031"])[0]),
+                    resolver=RESOLVER))
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/segments/map":
             q = parse_qs(parsed.query)
             try:
@@ -213,6 +227,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/ask":
                 return self._send(200, ask(str(req.get("question", "")),
                                            resolver=RESOLVER))
+            if self.path == "/v1/service/analyze":
+                return self._send(200, service_analysis(
+                    req["kommun_kod"], market=req.get("market", "se"),
+                    target_year=int(req.get("target_year", 2031)),
+                    resolver=RESOLVER))
             if self.path == "/v1/segments/analyze":
                 return self._send(200, segment_analysis(
                     req["kommun_kod"], market=req.get("market", "se"),

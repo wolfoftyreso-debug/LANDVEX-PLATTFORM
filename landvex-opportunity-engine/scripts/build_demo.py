@@ -40,6 +40,10 @@ FRAGOR = [
     "Gör en etableringsplan för bilverkstad i Skellefteå.",
     "Var i Sverige finns flest djurägare?",
     "Hur ser målgrupperna ut i Umeå?",
+    "Vilken region har flest värmepumpar som närmar sig utbytesålder?",
+    "Var är det bäst att starta ett företag som servar laddboxar?",
+    "Hur ser servicebehovet ut i Umeå?",
+    "Var kommer behovet av kyltekniker att öka de kommande fem åren?",
 ]
 # Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
 # data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
