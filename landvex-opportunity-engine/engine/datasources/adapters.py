@@ -291,10 +291,16 @@ class QuixzoomSource(DataSource):
     def __init__(self, client=None,
                  retry_after_s: float = 300.0,
                  clock: Callable[[], float] = time.monotonic):
-        # Default: en AamosClient som läser AAMOS_CORE_URL.
+        # Default: via AAMOS Core (AAMOS_CORE_URL). Om LANDVEX_QUIXZOOM_URL är
+        # satt föredras quiXzooms EGNA API (:3209) direkt – valfri alternativ
+        # väg när Core-token saknas. Ingen bypass: :3209:s egen auth gäller.
         if client is None:
-            from integrations.aamos import AamosClient
-            client = AamosClient()
+            if os.environ.get("LANDVEX_QUIXZOOM_URL"):
+                from .quixzoom_direct import DirectQuixzoomClient
+                client = DirectQuixzoomClient()
+            else:
+                from integrations.aamos import AamosClient
+                client = AamosClient()
         self._client = client
         self._retry_after_s = retry_after_s
         self._clock = clock
