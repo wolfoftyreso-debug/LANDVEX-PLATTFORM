@@ -25,11 +25,17 @@ def source_status(resolver) -> list[dict[str, Any]]:
             out.append({"source": name, "status": "ej_ansluten",
                         "notis_en": "Adapter stub – awaiting data source."})
             continue
-        if name == "quixzoom" and not getattr(inner, "base_url", ""):
+        # Källor som ansluts via en URL (tom base_url ⇒ ej ansluten).
+        if hasattr(inner, "base_url") and not getattr(inner, "base_url", ""):
+            _notis = {
+                "quixzoom": "quiXzoom missions reach us via AAMOS Core – set "
+                            "AAMOS_CORE_URL to connect the field-observation "
+                            "network.",
+                "permits": "Building permits / detail plans – set "
+                           "LANDVEX_PERMITS_URL to connect the source.",
+            }.get(name, "Adapter ready – set its URL to connect.")
             out.append({"source": name, "status": "ej_ansluten",
-                        "notis_en": "quiXzoom missions reach us via AAMOS "
-                                    "Core – set AAMOS_CORE_URL to connect "
-                                    "the field-observation network."})
+                        "notis_en": _notis})
             continue
         down_until = getattr(inner, "_down_until", 0.0)
         clock = getattr(inner, "_clock", None)

@@ -164,8 +164,52 @@ class MovementSource(_NotWiredSource):
     name = "movement"
 
 
-class PermitsSource(_NotWiredSource):
+class PermitsSource(DataSource):
+    """Bygglov & detaljplaner – "officiellt planerat"-signalerna.
+
+    Verklig data för `building_permits`, `detail_plans`, `development_m2`
+    från en kommunal/nationell öppen-datakälla via PermitsClient. Ej
+    ansluten tills LANDVEX_PERMITS_URL är satt → Resolvern faller ärligt
+    vidare till mock. Fel pausar källan i stället för att fälla anropet.
+    Hittar aldrig på ett fält som feeden inte levererar.
+    """
+
     name = "permits"
+    SIGNALS = ("building_permits", "detail_plans", "development_m2")
+    _QUALITY = {"building_permits": 0.75, "detail_plans": 0.75,
+                "development_m2": 0.6}
+
+    def __init__(self, client=None, retry_after_s: float = 300.0,
+                 clock: Callable[[], float] = time.monotonic):
+        if client is None:
+            from .permits import PermitsClient
+            client = PermitsClient()
+        self._client = client
+        self._retry_after_s = retry_after_s
+        self._clock = clock
+        self._down_until = 0.0
+
+    @property
+    def base_url(self) -> str:
+        return getattr(self._client, "base_url", "")
+
+    def fetch(self, location: Location, vertical_id: str,
+              signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
+        wanted = [s for s in signal_ids if s in self.SIGNALS]
+        if not wanted or not getattr(self._client, "connected", False):
+            return {}, {}
+        if self._clock() < self._down_until:
+            return {}, {}
+        try:
+            raw = self._client.fetch_permits(location.lat, location.lon)
+        except Exception:
+            self._down_until = self._clock() + self._retry_after_s
+            return {}, {}
+        values = {s: SignalValue(s, float(raw[s]), source=self.name,
+                                 quality=self._QUALITY[s])
+                  for s in wanted if s in raw}
+        extras = {"permits": {"via": self.base_url}} if values else {}
+        return values, extras
 
 
 class PlacesSource(_NotWiredSource):
