@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .commission import commission_for_lead
 from .datasources.base import Resolver
 from .datasources.scb import _haversine_km
 from .markets import DEFAULT_MARKET, get_market, plural_region_label
@@ -302,6 +303,8 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
             "lat": s["lat"], "lon": s["lon"],
             "opportunity_score": r.opportunity_score,
             "rank_score": s["rank_score"],
+            # Kommission per lead (quiXzoom QZ TOKEN), graderad av score.
+            "commission": commission_for_lead(r.opportunity_score),
             "confidence": _confidence(r),
             "risk_index": s["risk_index"],
             "risk_level": r.risk_level,

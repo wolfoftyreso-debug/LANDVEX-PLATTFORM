@@ -137,13 +137,13 @@ def test_quixzoom_via_aamos_and_registration():
 
     def transport(method, url, body):
         calls.append((method, url, body))
-        if "quixzoom/missions" in url:
+        if "/api/qz/missions" in url:
             return {"missions": [{"id": "m1"}, {"id": "m2"}]}
         return {"registered": True}
     c = AamosClient(base_url="http://localhost:3100", transport=transport)
     m = c.quixzoom_missions(29.76, -95.37)
     assert len(m["missions"]) == 2
-    assert "/api/aamos/quixzoom/missions" in calls[0][1]
+    assert "/api/qz/missions" in calls[0][1]
     reg = c.register_service("landvex-opportunity-engine", 8087,
                              ["/v1/ask"])
     assert reg["registered"] is True

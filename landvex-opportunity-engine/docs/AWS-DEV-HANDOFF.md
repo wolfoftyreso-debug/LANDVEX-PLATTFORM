@@ -3,7 +3,7 @@
 **From:** Claude Code (Fab build)  ·  **To:** Bernt (bernt.wavult.com)
 **Engine version:** 0.10.0  ·  **Repo:** `wolfoftyreso-debug/konditori-joy`
 **Branch:** `claude/new-session-d9t6ni`  ·  **Subdir:** `landvex-opportunity-engine/`
-**Latest commit:** v0.24 (contract test, persistent quota, 500 safety net)
+**Latest commit:** v0.26 (quiXzoom/commission locked to reality)
 
 This is what you need to deploy and wire the engine into the real
 infrastructure. Everything below is built and green (18 test suites,
@@ -66,13 +66,14 @@ identical endpoint surface (locked by tests/test_contract.py).
 | `LANDVEX_PG_DSN` | Postgres/PostGIS DSN (via pgbouncer). Empty ⇒ SQLite | `postgresql://user:pw@127.0.0.1:6432/landvex` |
 | `LANDVEX_DB` | SQLite path, or `off` when using Postgres | `off` |
 | `AAMOS_CORE_URL` | AAMOS Capability Platform base. Empty ⇒ honest not-connected | `http://127.0.0.1:3100` |
-| `AAMOS_QUIXZOOM_PATH` | AAMOS Core route for quiXzoom missions (quiXzoom is reached VIA AAMOS Core, decision #2) | `/api/aamos/quixzoom/missions` |
+| `AAMOS_QUIXZOOM_PATH` | AAMOS Core route for quiXzoom missions (quiXzoom is reached VIA AAMOS Core, decision #2) | `/api/qz/missions` |
 | `LANDVEX_LIVE` | `0` = mock only (no real adapters) | `1` |
 | `LANDVEX_RATE_LIMIT` | Fallback per-minute cap when a key has no plan | `300` |
 | `LANDVEX_AUDIT_LOG` | JSONL audit path, or `off` | `/var/log/landvex/audit.jsonl` |
 
-Roles: `admin > analyst > partner`. Plans: `free` / `growth`(=`pro` id)
-/ `enterprise`. Monthly quotas enforced and **persistent** across
+Roles: `admin > analyst > partner`. Plans: `free` (\$0) / `growth`
+(=`pro` id; **quiXzoom commission 0.05–0.15 QZ per lead by opportunity
+score — no monthly fee**) / `enterprise` (custom). Monthly quotas enforced and **persistent** across
 restarts once `LANDVEX_PG_DSN`/`LANDVEX_DB` is set: Free 100/mo,
 Growth 10 000/mo, Enterprise unlimited.
 
@@ -105,14 +106,15 @@ Both adapters are real clients today; they just need URLs.
 
 - **quiXzoom (via AAMOS Core, decision #2)** → set `AAMOS_CORE_URL`;
   the client calls `GET {AAMOS_QUIXZOOM_PATH}?lat&lon&radius_km`
-  (default `/api/aamos/quixzoom/missions`) and reads the mission list
-  (real shape: `id, title, location{lat,lng}, status, required_media,
-  reward`). It derives `field_observation_density` (mission count near
-  the point) — genuinely real. It does **not** fabricate
-  `development_m2`; the precise observed-development signal for the
-  Contradiction Index awaits the Vision pipeline analysing the
-  submitted media. **Confirm the exact AAMOS route** — if it differs,
-  set `AAMOS_QUIXZOOM_PATH` or send me the path and I lock the parser.
+  (default `/api/qz/missions`, confirmed) and reads the mission list
+  (real shape locked: `id, title, location{lat,lng}, reward, currency,
+  status, required_media, deadline, created_at` — note `lng`). It
+  filters missions client-side to a 10 km radius and derives
+  `field_observation_density` (local mission count) — genuinely real.
+  It does **not** fabricate `development_m2`; that observed-development
+  signal for the Contradiction Index awaits the Vision pipeline that
+  analyses the submitted media. If AAMOS Core proxies missions at a
+  different path, set `AAMOS_QUIXZOOM_PATH`.
 - **AAMOS Core** → `AAMOS_CORE_URL=http://127.0.0.1:3100`. Powers
   `/v1/platform/status`, `/v1/watch`, `/v1/agents`, `/v1/agents/chat`,
   `/v1/cognition/brief`, and enriches `/v1/ask` with a strategic note.
@@ -153,17 +155,29 @@ mode; zero banned colors). Pricing is USD-only (locked rule).
 
 ---
 
-## 9. DECISIONS I NEED FROM YOU / ERIK / JOHAN
-1. **Domain:** `opportunity.landvex.com` vs `api.landvex.io/v1/`?
-2. **quiXzoom path:** Contradiction Index reads quiXzoom directly
-   (:3209) or via AAMOS Core?
-3. **AAMOS product registration:** register as an AAMOS product
-   (`/v1/opportunity/<action>` convention — one path-prefix mapping when
-   you decide) or standalone Landvex product?
-4. **Plan pricing:** confirm Growth $499/mo + add-on prices, or your
-   numbers.
-5. **REXO:** you claim the deploy task, or run it manually with the
-   drafts?
+## 9. DECISIONS — RESOLVED (from AAMOS-dev)
+1. ✅ **Domain:** `opportunity.landvex.com` (nginx conf ready, reuses
+   the landvex.com cert).
+2. ✅ **quiXzoom:** via AAMOS Core (`/api/qz/missions`), never fails the
+   endpoint on AAMOS error.
+3. ✅ **Service registration:** `landvex-opportunity-engine` posts to
+   `/api/services/register` at startup (best-effort, non-blocking).
+4. ✅ **Pricing:** Growth = quiXzoom commission 0.05–0.15 QZ per lead by
+   opportunity score, no monthly fee (built in — each decision card
+   carries its `commission`). A "lead" = an engine-identified
+   opportunity (a delivered decision card).
+5. ✅ **REXO:** Bernt claims the deploy task.
+6. ✅ **Schemas:** quiXzoom mission shape + AAMOS XML/RSS `contents`
+   locked into the parsers.
+
+### Still helpful to confirm on the live box
+- Exact query params `/api/qz/missions` accepts (we send
+  `?lat&lon&radius_km` and also filter client-side to 10 km, so it works
+  either way).
+- Whether commission applies platform-wide beyond Growth (Free stays
+  $0, Enterprise stays custom in the build).
+
+_(Historical — superseded by the resolved list above:_
 6. **quiXzoom / AAMOS response schemas:** send one sample payload each so
    I can lock the parsers to reality (replaces the last assumptions).
 

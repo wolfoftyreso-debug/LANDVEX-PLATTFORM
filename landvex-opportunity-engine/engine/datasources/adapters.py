@@ -38,6 +38,26 @@ from typing import Any, Callable
 from ..models import Location, SignalValue
 from .base import DataSource
 from . import scb
+from .scb import _haversine_km
+
+
+def _mission_latlon(m):
+    """Plocka (lat, lon) ur ett quiXzoom-mission/submission-objekt.
+    Mission har location:{lat,lng}; submission har toppnivå lat/lon."""
+    if not isinstance(m, dict):
+        return None, None
+    loc = m.get("location")
+    if isinstance(loc, dict):
+        lat = loc.get("lat")
+        lon = loc.get("lng", loc.get("lon"))
+    else:
+        lat = m.get("lat")
+        lon = m.get("lon", m.get("lng"))
+    try:
+        return (float(lat), float(lon)) if lat is not None \
+            and lon is not None else (None, None)
+    except (TypeError, ValueError):
+        return None, None
 
 
 class _NotWiredSource(DataSource):
@@ -155,20 +175,20 @@ class PlacesSource(_NotWiredSource):
 class QuixzoomSource(DataSource):
     """Fältobservationer (quiXzoom) – VIA AAMOS Core.
 
-    VERKLIG MODELL (bekräftad av inventeringen 2026-07-23): quiXzoom är
-    mission-baserat, INTE en /v1/observations-endpoint. Missions (id,
-    title, location{lat,lng}, status, required_media, reward) skapas och
-    zoomers laddar upp media (mission_id, lat, lon, captured_at_ms,
-    device_id). Fältdata når oss genom AAMOS Core (:3100), inte direkt
-    mot :3209 (beslut #2).
+    VERKLIG MODELL (bekräftad av AAMOS-dev): quiXzoom är mission-baserat,
+    INTE en /v1/observations-endpoint. Missions har formen
+    {id, title, description, location:{lat,lng}, reward, currency,
+    status, required_media, deadline, created_at} – notera fältet `lng`.
+    Fältdata når oss via AAMOS Core (:3100) på /api/qz/missions
+    (AAMOS_QUIXZOOM_PATH), inte direkt mot :3209 (beslut #2).
 
-    Vad vi ÄRLIGT kan härleda idag: tätheten av fältobservationer
-    (mission-/submission-antal) runt en punkt → signalen
-    `field_observation_density`. Detta är verklig observerad aktivitet
-    på marken. Det precisa "observerat byggt" (development_m2) för
-    kontradiktionsindexet kräver Vision-analys av det inskickade mediet
-    och lämnas därför på mock tills Vision-pipelinen är trådad – vi
-    hittar aldrig på siffran.
+    Vad vi ÄRLIGT kan härleda idag: tätheten av missions inom radien
+    runt punkten → signalen `field_observation_density`. Vi filtrerar
+    på plats med missionernas location så densiteten är verkligt lokal,
+    oavsett om servern förfiltrerar. Det precisa "observerat byggt"
+    (development_m2) för kontradiktionsindexet kräver Vision-analys av
+    det inskickade mediet och lämnas på mock tills Vision-pipelinen är
+    trådad – vi hittar aldrig på siffran.
 
     Källan är ej ansluten tills AAMOS_CORE_URL är satt; då faller
     Resolvern ärligt vidare till mock. Transporten (AamosClient) är
@@ -178,6 +198,7 @@ class QuixzoomSource(DataSource):
 
     name = "quixzoom"
     SIGNALS = ("field_observation_density",)
+    RADIUS_KM = 10.0
 
     def __init__(self, client=None,
                  retry_after_s: float = 300.0,
@@ -205,7 +226,8 @@ class QuixzoomSource(DataSource):
         if self._clock() < self._down_until:
             return {}, {}
         try:
-            data = self._client.quixzoom_missions(location.lat, location.lon)
+            data = self._client.quixzoom_missions(
+                location.lat, location.lon, radius_km=self.RADIUS_KM)
         except Exception:
             self._down_until = self._clock() + self._retry_after_s
             return {}, {}
@@ -213,9 +235,23 @@ class QuixzoomSource(DataSource):
         missions = data.get("missions", data) if isinstance(data, dict) else data
         if isinstance(missions, dict):
             missions = missions.get("items", [])
-        density = float(len(missions)) if isinstance(missions, list) else 0.0
+        if not isinstance(missions, list):
+            return {}, {}
+        # Filtrera lokalt på missionens plats (fält `lng` i mission-objektet,
+        # `lon` i submission; toppnivå-lat/lon som reserv) så densiteten är
+        # verkligt lokal även om servern inte förfiltrerar.
+        near = 0
+        for m in missions:
+            mlat, mlon = _mission_latlon(m)
+            if mlat is None:
+                near += 1                    # ingen plats → räkna med, ärligt
+            elif _haversine_km(location.lat, location.lon, mlat, mlon) \
+                    <= self.RADIUS_KM:
+                near += 1
+        density = float(near)
         values = {"field_observation_density": SignalValue(
             "field_observation_density", density, source=self.name,
             quality=0.8)}
-        extras = {"quixzoom": {"missions_near": density, "via": "aamos_core"}}
+        extras = {"quixzoom": {"missions_near": near, "radius_km": self.RADIUS_KM,
+                               "via": "aamos_core"}}
         return values, extras

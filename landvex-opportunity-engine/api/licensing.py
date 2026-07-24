@@ -19,6 +19,8 @@ Enforcement sker i api/security.py:
 """
 from __future__ import annotations
 
+from engine.commission import commission_catalog
+
 # ── Kapabiliteter per endpoint (prefixmatch, längsta vinner) ─────────
 ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/ask": "core",
@@ -88,14 +90,14 @@ PLANS: dict[str, dict] = _PlanMap({
     },
     "pro": {
         "label_en": "Landvex Growth",
-        "beskrivning_en": "All decision engines and live map layers for "
-                          "one organization.",
-        "pris_manad": {"USD": 499, "EUR": 459},
-        # Kommissionsmodell (beslut från AAMOS-dev): 0.15 QZ TOKEN per
-        # levererad lead. ÖPPEN FRÅGA: ersätter detta månadsavgiften
-        # eller är det ett tillägg? Gäller det plattformsbrett? Fältet är
-        # data tills det bekräftas – enforcement använder ännu quota.
-        "kommission": {"qz_token_per_lead": 0.15, "modell": "commission"},
+        "beskrivning_en": "All decision engines and live map layers, "
+                          "billed as quiXzoom commission per delivered "
+                          "lead – no monthly fee.",
+        # Bekräftat av AAMOS-dev: Growth har INGEN månadsavgift. Priset är
+        # en per-lead-kommission (QZ TOKEN), graderad av opportunity-score.
+        # Se engine/commission.py för nivåtabellen.
+        "pris_manad": None,
+        "kommission": commission_catalog(),
         "rate_limit_per_min": 600,
         "quota_per_month": 10000,
         "capabilities": ("core", "opportunity", "workforce",
@@ -108,7 +110,9 @@ PLANS: dict[str, dict] = _PlanMap({
                      "Demand Intelligence: installed base & service needs",
                      "Intelligence Map incl. live layers",
                      "AAMOS platform status & integrations (live once "
-                     "AAMOS_CORE_URL is set)"],
+                     "AAMOS_CORE_URL is set)",
+                     "Billing: quiXzoom commission 0.05–0.15 QZ per "
+                     "lead (by opportunity score) – no monthly fee"],
     },
     "enterprise": {
         "label_en": "Landvex Enterprise",

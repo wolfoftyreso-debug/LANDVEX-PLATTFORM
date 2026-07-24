@@ -194,7 +194,7 @@ class AamosClient:
     # AAMOS Core. Basvägen är konfigurerbar (QUIXZOOM_MISSIONS_PATH) tills
     # den exakta AAMOS-routen är bekräftad.
     QUIXZOOM_PATH = os.environ.get(
-        "AAMOS_QUIXZOOM_PATH", "/api/aamos/quixzoom/missions")
+        "AAMOS_QUIXZOOM_PATH", "/api/qz/missions")
 
     def quixzoom_missions(self, lat: float, lon: float,
                           radius_km: float = 5.0) -> dict:

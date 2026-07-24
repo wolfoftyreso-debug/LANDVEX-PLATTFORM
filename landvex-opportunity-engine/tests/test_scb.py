@@ -230,7 +230,7 @@ def test_quixzoom_adapter_via_aamos_core():
     src = QuixzoomSource(client=AamosClient(
         base_url="http://localhost:3100", transport=transport))
     vals, extras = src.fetch(loc, "gym", SIG + ["development_m2"])
-    assert "/api/aamos/quixzoom/missions" in urls[0] and "lat=29.76" in urls[0]
+    assert "/api/qz/missions" in urls[0] and "lat=29.76" in urls[0]
     assert vals["field_observation_density"].value == 3.0
     assert vals["field_observation_density"].source == "quixzoom"
     # development_m2 hittas ALDRIG på – kräver Vision (ärlighet).

@@ -349,6 +349,19 @@ OIDC.
   kommission 0.15 QZ TOKEN/lead som data (öppen fråga: ersätter
   månadsavgift?). `LANDVEX_QUIXZOOM_URL` utgått. Öppet till AAMOS-dev:
   exakt AAMOS-route för quiXzoom-missions + kommissionsmodellens scope.
+- **Verkliga quiXzoom-/kommissionsfakta inlåsta (v0.26):** AAMOS-dev
+  bekräftade formen. quiXzoom-adaptern: path `/api/qz/missions` via
+  AAMOS Core, mission-form `location{lat,lng}` (fältet `lng`),
+  klientfiltrering till 10 km-radie så `field_observation_density` är
+  verkligt lokal (NYC-mission filtreras bort för en Houston-punkt).
+  Kommissionsmodellen byggd på riktigt: `engine/commission.py` (ren,
+  deterministisk nivåtabell – score 0.8–1.0→0.15, 0.5–0.8→0.10,
+  <0.5→0.05 QZ) och VARJE beslutskort i scan bär sin `commission`
+  (en lead = ett kort). Growth-planen har ingen månadsavgift –
+  `pris_manad=None`, `kommission=commission_catalog()`; frontenden
+  visar "0.05–0.15 QZ/lead". `_mission_latlon` läser både `lng`/`lon`.
+  Öppet kvar (icke-blockerande): exakta query-params `/api/qz/missions`
+  tar, och om kommission gäller bortom Growth.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

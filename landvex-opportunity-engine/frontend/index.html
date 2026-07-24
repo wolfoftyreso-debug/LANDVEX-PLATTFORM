@@ -1187,8 +1187,17 @@ $("instSpara").onclick = () => {
 };
 
 // ── Paket & priser ───────────────────────────────────────────────────
-const pris = p => p ? `$${p.USD.toLocaleString("en-US")}/mo` +
-  ` <small style="color:var(--muted)">· €${p.EUR}</small>` : "Custom quote";
+function prisEtikett(p) {
+  if (p.pris_manad)
+    return `$${p.pris_manad.USD.toLocaleString("en-US")}/mo` +
+      ` <small style="color:var(--muted)">· €${p.pris_manad.EUR}</small>`;
+  if (p.kommission) {
+    const q = p.kommission.nivaer.map(n => n.qz_token);
+    return `${Math.min(...q)}–${Math.max(...q)} QZ/lead` +
+      ` <small style="color:var(--muted)">· commission</small>`;
+  }
+  return "Custom quote";
+}
 
 async function visaPaket() {
   const wrap = $("hotspots");
@@ -1202,7 +1211,7 @@ async function visaPaket() {
       div.innerHTML = `
         <div class="rubrik">
           <span class="plats">${esc(p.label_en)}</span>
-          <span class="score s-gron" style="font-size:15px">${pris(p.pris_manad)}</span>
+          <span class="score s-gron" style="font-size:15px">${prisEtikett(p)}</span>
         </div>
         <p class="motiv">${esc(p.beskrivning_en)}</p>
         <div class="detalj">
@@ -1217,7 +1226,7 @@ async function visaPaket() {
       wrap.insertAdjacentHTML("beforeend", `
         <div class="kort"><div class="rubrik">
           <span class="plats">${esc(a.label_en)}</span>
-          <span class="score s-gul" style="font-size:14px">${pris(a.pris_manad)}</span>
+          <span class="score s-gul" style="font-size:14px">${prisEtikett(a)}</span>
         </div></div>`);
     }
     $("caveats").innerHTML = `<div class="caveat">${esc(res.prisnot_en)}</div>`;

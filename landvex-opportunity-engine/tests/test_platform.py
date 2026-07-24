@@ -83,6 +83,24 @@ def test_catalog_lists_all_engines():
             "gaps", "plan", "segments", "installed_base"} <= ids
 
 
+def test_commission_model_per_lead():
+    """quiXzoom-kommission per lead, score-graderad; Growth utan månadsavgift."""
+    from engine.commission import commission_qz, commission_for_lead
+    from engine.scan import scan
+    from engine.profile import profile_from_dict
+    from api.licensing import PLANS
+    assert commission_qz(0.95) == 0.15 and commission_qz(90) == 0.15
+    assert commission_qz(0.65) == 0.10 and commission_qz(66) == 0.10
+    assert commission_qz(0.30) == 0.05 and commission_qz(0.0) == 0.05
+    assert commission_for_lead(82) == commission_for_lead(82)   # determinism
+    assert PLANS["pro"]["pris_manad"] is None                   # ingen mån.avg
+    assert PLANS["pro"]["kommission"]["modell"] == "per_lead"
+    r = scan(profile_from_dict({"vertical_id": "gym"}), top_n=3, market="us")
+    for h in r["hotspots"]:
+        assert h["commission"]["qz_token"] == \
+            commission_qz(h["opportunity_score"])
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
