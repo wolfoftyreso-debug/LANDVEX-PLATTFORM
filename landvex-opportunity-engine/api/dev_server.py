@@ -70,6 +70,8 @@ from integrations.aamos import (AamosClient, AamosUnavailable,
                                 platform_status, watch)
 
 AAMOS = AamosClient()
+from engine.datasources.programs import ProgramsClient
+PROGRAMS = ProgramsClient()   # connected only if LANDVEX_PROGRAMS_URL is set
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
@@ -393,7 +395,8 @@ class Handler(BaseHTTPRequestHandler):
                     specialization=req.get("specialization"),
                     team_size=req.get("team_size", "1"),
                     company_form=req.get("company_form", "aktiebolag"),
-                    market=req.get("market", DEFAULT_MARKET)))
+                    market=req.get("market", DEFAULT_MARKET),
+                    programs_client=PROGRAMS))
             if self.path == "/v1/risk-intelligence":
                 loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
                                address=req.get("address", ""))

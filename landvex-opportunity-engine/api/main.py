@@ -128,6 +128,8 @@ _sources = production_sources() if _LIVE else []
 if STORE is not None:
     _sources = [CachedSource(s, STORE) for s in _sources]
 RESOLVER = Resolver(_sources + [MockSource()])
+from engine.datasources.programs import ProgramsClient
+PROGRAMS = ProgramsClient()   # connected only if LANDVEX_PROGRAMS_URL is set
 
 
 class AnalyzeRequest(BaseModel):
@@ -312,7 +314,8 @@ def opportunities(req: OpportunitiesRequest):
             Location(lat=req.lat, lon=req.lon, address=req.address),
             req.vertical, resolver=RESOLVER,
             specialization=req.specialization, team_size=req.team_size,
-            company_form=req.company_form, market=req.market)
+            company_form=req.company_form, market=req.market,
+            programs_client=PROGRAMS)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
