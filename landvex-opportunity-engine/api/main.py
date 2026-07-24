@@ -41,6 +41,7 @@ from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
 from engine.report import decision_report
+from engine.opportunity_intel import opportunity_intel
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
@@ -288,6 +289,29 @@ def risk_profile(req: RiskRequest):
 def compare_locations(req: CompareRequest):
     try:
         return compare(req.locations, req.vertical, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class OpportunitiesRequest(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    vertical: str
+    address: str = ""
+    specialization: str | None = None
+    team_size: str = "1"
+    company_form: str = "aktiebolag"
+    market: str = DEFAULT_MARKET
+
+
+@app.post("/v1/opportunities")
+def opportunities(req: OpportunitiesRequest):
+    try:
+        return opportunity_intel(
+            Location(lat=req.lat, lon=req.lon, address=req.address),
+            req.vertical, resolver=RESOLVER,
+            specialization=req.specialization, team_size=req.team_size,
+            company_form=req.company_form, market=req.market)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

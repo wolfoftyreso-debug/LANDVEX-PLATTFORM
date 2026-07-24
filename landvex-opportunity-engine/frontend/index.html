@@ -128,6 +128,9 @@
   .caveat { font-size: 11px; color: var(--muted); border-left: 3px solid var(--gul);
             padding-left: 8px; margin: 8px 0; }
   .roi-notis { font-size: 11px; color: var(--muted); font-style: italic; }
+  .oppcard { background: var(--panel2); border: 1px solid var(--line);
+             border-radius: 9px; padding: 9px 10px; margin: 6px 0; }
+  .oppcard .rubrik { margin-bottom: 4px; }
   .sim { display: flex; gap: 6px; margin-top: 6px; }
   .sim input { width: 90px; padding: 7px 9px; border-radius: 8px; font-size: 13px;
                background: var(--panel2); color: var(--text);
@@ -600,8 +603,26 @@ function ritaHotspots(res) {
         <h4>From analysis to action</h4>
         <div class="sim"><button class="planBtn">Create establishment plan →</button></div>
         <div class="planUt"></div>
+        <h4>Opportunity Intelligence</h4>
+        <div class="sim"><button class="oppBtn">Find support, hidden opportunities & advice →</button></div>
+        <div class="oppUt"></div>
       </div>`;
     div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
+    div.querySelector(".oppBtn").onclick = async (e) => {
+      e.stopPropagation();
+      const ut = div.querySelector(".oppUt");
+      ut.innerHTML = "<p class='motiv'>Scanning programs, hidden opportunities and advice …</p>";
+      try {
+        const pf = senasteScan.profile || {};
+        const oi = await api("/v1/opportunities", {
+          lat: h.lat, lon: h.lon, address: h.lage_en,
+          vertical: pf.vertical_id, specialization: pf.specialization || null,
+          team_size: pf.team_size || "1",
+          company_form: pf.company_form || "aktiebolag",
+          market: senasteScan.market || "us" });
+        ut.innerHTML = oppHTML(oi);
+      } catch (err) { ut.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`; }
+    };
     div.querySelector(".riskBtn").onclick = async (e) => {
       e.stopPropagation();
       const ut = div.querySelector(".riskUt");
@@ -657,6 +678,69 @@ function planHTML(p) {
           <p class="motiv"><b>Suppliers:</b> ${p.leverantorer_en.map(esc).join(" · ")}</p>
           ${p.risker.map(r => `<p class="roi-notis">${ikon("varning", "varn")} ${esc(r.label_en)} ${Math.round(r.risk)}/100${r.atgard_en ? " – " + esc(r.atgard_en) : ""}</p>`).join("")}
           <div class="steg">${p.nasta_steg_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
+}
+
+function money(n) { return (n || 0).toLocaleString("en-US"); }
+
+function oppHTML(oi) {
+  const sp = oi.support_programs, mm = oi.missing_money,
+        ho = oi.hidden_opportunities, lg = oi.legal_guide,
+        lc = oi.lifecycle, ex = oi.expansion_advisor;
+  let h = "";
+
+  // "You're missing money"
+  h += `<div class="oppcard">
+    <div class="rubrik"><span class="plats">${ikon("diamant")} You may be missing money</span>
+      <span class="score s-gron">${money(mm.estimated_value_local[1])}</span></div>
+    <p class="motiv">Combinable support you may be eligible for but have not applied to
+      (standard estimate, up to): <b>${money(mm.estimated_value_local[0])}–${money(mm.estimated_value_local[1])}</b> local.</p>
+    <p class="roi-notis">${esc(mm.notis_en)}</p></div>`;
+
+  // Support programs
+  h += `<h4>Support programs that fit (${sp.count})</h4>`;
+  h += sp.programs.map(p => `<div class="oppcard">
+      <div class="driver"><span><b>${esc(p.label_en)}</b>${p.combinable ? "" : " " + ikon("varning","varn")}</span>
+        <span class="pos">${p.fit}% fit</span></div>
+      <div class="driver"><span>Estimated amount (standard)</span><span>${money(p.amount_estimate_local)} local</span></div>
+      <div class="driver"><span>Eligibility probability</span><span>${p.eligibility_probability_pct}%</span></div>
+      <div class="driver"><span>Process time</span><span>${esc(p.process_time_en)}</span></div>
+      <p class="motiv">${esc(p.notis_en)} <span class="roi-notis">Source: ${esc(p.source_hint_en)}</span></p>
+      <div class="steg">${p.documents_en.map(d => `<span>${esc(d)}</span>`).join("")}</div>
+    </div>`).join("");
+
+  // Hidden opportunities
+  h += `<h4>Hidden opportunities (${ho.count})</h4>`;
+  h += ho.count ? ho.opportunities.map(o => `<div class="oppcard">
+      <div class="driver"><span><b>${esc(o.title_en)}</b></span><span class="pos">${o.strength}</span></div>
+      <p class="motiv"><b>${esc(o.action_en)}</b></p>
+      <p class="motiv">${esc(o.market_signal_en)}${o.suggested_specialization_label_en ? ` (niche: ${esc(o.suggested_specialization_label_en)})` : ""}</p>
+      ${o.evidence.map(e => `<div class="driver"><span>${ikon("upp","pos")} ${esc(e.label_en)}</span><span>${esc(e.value)} ${esc(e.unit)}</span></div>`).join("")}
+    </div>`).join("") : `<p class="motiv">No strong adjacent niche stands out here yet.</p>`;
+
+  // Expansion advisor
+  if (ex) {
+    h += `<h4>Expansion advisor</h4>`;
+    const vk = v => v === "yes" ? "pos" : v === "not_now" ? "neg" : "";
+    const vl = v => v === "yes" ? "Yes" : v === "not_now" ? "Not now" : "Consider";
+    h += ex.recommendations.map(r => `<div class="oppcard">
+        <div class="driver"><span><b>${esc(r.question_en)}</b></span>
+          <span class="${vk(r.verdict)}">${vl(r.verdict)} · ${r.score}</span></div>
+        <p class="motiv">${esc(r.rationale_en)}</p></div>`).join("");
+  }
+
+  // Legal guide
+  h += `<h4>Legal & compliance – what applies to you (${lg.count})</h4>`;
+  h += lg.regulations.map(c => `<div class="driver"><span>${esc(c.label_en)}</span></div>
+    <p class="motiv">${esc(c.practice_en)}</p>`).join("");
+  h += `<p class="roi-notis">${esc(lg.notis_en)}</p>`;
+
+  // Lifecycle
+  h += `<h4>Lifecycle – you are in the "${esc(lc.stage)}" stage</h4>`;
+  h += `<p class="motiv"><b>Focus now:</b></p><div class="steg">${lc.focus_now_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
+  h += `<p class="motiv"><b>Prepare for "${esc(lc.next_stage)}":</b></p><div class="steg">${lc.prepare_next_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
+
+  h += (oi.caveats_en || []).map(c => `<p class="roi-notis">${esc(c)}</p>`).join("");
+  return h;
 }
 
 $("analysera").onclick = async () => {

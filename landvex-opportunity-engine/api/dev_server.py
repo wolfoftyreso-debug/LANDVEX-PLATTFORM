@@ -50,6 +50,7 @@ from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
 from engine.report import decision_report
+from engine.opportunity_intel import opportunity_intel
 from engine.risk import assess
 from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
@@ -383,6 +384,15 @@ class Handler(BaseHTTPRequestHandler):
                                radius_minutes=int(req.get("radius_minutes", 10)))
                 return self._send(200, assess(loc, req["vertical"],
                                               resolver=RESOLVER))
+            if self.path == "/v1/opportunities":
+                loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
+                               address=req.get("address", ""))
+                return self._send(200, opportunity_intel(
+                    loc, req["vertical"], resolver=RESOLVER,
+                    specialization=req.get("specialization"),
+                    team_size=req.get("team_size", "1"),
+                    company_form=req.get("company_form", "aktiebolag"),
+                    market=req.get("market", DEFAULT_MARKET)))
             if self.path == "/v1/compare":
                 return self._send(200, compare(req["locations"],
                                                req["vertical"],

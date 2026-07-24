@@ -25,6 +25,7 @@ from engine.gaps import gap_analysis
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
+from engine.opportunity_intel import opportunity_intel
 from engine.plan import establishment_plan
 from engine.profile import profile_from_dict, profile_options
 from engine.risk import assess
@@ -77,7 +78,7 @@ def build(out_path: str) -> None:
         "markets": [m for m in market_catalog() if m["id"] in DEMO_MARKETS],
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
-        "risk": {}, "plans": {}, "gaps": {},
+        "risk": {}, "plans": {}, "gaps": {}, "opportunities": {},
         "index_catalog": index_catalog(),
         "index_maps": {}, "assessments": {},
         "plans_catalog": plans_catalog(),
@@ -128,6 +129,11 @@ def build(out_path: str) -> None:
                                      address=h["lage_en"]), vid)
                     demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
                         establishment_plan(h["kommun_kod"], vid, market=market)
+                    okey = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}:{sp or 'generell'}"
+                    if okey not in demo["opportunities"]:
+                        demo["opportunities"][okey] = opportunity_intel(
+                            Location(h["lat"], h["lon"], address=h["lage_en"]),
+                            vid, specialization=sp, market=market)
         for occ in OCCUPATIONS:
             demo["wf_maps"][f"{market}:{occ}"] = national_map(
                 occ, 2035, market=market)
@@ -225,6 +231,13 @@ async function api(path, body) {
   }
   if (path === "/v1/risk") {
     const r = D.risk[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/opportunities") {
+    const sp = body.specialization || "generell";
+    const r = D.opportunities[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:${sp}`]
+      || D.opportunities[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:generell`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }

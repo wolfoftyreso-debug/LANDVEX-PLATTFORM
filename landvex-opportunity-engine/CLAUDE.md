@@ -392,6 +392,33 @@ OIDC.
   varianterna. Kvar av visionen (kräver Bernts datakällor): Google-
   sökvolymer, konkurrenters betyg/väntetid, försäkringsskador,
   jobbannonser – ramverket tar dem som nya signal-rader när de finns.
+- **Opportunity Intelligence / Business Navigation (v0.29):**
+  `engine/opportunity_intel.py` – lager ovanpå Opportunity Score som
+  svarar på "hur bygger jag det mest framgångsrika företaget här?", inte
+  bara "var finns kunder?". Fem block, alla härledda ur platsens VERKLIGA
+  signaler och ÄRLIGT märkta (hittar aldrig på ett specifikt levande
+  bidrag/belopp/deadline): (1) **support_programs** – programarketyper
+  som data (laddinfra, energieffektivisering, EU grön omställning,
+  offentlig upphandling, regionalt etableringsstöd, kompetensstöd,
+  exportstöd); passform 0–100 + schablonbelopp skalat av passform +
+  sannolikhet + processtid + dokumentlista + kombinerbarhet, med
+  källhänvisning till rätt register. (2) **missing_money** ("You're
+  missing money") – kombinerbara stöd som ännu inte sökts + schablonvärde.
+  (3) **hidden_opportunities** – signalmönster → föreslagen nisch med
+  bevis (t.ex. hög infrastrukturinvestering + få installatörer →
+  reservkraft/energilagring). (4) **legal_guide** – regelKATEGORIER per
+  vertikal med "vad det innebär i praktiken" (elsäkerhet, arbetsmiljö,
+  konsumenttjänst, upphandling …); exakta författningar kräver
+  jurisdiktionsadapter, ej juridisk rådgivning. (5) **lifecycle** +
+  **expansion_advisor** – start/grow/expand/mature-checklista och
+  tillväxtråd (anställa/filial/förvärv/offentligt/omfokus/certifiering),
+  härlett ur efterfrågan, konkurrens, infrastruktur och dolda nischer.
+  `POST /v1/opportunities` (lat/lon + vertical + specialisering +
+  team_size + company_form) i båda servrarna, kapabilitet opportunity,
+  katalogpost. Frontend: "Opportunity Intelligence"-knapp i varje
+  beslutskort. Ett live-programregister (EU Funding & Tenders, Vinnova,
+  Energimyndigheten, regionala fonder) är adaptern som gör belopp och
+  deadlines verkliga – samma Resolver-mönster som SCB.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

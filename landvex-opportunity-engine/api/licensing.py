@@ -37,6 +37,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/risk": "opportunity",
     "/v1/gaps": "opportunity",
     "/v1/plan": "opportunity",
+    "/v1/opportunities": "opportunity",
     "/v1/reports": "opportunity",
     "/v1/workforce": "workforce",
     "/v1/products": "demand_intelligence",

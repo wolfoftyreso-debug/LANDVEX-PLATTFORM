@@ -57,6 +57,12 @@ API_CATALOG: dict = {
          "beskrivning_en": "2–4 locations head-to-head with a factor "
                            "matrix.",
          "endpoints": [{"method": "POST", "path": "/v1/compare"}]},
+        {"id": "opportunity_intel", "label_en": "Opportunity Intelligence",
+         "beskrivning_en": "Business Navigation: support-program fit, hidden "
+                           "opportunities, 'you're missing money', legal "
+                           "categories, lifecycle and expansion advice for a "
+                           "location + business profile.",
+         "endpoints": [{"method": "POST", "path": "/v1/opportunities"}]},
         {"id": "gaps", "label_en": "Gap Analysis",
          "beskrivning_en": "Imbalances: high demand × low supply × "
                            "positive development.",
