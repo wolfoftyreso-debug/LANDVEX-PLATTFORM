@@ -18,7 +18,8 @@
     "description": "Baltic Bridge bevisar, med dokument och revisionsspår, att en baltisk leverantör uppfyller alla krav för arbete i Sverige. Internt ops-verktyg — Fas 0–1.",
     "goToAdmin": "Öppna ops-konsolen",
     "joinAsSupplier": "Anslut som företag",
-    "joinAsBuyer": "Anslut som kund"
+    "joinAsBuyer": "Anslut som kund",
+    "findSuppliers": "Hitta verifierade leverantörer"
   },
   "auth": {
     "title": "Logga in på Baltic Bridge",
@@ -133,6 +134,65 @@
     "createCompanyCta": "Skapa företag",
     "verifiedBadge": "Verifierad för arbete i Sverige",
     "awaitingCase": "Profil mottagen — vårt ops-team öppnar ert verifieringsärende inom kort.",
-    "requirements": "Verifieringskrav"
+    "requirements": "Verifieringskrav",
+    "publicProfileLink": "Visa publik profil",
+    "requirementsHint": "Ladda upp underlag för varje krav — vårt ops-team granskar varje dokument före godkännande.",
+    "editProfileTitle": "Företagsprofil",
+    "website": "Webbplats",
+    "yearFounded": "Grundat år",
+    "headcount": "Anställda",
+    "languagesLabel": "Språk",
+    "capacityTitle": "Kapacitetslistor",
+    "capacityHint": "Visa köpare vilka team som är tillgängliga — yrke, antal och tidigaste start. Publicerade listor syns på er publika profil.",
+    "capacityWorkers": "arbetare",
+    "capacityArchive": "Arkivera",
+    "capacityTrade": "Yrke",
+    "capacityStart": "Tidigast start",
+    "capacityWeeks": "Veckor",
+    "capacityCerts": "Certifieringar",
+    "capacityPublish": "Publicera",
+    "uploadCta": "Ladda upp & skicka in",
+    "uploadDone": "Inskickat för granskning",
+    "uploadError": "Uppladdningen misslyckades — försök igen.",
+    "uploadValidUntil": "Dokumentet giltigt till"
+  },
+  "chrome": {
+    "findSuppliers": "Hitta leverantörer",
+    "join": "Anslut",
+    "footerLine": "verifierad gränsöverskridande entreprenad, Litauen → Sverige."
+  },
+  "suppliers": {
+    "title": "Verifierade baltiska leverantörer",
+    "subtitle": "Svets- och industrimontageteam, compliance-verifierade för arbete i Sverige.",
+    "searchLabel": "Sök",
+    "searchPlaceholder": "t.ex. svetsning, Kaunas…",
+    "country": "Land",
+    "anyCountry": "Alla länder",
+    "verifiedOnly": "Endast verifierade",
+    "searchCta": "Sök",
+    "empty": "Inga leverantörer matchar sökningen ännu.",
+    "since": "sedan",
+    "employees": "anställda",
+    "verifiedBadge": "Verifierad för arbete i Sverige",
+    "notVerified": "Ej verifierad"
+  },
+  "publicProfile": {
+    "founded": "grundat",
+    "employees": "anställda",
+    "languages": "Språk",
+    "verifiedBadge": "Verifierad för arbete i Sverige",
+    "notVerified": "Ej verifierad",
+    "verifiedExplainer": "Varje uppgift nedan är verifierad av Baltic Bridge ops mot originaldokument — aldrig självrapporterad.",
+    "verifiedSince": "Verifierad sedan",
+    "notVerifiedExplainer": "Företaget har inte slutfört Baltic Bridge-verifieringen för korridoren Litauen → Sverige.",
+    "orgNumber": "Registreringsnummer",
+    "validUntil": "giltigt till",
+    "capacityTitle": "Tillgänglig kapacitet",
+    "workers": "arbetare",
+    "earliestStart": "tidigast start",
+    "weeks": "veckor",
+    "ctaTitle": "Behöver du det här teamet på din site?",
+    "ctaBody": "Baltic Bridge förmedlar arbetspaketet, kontrollerar compliance och håller revisionsspåret. Berätta vad du behöver.",
+    "ctaButton": "Begär denna leverantör"
   }
 }

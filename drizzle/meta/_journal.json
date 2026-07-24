@@ -8,6 +8,13 @@
       "when": 1784650953875,
       "tag": "0000_loose_jocasta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784876778446,
+      "tag": "0001_company_search_fts",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,13 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { requireAnyRole, type Actor } from "@/modules/identity/rbac";
 import { appendOutbox, writeAudit } from "@/modules/audit/service";
-import { companies, companySlugs, contacts, workers } from "./schema";
+import {
+  capacityListings,
+  companies,
+  companySlugs,
+  contacts,
+  workers,
+} from "./schema";
 
 export type Company = typeof companies.$inferSelect;
 export type Worker = typeof workers.$inferSelect;
@@ -172,6 +178,211 @@ export async function addWorker(
     });
     return worker;
   });
+}
+
+/** Editable profile fields (Alibaba-style supplier profile) */
+export async function updateCompanyProfile(
+  actor: Actor,
+  companyId: string,
+  patch: {
+    description?: string;
+    city?: string;
+    website?: string;
+    yearFounded?: number | null;
+    headcount?: number | null;
+    languages?: string[];
+  },
+): Promise<Company> {
+  requireAnyRole(actor, ["ops", "admin", "supplier"]);
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId));
+    if (!before) throw new Error("Company not found");
+
+    const [updated] = await tx
+      .update(companies)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(companies.id, companyId))
+      .returning();
+    if (!updated) throw new Error("Company update failed");
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "company",
+      entityId: companyId,
+      action: "company.profile_updated",
+      before: {
+        description: before.description,
+        city: before.city,
+        website: before.website,
+        yearFounded: before.yearFounded,
+        headcount: before.headcount,
+        languages: before.languages,
+      },
+      after: patch,
+    });
+    await appendOutbox(tx, "companies.profile_updated", { companyId });
+    return updated;
+  });
+}
+
+/** Resolve a public slug. Non-primary slugs report the primary for redirect. */
+export async function resolveCompanySlug(slug: string): Promise<{
+  company: Company;
+  primarySlug: string;
+  isPrimary: boolean;
+} | null> {
+  const slugRow = await db.query.companySlugs.findFirst({
+    where: eq(companySlugs.slug, slug),
+  });
+  if (!slugRow) return null;
+
+  const company = await getCompany(slugRow.companyId);
+  if (!company) return null;
+
+  if (slugRow.isPrimary === 1) {
+    return { company, primarySlug: slug, isPrimary: true };
+  }
+  const primary = await db.query.companySlugs.findFirst({
+    where: and(
+      eq(companySlugs.companyId, company.id),
+      eq(companySlugs.isPrimary, 1),
+    ),
+  });
+  return {
+    company,
+    primarySlug: primary?.slug ?? slug,
+    isPrimary: primary?.slug === slug,
+  };
+}
+
+export async function getPrimarySlug(companyId: string): Promise<string | null> {
+  const row = await db.query.companySlugs.findFirst({
+    where: and(
+      eq(companySlugs.companyId, companyId),
+      eq(companySlugs.isPrimary, 1),
+    ),
+  });
+  return row?.slug ?? null;
+}
+
+export async function listPrimarySlugs(): Promise<
+  { slug: string; updatedAt: Date }[]
+> {
+  const rows = await db
+    .select({
+      slug: companySlugs.slug,
+      updatedAt: companies.updatedAt,
+    })
+    .from(companySlugs)
+    .innerJoin(companies, eq(companies.id, companySlugs.companyId))
+    .where(and(eq(companySlugs.isPrimary, 1), isNull(companies.deletedAt)));
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Capacity listings (M2): "our team is available" — the supply side signal
+// ---------------------------------------------------------------------------
+export type CapacityListing = typeof capacityListings.$inferSelect;
+
+export async function createCapacityListing(
+  actor: Actor,
+  input: {
+    companyId: string;
+    tradeId: string;
+    headcount: number;
+    certificationsSummary?: string;
+    earliestStart?: Date | null;
+    weeksAvailable?: number | null;
+    baseLocation?: string;
+    publish?: boolean;
+  },
+): Promise<CapacityListing> {
+  requireAnyRole(actor, ["ops", "admin", "supplier"]);
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== input.companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const [listing] = await tx
+      .insert(capacityListings)
+      .values({
+        companyId: input.companyId,
+        tradeId: input.tradeId,
+        headcount: input.headcount,
+        certificationsSummary: input.certificationsSummary,
+        earliestStart: input.earliestStart ?? null,
+        weeksAvailable: input.weeksAvailable ?? null,
+        baseLocation: input.baseLocation,
+        status: input.publish ? "published" : "draft",
+      })
+      .returning();
+    if (!listing) throw new Error("Capacity listing insert failed");
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "capacity_listing",
+      entityId: listing.id,
+      action: "capacity.created",
+      after: { companyId: input.companyId, status: listing.status },
+    });
+    await appendOutbox(tx, "capacity.listing_created", {
+      listingId: listing.id,
+      companyId: input.companyId,
+    });
+    return listing;
+  });
+}
+
+export async function listCompanyCapacity(
+  companyId: string,
+  onlyPublished = true,
+): Promise<CapacityListing[]> {
+  const conditions = onlyPublished
+    ? and(
+        eq(capacityListings.companyId, companyId),
+        eq(capacityListings.status, "published"),
+      )
+    : eq(capacityListings.companyId, companyId);
+  return db
+    .select()
+    .from(capacityListings)
+    .where(conditions)
+    .orderBy(asc(capacityListings.createdAt));
+}
+
+export async function setCapacityStatus(
+  actor: Actor,
+  listingId: string,
+  status: "published" | "archived",
+): Promise<void> {
+  requireAnyRole(actor, ["ops", "admin", "supplier"]);
+  const listing = await db.query.capacityListings.findFirst({
+    where: eq(capacityListings.id, listingId),
+  });
+  if (!listing) throw new Error("Listing not found");
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== listing.companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
+  await db
+    .update(capacityListings)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(capacityListings.id, listingId));
 }
 
 export async function listContacts(companyId: string): Promise<Contact[]> {

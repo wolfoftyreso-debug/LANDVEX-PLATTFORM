@@ -26,6 +26,9 @@ export default async function Home({
           <Link className="button" href={`/${locale}/register`} style={{ background: "var(--surface)", color: "var(--primary)" }}>
             {t("joinAsBuyer")}
           </Link>
+          <Link className="button" href={`/${locale}/suppliers`} style={{ background: "var(--surface)", color: "var(--primary)" }}>
+            {t("findSuppliers")}
+          </Link>
         </p>
         <p className="muted" style={{ fontSize: "0.85rem" }}>
           <Link href={`/${locale}/signin`}>{t("goToAdmin")}</Link>

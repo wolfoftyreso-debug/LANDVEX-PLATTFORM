@@ -11,14 +11,21 @@ import { users } from "@/modules/identity/schema";
 import { getCorridorBySlug } from "@/modules/catalog/service";
 import {
   addWorker,
+  createCapacityListing,
   createCompany,
   getCompanyByOwner,
+  getPrimarySlug,
+  listCompanyCapacity,
+  resolveCompanySlug,
 } from "@/modules/companies/service";
+import { listTrades } from "@/modules/catalog/service";
+import { searchSuppliers } from "@/modules/search/service";
 import { EmailTakenError, registerUser } from "@/modules/identity/service";
 import { verifyPassword } from "@/modules/identity/password";
 import { dispatchOutbox } from "@/jobs/start";
 import {
   getCaseWithItems,
+  getVerifiedFacts,
   isCompanyVerified,
   openCase,
   runExpirySweep,
@@ -203,7 +210,71 @@ async function main() {
     "ops task created for the self-registered supplier",
   );
 
-  logger.info("Audit smoke test passed ✔ (M1 + self-serve registration)");
+  // -------------------------------------------------------------------------
+  // M2: public layer — an unauthenticated buyer can find a verified team
+  // -------------------------------------------------------------------------
+
+  // 16. Re-verify a fresh company end-to-end and keep it verified
+  const publicCo = await createCompany(actor, {
+    name: `Public Weld UAB ${stamp}`,
+    country: "LT",
+    city: "Vilnius",
+    registrationNumber: "305999888",
+    description: "TIG and MIG welding teams for industrial projects.",
+  });
+  const pw1 = await addWorker(actor, { companyId: publicCo.id, name: "Tomas T.", tradeRole: "welder" });
+  const publicCase = await openCase(actor, {
+    companyId: publicCo.id,
+    corridorId: corridor.id,
+    workerIds: [pw1.id],
+  });
+  const publicItems = (await getCaseWithItems(publicCase.id))!.items;
+  await transitionCase(actor, publicCase.id, "in_review");
+  for (const item of publicItems) {
+    await transitionItem(actor, item.id, "submitted", {
+      validUntil: new Date(Date.now() + 180 * 24 * 3600 * 1000),
+      metadata: { approval_date: "2026-01-15" },
+    });
+    await transitionItem(actor, item.id, "in_review");
+    await transitionItem(actor, item.id, "approved");
+  }
+  await transitionCase(actor, publicCase.id, "verified");
+
+  // 17. Verified facts panel exposes only platform-verified data
+  const facts = await getVerifiedFacts(publicCo.id, corridor.id);
+  assert(facts.verified, "verified facts panel active");
+  assert(facts.facts.length === 10, `10 verified facts exposed (got ${facts.facts.length})`);
+
+  // 18. Capacity listing publishes to the public profile
+  const trades = await listTrades();
+  const listing = await createCapacityListing(actor, {
+    companyId: publicCo.id,
+    tradeId: trades[0]!.id,
+    headcount: 6,
+    certificationsSummary: "ISO 9606-1: 135/136",
+    publish: true,
+  });
+  assert(listing.status === "published", "capacity listing published");
+  const publicCapacity = await listCompanyCapacity(publicCo.id, true);
+  assert(publicCapacity.length === 1, "capacity visible on public profile");
+
+  // 19. FTS search finds the verified team, verified-first
+  const hits = await searchSuppliers({ q: "welding", verifiedOnly: true });
+  assert(
+    hits.some((h) => h.companyId === publicCo.id && h.verified),
+    "unauthenticated search finds the verified welding team",
+  );
+
+  // 20. Permanent slug resolves to the profile
+  const slug = await getPrimarySlug(publicCo.id);
+  assert(!!slug, "primary slug exists");
+  const resolved = await resolveCompanySlug(slug!);
+  assert(
+    resolved?.company.id === publicCo.id && resolved.isPrimary,
+    "permanent public URL resolves",
+  );
+
+  logger.info("Smoke test passed ✔ (M1 + self-serve + M2 public layer)");
   await pool.end();
 }
 

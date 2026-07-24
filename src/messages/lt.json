@@ -18,7 +18,8 @@
     "description": "Baltic Bridge dokumentais ir audito seka įrodo, kad Baltijos tiekėjas visiškai atitinka darbo Švedijoje reikalavimus. Vidinis ops įrankis — 0–1 fazė.",
     "goToAdmin": "Atidaryti ops konsolę",
     "joinAsSupplier": "Prisijunkite kaip įmonė",
-    "joinAsBuyer": "Prisijunkite kaip klientas"
+    "joinAsBuyer": "Prisijunkite kaip klientas",
+    "findSuppliers": "Raskite patikrintus tiekėjus"
   },
   "auth": {
     "title": "Prisijunkite prie Baltic Bridge",
@@ -133,6 +134,65 @@
     "createCompanyCta": "Sukurti įmonę",
     "verifiedBadge": "Patikrinta darbui Švedijoje",
     "awaitingCase": "Profilis gautas — ops komanda netrukus atidarys jūsų patikros bylą.",
-    "requirements": "Patikros reikalavimai"
+    "requirements": "Patikros reikalavimai",
+    "publicProfileLink": "Peržiūrėti viešą profilį",
+    "requirementsHint": "Įkelkite kiekvieno reikalavimo įrodymus — mūsų ops komanda peržiūri kiekvieną dokumentą prieš patvirtindama.",
+    "editProfileTitle": "Įmonės profilis",
+    "website": "Svetainė",
+    "yearFounded": "Įkūrimo metai",
+    "headcount": "Darbuotojai",
+    "languagesLabel": "Kalbos",
+    "capacityTitle": "Pajėgumų skelbimai",
+    "capacityHint": "Parodykite pirkėjams, kurios komandos laisvos — specialybė, skaičius ir anksčiausia pradžia. Paskelbti skelbimai matomi viešame profilyje.",
+    "capacityWorkers": "darbuotojai",
+    "capacityArchive": "Archyvuoti",
+    "capacityTrade": "Specialybė",
+    "capacityStart": "Anksčiausia pradžia",
+    "capacityWeeks": "Savaitės",
+    "capacityCerts": "Sertifikatai",
+    "capacityPublish": "Skelbti",
+    "uploadCta": "Įkelti ir pateikti",
+    "uploadDone": "Pateikta peržiūrai",
+    "uploadError": "Įkėlimas nepavyko — bandykite dar kartą.",
+    "uploadValidUntil": "Dokumentas galioja iki"
+  },
+  "chrome": {
+    "findSuppliers": "Rasti tiekėjus",
+    "join": "Prisijungti",
+    "footerLine": "patikrinta tarpvalstybinė subranga, Lietuva → Švedija."
+  },
+  "suppliers": {
+    "title": "Patikrinti Baltijos tiekėjai",
+    "subtitle": "Suvirinimo ir pramoninio montavimo komandos, patikrintos darbui Švedijoje.",
+    "searchLabel": "Paieška",
+    "searchPlaceholder": "pvz., suvirinimas, Kaunas…",
+    "country": "Šalis",
+    "anyCountry": "Visos šalys",
+    "verifiedOnly": "Tik patikrinti",
+    "searchCta": "Ieškoti",
+    "empty": "Paieškos kriterijų atitinkančių tiekėjų dar nėra.",
+    "since": "nuo",
+    "employees": "darbuotojai",
+    "verifiedBadge": "Patikrinta darbui Švedijoje",
+    "notVerified": "Nepatikrinta"
+  },
+  "publicProfile": {
+    "founded": "įkurta",
+    "employees": "darbuotojai",
+    "languages": "Kalbos",
+    "verifiedBadge": "Patikrinta darbui Švedijoje",
+    "notVerified": "Nepatikrinta",
+    "verifiedExplainer": "Kiekvienas žemiau pateiktas faktas patikrintas Baltic Bridge ops komandos pagal originalius dokumentus — niekada nedeklaruojamas savarankiškai.",
+    "verifiedSince": "Patikrinta nuo",
+    "notVerifiedExplainer": "Ši įmonė nebaigė Baltic Bridge patikros Lietuvos → Švedijos koridoriui.",
+    "orgNumber": "Registracijos numeris",
+    "validUntil": "galioja iki",
+    "capacityTitle": "Laisvi pajėgumai",
+    "workers": "darbuotojai",
+    "earliestStart": "anksčiausia pradžia",
+    "weeks": "savaitės",
+    "ctaTitle": "Reikia šios komandos jūsų objekte?",
+    "ctaBody": "Baltic Bridge tarpininkauja dėl darbų paketo, tikrina atitiktį ir saugo audito seką. Papasakokite, ko jums reikia.",
+    "ctaButton": "Užklausti šio tiekėjo"
   }
 }

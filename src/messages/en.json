@@ -18,7 +18,8 @@
     "description": "Baltic Bridge proves, with documents and an audit trail, that a Baltic supplier is fully compliant for work in Sweden. Internal ops tool — Phase 0–1.",
     "goToAdmin": "Open ops console",
     "joinAsSupplier": "Join as a company",
-    "joinAsBuyer": "Join as a customer"
+    "joinAsBuyer": "Join as a customer",
+    "findSuppliers": "Find verified suppliers"
   },
   "auth": {
     "title": "Sign in to Baltic Bridge",
@@ -133,6 +134,65 @@
     "createCompanyCta": "Create company",
     "verifiedBadge": "Verified for work in Sweden",
     "awaitingCase": "Profile received — our ops team opens your verification case shortly.",
-    "requirements": "Verification requirements"
+    "requirements": "Verification requirements",
+    "publicProfileLink": "View public profile",
+    "requirementsHint": "Upload evidence for each requirement — our ops team reviews every document before approval.",
+    "editProfileTitle": "Company profile",
+    "website": "Website",
+    "yearFounded": "Year founded",
+    "headcount": "Employees",
+    "languagesLabel": "Languages spoken",
+    "capacityTitle": "Capacity listings",
+    "capacityHint": "Tell buyers which teams are available — trade, headcount and earliest start. Published listings appear on your public profile.",
+    "capacityWorkers": "workers",
+    "capacityArchive": "Archive",
+    "capacityTrade": "Trade",
+    "capacityStart": "Earliest start",
+    "capacityWeeks": "Weeks",
+    "capacityCerts": "Certifications",
+    "capacityPublish": "Publish",
+    "uploadCta": "Upload & submit",
+    "uploadDone": "Submitted for review",
+    "uploadError": "Upload failed — try again.",
+    "uploadValidUntil": "Document valid until"
+  },
+  "chrome": {
+    "findSuppliers": "Find suppliers",
+    "join": "Join",
+    "footerLine": "verified cross-border subcontracting, Lithuania → Sweden."
+  },
+  "suppliers": {
+    "title": "Verified Baltic suppliers",
+    "subtitle": "Welding and industrial fitting teams, compliance-verified for work in Sweden.",
+    "searchLabel": "Search",
+    "searchPlaceholder": "e.g. welding, Kaunas…",
+    "country": "Country",
+    "anyCountry": "All countries",
+    "verifiedOnly": "Verified only",
+    "searchCta": "Search",
+    "empty": "No suppliers match your search yet.",
+    "since": "since",
+    "employees": "employees",
+    "verifiedBadge": "Verified for work in Sweden",
+    "notVerified": "Not verified"
+  },
+  "publicProfile": {
+    "founded": "founded",
+    "employees": "employees",
+    "languages": "Languages",
+    "verifiedBadge": "Verified for work in Sweden",
+    "notVerified": "Not verified",
+    "verifiedExplainer": "Every fact below is verified by Baltic Bridge ops against original documents — never self-reported.",
+    "verifiedSince": "Verified since",
+    "notVerifiedExplainer": "This company has not completed Baltic Bridge verification for the Lithuania → Sweden corridor.",
+    "orgNumber": "Registry number",
+    "validUntil": "valid until",
+    "capacityTitle": "Available capacity",
+    "workers": "workers",
+    "earliestStart": "earliest start",
+    "weeks": "weeks",
+    "ctaTitle": "Need this team on your site?",
+    "ctaBody": "Baltic Bridge brokers the work package, checks compliance and keeps the audit trail. Tell us what you need.",
+    "ctaButton": "Request this supplier"
   }
 }

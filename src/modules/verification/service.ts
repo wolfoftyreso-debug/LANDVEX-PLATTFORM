@@ -242,6 +242,97 @@ export async function isCompanyVerified(
   return kase?.state === "verified";
 }
 
+/**
+ * Platform-verified facts for the public "Verified for work in Sweden"
+ * panel (M2). Only facts backed by APPROVED verification items are exposed
+ * — no self-reported claims. Exported service interface (Section 4.2).
+ */
+export interface VerifiedFacts {
+  verified: boolean;
+  verifiedSince: Date | null;
+  facts: {
+    key: string;
+    nameEn: string;
+    nameSv: string;
+    nameLt: string;
+    scope: string;
+    validUntil: Date | null;
+    metadata: Record<string, unknown>;
+    workerCount?: number;
+  }[];
+}
+
+export async function getVerifiedFacts(
+  companyId: string,
+  corridorId: string,
+): Promise<VerifiedFacts> {
+  const kase = await db.query.verificationCases.findFirst({
+    where: and(
+      eq(verificationCases.companyId, companyId),
+      eq(verificationCases.corridorId, corridorId),
+    ),
+  });
+  if (!kase || kase.state !== "verified") {
+    return { verified: false, verifiedSince: null, facts: [] };
+  }
+
+  const items = await db
+    .select()
+    .from(verificationItems)
+    .where(
+      and(
+        eq(verificationItems.caseId, kase.id),
+        eq(verificationItems.status, "approved"),
+      ),
+    );
+
+  const requirements = await getRequirementsForCorridor(corridorId);
+  const reqById = new Map(requirements.map((r) => [r.id, r]));
+
+  // Group worker-scoped approvals per requirement (e.g. "A1 × 6 workers")
+  const grouped = new Map<
+    string,
+    { item: (typeof items)[number]; workerCount: number }
+  >();
+  for (const item of items) {
+    const existing = grouped.get(item.requirementDefinitionId);
+    if (existing) {
+      existing.workerCount += item.workerId ? 1 : 0;
+      // Keep the earliest expiring validity for honesty
+      if (
+        item.validUntil &&
+        (!existing.item.validUntil || item.validUntil < existing.item.validUntil)
+      ) {
+        existing.item = item;
+      }
+    } else {
+      grouped.set(item.requirementDefinitionId, {
+        item,
+        workerCount: item.workerId ? 1 : 0,
+      });
+    }
+  }
+
+  const facts = [...grouped.entries()].flatMap(([reqId, entry]) => {
+    const req = reqById.get(reqId);
+    if (!req) return [];
+    return [
+      {
+        key: req.key,
+        nameEn: req.nameEn,
+        nameSv: req.nameSv,
+        nameLt: req.nameLt,
+        scope: req.scope,
+        validUntil: entry.item.validUntil,
+        metadata: (entry.item.metadata ?? {}) as Record<string, unknown>,
+        workerCount: entry.workerCount || undefined,
+      },
+    ];
+  });
+
+  return { verified: true, verifiedSince: kase.stateChangedAt, facts };
+}
+
 /** Ops task creation — exported service interface so other modules never
  * touch this module's tables (Section 4.2) */
 export async function createOpsTask(input: {
