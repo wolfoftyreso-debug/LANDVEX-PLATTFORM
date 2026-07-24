@@ -212,8 +212,52 @@ class PermitsSource(DataSource):
         return values, extras
 
 
-class PlacesSource(_NotWiredSource):
+class PlacesSource(DataSource):
+    """Konkurrens & utbud – `competition_pressure`, `provider_gap`.
+
+    Verklig data från en places/register/recensionskälla via PlacesClient
+    (+ konkurrentlista i extras). Ej ansluten tills LANDVEX_PLACES_URL är
+    satt → Resolvern faller ärligt vidare till mock. Fel pausar källan.
+    provider_gap hittas aldrig på – den kräver en efterfrågeuppskattning
+    och kommer bara från feeden.
+    """
+
     name = "places"
+    SIGNALS = ("competition_pressure", "provider_gap")
+    _QUALITY = {"competition_pressure": 0.7, "provider_gap": 0.65}
+
+    def __init__(self, client=None, retry_after_s: float = 300.0,
+                 clock: Callable[[], float] = time.monotonic):
+        if client is None:
+            from .places import PlacesClient
+            client = PlacesClient()
+        self._client = client
+        self._retry_after_s = retry_after_s
+        self._clock = clock
+        self._down_until = 0.0
+
+    @property
+    def base_url(self) -> str:
+        return getattr(self._client, "base_url", "")
+
+    def fetch(self, location: Location, vertical_id: str,
+              signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
+        wanted = [s for s in signal_ids if s in self.SIGNALS]
+        if not wanted or not getattr(self._client, "connected", False):
+            return {}, {}
+        if self._clock() < self._down_until:
+            return {}, {}
+        try:
+            raw, competitors = self._client.fetch_places(
+                location.lat, location.lon, vertical_id)
+        except Exception:
+            self._down_until = self._clock() + self._retry_after_s
+            return {}, {}
+        values = {s: SignalValue(s, float(raw[s]), source=self.name,
+                                 quality=self._QUALITY[s])
+                  for s in wanted if s in raw}
+        extras = {"competitors": competitors} if values and competitors else {}
+        return values, extras
 
 
 class QuixzoomSource(DataSource):
