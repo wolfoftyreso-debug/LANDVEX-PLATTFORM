@@ -11,6 +11,10 @@ import {
   listWorkers,
 } from "@/modules/companies/service";
 import { listTrades } from "@/modules/catalog/service";
+import {
+  listDispatchesForCompany,
+  listRfqsForBuyer,
+} from "@/modules/rfq/service";
 import UploadEvidence from "./upload-evidence";
 import {
   archiveMyCapacityAction,
@@ -113,10 +117,16 @@ export default async function Portal({
 
       {/* Buyer surface */}
       {!isSupplier && (
-        <div className="card mt">
-          <h3>{t("buyerWelcome")}</h3>
-          <p className="muted">{t("buyerBody")}</p>
-        </div>
+        <>
+          <div className="card mt">
+            <h3>{t("buyerWelcome")}</h3>
+            <p className="muted">{t("buyerBody")}</p>
+            <Link className="button" href={`/${locale}/request-work`}>
+              {t("newRequestCta")}
+            </Link>
+          </div>
+          <BuyerRequests locale={locale} userId={actor.userId} />
+        </>
       )}
 
       {/* Supplier without a company yet: create it */}
@@ -163,6 +173,7 @@ export default async function Portal({
       {/* Supplier with a company */}
       {isSupplier && company && (
         <>
+          <SupplierDispatches locale={locale} companyId={company.id} />
           <div className="card mt">
             <h3>{company.name}</h3>
             <p className="muted">
@@ -416,6 +427,81 @@ export default async function Portal({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+async function BuyerRequests({
+  locale,
+  userId,
+}: {
+  locale: string;
+  userId: string;
+}) {
+  const t = await getTranslations("portal");
+  const tStatus = await getTranslations("rfqStatus");
+  const myRfqs = await listRfqsForBuyer(userId);
+  if (myRfqs.length === 0) return null;
+  return (
+    <div className="card">
+      <h3>{t("myRequestsTitle")}</h3>
+      <table>
+        <tbody>
+          {myRfqs.map((rfq) => (
+            <tr key={rfq.id}>
+              <td>
+                <Link href={`/${locale}/portal/rfq/${rfq.id}`}>{rfq.title}</Link>
+              </td>
+              <td>
+                <span className={`badge ${rfq.status === "accepted" ? "approved" : rfq.status === "offers_in" ? "in_review" : ""}`}>
+                  {tStatus(rfq.status)}
+                </span>
+              </td>
+              <td className="muted">
+                {new Date(rfq.createdAt).toISOString().slice(0, 10)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+async function SupplierDispatches({
+  locale,
+  companyId,
+}: {
+  locale: string;
+  companyId: string;
+}) {
+  const t = await getTranslations("portal");
+  const tStatus = await getTranslations("rfqStatus");
+  const dispatches = await listDispatchesForCompany(companyId);
+  if (dispatches.length === 0) return null;
+  return (
+    <div className="card mt">
+      <h3>{t("dispatchedTitle")}</h3>
+      <p className="muted" style={{ fontSize: "0.85rem" }}>{t("dispatchedHint")}</p>
+      <table>
+        <tbody>
+          {dispatches.map(({ dispatch, rfq }) => (
+            <tr key={dispatch.id}>
+              <td>
+                <Link href={`/${locale}/portal/rfq/${rfq.id}`}>{rfq.title}</Link>
+              </td>
+              <td>
+                <span className={`badge ${rfq.status === "accepted" ? "approved" : "in_review"}`}>
+                  {tStatus(rfq.status)}
+                </span>
+              </td>
+              <td className="muted">
+                {new Date(dispatch.createdAt).toISOString().slice(0, 10)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

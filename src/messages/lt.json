@@ -19,7 +19,8 @@
     "goToAdmin": "Atidaryti ops konsolę",
     "joinAsSupplier": "Prisijunkite kaip įmonė",
     "joinAsBuyer": "Prisijunkite kaip klientas",
-    "findSuppliers": "Raskite patikrintus tiekėjus"
+    "findSuppliers": "Raskite patikrintus tiekėjus",
+    "requestWorkCta": "Užsakyti darbus — nemokamai"
   },
   "auth": {
     "title": "Prisijunkite prie Baltic Bridge",
@@ -33,7 +34,9 @@
     "verification": "Patikra",
     "reviewQueue": "Peržiūros eilė",
     "companies": "Įmonės",
-    "tasks": "Užduotys"
+    "tasks": "Užduotys",
+    "rfqs": "Užklausos",
+    "deals": "Sandoriai"
   },
   "dashboard": {
     "title": "Ops apžvalga",
@@ -154,12 +157,17 @@
     "uploadCta": "Įkelti ir pateikti",
     "uploadDone": "Pateikta peržiūrai",
     "uploadError": "Įkėlimas nepavyko — bandykite dar kartą.",
-    "uploadValidUntil": "Dokumentas galioja iki"
+    "uploadValidUntil": "Dokumentas galioja iki",
+    "newRequestCta": "Užsakyti darbus",
+    "myRequestsTitle": "Mano užklausos",
+    "dispatchedTitle": "Jums skirtos darbo užklausos",
+    "dispatchedHint": "Išsiuntė Baltic Bridge ops. Pateikite pasiūlymą iki galiojimo datos."
   },
   "chrome": {
     "findSuppliers": "Rasti tiekėjus",
     "join": "Prisijungti",
-    "footerLine": "patikrinta tarpvalstybinė subranga, Lietuva → Švedija."
+    "footerLine": "patikrinta tarpvalstybinė subranga, Lietuva → Švedija.",
+    "requestWork": "Užsakyti darbus"
   },
   "suppliers": {
     "title": "Patikrinti Baltijos tiekėjai",
@@ -194,5 +202,102 @@
     "ctaTitle": "Reikia šios komandos jūsų objekte?",
     "ctaBody": "Baltic Bridge tarpininkauja dėl darbų paketo, tikrina atitiktį ir saugo audito seką. Papasakokite, ko jums reikia.",
     "ctaButton": "Užklausti šio tiekėjo"
+  },
+  "rfqStatus": {
+    "new": "Nauja",
+    "qualified": "Kvalifikuota",
+    "dispatched": "Išsiųsta",
+    "offers_in": "Gauti pasiūlymai",
+    "accepted": "Priimta",
+    "lost": "Prarasta",
+    "expired": "Nebegalioja"
+  },
+  "requestWork": {
+    "title": "Užsakykite darbus — nemokamai ir be įsipareigojimų",
+    "subtitle": "Aprašykite darbų paketą. Mūsų komanda kvalifikuoja užklausą ir išsiunčia patikrintiems Baltijos tiekėjams — jūs palyginate pasiūlymus su įrodyta atitiktimi.",
+    "yourName": "Jūsų vardas",
+    "yourEmail": "Jūsų el. paštas",
+    "rfqTitle": "Pavadinimas",
+    "rfqTitlePlaceholder": "pvz., 6 suvirintojai nerūdijančio plieno vamzdynams, 8 sav.",
+    "description": "Aprašymas",
+    "descriptionPlaceholder": "Apimtis, objekto sąlygos, medžiagos, standartai (EN 1090…), grafikas…",
+    "trade": "Specialybė",
+    "headcount": "Darbuotojų skaičius",
+    "startDate": "Pradžios data",
+    "duration": "Trukmė (savaitėmis)",
+    "siteCity": "Miestas",
+    "siteAddress": "Adresas",
+    "workingLanguage": "Darbo kalba",
+    "budget": "Biudžetas (neprivaloma)",
+    "conciergeNote": "Jokio šlamšto, jokio automatinio parinkimo: mūsų ops komandos žmogus peržiūri kiekvieną užklausą ir parenka atitinkančius tiekėjus.",
+    "cta": "Siųsti užklausą",
+    "thanksTitle": "Užklausa gauta",
+    "thanksBody": "Mūsų ops komanda kvalifikuos užklausą ir išsiųs patikrintiems tiekėjams. Gausite el. laišką, kai atsiras pasiūlymų. Jei paskyros neturėjote, ji sukurta automatiškai.",
+    "thanksCta": "Į mano puslapį"
+  },
+  "rfqRoom": {
+    "back": "Mano puslapis",
+    "workers": "darbuotojai",
+    "start": "pradžia",
+    "weeks": "sav.",
+    "budget": "Biudžetas",
+    "attachments": "Priedai",
+    "offersTitle": "Pasiūlymai",
+    "noOffers": "Pasiūlymų dar nėra — tiekėjai informuoti.",
+    "hourly": "valandinis",
+    "fixed": "fiksuota kaina",
+    "earliestStart": "anksčiausia pradžia",
+    "validUntil": "galioja iki",
+    "accept": "Priimti pasiūlymą",
+    "submitOfferTitle": "Pateikite pasiūlymą",
+    "rateModel": "Kainodara",
+    "amount": "Kaina",
+    "currency": "Valiuta",
+    "team": "Komanda",
+    "teamHint": "Įvardinti darbuotojai — jų patikrintų sertifikatų būsena automatiškai užfiksuojama pasiūlyme.",
+    "offerNote": "Kas įskaičiuota?",
+    "submitOfferCta": "Pateikti pasiūlymą",
+    "snapVerified": "Patikrinta darbui Švedijoje",
+    "snapNotVerified": "Nepatikrinta",
+    "snapFrozenAt": "patikra užfiksuota",
+    "snapTeam": "Komanda",
+    "threadTitle": "Žinutės",
+    "threadEmpty": "Žinučių dar nėra.",
+    "threadPlaceholder": "Rašykite žinutę…",
+    "threadSend": "Siųsti"
+  },
+  "adminRfq": {
+    "title": "RFQ eiga",
+    "closedTitle": "Užbaigtos",
+    "buyer": "Pirkėjas",
+    "qualify": "Kvalifikuoti",
+    "markLost": "Žymėti prarasta",
+    "markExpired": "Žymėti nebegaliojančia",
+    "dispatchTitle": "Siųsti tiekėjams",
+    "dispatchHint": "Concierge parinkimas: pasirinkite atitinkančius kandidatus. Pirmiausia patikrinti tiekėjai.",
+    "unverified": "nepatikrinta",
+    "alreadyDispatched": "išsiųsta",
+    "dispatchNote": "Pastaba tiekėjams (neprivaloma)",
+    "dispatchCta": "Išsiųsti",
+    "offers": "Pasiūlymai",
+    "snapshot": "Momentinė būsena",
+    "teamMembers": "komandos nariai",
+    "recordDealTitle": "Užregistruoti sandorį",
+    "recordDealHint": "Sąskaitos išrašomos rankiniu būdu — platformoje mokėjimų nėra. Duomenys patenka į CSV eksportą.",
+    "contractValue": "Sutarties vertė",
+    "currency": "Valiuta",
+    "successFee": "Sėkmės mokestis %",
+    "note": "Pastaba",
+    "recordDealCta": "Užregistruoti"
+  },
+  "deals": {
+    "title": "Sandoriai",
+    "exportCsv": "Eksportuoti CSV",
+    "empty": "Sandorių dar neužregistruota.",
+    "rfq": "Užklausa",
+    "supplier": "Tiekėjas",
+    "contractValue": "Sutarties vertė",
+    "fee": "Sėkmės mokestis",
+    "recorded": "Užregistruota"
   }
 }

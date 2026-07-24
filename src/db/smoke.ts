@@ -20,6 +20,26 @@ import {
 } from "@/modules/companies/service";
 import { listTrades } from "@/modules/catalog/service";
 import { searchSuppliers } from "@/modules/search/service";
+import { companies as companiesTable } from "@/modules/companies/schema";
+import {
+  createRfq,
+  dispatchRfq,
+  findOrCreateBuyer,
+  getRfq,
+  qualifyRfq,
+} from "@/modules/rfq/service";
+import {
+  acceptOffer,
+  dealsCsv,
+  listOffersForRfq,
+  recordDeal,
+  submitOffer,
+} from "@/modules/offers/service";
+import {
+  getOrCreateThread,
+  listMessages,
+  sendMessage,
+} from "@/modules/messaging/service";
 import { EmailTakenError, registerUser } from "@/modules/identity/service";
 import { verifyPassword } from "@/modules/identity/password";
 import { dispatchOutbox } from "@/jobs/start";
@@ -274,7 +294,140 @@ async function main() {
     "permanent public URL resolves",
   );
 
-  logger.info("Smoke test passed ✔ (M1 + self-serve + M2 public layer)");
+  // -------------------------------------------------------------------------
+  // M3 DoD: buyer submission → qualified → dispatched → offer with frozen
+  // snapshot → accepted → deal recorded + exportable
+  // -------------------------------------------------------------------------
+
+  // 21. Anonymous buyer submits an RFQ (account auto-created)
+  const anonBuyer = await findOrCreateBuyer(
+    `anon-buyer-${stamp}@example.com`,
+    "Anna Anbud",
+  );
+  assert(anonBuyer.created, "buyer account auto-created on RFQ submission");
+  const rfq = await createRfq(anonBuyer.userId, {
+    title: "6 welders for stainless pipework, 8 weeks",
+    description:
+      "Stainless steel pipework at our Västerås plant. EN 1090 EXC2. Site induction required.",
+    siteCity: "Västerås",
+    siteCountry: "SE",
+    tradeId: trades[0]!.id,
+    headcountNeeded: 6,
+    durationWeeks: 8,
+    workingLanguage: "en",
+    budgetAmountMinor: 120_000_000,
+    budgetCurrency: "SEK",
+  });
+  assert(rfq.status === "new", "RFQ created in status new");
+
+  // 22. Ops qualifies and dispatches to the verified supplier
+  await qualifyRfq(actor, rfq.id);
+  await dispatchRfq(actor, rfq.id, [publicCo.id], "Good fit for your team");
+  assert(
+    (await getRfq(rfq.id))!.status === "dispatched",
+    "RFQ qualified and dispatched (concierge flow)",
+  );
+
+  // 23. Supplier submits an offer — verification snapshot frozen
+  const supplierOwner = await registerUser({
+    email: `owner-${stamp}@example.com`,
+    password: "owner-password-123",
+    name: "Owner",
+    role: "supplier",
+  });
+  await db
+    .update(companiesTable)
+    .set({ ownerUserId: supplierOwner.id })
+    .where(eq(companiesTable.id, publicCo.id));
+
+  const offer = await submitOffer(
+    { userId: supplierOwner.id, role: "supplier" },
+    {
+      rfqId: rfq.id,
+      rateModel: "fixed",
+      amountMinor: 98_000_000,
+      currency: "SEK",
+      note: "Includes WPQR documentation and site induction.",
+      workerIds: [pw1.id],
+    },
+  );
+  const frozen = offer.verificationSnapshot as {
+    companyVerified: boolean;
+    frozenAt: string;
+    facts: unknown[];
+    team: { approvedCerts: unknown[] }[];
+  };
+  assert(frozen.companyVerified, "snapshot frozen with verified=true");
+  assert(frozen.facts.length === 10, "snapshot contains all 10 verified facts");
+  assert(
+    frozen.team[0]!.approvedCerts.length >= 1,
+    "team member certs frozen into the offer",
+  );
+  assert(
+    (await getRfq(rfq.id))!.status === "offers_in",
+    "first offer moves RFQ to offers_in",
+  );
+
+  // 24. Snapshot is immutable: suspend verification AFTER submission
+  await transitionCase(actor, publicCase.id, "suspended");
+  const offerAfter = (await listOffersForRfq(rfq.id))[0]!;
+  const frozenAfter = offerAfter.verificationSnapshot as { companyVerified: boolean };
+  assert(
+    frozenAfter.companyVerified === true,
+    "snapshot unchanged after verification suspended (frozen at submission)",
+  );
+
+  // 25. Buyer accepts; siblings would be rejected; RFQ accepted
+  await acceptOffer({ userId: anonBuyer.userId, role: "buyer" }, offer.id);
+  assert(
+    (await getRfq(rfq.id))!.status === "accepted",
+    "buyer acceptance closes the RFQ as accepted",
+  );
+
+  // 26. Messaging: one thread per RFQ–supplier pair
+  const thread = await getOrCreateThread(
+    { userId: anonBuyer.userId, role: "buyer" },
+    rfq.id,
+    publicCo.id,
+  );
+  await sendMessage(
+    { userId: anonBuyer.userId, role: "buyer" },
+    thread.id,
+    "When can you mobilize?",
+  );
+  const messages = await listMessages(
+    { userId: supplierOwner.id, role: "supplier" },
+    thread.id,
+  );
+  assert(messages.length === 1, "thread message delivered to the supplier side");
+
+  // 27. Ops records the deal; CSV export contains it
+  const deal = await recordDeal(actor, {
+    offerId: offer.id,
+    contractValueMinor: 98_000_000,
+    currency: "SEK",
+    successFeePct: 8,
+    note: "Smoke deal",
+  });
+  const csv = await dealsCsv(actor);
+  assert(csv.includes(deal.id), "deal appears in the invoicing CSV export");
+  assert(
+    csv.includes("7840000"),
+    "success fee computed in export (8% of 98 000 000 minor)",
+  );
+
+  // 28. Audit trail covers the legally sensitive chain
+  const offerAudits = await db
+    .select()
+    .from(auditEvents)
+    .where(eq(auditEvents.entityId, offer.id));
+  assert(
+    offerAudits.some((a) => a.action === "offer.submitted") &&
+      offerAudits.some((a) => a.action === "offer.accepted"),
+    "offer submission and acceptance audited",
+  );
+
+  logger.info("Smoke test passed ✔ (M1 + M2 + M3 demand flow)");
   await pool.end();
 }
 

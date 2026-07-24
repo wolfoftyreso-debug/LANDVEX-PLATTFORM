@@ -15,6 +15,13 @@
       "when": 1784876778446,
       "tag": "0001_company_search_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784880212275,
+      "tag": "0002_slimy_earthquake",
+      "breakpoints": true
     }
   ]
 }

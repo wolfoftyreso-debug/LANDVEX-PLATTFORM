@@ -66,10 +66,12 @@ drizzle/                   append-only SQL migrations
 
 ## Milestones
 
-- **M1 — Ops backbone (this codebase):** supplier CRM + verification engine ✅
-- **M2 — Public layer:** verified profiles + SEO — next
-- **M3 — Demand:** RFQ intake, ops-driven matching, offers
-- **M4 — Hardening:** e2e tests, backups, runbooks
+- **M1 — Ops backbone:** supplier CRM + verification engine ✅
+- **M2 — Public layer:** verified profiles, supplier directory (Postgres FTS), SEO ✅
+- **M3 — Demand:** buyer RFQ intake, ops-driven matching, offers with frozen
+  verification snapshots, per-pair messaging, deal recording + CSV export ✅
+- **M4 — Hardening:** Playwright e2e, backups + restore runbook, rate-limit
+  tuning, seed/demo data, ops dashboard — next
 
 ## Deploy
 

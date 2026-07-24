@@ -9,6 +9,9 @@ import * as documents from "@/modules/documents/schema";
 import * as verification from "@/modules/verification/schema";
 import * as audit from "@/modules/audit/schema";
 import * as notifications from "@/modules/notifications/schema";
+import * as rfq from "@/modules/rfq/schema";
+import * as offersModule from "@/modules/offers/schema";
+import * as messaging from "@/modules/messaging/schema";
 
 export const schema = {
   ...identity,
@@ -18,6 +21,9 @@ export const schema = {
   ...verification,
   ...audit,
   ...notifications,
+  ...rfq,
+  ...offersModule,
+  ...messaging,
 };
 
 const globalForDb = globalThis as unknown as { pgPool?: Pool };

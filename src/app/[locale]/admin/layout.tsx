@@ -36,6 +36,8 @@ export default async function AdminLayout({
           <Link href={`/${locale}/admin/verification`}>{t("verification")}</Link>
           <Link href={`/${locale}/admin/queue`}>{t("reviewQueue")}</Link>
           <Link href={`/${locale}/admin/companies`}>{t("companies")}</Link>
+          <Link href={`/${locale}/admin/rfqs`}>{t("rfqs")}</Link>
+          <Link href={`/${locale}/admin/deals`}>{t("deals")}</Link>
           <Link href={`/${locale}/admin/tasks`}>{t("tasks")}</Link>
         </nav>
       </aside>

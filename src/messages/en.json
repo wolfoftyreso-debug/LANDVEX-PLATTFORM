@@ -19,7 +19,8 @@
     "goToAdmin": "Open ops console",
     "joinAsSupplier": "Join as a company",
     "joinAsBuyer": "Join as a customer",
-    "findSuppliers": "Find verified suppliers"
+    "findSuppliers": "Find verified suppliers",
+    "requestWorkCta": "Request work — free"
   },
   "auth": {
     "title": "Sign in to Baltic Bridge",
@@ -33,7 +34,9 @@
     "verification": "Verification",
     "reviewQueue": "Review queue",
     "companies": "Companies",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "rfqs": "RFQs",
+    "deals": "Deals"
   },
   "dashboard": {
     "title": "Ops dashboard",
@@ -154,12 +157,17 @@
     "uploadCta": "Upload & submit",
     "uploadDone": "Submitted for review",
     "uploadError": "Upload failed — try again.",
-    "uploadValidUntil": "Document valid until"
+    "uploadValidUntil": "Document valid until",
+    "newRequestCta": "Request work",
+    "myRequestsTitle": "My requests",
+    "dispatchedTitle": "Work requests for you",
+    "dispatchedHint": "Dispatched to you by Baltic Bridge ops. Submit your offer before the validity date."
   },
   "chrome": {
     "findSuppliers": "Find suppliers",
     "join": "Join",
-    "footerLine": "verified cross-border subcontracting, Lithuania → Sweden."
+    "footerLine": "verified cross-border subcontracting, Lithuania → Sweden.",
+    "requestWork": "Request work"
   },
   "suppliers": {
     "title": "Verified Baltic suppliers",
@@ -194,5 +202,102 @@
     "ctaTitle": "Need this team on your site?",
     "ctaBody": "Baltic Bridge brokers the work package, checks compliance and keeps the audit trail. Tell us what you need.",
     "ctaButton": "Request this supplier"
+  },
+  "rfqStatus": {
+    "new": "New",
+    "qualified": "Qualified",
+    "dispatched": "Dispatched",
+    "offers_in": "Offers in",
+    "accepted": "Accepted",
+    "lost": "Lost",
+    "expired": "Expired"
+  },
+  "requestWork": {
+    "title": "Request work — free and without obligation",
+    "subtitle": "Describe the work package. Our team qualifies your request and dispatches it to verified Baltic suppliers — you compare offers with proven compliance.",
+    "yourName": "Your name",
+    "yourEmail": "Your email",
+    "rfqTitle": "Title",
+    "rfqTitlePlaceholder": "e.g. 6 welders for stainless pipework, 8 weeks",
+    "description": "Description",
+    "descriptionPlaceholder": "Scope, site conditions, materials, standards (EN 1090…), timing…",
+    "trade": "Trade",
+    "headcount": "Workers needed",
+    "startDate": "Start date",
+    "duration": "Duration (weeks)",
+    "siteCity": "Site city",
+    "siteAddress": "Site address",
+    "workingLanguage": "Working language",
+    "budget": "Budget (optional)",
+    "conciergeNote": "No spam, no auto-matching: a human on our ops team reviews every request and selects compliant suppliers.",
+    "cta": "Send request",
+    "thanksTitle": "Request received",
+    "thanksBody": "Our ops team qualifies your request and dispatches it to verified suppliers. You'll get an email when offers arrive. An account has been created for you if you didn't have one.",
+    "thanksCta": "Go to my page"
+  },
+  "rfqRoom": {
+    "back": "My page",
+    "workers": "workers",
+    "start": "start",
+    "weeks": "weeks",
+    "budget": "Budget",
+    "attachments": "Attachments",
+    "offersTitle": "Offers",
+    "noOffers": "No offers yet — suppliers have been notified.",
+    "hourly": "hourly",
+    "fixed": "fixed price",
+    "earliestStart": "earliest start",
+    "validUntil": "valid until",
+    "accept": "Accept offer",
+    "submitOfferTitle": "Submit your offer",
+    "rateModel": "Rate model",
+    "amount": "Price",
+    "currency": "Currency",
+    "team": "Team",
+    "teamHint": "Named workers — their verified cert status is frozen into the offer automatically.",
+    "offerNote": "What is included?",
+    "submitOfferCta": "Submit offer",
+    "snapVerified": "Verified for work in Sweden",
+    "snapNotVerified": "Not verified",
+    "snapFrozenAt": "verification frozen",
+    "snapTeam": "Team",
+    "threadTitle": "Messages",
+    "threadEmpty": "No messages yet.",
+    "threadPlaceholder": "Write a message…",
+    "threadSend": "Send"
+  },
+  "adminRfq": {
+    "title": "RFQ pipeline",
+    "closedTitle": "Closed",
+    "buyer": "Buyer",
+    "qualify": "Qualify",
+    "markLost": "Mark lost",
+    "markExpired": "Mark expired",
+    "dispatchTitle": "Dispatch to suppliers",
+    "dispatchHint": "Concierge matching: select compliant candidates. Verified suppliers first.",
+    "unverified": "unverified",
+    "alreadyDispatched": "dispatched",
+    "dispatchNote": "Note to suppliers (optional)",
+    "dispatchCta": "Dispatch",
+    "offers": "Offers",
+    "snapshot": "Snapshot",
+    "teamMembers": "team members",
+    "recordDealTitle": "Record the deal",
+    "recordDealHint": "Invoiced manually — no payments in-platform. Feeds the CSV export.",
+    "contractValue": "Contract value",
+    "currency": "Currency",
+    "successFee": "Success fee %",
+    "note": "Note",
+    "recordDealCta": "Record deal"
+  },
+  "deals": {
+    "title": "Deals",
+    "exportCsv": "Export CSV",
+    "empty": "No deals recorded yet.",
+    "rfq": "RFQ",
+    "supplier": "Supplier",
+    "contractValue": "Contract value",
+    "fee": "Success fee",
+    "recorded": "Recorded"
   }
 }

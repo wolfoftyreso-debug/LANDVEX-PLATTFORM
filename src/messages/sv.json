@@ -19,7 +19,8 @@
     "goToAdmin": "Öppna ops-konsolen",
     "joinAsSupplier": "Anslut som företag",
     "joinAsBuyer": "Anslut som kund",
-    "findSuppliers": "Hitta verifierade leverantörer"
+    "findSuppliers": "Hitta verifierade leverantörer",
+    "requestWorkCta": "Begär arbete — gratis"
   },
   "auth": {
     "title": "Logga in på Baltic Bridge",
@@ -33,7 +34,9 @@
     "verification": "Verifiering",
     "reviewQueue": "Granskningskö",
     "companies": "Företag",
-    "tasks": "Uppgifter"
+    "tasks": "Uppgifter",
+    "rfqs": "Förfrågningar",
+    "deals": "Affärer"
   },
   "dashboard": {
     "title": "Ops-översikt",
@@ -154,12 +157,17 @@
     "uploadCta": "Ladda upp & skicka in",
     "uploadDone": "Inskickat för granskning",
     "uploadError": "Uppladdningen misslyckades — försök igen.",
-    "uploadValidUntil": "Dokumentet giltigt till"
+    "uploadValidUntil": "Dokumentet giltigt till",
+    "newRequestCta": "Begär arbete",
+    "myRequestsTitle": "Mina förfrågningar",
+    "dispatchedTitle": "Arbetsförfrågningar till er",
+    "dispatchedHint": "Utskickade till er av Baltic Bridge ops. Lämna offert före giltighetsdatumet."
   },
   "chrome": {
     "findSuppliers": "Hitta leverantörer",
     "join": "Anslut",
-    "footerLine": "verifierad gränsöverskridande entreprenad, Litauen → Sverige."
+    "footerLine": "verifierad gränsöverskridande entreprenad, Litauen → Sverige.",
+    "requestWork": "Begär arbete"
   },
   "suppliers": {
     "title": "Verifierade baltiska leverantörer",
@@ -194,5 +202,102 @@
     "ctaTitle": "Behöver du det här teamet på din site?",
     "ctaBody": "Baltic Bridge förmedlar arbetspaketet, kontrollerar compliance och håller revisionsspåret. Berätta vad du behöver.",
     "ctaButton": "Begär denna leverantör"
+  },
+  "rfqStatus": {
+    "new": "Ny",
+    "qualified": "Kvalificerad",
+    "dispatched": "Utskickad",
+    "offers_in": "Offerter inne",
+    "accepted": "Accepterad",
+    "lost": "Förlorad",
+    "expired": "Utgången"
+  },
+  "requestWork": {
+    "title": "Begär arbete — gratis och utan förpliktelser",
+    "subtitle": "Beskriv arbetspaketet. Vårt team kvalificerar förfrågan och skickar den till verifierade baltiska leverantörer — du jämför offerter med bevisad compliance.",
+    "yourName": "Ditt namn",
+    "yourEmail": "Din e-post",
+    "rfqTitle": "Rubrik",
+    "rfqTitlePlaceholder": "t.ex. 6 svetsare för rostfria rör, 8 veckor",
+    "description": "Beskrivning",
+    "descriptionPlaceholder": "Omfattning, platsförhållanden, material, standarder (EN 1090…), tidplan…",
+    "trade": "Yrke",
+    "headcount": "Antal arbetare",
+    "startDate": "Startdatum",
+    "duration": "Varaktighet (veckor)",
+    "siteCity": "Ort",
+    "siteAddress": "Adress",
+    "workingLanguage": "Arbetsspråk",
+    "budget": "Budget (frivilligt)",
+    "conciergeNote": "Ingen spam, ingen auto-matchning: en människa i vårt ops-team granskar varje förfrågan och väljer compliant leverantörer.",
+    "cta": "Skicka förfrågan",
+    "thanksTitle": "Förfrågan mottagen",
+    "thanksBody": "Vårt ops-team kvalificerar förfrågan och skickar den till verifierade leverantörer. Du får e-post när offerter kommer in. Ett konto har skapats åt dig om du inte hade ett.",
+    "thanksCta": "Till min sida"
+  },
+  "rfqRoom": {
+    "back": "Min sida",
+    "workers": "arbetare",
+    "start": "start",
+    "weeks": "veckor",
+    "budget": "Budget",
+    "attachments": "Bilagor",
+    "offersTitle": "Offerter",
+    "noOffers": "Inga offerter ännu — leverantörerna är notifierade.",
+    "hourly": "timpris",
+    "fixed": "fast pris",
+    "earliestStart": "tidigast start",
+    "validUntil": "giltig till",
+    "accept": "Acceptera offert",
+    "submitOfferTitle": "Lämna er offert",
+    "rateModel": "Prismodell",
+    "amount": "Pris",
+    "currency": "Valuta",
+    "team": "Team",
+    "teamHint": "Namngivna arbetare — deras verifierade certstatus fryses automatiskt in i offerten.",
+    "offerNote": "Vad ingår?",
+    "submitOfferCta": "Skicka offert",
+    "snapVerified": "Verifierad för arbete i Sverige",
+    "snapNotVerified": "Ej verifierad",
+    "snapFrozenAt": "verifiering fryst",
+    "snapTeam": "Team",
+    "threadTitle": "Meddelanden",
+    "threadEmpty": "Inga meddelanden ännu.",
+    "threadPlaceholder": "Skriv ett meddelande…",
+    "threadSend": "Skicka"
+  },
+  "adminRfq": {
+    "title": "RFQ-pipeline",
+    "closedTitle": "Avslutade",
+    "buyer": "Köpare",
+    "qualify": "Kvalificera",
+    "markLost": "Markera förlorad",
+    "markExpired": "Markera utgången",
+    "dispatchTitle": "Skicka till leverantörer",
+    "dispatchHint": "Concierge-matchning: välj compliant kandidater. Verifierade leverantörer först.",
+    "unverified": "ej verifierad",
+    "alreadyDispatched": "utskickad",
+    "dispatchNote": "Notering till leverantörer (frivillig)",
+    "dispatchCta": "Skicka ut",
+    "offers": "Offerter",
+    "snapshot": "Snapshot",
+    "teamMembers": "teammedlemmar",
+    "recordDealTitle": "Registrera affären",
+    "recordDealHint": "Faktureras manuellt — inga betalningar i plattformen. Matar CSV-exporten.",
+    "contractValue": "Kontraktsvärde",
+    "currency": "Valuta",
+    "successFee": "Succéavgift %",
+    "note": "Notering",
+    "recordDealCta": "Registrera affär"
+  },
+  "deals": {
+    "title": "Affärer",
+    "exportCsv": "Exportera CSV",
+    "empty": "Inga affärer registrerade ännu.",
+    "rfq": "Förfrågan",
+    "supplier": "Leverantör",
+    "contractValue": "Kontraktsvärde",
+    "fee": "Succéavgift",
+    "recorded": "Registrerad"
   }
 }

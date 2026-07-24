@@ -101,7 +101,99 @@ async function handleEvent(
       logger.info(payload, "user registered");
       break;
     }
+    case "rfq.created": {
+      const { createOpsTask } = await import("@/modules/verification/service");
+      await createOpsTask({
+        title: "New RFQ — qualify and select suppliers",
+        detail: `RFQ ${payload.rfqId}`,
+        dueAt: new Date(),
+      });
+      break;
+    }
+    case "rfq.dispatched_to_company": {
+      await notifyCompanyOwner(
+        String(payload.companyId),
+        "New work request from Baltic Bridge",
+        `A buyer request matching your profile was dispatched to you. Review and submit your offer: /portal/rfq/${payload.rfqId}`,
+      );
+      break;
+    }
+    case "offers.submitted": {
+      await notifyRfqBuyer(
+        String(payload.rfqId),
+        "New offer on your request",
+        `A verified supplier submitted an offer. Compare offers: /portal/rfq/${payload.rfqId}`,
+      );
+      break;
+    }
+    case "offers.accepted": {
+      await notifyCompanyOwner(
+        String(payload.companyId),
+        "Your offer was accepted 🎉",
+        `The buyer accepted your offer on RFQ /portal/rfq/${payload.rfqId}. Baltic Bridge ops will contact you about the work package.`,
+      );
+      const { createOpsTask } = await import("@/modules/verification/service");
+      await createOpsTask({
+        title: "Offer accepted — record the deal for invoicing",
+        detail: `Offer ${payload.offerId} on RFQ ${payload.rfqId}`,
+        companyId: String(payload.companyId),
+        dueAt: new Date(),
+      });
+      break;
+    }
+    case "messaging.message_sent": {
+      // Deep-linked email to the counterpart (Section 5/M3)
+      const rfqId = String(payload.rfqId);
+      const senderUserId = String(payload.senderUserId);
+      const { getRfq } = await import("@/modules/rfq/service");
+      const rfq = await getRfq(rfqId);
+      if (rfq && rfq.buyerUserId !== senderUserId) {
+        await notifyRfqBuyer(
+          rfqId,
+          "New message on your request",
+          `Open the conversation: /portal/rfq/${rfqId}`,
+        );
+      } else {
+        await notifyCompanyOwner(
+          String(payload.companyId),
+          "New message from the buyer",
+          `Open the conversation: /portal/rfq/${rfqId}`,
+        );
+      }
+      break;
+    }
     default:
       logger.debug({ eventType }, "outbox event without subscriber");
   }
+}
+
+async function notifyCompanyOwner(
+  companyId: string,
+  subject: string,
+  text: string,
+): Promise<void> {
+  const { getCompany } = await import("@/modules/companies/service");
+  const { getUserById } = await import("@/modules/identity/service");
+  const company = await getCompany(companyId);
+  const owner = company?.ownerUserId
+    ? await getUserById(company.ownerUserId)
+    : null;
+  if (!owner) {
+    logger.info({ companyId, subject }, "no owner user to notify");
+    return;
+  }
+  await emailProvider().send({ to: owner.email, subject, text });
+}
+
+async function notifyRfqBuyer(
+  rfqId: string,
+  subject: string,
+  text: string,
+): Promise<void> {
+  const { getRfq } = await import("@/modules/rfq/service");
+  const { getUserById } = await import("@/modules/identity/service");
+  const rfq = await getRfq(rfqId);
+  const buyer = rfq ? await getUserById(rfq.buyerUserId) : null;
+  if (!buyer) return;
+  await emailProvider().send({ to: buyer.email, subject, text });
 }

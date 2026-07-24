@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import type { ZodSchema } from "zod";
+import type { z } from "zod";
 import { db } from "@/lib/db";
 import { idempotencyKeys } from "@/modules/audit/schema";
 import { currentActor } from "@/lib/auth";
@@ -23,7 +23,10 @@ export function handleApiError(error: unknown) {
   return apiError(500, "Internal error");
 }
 
-export function parseBody<T>(schema: ZodSchema<T>, body: unknown): T {
+export function parseBody<S extends z.ZodTypeAny>(
+  schema: S,
+  body: unknown,
+): z.output<S> {
   const result = schema.safeParse(body);
   if (!result.success) {
     throw new Error(

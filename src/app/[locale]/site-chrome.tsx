@@ -37,6 +37,7 @@ export default async function SiteChrome({
           </Link>
           <nav style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <Link href={`/${locale}/suppliers`}>{t("findSuppliers")}</Link>
+            <Link href={`/${locale}/request-work`}>{t("requestWork")}</Link>
             <Link href={`/${locale}/register`}>{t("join")}</Link>
             <Link className="button" href={`/${locale}/signin`} style={{ padding: "0.3rem 0.8rem" }}>
               {common("signIn")}

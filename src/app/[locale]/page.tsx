@@ -20,11 +20,11 @@ export default async function Home({
         </p>
         <p>{t("description")}</p>
         <p className="mt" style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link className="button" href={`/${locale}/register`}>
-            {t("joinAsSupplier")}
+          <Link className="button" href={`/${locale}/request-work`}>
+            {t("requestWorkCta")}
           </Link>
           <Link className="button" href={`/${locale}/register`} style={{ background: "var(--surface)", color: "var(--primary)" }}>
-            {t("joinAsBuyer")}
+            {t("joinAsSupplier")}
           </Link>
           <Link className="button" href={`/${locale}/suppliers`} style={{ background: "var(--surface)", color: "var(--primary)" }}>
             {t("findSuppliers")}

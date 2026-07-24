@@ -333,6 +333,49 @@ export async function getVerifiedFacts(
   return { verified: true, verifiedSince: kase.stateChangedAt, facts };
 }
 
+/** Approved worker-scoped certifications for a company+corridor, grouped by
+ * worker — used by the offers module to freeze team cert status (M3). */
+export async function getApprovedWorkerCerts(
+  companyId: string,
+  corridorId: string,
+): Promise<Map<string, { requirementKey: string; validUntil: Date | null }[]>> {
+  const result = new Map<
+    string,
+    { requirementKey: string; validUntil: Date | null }[]
+  >();
+
+  const kase = await db.query.verificationCases.findFirst({
+    where: and(
+      eq(verificationCases.companyId, companyId),
+      eq(verificationCases.corridorId, corridorId),
+    ),
+  });
+  if (!kase) return result;
+
+  const items = await db
+    .select()
+    .from(verificationItems)
+    .where(
+      and(
+        eq(verificationItems.caseId, kase.id),
+        eq(verificationItems.status, "approved"),
+      ),
+    );
+
+  const requirements = await getRequirementsForCorridor(corridorId);
+  const keyByReq = new Map(requirements.map((r) => [r.id, r.key]));
+
+  for (const item of items) {
+    if (!item.workerId) continue;
+    const key = keyByReq.get(item.requirementDefinitionId);
+    if (!key) continue;
+    const list = result.get(item.workerId) ?? [];
+    list.push({ requirementKey: key, validUntil: item.validUntil });
+    result.set(item.workerId, list);
+  }
+  return result;
+}
+
 /** Ops task creation — exported service interface so other modules never
  * touch this module's tables (Section 4.2) */
 export async function createOpsTask(input: {
