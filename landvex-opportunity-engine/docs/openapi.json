@@ -1,0 +1,476 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Landvex Opportunity Engine",
+    "version": "0.10.0",
+    "description": "Decision Intelligence for the Physical World"
+  },
+  "paths": {
+    "/v1/ask": {
+      "post": {
+        "summary": "Natural language in, engine data out.",
+        "tags": [
+          "ask"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/analyze": {
+      "post": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/scan": {
+      "post": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/report": {
+      "post": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/profile-options": {
+      "get": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/profiles": {
+      "post": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "Location analysis and profile-driven market sweeps with decision cards.",
+        "tags": [
+          "opportunity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/workforce/occupations": {
+      "get": {
+        "summary": "Skills forecasts 1–20 years, simulation, national and global shortage maps.",
+        "tags": [
+          "workforce"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/workforce/forecast": {
+      "post": {
+        "summary": "Skills forecasts 1–20 years, simulation, national and global shortage maps.",
+        "tags": [
+          "workforce"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/workforce/simulate": {
+      "post": {
+        "summary": "Skills forecasts 1–20 years, simulation, national and global shortage maps.",
+        "tags": [
+          "workforce"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/workforce/map": {
+      "get": {
+        "summary": "Skills forecasts 1–20 years, simulation, national and global shortage maps.",
+        "tags": [
+          "workforce"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/workforce/global-map": {
+      "get": {
+        "summary": "Skills forecasts 1–20 years, simulation, national and global shortage maps.",
+        "tags": [
+          "workforce"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/risk": {
+      "post": {
+        "summary": "Multi-dimensional risk profile with suggested mitigations.",
+        "tags": [
+          "risk"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/compare": {
+      "post": {
+        "summary": "2–4 locations head-to-head with a factor matrix.",
+        "tags": [
+          "compare"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/opportunities": {
+      "post": {
+        "summary": "Business Navigation: support-program fit, hidden opportunities, 'you're missing money', legal categories, lifecycle and expansion advice for a location + business profile.",
+        "tags": [
+          "opportunity_intel"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/risk-intelligence": {
+      "post": {
+        "summary": "Business radar: a Risk Score beside the Opportunity Score, ten risk categories, the Business Signals framework and a cautious counterparty-health model. Computed categories score from local signals; the rest are honest monitoring categories awaiting live feeds.",
+        "tags": [
+          "risk_intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/gaps": {
+      "post": {
+        "summary": "Imbalances: high demand × low supply × positive development.",
+        "tags": [
+          "gaps"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/plan": {
+      "post": {
+        "summary": "From analysis to decision basis: premises, investment, staffing, economics, risks.",
+        "tags": [
+          "plan"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/segments": {
+      "get": {
+        "summary": "Segment analysis (pet owners, families with children, etc.) per region and as a map.",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/segments/analyze": {
+      "post": {
+        "summary": "Segment analysis (pet owners, families with children, etc.) per region and as a map.",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/segments/map": {
+      "get": {
+        "summary": "Segment analysis (pet owners, families with children, etc.) per region and as a map.",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/products": {
+      "get": {
+        "summary": "Installed base → future service needs, technician demand and mismatch opportunities.",
+        "tags": [
+          "installed_base"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/service/analyze": {
+      "post": {
+        "summary": "Installed base → future service needs, technician demand and mismatch opportunities.",
+        "tags": [
+          "installed_base"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/service/map": {
+      "get": {
+        "summary": "Installed base → future service needs, technician demand and mismatch opportunities.",
+        "tags": [
+          "installed_base"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/indices": {
+      "get": {
+        "summary": "City indices (infrastructure risk, commercial activity, safety, climate risk, urban growth) + the contradiction index – sourced & traceable.",
+        "tags": [
+          "indices"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/indices/map": {
+      "get": {
+        "summary": "City indices (infrastructure risk, commercial activity, safety, climate risk, urban growth) + the contradiction index – sourced & traceable.",
+        "tags": [
+          "indices"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/indices/assess": {
+      "post": {
+        "summary": "City indices (infrastructure risk, commercial activity, safety, climate risk, urban growth) + the contradiction index – sourced & traceable.",
+        "tags": [
+          "indices"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/markets": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/reports": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/platform/status": {
+      "get": {
+        "summary": "Live integration with the AAMOS Capability Platform (12+ engines). Reports not-connected honestly until AAMOS_CORE_URL is set.",
+        "tags": [
+          "aamos_integration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/watch": {
+      "get": {
+        "summary": "Live integration with the AAMOS Capability Platform (12+ engines). Reports not-connected honestly until AAMOS_CORE_URL is set.",
+        "tags": [
+          "aamos_integration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/agents": {
+      "get": {
+        "summary": "Live integration with the AAMOS Capability Platform (12+ engines). Reports not-connected honestly until AAMOS_CORE_URL is set.",
+        "tags": [
+          "aamos_integration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/agents/chat": {
+      "post": {
+        "summary": "Live integration with the AAMOS Capability Platform (12+ engines). Reports not-connected honestly until AAMOS_CORE_URL is set.",
+        "tags": [
+          "aamos_integration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/cognition/brief": {
+      "post": {
+        "summary": "Live integration with the AAMOS Capability Platform (12+ engines). Reports not-connected honestly until AAMOS_CORE_URL is set.",
+        "tags": [
+          "aamos_integration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}
