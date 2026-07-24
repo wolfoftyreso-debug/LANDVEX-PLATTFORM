@@ -109,18 +109,25 @@ def build(out_path: str) -> None:
     for q, svar in demo["ask"].items():
         svar["forslag_en"] = [f for f in FRAGOR if f != q][:3]
 
+    from engine.specialization import specializations_for
     for market in DEMO_MARKETS:
         for vid in VERTICALS:
-            res = scan(profile_from_dict({"vertical_id": vid}), top_n=5,
-                       market=market)
-            demo["scans"][f"{market}:{vid}"] = res
-            for h in res["hotspots"]:
-                key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
-                if key not in demo["risk"]:
-                    demo["risk"][key] = assess(
-                        Location(h["lat"], h["lon"], address=h["lage_en"]), vid)
-                demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
-                    establishment_plan(h["kommun_kod"], vid, market=market)
+            # Generellt läge + varje specialisering (personlig score).
+            specs = [None] + [s["id"] for s in specializations_for(vid)]
+            for sp in specs:
+                res = scan(profile_from_dict(
+                    {"vertical_id": vid,
+                     **({"specialization": sp} if sp else {})}),
+                    top_n=5, market=market)
+                demo["scans"][f"{market}:{vid}:{sp or 'generell'}"] = res
+                for h in res["hotspots"]:
+                    key = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}"
+                    if key not in demo["risk"]:
+                        demo["risk"][key] = assess(
+                            Location(h["lat"], h["lon"],
+                                     address=h["lage_en"]), vid)
+                    demo["plans"][f"{market}:{h['kommun_kod']}:{vid}"] = \
+                        establishment_plan(h["kommun_kod"], vid, market=market)
         for occ in OCCUPATIONS:
             demo["wf_maps"][f"{market}:{occ}"] = national_map(
                 occ, 2035, market=market)
@@ -164,10 +171,13 @@ async function api(path, body) {
       forslag_en: Object.keys(D.ask) };
   }
   if (path === "/v1/scan") {
-    const r = D.scans[`${body.market || "us"}:${(body.profile || {}).vertical_id}`];
+    const pf = body.profile || {};
+    const sp = pf.specialization || "generell";
+    const r = D.scans[`${body.market || "us"}:${pf.vertical_id}:${sp}`]
+      || D.scans[`${body.market || "us"}:${pf.vertical_id}:generell`];
     if (!r) throw new Error(DEMOFEL);
     const kopia = JSON.parse(JSON.stringify(r));
-    kopia.caveats_en.unshift("Demo: industry and market drive the precomputed sweep – the other profile fields do not affect this result.");
+    kopia.caveats_en.unshift("Demo: industry, specialization and market drive the precomputed sweep – the other profile fields do not affect this result.");
     return kopia;
   }
   if (path.startsWith("/v1/workforce/map")) {

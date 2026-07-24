@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 from .commission import commission_for_lead
+from .specialization import specialization_boost, specialization_def
 from .datasources.base import Resolver
 from .datasources.scb import _haversine_km
 from .markets import DEFAULT_MARKET, get_market, plural_region_label
@@ -256,11 +257,16 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
               for code, name, lat, lon in cands
               for dlat, dlon, plabel in SCAN_LEVELS[level]]
 
+    # Specialiseringen omfördelar faktorvikterna → personlig score.
+    boost = specialization_boost(profile.vertical_id, profile.specialization)
+    _spec_def = specialization_def(profile.vertical_id, profile.specialization)
+    spec_label = _spec_def.label_en if _spec_def else ""
+
     heatmap: list[dict[str, Any]] = []
     scored: list[dict[str, Any]] = []
     for code, name, plabel, lat, lon in points:
         report = analyze(Location(lat, lon, address=name), profile.vertical_id,
-                         resolver=resolver)
+                         resolver=resolver, factor_boost=boost)
         env = classify_environment(report)
         heatmap.append({"kommun": name, "kommun_kod": code, "punkt": plabel,
                         "lat": lat, "lon": lon,
@@ -290,6 +296,17 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
     ranked = sorted(best_per_kommun.values(),
                     key=lambda x: (-x["rank_score"], x["code"]))
 
+    # Percentil: hur stor andel av regionerna denna plats slår på
+    # opportunity-score. Kärnan i "du har större chans att lyckas här
+    # än X %" – en ärlig plats-percentil av de beräknade scoren (inte
+    # påhittad folkstatistik).
+    alla_score = sorted(s["report"].opportunity_score for s in ranked)
+    n_regioner = len(alla_score)
+
+    def _percentil(sc: float) -> int:
+        lagre = sum(1 for x in alla_score if x < sc)
+        return int(round(100 * lagre / n_regioner)) if n_regioner else 0
+
     hotspots = []
     for i, s in enumerate(ranked[:top_n], start=1):
         r = s["report"]
@@ -303,6 +320,12 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
             "lat": s["lat"], "lon": s["lon"],
             "opportunity_score": r.opportunity_score,
             "rank_score": s["rank_score"],
+            # Percentil + personlig mening: "du slår X % av lägena".
+            "percentile": _percentil(r.opportunity_score),
+            "percentile_en": (
+                f"Beats {_percentil(r.opportunity_score)}% of "
+                f"{n_regioner} locations in {mkt.label_en} for your "
+                f"profile" + (f" ({spec_label})" if spec_label else "") + "."),
             # Kommission per lead (quiXzoom QZ TOKEN), graderad av score.
             "commission": commission_for_lead(r.opportunity_score),
             "confidence": _confidence(r),
@@ -343,6 +366,9 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
     return {
         "profile": profile.to_dict(),
         "vertical_label_en": VERTICALS[profile.vertical_id].label_en,
+        "specialization": ({"id": _spec_def.id, "label_en": _spec_def.label_en,
+                            "notis_en": _spec_def.notis_en}
+                           if _spec_def else None),
         "market": mkt.id, "market_label_en": mkt.label_en,
         "bbox": list(mkt.bbox),
         "level": level,

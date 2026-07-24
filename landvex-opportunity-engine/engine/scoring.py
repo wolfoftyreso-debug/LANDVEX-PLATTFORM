@@ -67,12 +67,14 @@ def _recommendation(score: float, risk_level: str) -> str:
 
 
 def analyze(location: Location, vertical_id: str,
-            resolver: Resolver | None = None) -> OpportunityReport:
+            resolver: Resolver | None = None,
+            factor_boost: dict | None = None) -> OpportunityReport:
     if vertical_id not in VERTICALS:
         raise ValueError(f"Unknown vertical: {vertical_id}. "
                          f"Available: {', '.join(sorted(VERTICALS))}")
     prof = VERTICALS[vertical_id]
     res = resolver or _DEFAULT_RESOLVER
+    boost = factor_boost or {}
 
     values, extras = res.resolve(location, vertical_id, required_signals(vertical_id))
 
@@ -88,7 +90,9 @@ def analyze(location: Location, vertical_id: str,
         fscore = round(100.0 * num / den, 0) if den else 0.0
         text = factor_narrative(f.id, location, values, extras) or \
             f"{f.label_en}: index {int(fscore)}/100."
-        factors.append(FactorScore(f.id, f.label_en, fscore, f.weight, text))
+        # Specialiseringen omfördelar tyngden mellan befintliga faktorer.
+        eff_weight = round(f.weight * boost.get(f.id, 1.0), 4)
+        factors.append(FactorScore(f.id, f.label_en, fscore, eff_weight, text))
 
     total_w = sum(f.weight for f in factors) or 1.0
     score = round(sum(f.score * f.weight for f in factors) / total_w, 0)

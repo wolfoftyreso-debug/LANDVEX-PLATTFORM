@@ -93,6 +93,7 @@ class BusinessProfile:
     environments: tuple[str, ...] = ()       # tom = alla miljötyper
     horizon_years: int = 3
     goal: str = "stabilitet"
+    specialization: str | None = None        # nisch inom vertikalen
     name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -141,12 +142,27 @@ def profile_from_dict(d: dict[str, Any]) -> BusinessProfile:
         environments=tuple(envs),
         horizon_years=choice("horizon_years", 3),
         goal=choice("goal", "stabilitet"),
+        specialization=_spec_choice(vid, d.get("specialization")),
         name=str(d.get("name", "")),
     )
 
 
+def _spec_choice(vertical_id: str, spec_id):
+    """Validera specialisering mot vertikalens katalog (None = generellt)."""
+    if spec_id in (None, "", "generell"):
+        return None
+    from .specialization import specializations_for
+    valid = {s["id"] for s in specializations_for(vertical_id)}
+    if spec_id not in valid:
+        raise ValueError(f"Invalid specialization for {vertical_id}: "
+                         f"{spec_id!r}. Allowed: {sorted(valid)}")
+    return spec_id
+
+
 def profile_options() -> dict[str, Any]:
     """Formulärdata till frontend, inklusive aktuella vertikaler."""
+    from .specialization import specialization_catalog
     return {"vertical_id": [{"id": v.id, "label_en": v.label_en}
                             for v in VERTICALS.values()],
+            "specializations": specialization_catalog(),
             **PROFILE_OPTIONS}

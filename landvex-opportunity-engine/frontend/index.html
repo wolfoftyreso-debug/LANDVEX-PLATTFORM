@@ -562,6 +562,7 @@ function ritaHotspots(res) {
         <span class="plats">${ikon("pin")} ${esc(h.lage_en)} <small style="color:var(--muted)">#${h.rank}</small></span>
         <span class="score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</span>
       </div>
+      ${h.percentile_en ? `<p class="motiv" style="color:var(--accent);font-weight:600">${ikon("upp", "pos")} ${esc(h.percentile_en)}</p>` : ""}
       <div class="metrik">
         <div><b>${h.confidence}</b><span>Confidence</span></div>
         <div><b>${h.risk_index}</b><span>Risk index (${esc(h.risk_level)})</span></div>
@@ -988,9 +989,9 @@ const GUIDE_FLOWS = {
     ],
   },
   steg: {
-    starta: ["bransch", "marknad", "budget", "team", "risk", "mal"],
+    starta: ["bransch", "specialisering", "marknad", "budget", "team", "risk", "mal"],
     kompetens: ["yrke", "marknad", "malar", "platser"],
-    lage: ["bransch", "marknad"],
+    lage: ["bransch", "specialisering", "marknad"],
     obalans: ["bransch", "marknad"],
   },
 };
@@ -999,6 +1000,16 @@ const GUIDE_FALT = {
   bransch: { fraga: "Which industry is this about?",
              info: "The industry decides which signals carry the most weight.",
              typ: "select", kalla: () => OPTIONS.vertical_id },
+  specialisering: {
+    fraga: "What is your specialization?",
+    info: "This makes the score personal to YOU – a niche re-weights the "
+        + "signals that matter for it. Pick General for an all-round view.",
+    typ: "select",
+    kalla: () => {
+      const v = guide.svar.bransch ? JSON.parse(guide.svar.bransch) : null;
+      const specs = (OPTIONS.specializations && OPTIONS.specializations[v]) || [];
+      return [{ id: "generell", label_en: "General (all-round)" }].concat(specs);
+    } },
   marknad: { fraga: "Which market do you want to analyze?",
              info: "Only Sweden has real data sources so far – the others are simulated and labeled as such.",
              typ: "select",
@@ -1089,6 +1100,8 @@ async function guideKor() {
   try {
     if (guide.flode === "starta" || guide.flode === "lage") {
       const profil = { vertical_id: sv("bransch") };
+      const spec = sv("specialisering");
+      if (spec && spec !== "generell") profil.specialization = spec;
       if (sv("budget")) profil.budget_band = sv("budget");
       if (sv("team")) profil.team_size = sv("team");
       if (sv("risk")) profil.risk_tolerance = sv("risk");

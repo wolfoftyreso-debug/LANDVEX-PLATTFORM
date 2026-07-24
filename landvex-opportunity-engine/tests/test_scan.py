@@ -155,6 +155,45 @@ def test_new_verticals_scan_and_have_schablons():
         assert card["drivers"], vid
         assert card["economy_scenario"]["omsattningsscenario_tkr_ar"] > 0, vid
 
+def test_specialization_personalizes_score_and_percentile():
+    """Specialisering omfördelar faktorvikter → personlig score +
+    percentil ('du slår X % av lägena')."""
+    from engine.scan import scan
+    from engine.profile import profile_from_dict
+    from engine.specialization import specializations_for
+    # Elektriker har specialiseringar; laddbox och industri ska ge
+    # olika toppresultat (personligt svar).
+    assert {s["id"] for s in specializations_for("elektriker")} >= {
+        "laddboxar", "industri", "nyproduktion"}
+    a = scan(profile_from_dict({"vertical_id": "elektriker",
+                                "specialization": "industri"}),
+             top_n=5, market="se")
+    b = scan(profile_from_dict({"vertical_id": "elektriker",
+                                "specialization": "nyproduktion"}),
+             top_n=5, market="se")
+    assert [h["kommun"] for h in a["hotspots"]] != \
+        [h["kommun"] for h in b["hotspots"]]     # olika svar per nisch
+    assert a["specialization"]["id"] == "industri"
+    # Percentil finns, 0–100, och toppen ligger högt.
+    top = a["hotspots"][0]
+    assert 0 <= top["percentile"] <= 100 and top["percentile"] >= 50
+    assert "% of" in top["percentile_en"]
+    # Determinism med specialisering.
+    assert scan(profile_from_dict({"vertical_id": "elektriker",
+                                   "specialization": "industri"}),
+                top_n=5, market="se") == a
+    # Ogiltig specialisering avvisas.
+    try:
+        profile_from_dict({"vertical_id": "elektriker",
+                           "specialization": "rymdteknik"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ogiltig specialisering skulle avvisats")
+    # Generellt läge (ingen specialisering) fungerar.
+    g = scan(profile_from_dict({"vertical_id": "gym"}), top_n=3, market="us")
+    assert g["specialization"] is None and "percentile" in g["hotspots"][0]
+
 
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]

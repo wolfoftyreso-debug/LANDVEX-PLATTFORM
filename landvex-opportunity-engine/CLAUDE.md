@@ -362,6 +362,22 @@ OIDC.
   visar "0.05–0.15 QZ/lead". `_mission_latlon` läser både `lng`/`lon`.
   Öppet kvar (icke-blockerande): exakta query-params `/api/qz/missions`
   tar, och om kommission gäller bortom Growth.
+- **Personlig Opportunity Score: specialisering + percentil (v0.27):**
+  Omorientering enligt produktvisionen – från "var finns flest
+  människor?" till "var har just DU störst chans att lyckas?".
+  `engine/specialization.py`: nischer per vertikal (elektriker →
+  laddboxar/solceller/industri/nyproduktion/service/jour/smarta hem;
+  vvs/bygg/malare/bilverkstad m.fl.) som en ren, datadriven
+  vikt-överlagring (`factor_boost`) på vertikalens faktorer – ny nisch
+  = ny rad, inga påhittade signaler, bara omfördelad tyngd. `analyze`
+  tar `factor_boost`; `scan` läser `profile.specialization`. Olika
+  nischer ger olika topplista (laddbox→Kalmar, industri→Uppsala,
+  nyproduktion→Malmö). Varje beslutskort bär nu **percentil**: "Beats
+  98% of 40 locations in Sweden for your profile (EV chargers)" – en
+  ärlig plats-percentil av de beräknade scoren (inte påhittad
+  folkstatistik). Guiden har ett specialiseringssteg (villkorat på
+  vald bransch); demon bakar alla nisch-varianter (86 svep). "Varför?"
+  finns redan via drivkrafter med källa per rad.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 
