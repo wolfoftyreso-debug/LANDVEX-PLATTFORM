@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# LANDVEX Opportunity Engine
 
-## Project info
+**Decision Intelligence for the Physical World.**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Global decision-support for future workforce and business needs. It does not
+answer *"where are the most people?"* but **"where does THIS specific business
+have the highest probability of success — and making money?"** — with an
+explainable factor breakdown, confidence, assumptions and honest data coverage
+in every response. US-first; Sweden is the first fully calibrated market.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Quickstart
 
-**Use Lovable**
+```bash
+# Dependency-free dev server + portal (zero install):
+python3 -m api.dev_server            # → http://localhost:8000/
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+# Full test suite (no pytest, no network):
+for t in tests/test_*.py; do python3 -m "tests.$(basename "$t" .py)"; done   # → 24 green
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Production API:
+pip install -r requirements.txt && uvicorn api.main:app --host 0.0.0.0 --port 8087
 ```
 
-**Edit a file directly in GitHub**
+Read **[`docs/dev-sync.md`](docs/dev-sync.md)** first — it is the single entry
+point (coverage, endpoints, integrations, activation checklist).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Repository layout
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+| Path | Purpose |
+|------|---------|
+| `engine/` | Dependency-free core (stdlib only) — the six decision layers. Runs identically locally, in Lambda and ECS. |
+| `engine/datasources/` | Resolver chain + adapters: SCB (live), permits, places, programs, quiXzoom — real source wins, mock is the honest fallback. |
+| `api/` | Two interchangeable API layers — `main.py` (FastAPI, production) and `dev_server.py` (stdlib, zero deps), locked equal by a contract test. |
+| `integrations/` | AAMOS Capability Platform client (degrades honestly when not connected). |
+| `frontend/` | Self-contained portal (no external deps) — Apple-native theme, intro hero, optional real map layer. |
+| `tests/` | 24 suites, run without pytest and without network. |
+| `scripts/` | Pre-flight probes (SCB, AAMOS, permits, places, programs, quiXzoom) + the standalone-demo builder. |
+| `infra/` | systemd unit, nginx conf, AWS notes, deployment collateral. |
+| `docs/` | Documentation — see [`docs/README.md`](docs/README.md). |
 
-## What technologies are used for this project?
+## The decision layers
 
-This project is built with:
+1. **Opportunity Score** — 0–100, personalized: ★ rating, percentile
+   (*"Beats 93% of locations for your profile"*), 2-year demand outlook.
+2. **Opportunity Intelligence** — support-program fit, "you're missing money",
+   hidden opportunities, legal categories, lifecycle & expansion advice.
+3. **Risk Intelligence / Business Signals** — a Risk Score beside the
+   Opportunity Score, ten risk categories, a cautious counterparty-health model.
+4. **Workforce Intelligence** — skills forecasts 1–20 years, shortage maps.
+5. **Installed Base** — installed base → future service demand & technician need.
+6. **Intelligence Map** — city indices + the Contradiction Index (planned vs
+   observed).
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Design principles (do not break)
 
-## How can I deploy this project?
+1. **Everything is data, not code** — new verticals/markets/programs need no
+   engine changes.
+2. **`engine/` stays dependency-free** — external libs live in `api/`, adapters
+   and infra.
+3. **Explainability before prediction** — no survival-probability or ROI
+   promises until outcome data exists.
+4. **Honest coverage** — mock is always `source="mock"`; `data_coverage` is
+   never faked; heuristics are labelled; degradation never fabricates a number.
+5. **Determinism** — same location + vertical → same report.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Status
 
-## Can I connect a custom domain to my Lovable project?
+- **SCB (Sweden):** live. **Permits / Places / Programs / quiXzoom:** adapters
+  complete, activated by a single environment variable each (see
+  [`docs/dev-sync.md`](docs/dev-sync.md) §6).
+- Everything not connected is mock and **labelled as simulated**.
 
-Yes, you can!
+## License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Proprietary — add a `LICENSE` file before distribution.
