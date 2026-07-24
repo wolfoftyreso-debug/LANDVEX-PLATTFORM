@@ -182,10 +182,63 @@ async function api(path, body) {
   if (path === "/v1/workforce/occupations") return D.occupations;
   if (path === "/v1/markets") return D.markets;
   if (path === "/v1/ask") {
-    const svar = D.ask[(body.question || "").trim()];
+    const q = (body.question || "").trim();
+    const svar = D.ask[q];
     if (svar) return svar;
+    // Best-effort client-side match for free-form questions (EN + SV):
+    // detect an industry (+ optional market) and answer from the baked sweep.
+    const ql = " " + q.toLowerCase() + " ";
+    const SV = ["sverige","sweden","svensk","stockholm","göteborg","goteborg",
+                "malmö","malmo","uppsala","västerås","vasteras","örebro","län","kommun"];
+    const DE = ["tyskland","germany","tysk","berlin","münchen","munchen","munich",
+                "hamburg","frankfurt","köln","koln","cologne"];
+    // Swedish-language markers → default to Sweden when no other place is named.
+    const SVLANG = [" ska "," öppna "," vart "," var "," hur "," bäst "," företag ",
+                    " jobb "," starta "," för "," och "," att "];
+    const isSv = SVLANG.some(w => ql.includes(w));
+    let market = DE.some(w => ql.includes(w)) ? "de"
+               : (SV.some(w => ql.includes(w)) || isSv) ? "se" : "us";
+    const SYN = {
+      elektriker:["elektriker","electrician"," el ","laddbox","charger","solcell","solar","charging"],
+      vvs:["vvs","plumb","rör","värmepump","heat pump"],
+      bygg:["bygg","snickare","construction","carpenter","builder"],
+      frisor:["frisör","frisor","hair","barber","salong"],
+      gym:["gym","fitness","träning"],
+      restaurang:["restaurang","restaurant","krog"],
+      cafe:["café","cafe","kafé","kafe","coffee"," fik"],
+      tandlakare:["tandläkare","tandlakare","dentist","tandvård"],
+      bilverkstad:["bilverkstad"," bil ","verkstad","car repair","auto","mekaniker"],
+      veterinar:["veterinär","veterinar"," vet ","djurklinik"],
+      malare:["målare","malare","painter","måleri"],
+      apotek:["apotek","pharmacy"], bageri:["bageri","bakery","bagare"],
+      optiker:["optiker","optician"], forskola:["förskola","forskola","preschool"],
+      stadfirma:["städ","cleaning"], lager:["lager","warehouse","logistik"]
+    };
+    let vid = null;
+    for (const o of (D.options.vertical_id||[]))
+      if (ql.includes(o.id) || ql.includes((o.label_en||"").toLowerCase())) { vid = o.id; break; }
+    if (!vid) for (const [id, words] of Object.entries(SYN))
+      if (words.some(w => ql.includes(w))) { vid = id; break; }
+    if (vid) {
+      const scan = D.scans[`${market}:${vid}:generell`] || D.scans[`us:${vid}:generell`];
+      if (scan) {
+        const mlabel = (D.markets.find(m=>m.id===scan.market)||{}).label_en || scan.market;
+        return {
+          intent: "basta_lage_vertikal",
+          svar_en: `Top opportunities for ${scan.vertical_label_en.toLowerCase()} in ${mlabel} (matched from your question).`,
+          rader: scan.hotspots.map(h => ({
+            id: h.kommun_kod, label_en: h.lage_en, score: h.opportunity_score,
+            detalj: { motivering_en: h.motivering_en, faktorer: h.factors } })),
+          karta: { typ: "heatmap", bbox: scan.bbox, hotspots: scan.hotspots, heatmap: scan.heatmap },
+          forslag_en: Object.keys(D.ask).slice(0, 3),
+          caveats_en: ["Demo: your free-form question was matched to the precomputed " +
+            scan.vertical_label_en.toLowerCase() + " sweep for " + mlabel +
+            ". The live API parses the whole question — place, count, target year and intent."]
+        };
+      }
+    }
     return { intent: "hjalp", rader: [], caveats_en: [],
-      svar_en: "The demo has precomputed answers for the questions below – the live API interprets free-form questions.",
+      svar_en: "The demo has precomputed answers for the questions below – the live API interprets any free-form question.",
       forslag_en: Object.keys(D.ask) };
   }
   if (path === "/v1/scan") {
