@@ -83,7 +83,7 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("development_m2",    "Development area",             "1000 m²","saturating", 150),
     _s("field_observation_density", "quiXzoom field observations",
        "obs/area", "saturating", 40),
-    _s("infra_invest",      "Infrastructure investment",    "MSEK",   "saturating", 400),
+    _s("infra_invest",      "Infrastructure investment",    "M local","saturating", 400),
     _s("insurance_index",   "Dental insurance coverage",    "index",  "linear", 60, 120),
     _s("care_supply",       "Other care services",          "0–10",   "band", 3, 7),
     # ── Fordon, djur & logistik ───────────────────────────────────────

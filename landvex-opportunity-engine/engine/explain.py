@@ -75,7 +75,8 @@ def factor_narrative(factor_id: str, location: Location,
     if factor_id == "exploatering" and v("development_m2") is not None:
         return f"About {sv_num(v('development_m2') * 1000)} m² of development area planned."
     if factor_id == "infrastruktur" and v("infra_invest") is not None:
-        return f"Public investment of about {sv_num(v('infra_invest'))} MSEK."
+        return (f"Public investment of about {sv_num(v('infra_invest'))} "
+                f"million (local currency).")
     if factor_id == "morgon" and v("flow_morning") is not None:
         return f"About {sv_num(v('flow_morning'))} passers-by per hour in the morning."
     if factor_id == "dag" and v("flow_midday") is not None:

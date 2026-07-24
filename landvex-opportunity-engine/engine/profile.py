@@ -17,11 +17,11 @@ from .verticals import VERTICALS
 
 PROFILE_OPTIONS: dict[str, list[dict[str, Any]]] = {
     "budget_band": [
-        {"id": "0-500k",   "label_en": "0–500,000 SEK"},
-        {"id": "500k-2m",  "label_en": "500,000 – 2 million"},
-        {"id": "2-5m",     "label_en": "2–5 million"},
-        {"id": "5-10m",    "label_en": "5–10 million"},
-        {"id": "10m+",     "label_en": "10 million +"},
+        {"id": "0-500k",   "label_en": "$0–500K"},
+        {"id": "500k-2m",  "label_en": "$500K–2M"},
+        {"id": "2-5m",     "label_en": "$2–5M"},
+        {"id": "5-10m",    "label_en": "$5–10M"},
+        {"id": "10m+",     "label_en": "$10M+"},
     ],
     "team_size": [
         {"id": "1",     "label_en": "Just me"},
