@@ -26,6 +26,7 @@ from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
 from engine.opportunity_intel import opportunity_intel
+from engine.risk_intel import risk_intelligence
 from engine.plan import establishment_plan
 from engine.profile import profile_from_dict, profile_options
 from engine.risk import assess
@@ -79,6 +80,7 @@ def build(out_path: str) -> None:
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
         "risk": {}, "plans": {}, "gaps": {}, "opportunities": {},
+        "risk_intel": {},
         "index_catalog": index_catalog(),
         "index_maps": {}, "assessments": {},
         "plans_catalog": plans_catalog(),
@@ -132,6 +134,10 @@ def build(out_path: str) -> None:
                     okey = f"{h['lat']:.3f}:{h['lon']:.3f}:{vid}:{sp or 'generell'}"
                     if okey not in demo["opportunities"]:
                         demo["opportunities"][okey] = opportunity_intel(
+                            Location(h["lat"], h["lon"], address=h["lage_en"]),
+                            vid, specialization=sp, market=market)
+                    if okey not in demo["risk_intel"]:
+                        demo["risk_intel"][okey] = risk_intelligence(
                             Location(h["lat"], h["lon"], address=h["lage_en"]),
                             vid, specialization=sp, market=market)
         for occ in OCCUPATIONS:
@@ -238,6 +244,13 @@ async function api(path, body) {
     const sp = body.specialization || "generell";
     const r = D.opportunities[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:${sp}`]
       || D.opportunities[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:generell`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/risk-intelligence") {
+    const sp = body.specialization || "generell";
+    const r = D.risk_intel[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:${sp}`]
+      || D.risk_intel[`${body.lat.toFixed(3)}:${body.lon.toFixed(3)}:${body.vertical}:generell`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }

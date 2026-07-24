@@ -43,6 +43,7 @@ from engine.plan import establishment_plan
 from engine.report import decision_report
 from engine.opportunity_intel import opportunity_intel
 from engine.risk import assess
+from engine.risk_intel import risk_intelligence
 from engine.segments import segment_analysis, segment_catalog, segment_map
 from engine.storage.sqlite import SqliteStore
 from engine.verticals import VERTICALS
@@ -312,6 +313,26 @@ def opportunities(req: OpportunitiesRequest):
             req.vertical, resolver=RESOLVER,
             specialization=req.specialization, team_size=req.team_size,
             company_form=req.company_form, market=req.market)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class RiskIntelRequest(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    vertical: str
+    address: str = ""
+    specialization: str | None = None
+    market: str = DEFAULT_MARKET
+
+
+@app.post("/v1/risk-intelligence")
+def risk_intel_ep(req: RiskIntelRequest):
+    try:
+        return risk_intelligence(
+            Location(lat=req.lat, lon=req.lon, address=req.address),
+            req.vertical, resolver=RESOLVER,
+            specialization=req.specialization, market=req.market)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

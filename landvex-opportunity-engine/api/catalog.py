@@ -63,6 +63,14 @@ API_CATALOG: dict = {
                            "categories, lifecycle and expansion advice for a "
                            "location + business profile.",
          "endpoints": [{"method": "POST", "path": "/v1/opportunities"}]},
+        {"id": "risk_intelligence", "label_en": "Risk Intelligence",
+         "beskrivning_en": "Business radar: a Risk Score beside the "
+                           "Opportunity Score, ten risk categories, the "
+                           "Business Signals framework and a cautious "
+                           "counterparty-health model. Computed categories "
+                           "score from local signals; the rest are honest "
+                           "monitoring categories awaiting live feeds.",
+         "endpoints": [{"method": "POST", "path": "/v1/risk-intelligence"}]},
         {"id": "gaps", "label_en": "Gap Analysis",
          "beskrivning_en": "Imbalances: high demand × low supply × "
                            "positive development.",

@@ -419,6 +419,30 @@ OIDC.
   beslutskort. Ett live-programregister (EU Funding & Tenders, Vinnova,
   Energimyndigheten, regionala fonder) är adaptern som gör belopp och
   deadlines verkliga – samma Resolver-mönster som SCB.
+- **Risk Intelligence / Business Signals™ (v0.30):**
+  `engine/risk_intel.py` – affärsradar bredvid Opportunity Score. Systemet
+  behöver inte avgöra vad som är sant, utan upptäcka FÖRÄNDRINGAR
+  (data → signal → rekommendation → beslut). (1) **Dual meters**: Risk
+  Score (0–100, lägre = mindre risk) bredvid Opportunity Score, nedbruten
+  i TIO kategorier (marknads-, konkurrens-, finansiell, geografisk,
+  projekt-, leverantörs-, kund-/motparts-, regulatorisk, personal-,
+  juridisk risk). Kategorier med signaldrivare BERÄKNAS (risk = 100×(1−
+  viktat normaliserat)); övriga redovisas ärligt som "monitoring" (kräver
+  live-flöde) i stället för en påhittad siffra – Risk Score aggregerar
+  bara beräknade kategorier (ärlig `computed_coverage`). (2) **Business
+  Signals™**: signalramverket i åtta kategorier (finansiella, kund-,
+  personal-, affärs-, projekt-, marknads-, offentliga, leverantörssignaler)
+  – en signal betyder lite, flera samman mycket; varje kategori märkt vad
+  den kräver för live-detektion. (3) **Counterparty Health**: ett
+  FÖRSIKTIGT ramverk – objektiva risksignaler + försiktighetsåtgärder;
+  drar aldrig juridiska slutsatser, säger aldrig "gör inte affären", och
+  en specifik motpart kräver en kredit-/registeradapter. Trend/förändring
+  redovisas som "requires monitoring history" (aldrig en påhittad pil).
+  `POST /v1/risk-intelligence` i båda servrarna, kapabilitet opportunity,
+  katalogpost; frontend: "Risk Intelligence"-knapp med dual-meters,
+  kategorier, rekommendationer, counterparty- och signalramverk i varje
+  beslutskort. Live-adaptrar (kredit-, konkurrent-, recensions-, lag-,
+  upphandlingsdata med historik) gör förändringsdetektionen verklig.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

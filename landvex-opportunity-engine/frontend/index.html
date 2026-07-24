@@ -131,6 +131,13 @@
   .oppcard { background: var(--panel2); border: 1px solid var(--line);
              border-radius: 9px; padding: 9px 10px; margin: 6px 0; }
   .oppcard .rubrik { margin-bottom: 4px; }
+  .dual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+  .meter { background: var(--panel2); border: 1px solid var(--line);
+           border-radius: 10px; padding: 10px; text-align: center; }
+  .meter .mval { display: block; font-size: 26px; font-weight: 750; }
+  .meter .mlbl { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                 letter-spacing: .5px; }
+  .muted2 { color: var(--muted); font-size: 11px; }
   .sim { display: flex; gap: 6px; margin-top: 6px; }
   .sim input { width: 90px; padding: 7px 9px; border-radius: 8px; font-size: 13px;
                background: var(--panel2); color: var(--text);
@@ -606,6 +613,9 @@ function ritaHotspots(res) {
         <h4>Opportunity Intelligence</h4>
         <div class="sim"><button class="oppBtn">Find support, hidden opportunities & advice →</button></div>
         <div class="oppUt"></div>
+        <h4>Risk Intelligence — business radar</h4>
+        <div class="sim"><button class="riBtn">Show Risk Score & signals →</button></div>
+        <div class="riUt"></div>
       </div>`;
     div.onclick = () => { div.classList.toggle("open"); valjKommun(h.kommun_kod); };
     div.querySelector(".oppBtn").onclick = async (e) => {
@@ -621,6 +631,19 @@ function ritaHotspots(res) {
           company_form: pf.company_form || "aktiebolag",
           market: senasteScan.market || "us" });
         ut.innerHTML = oppHTML(oi);
+      } catch (err) { ut.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`; }
+    };
+    div.querySelector(".riBtn").onclick = async (e) => {
+      e.stopPropagation();
+      const ut = div.querySelector(".riUt");
+      ut.innerHTML = "<p class='motiv'>Reading signals and scoring risk …</p>";
+      try {
+        const pf = senasteScan.profile || {};
+        const ri = await api("/v1/risk-intelligence", {
+          lat: h.lat, lon: h.lon, address: h.lage_en,
+          vertical: pf.vertical_id, specialization: pf.specialization || null,
+          market: senasteScan.market || "us" });
+        ut.innerHTML = riskIntelHTML(ri);
       } catch (err) { ut.innerHTML = `<p class="motiv">Error: ${esc(err.message)}</p>`; }
     };
     div.querySelector(".riskBtn").onclick = async (e) => {
@@ -740,6 +763,48 @@ function oppHTML(oi) {
   h += `<p class="motiv"><b>Prepare for "${esc(lc.next_stage)}":</b></p><div class="steg">${lc.prepare_next_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
 
   h += (oi.caveats_en || []).map(c => `<p class="roi-notis">${esc(c)}</p>`).join("");
+  return h;
+}
+
+function riskIntelHTML(ri) {
+  const rk = s => s < 30 ? "s-gron" : s < 55 ? "s-gul" : "s-rod";
+  let h = "";
+  // Dual meters: Opportunity vs Risk.
+  h += `<div class="dual">
+      <div class="meter"><span class="mval s-gron">${Math.round(ri.opportunity_score)}</span><span class="mlbl">Opportunity Score</span></div>
+      <div class="meter"><span class="mval ${rk(ri.risk_score)}">${ri.risk_score}</span><span class="mlbl">Risk Score (${esc(ri.risk_band_en)})</span></div>
+    </div>
+    <p class="roi-notis">Trend: ${esc(ri.trend.notis_en)}</p>`;
+
+  // Risk categories – computed + monitoring.
+  h += `<h4>Risk categories (${Math.round(ri.computed_coverage*100)}% computed)</h4>`;
+  h += ri.risk_categories.map(c => c.status === "computed"
+    ? `<div class="driver"><span>${esc(c.label_en)}</span>
+         <span class="${rk(c.risk)}">${c.risk} · ${esc(c.band_en)}</span></div>
+       ${c.mitigation_en ? `<p class="roi-notis">${ikon("varning","varn")} ${esc(c.mitigation_en)}</p>` : ""}`
+    : `<div class="driver"><span>${esc(c.label_en)}</span><span class="muted2">monitoring</span></div>
+       <p class="roi-notis">Watches: ${esc(c.watch_en)}</p>`).join("");
+
+  // Recommendations (data → signal → action).
+  h += `<h4>What you should do</h4>`;
+  h += ri.recommendations.map(r => `<div class="oppcard">
+      <p class="motiv">${esc(r.trigger_en)}</p>
+      <p class="motiv"><b>${esc(r.action_en)}</b></p></div>`).join("");
+
+  // Counterparty health framework (cautious).
+  const cp = ri.counterparty_health;
+  h += `<h4>Counterparty health — objective signals</h4>`;
+  h += `<div class="steg">${cp.objective_signals.map(s => `<span>${esc(s.signal_en)}</span>`).join("")}</div>`;
+  h += `<p class="motiv"><b>Precautions to consider:</b></p><div class="steg">${cp.precautions_en.map(s => `<span>${esc(s)}</span>`).join("")}</div>`;
+  h += `<p class="roi-notis">${esc(cp.guardrail_en)}</p>`;
+
+  // Business Signals framework.
+  const bs = ri.business_signals;
+  h += `<h4>Business Signals™ — what the radar watches</h4>`;
+  h += `<p class="motiv">${esc(bs.principle_en)}</p>`;
+  h += Object.values(bs.categories).map(c => `<div class="driver"><span>${esc(c.label_en)}</span><span class="muted2">${c.signals_en.length} signals</span></div>`).join("");
+
+  h += (ri.caveats_en || []).map(c => `<p class="roi-notis">${esc(c)}</p>`).join("");
   return h;
 }
 
