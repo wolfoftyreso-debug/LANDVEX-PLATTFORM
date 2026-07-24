@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentActor } from "@/lib/auth";
 import { requireAnyRole } from "@/modules/identity/rbac";
-import { addWorker, createCompany } from "@/modules/companies/service";
+import { addContact, addWorker, createCompany } from "@/modules/companies/service";
 import {
   openCase,
   transitionCase,
@@ -47,6 +47,18 @@ export async function addWorkerAction(formData: FormData) {
     companyId: z.string().uuid().parse(formData.get("companyId")),
     name: z.string().min(1).parse(formData.get("name")),
     tradeRole: String(formData.get("tradeRole") ?? "") || undefined,
+  });
+  revalidatePath("/[locale]/admin/companies/[id]", "page");
+}
+
+export async function addContactAction(formData: FormData) {
+  const a = await actor();
+  await addContact(a, {
+    companyId: z.string().uuid().parse(formData.get("companyId")),
+    name: z.string().min(1).parse(formData.get("name")),
+    email: String(formData.get("email") ?? "") || undefined,
+    phone: String(formData.get("phone") ?? "") || undefined,
+    roleTitle: String(formData.get("roleTitle") ?? "") || undefined,
   });
   revalidatePath("/[locale]/admin/companies/[id]", "page");
 }

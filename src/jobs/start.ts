@@ -83,6 +83,24 @@ async function handleEvent(
       logger.info(payload, "case state changed");
       break;
     }
+    case "companies.created": {
+      // Self-registered suppliers enter the concierge funnel: ops reviews
+      // the profile and opens the verification case.
+      if (payload.selfServe === true) {
+        const { createOpsTask } = await import("@/modules/verification/service");
+        await createOpsTask({
+          title: "New self-registered supplier — review and open verification case",
+          detail: `Company ${payload.companyId}`,
+          companyId: String(payload.companyId),
+          dueAt: new Date(),
+        });
+      }
+      break;
+    }
+    case "identity.user_registered": {
+      logger.info(payload, "user registered");
+      break;
+    }
     default:
       logger.debug({ eventType }, "outbox event without subscriber");
   }

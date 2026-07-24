@@ -19,10 +19,16 @@ export default async function Home({
           <strong>{t("tagline")}</strong>
         </p>
         <p>{t("description")}</p>
-        <p className="mt">
-          <Link className="button" href={`/${locale}/admin`}>
-            {t("goToAdmin")}
+        <p className="mt" style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <Link className="button" href={`/${locale}/register`}>
+            {t("joinAsSupplier")}
           </Link>
+          <Link className="button" href={`/${locale}/register`} style={{ background: "var(--surface)", color: "var(--primary)" }}>
+            {t("joinAsBuyer")}
+          </Link>
+        </p>
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          <Link href={`/${locale}/signin`}>{t("goToAdmin")}</Link>
         </p>
       </div>
     </div>

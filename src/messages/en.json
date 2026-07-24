@@ -16,12 +16,16 @@
   "home": {
     "tagline": "Verified cross-border subcontracting — Lithuania to Sweden",
     "description": "Baltic Bridge proves, with documents and an audit trail, that a Baltic supplier is fully compliant for work in Sweden. Internal ops tool — Phase 0–1.",
-    "goToAdmin": "Open ops console"
+    "goToAdmin": "Open ops console",
+    "joinAsSupplier": "Join as a company",
+    "joinAsBuyer": "Join as a customer"
   },
   "auth": {
     "title": "Sign in to Baltic Bridge",
     "subtitle": "Internal ops console. Use your team credentials.",
-    "invalidCredentials": "Wrong email or password."
+    "invalidCredentials": "Wrong email or password.",
+    "noAccount": "No account yet?",
+    "registerLink": "Create one"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -103,5 +107,32 @@
     "empty": "No open tasks.",
     "done": "Done",
     "due": "Due"
+  },
+  "register": {
+    "title": "Create your account",
+    "subtitle": "Join Baltic Bridge — Europe's verified subcontracting marketplace.",
+    "asBuyer": "I need work done",
+    "asSupplier": "We are a company",
+    "buyerHint": "Customer account: request work packages from verified Baltic suppliers.",
+    "supplierHint": "Supplier account: create your company profile and get verified for work in Sweden.",
+    "name": "Your name",
+    "passwordHint": "At least 10 characters.",
+    "cta": "Create account",
+    "emailTaken": "An account with this email already exists.",
+    "rateLimited": "Too many attempts — please try again later.",
+    "invalid": "Please check your details and try again.",
+    "haveAccount": "Already have an account?"
+  },
+  "portal": {
+    "title": "My Baltic Bridge",
+    "buyerWelcome": "Welcome!",
+    "buyerBody": "Your customer account is ready. Requesting quotes from verified suppliers opens shortly — our team can already broker work packages for you: ops@balticbridge.example.",
+    "createCompanyTitle": "Create your company profile",
+    "createCompanyBody": "Tell us who you are. Our ops team then opens your verification case for the Lithuania → Sweden corridor and guides you through the required documents.",
+    "companyDescription": "Short description",
+    "createCompanyCta": "Create company",
+    "verifiedBadge": "Verified for work in Sweden",
+    "awaitingCase": "Profile received — our ops team opens your verification case shortly.",
+    "requirements": "Verification requirements"
   }
 }

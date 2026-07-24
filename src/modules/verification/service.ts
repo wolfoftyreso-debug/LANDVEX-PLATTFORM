@@ -242,6 +242,18 @@ export async function isCompanyVerified(
   return kase?.state === "verified";
 }
 
+/** Ops task creation — exported service interface so other modules never
+ * touch this module's tables (Section 4.2) */
+export async function createOpsTask(input: {
+  title: string;
+  detail?: string;
+  companyId?: string;
+  caseId?: string;
+  dueAt?: Date;
+}): Promise<void> {
+  await db.insert(opsTasks).values(input);
+}
+
 // ---------------------------------------------------------------------------
 // Expiry engine — invoked by the nightly pg-boss job
 // ---------------------------------------------------------------------------

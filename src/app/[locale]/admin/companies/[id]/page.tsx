@@ -13,6 +13,7 @@ import { documents } from "@/modules/documents/schema";
 import { verificationCases } from "@/modules/verification/schema";
 import { badgeVisible, type CaseState } from "@/modules/verification/domain";
 import {
+  addContactAction,
   addWorkerAction,
   openCaseAction,
 } from "@/app/[locale]/admin/actions";
@@ -121,9 +122,7 @@ export default async function CompanyDetail({
       {/* Contacts */}
       <div className="card">
         <h3>{t("contacts")}</h3>
-        {contacts.length === 0 ? (
-          <p className="muted">—</p>
-        ) : (
+        {contacts.length > 0 && (
           <table>
             <tbody>
               {contacts.map((c) => (
@@ -136,6 +135,22 @@ export default async function CompanyDetail({
             </tbody>
           </table>
         )}
+        <form action={addContactAction} className="inline mt">
+          <input type="hidden" name="companyId" value={company.id} />
+          <div>
+            <label htmlFor="contact-name">{t("workerName")}</label>
+            <input id="contact-name" name="name" required />
+          </div>
+          <div>
+            <label htmlFor="contact-email">Email</label>
+            <input id="contact-email" name="email" type="email" />
+          </div>
+          <div>
+            <label htmlFor="contact-phone">Tel</label>
+            <input id="contact-phone" name="phone" />
+          </div>
+          <button type="submit" className="secondary">+</button>
+        </form>
       </div>
 
       {/* Documents */}

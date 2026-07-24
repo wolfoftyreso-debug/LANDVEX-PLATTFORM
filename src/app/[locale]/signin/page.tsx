@@ -29,7 +29,7 @@ export default function SignInPage() {
       setError(t("invalidCredentials"));
       return;
     }
-    router.push(`/${params.locale}/admin`);
+    router.push(`/${params.locale}/go`);
     router.refresh();
   };
 
@@ -66,6 +66,10 @@ export default function SignInPage() {
             {busy ? common("loading") : common("signIn")}
           </button>
         </form>
+        <p className="muted mt" style={{ fontSize: "0.85rem" }}>
+          {t("noAccount")}{" "}
+          <a href={`/${params.locale}/register`}>{t("registerLink")}</a>
+        </p>
       </div>
     </div>
   );

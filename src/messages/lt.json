@@ -16,12 +16,16 @@
   "home": {
     "tagline": "Patikrinta tarpvalstybinė subranga — iš Lietuvos į Švediją",
     "description": "Baltic Bridge dokumentais ir audito seka įrodo, kad Baltijos tiekėjas visiškai atitinka darbo Švedijoje reikalavimus. Vidinis ops įrankis — 0–1 fazė.",
-    "goToAdmin": "Atidaryti ops konsolę"
+    "goToAdmin": "Atidaryti ops konsolę",
+    "joinAsSupplier": "Prisijunkite kaip įmonė",
+    "joinAsBuyer": "Prisijunkite kaip klientas"
   },
   "auth": {
     "title": "Prisijunkite prie Baltic Bridge",
     "subtitle": "Vidinė ops konsolė. Naudokite komandos prisijungimus.",
-    "invalidCredentials": "Neteisingas el. paštas arba slaptažodis."
+    "invalidCredentials": "Neteisingas el. paštas arba slaptažodis.",
+    "noAccount": "Dar neturite paskyros?",
+    "registerLink": "Sukurkite"
   },
   "nav": {
     "dashboard": "Apžvalga",
@@ -103,5 +107,32 @@
     "empty": "Atvirų užduočių nėra.",
     "done": "Atlikta",
     "due": "Terminas"
+  },
+  "register": {
+    "title": "Sukurkite paskyrą",
+    "subtitle": "Prisijunkite prie Baltic Bridge — patikrintos Europos subrangos platformos.",
+    "asBuyer": "Man reikia atlikti darbus",
+    "asSupplier": "Mes esame įmonė",
+    "buyerHint": "Kliento paskyra: užsakykite darbų paketus iš patikrintų Baltijos tiekėjų.",
+    "supplierHint": "Tiekėjo paskyra: sukurkite įmonės profilį ir gaukite patikrą darbui Švedijoje.",
+    "name": "Jūsų vardas",
+    "passwordHint": "Bent 10 simbolių.",
+    "cta": "Sukurti paskyrą",
+    "emailTaken": "Paskyra su šiuo el. paštu jau egzistuoja.",
+    "rateLimited": "Per daug bandymų — pabandykite vėliau.",
+    "invalid": "Patikrinkite duomenis ir bandykite dar kartą.",
+    "haveAccount": "Jau turite paskyrą?"
+  },
+  "portal": {
+    "title": "Mano Baltic Bridge",
+    "buyerWelcome": "Sveiki!",
+    "buyerBody": "Jūsų kliento paskyra paruošta. Pasiūlymų užklausos patikrintiems tiekėjams netrukus — mūsų komanda jau tarpininkauja: ops@balticbridge.example.",
+    "createCompanyTitle": "Sukurkite įmonės profilį",
+    "createCompanyBody": "Papasakokite apie save. Mūsų ops komanda atidarys jūsų patikros bylą Lietuvos → Švedijos koridoriui ir padės su dokumentais.",
+    "companyDescription": "Trumpas aprašymas",
+    "createCompanyCta": "Sukurti įmonę",
+    "verifiedBadge": "Patikrinta darbui Švedijoje",
+    "awaitingCase": "Profilis gautas — ops komanda netrukus atidarys jūsų patikros bylą.",
+    "requirements": "Patikros reikalavimai"
   }
 }

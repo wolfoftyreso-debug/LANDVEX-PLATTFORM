@@ -16,12 +16,16 @@
   "home": {
     "tagline": "Verifierad gränsöverskridande entreprenad — Litauen till Sverige",
     "description": "Baltic Bridge bevisar, med dokument och revisionsspår, att en baltisk leverantör uppfyller alla krav för arbete i Sverige. Internt ops-verktyg — Fas 0–1.",
-    "goToAdmin": "Öppna ops-konsolen"
+    "goToAdmin": "Öppna ops-konsolen",
+    "joinAsSupplier": "Anslut som företag",
+    "joinAsBuyer": "Anslut som kund"
   },
   "auth": {
     "title": "Logga in på Baltic Bridge",
     "subtitle": "Intern ops-konsol. Använd dina teamuppgifter.",
-    "invalidCredentials": "Fel e-post eller lösenord."
+    "invalidCredentials": "Fel e-post eller lösenord.",
+    "noAccount": "Inget konto ännu?",
+    "registerLink": "Skapa ett"
   },
   "nav": {
     "dashboard": "Översikt",
@@ -103,5 +107,32 @@
     "empty": "Inga öppna uppgifter.",
     "done": "Klar",
     "due": "Förfaller"
+  },
+  "register": {
+    "title": "Skapa ditt konto",
+    "subtitle": "Gå med i Baltic Bridge — Europas verifierade marknadsplats för entreprenad.",
+    "asBuyer": "Jag behöver få arbete utfört",
+    "asSupplier": "Vi är ett företag",
+    "buyerHint": "Kundkonto: beställ arbetspaket från verifierade baltiska leverantörer.",
+    "supplierHint": "Leverantörskonto: skapa er företagsprofil och bli verifierade för arbete i Sverige.",
+    "name": "Ditt namn",
+    "passwordHint": "Minst 10 tecken.",
+    "cta": "Skapa konto",
+    "emailTaken": "Det finns redan ett konto med den här e-postadressen.",
+    "rateLimited": "För många försök — prova igen senare.",
+    "invalid": "Kontrollera uppgifterna och försök igen.",
+    "haveAccount": "Har du redan ett konto?"
+  },
+  "portal": {
+    "title": "Mitt Baltic Bridge",
+    "buyerWelcome": "Välkommen!",
+    "buyerBody": "Ditt kundkonto är klart. Offertförfrågningar mot verifierade leverantörer öppnar inom kort — vårt team förmedlar redan arbetspaket manuellt: ops@balticbridge.example.",
+    "createCompanyTitle": "Skapa er företagsprofil",
+    "createCompanyBody": "Berätta vilka ni är. Vårt ops-team öppnar sedan ert verifieringsärende för korridoren Litauen → Sverige och guidar er genom dokumentkraven.",
+    "companyDescription": "Kort beskrivning",
+    "createCompanyCta": "Skapa företag",
+    "verifiedBadge": "Verifierad för arbete i Sverige",
+    "awaitingCase": "Profil mottagen — vårt ops-team öppnar ert verifieringsärende inom kort.",
+    "requirements": "Verifieringskrav"
   }
 }

@@ -34,7 +34,17 @@ export async function createCompany(
   },
   requestId?: string,
 ): Promise<Company> {
-  requireAnyRole(actor, ["ops", "admin"]);
+  // Ops onboards suppliers concierge-style; suppliers may also self-register
+  // their own company (one per supplier account).
+  requireAnyRole(actor, ["ops", "admin", "supplier"]);
+
+  const isSelfServe = actor.role === "supplier";
+  if (isSelfServe) {
+    const existing = await getCompanyByOwner(actor.userId);
+    if (existing) {
+      throw new Error("Your account already has a company profile");
+    }
+  }
 
   return db.transaction(async (tx) => {
     const [company] = await tx
@@ -49,6 +59,7 @@ export async function createCompany(
         yearFounded: input.yearFounded,
         headcount: input.headcount,
         languages: input.languages ?? [],
+        ownerUserId: isSelfServe ? actor.userId : null,
       })
       .returning();
     if (!company) throw new Error("Company insert failed");
@@ -63,11 +74,55 @@ export async function createCompany(
       entityType: "company",
       entityId: company.id,
       action: "company.created",
-      after: input,
+      after: { ...input, selfServe: isSelfServe },
       requestId,
     });
-    await appendOutbox(tx, "companies.created", { companyId: company.id });
+    await appendOutbox(tx, "companies.created", {
+      companyId: company.id,
+      selfServe: isSelfServe,
+    });
     return company;
+  });
+}
+
+/** The company owned by a supplier account (Alibaba model: one per account) */
+export async function getCompanyByOwner(
+  userId: string,
+): Promise<Company | undefined> {
+  return db.query.companies.findFirst({
+    where: and(eq(companies.ownerUserId, userId), isNull(companies.deletedAt)),
+  });
+}
+
+export async function addContact(
+  actor: Actor,
+  input: {
+    companyId: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    roleTitle?: string;
+  },
+): Promise<Contact> {
+  requireAnyRole(actor, ["ops", "admin", "supplier"]);
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== input.companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const [contact] = await tx.insert(contacts).values(input).returning();
+    if (!contact) throw new Error("Contact insert failed");
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "contact",
+      entityId: contact.id,
+      action: "contact.created",
+      after: { companyId: input.companyId },
+    });
+    return contact;
   });
 }
 
@@ -98,6 +153,12 @@ export async function addWorker(
   input: { companyId: string; name: string; tradeRole?: string },
 ): Promise<Worker> {
   requireAnyRole(actor, ["ops", "admin", "supplier"]);
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== input.companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
 
   return db.transaction(async (tx) => {
     const [worker] = await tx.insert(workers).values(input).returning();
