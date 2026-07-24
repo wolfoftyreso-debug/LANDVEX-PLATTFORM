@@ -86,11 +86,26 @@ class AamosClient:
     def __init__(self, base_url: str | None = None,
                  transport: Callable[[str, str, dict | None], dict]
                  | None = None,
-                 timeout: float = 5.0):
+                 timeout: float = 5.0,
+                 token: str | None = None, api_key: str | None = None):
         self.base_url = (base_url if base_url is not None
                          else os.environ.get("AAMOS_CORE_URL", ""))
         self._transport = transport or self._http
         self.timeout = timeout
+        # Auth is configurable and optional. AAMOS Core gates every endpoint,
+        # so set one of these (env or arg): a bearer token → Authorization,
+        # or an API key → X-API-Key. Neither is ever logged.
+        self.token = token if token is not None else os.environ.get("AAMOS_TOKEN", "")
+        self.api_key = (api_key if api_key is not None
+                        else os.environ.get("AAMOS_API_KEY", ""))
+
+    def auth_headers(self) -> dict[str, str]:
+        h: dict[str, str] = {}
+        if self.token:
+            h["Authorization"] = f"Bearer {self.token}"
+        if self.api_key:
+            h["X-API-Key"] = self.api_key
+        return h
 
     @property
     def connected(self) -> bool:
@@ -99,7 +114,7 @@ class AamosClient:
     # ── Transport ────────────────────────────────────────────────────
     def _http(self, method: str, url: str, body: dict | None) -> dict:
         data = None
-        headers = {"Accept": "application/json"}
+        headers = {"Accept": "application/json", **self.auth_headers()}
         if body is not None:
             data = json.dumps(body, ensure_ascii=False).encode("utf-8")
             headers["Content-Type"] = "application/json"

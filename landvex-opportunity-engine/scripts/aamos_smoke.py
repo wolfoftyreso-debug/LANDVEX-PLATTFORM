@@ -8,6 +8,9 @@ actually answers (the exact quiXzoom path is still marked unconfirmed in
 integrations/aamos.py).
 
     AAMOS_CORE_URL=http://127.0.0.1:3100 python3 -m scripts.aamos_smoke
+    # AAMOS Core gates every endpoint — set ONE of these if you get 401s:
+    AAMOS_TOKEN=<jwt>      # sent as Authorization: Bearer <jwt>
+    AAMOS_API_KEY=<key>    # sent as X-API-Key: <key>
     # optional overrides:
     AAMOS_QUIXZOOM_PATH=/api/qz/missions  LAT=59.33 LON=18.06 RADIUS_KM=10 ...
 
@@ -41,12 +44,16 @@ QZ_CANDIDATES = [
 
 _OK, _WARN, _FAIL = "PASS", "PARTIAL", "FAIL"
 
+# Same auth as the client (env AAMOS_TOKEN / AAMOS_API_KEY), so route
+# discovery is authenticated too — AAMOS Core gates every endpoint.
+_AUTH = AamosClient(base_url=CORE).auth_headers()
+
 
 def _raw_get(path: str) -> tuple[int, str, dict | None]:
     """Low-level GET returning (http_status, content_type, parsed|None)."""
     url = CORE.rstrip("/") + path
-    req = urllib.request.Request(url, headers={"Accept": "application/json"},
-                                 method="GET")
+    req = urllib.request.Request(
+        url, headers={"Accept": "application/json", **_AUTH}, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
             body = r.read().decode("utf-8", "replace")
@@ -77,7 +84,12 @@ def _line(status: str, name: str, detail: str) -> None:
 
 def main() -> int:
     register = "--no-register" not in sys.argv
-    print(f"AAMOS Core smoke test → {CORE}\n")
+    auth = ("Bearer token" if os.environ.get("AAMOS_TOKEN") else
+            "X-API-Key" if os.environ.get("AAMOS_API_KEY") else
+            "NONE — set AAMOS_TOKEN or AAMOS_API_KEY (Core returns 401 "
+            "without it)")
+    print(f"AAMOS Core smoke test → {CORE}")
+    print(f"  auth: {auth}\n")
     client = AamosClient(base_url=CORE, timeout=TIMEOUT)
     reached = False
 

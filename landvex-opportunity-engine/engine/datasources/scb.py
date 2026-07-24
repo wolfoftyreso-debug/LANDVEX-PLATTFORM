@@ -25,15 +25,24 @@ import itertools
 import json
 import math
 import time
+import os
 import urllib.request
 from typing import Any, Callable
 
-PXWEB_BASE = "https://api.scb.se/OV0104/v1/doryen/sv/ssd"
+# Base + table paths are env-overridable so they can be corrected against
+# the live SCB API WITHOUT a code change (paths must be live-verified — SCB
+# has migrated its PxWeb structure; use scripts/scb_probe.py --discover to
+# navigate the current tree, then set these).
+PXWEB_BASE = os.environ.get(
+    "LANDVEX_SCB_BASE", "https://api.scb.se/OV0104/v1/doryen/sv/ssd")
 
 # Tabeller (relativt PXWEB_BASE). Verifieras med proben – se moduldoc.
-POP_TABLE = "BE/BE0101/BE0101A/BefolkningNy"            # folkmängd per ålder/år
-DENSITY_TABLE = "BE/BE0101/BE0101C/BefArealTathetKon"   # befolkningstäthet
-INCOME_TABLE = "HE/HE0110/HE0110A/SamForvInk2"          # sammanräknad förvärvsinkomst
+POP_TABLE = os.environ.get(
+    "LANDVEX_SCB_POP_TABLE", "BE/BE0101/BE0101A/BefolkningNy")     # folkmängd
+DENSITY_TABLE = os.environ.get(
+    "LANDVEX_SCB_DENSITY_TABLE", "BE/BE0101/BE0101C/BefArealTathetKon")
+INCOME_TABLE = os.environ.get(
+    "LANDVEX_SCB_INCOME_TABLE", "HE/HE0110/HE0110A/SamForvInk2")   # förvärvsink.
 
 RIKET = "00"
 PERSONS_PER_HOUSEHOLD = 2.2   # SCB-rikssnitt ~2,2 pers/hushåll (för hh/km²)
