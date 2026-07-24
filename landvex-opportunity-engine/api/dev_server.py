@@ -98,7 +98,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/index.html", "/health", "/v1/plans")
+    _OPEN_PATHS = ("/", "/index.html", "/health", "/v1/plans", "/openapi.json")
 
     def _live_locked(self) -> bool:
         p = getattr(self, "_principal", None)
@@ -180,6 +180,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/catalog":
             from api.catalog import API_CATALOG
             return self._send(200, API_CATALOG)
+        if parsed.path == "/openapi.json":
+            from api.catalog import openapi_spec
+            return self._send(200, openapi_spec())
         if parsed.path == "/v1/markets":
             return self._send(200, market_catalog())
         if parsed.path == "/v1/segments":

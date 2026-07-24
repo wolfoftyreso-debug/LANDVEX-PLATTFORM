@@ -43,11 +43,14 @@ def _devserver_routes() -> set[str]:
 _DEV_ONLY = {"/", "/index.html"}
 # FastAPI serverar "/" som frontend; dev-servern har "/" + "/index.html".
 _FASTAPI_ONLY = {"/"}
+# Ramverksgenererade i FastAPI (auto, syns ej i källan) men explicita i
+# dev-servern – båda serverar dem, alltså ingen drift.
+_FRAMEWORK = {"/openapi.json", "/docs"}
 
 
 def test_both_servers_expose_the_same_surface():
     fapi = _fastapi_routes() - _FASTAPI_ONLY
-    dev = _devserver_routes() - _DEV_ONLY
+    dev = _devserver_routes() - _DEV_ONLY - _FRAMEWORK
     saknas_i_dev = fapi - dev
     saknas_i_fastapi = dev - fapi
     assert not saknas_i_dev, \

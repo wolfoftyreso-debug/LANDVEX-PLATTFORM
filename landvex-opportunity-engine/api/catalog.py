@@ -102,3 +102,25 @@ API_CATALOG: dict = {
              {"method": "POST", "path": "/v1/cognition/brief"}]},
     ],
 }
+
+
+def openapi_spec() -> dict:
+    """Minimal OpenAPI 3.0-dokument härlett ur API_CATALOG. Ger den
+    beroendefria dev-servern samma /openapi.json som FastAPI-lagret så
+    att de två servrarna är utbytbara (låst av tests/test_contract)."""
+    paths: dict = {}
+    for eng in API_CATALOG["engines"]:
+        for ep in eng["endpoints"]:
+            verb = ep["method"].lower()
+            paths.setdefault(ep["path"], {})[verb] = {
+                "summary": eng.get("beskrivning_en", eng["label_en"]),
+                "tags": [eng["id"]],
+                "responses": {"200": {"description": "OK"}},
+            }
+    return {
+        "openapi": "3.0.3",
+        "info": {"title": API_CATALOG["platform"],
+                 "version": API_CATALOG["engine_version"],
+                 "description": API_CATALOG.get("tagline_en", "")},
+        "paths": paths,
+    }
