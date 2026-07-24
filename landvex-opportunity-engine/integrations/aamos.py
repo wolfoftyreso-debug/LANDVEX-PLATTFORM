@@ -92,12 +92,19 @@ class AamosClient:
                          else os.environ.get("AAMOS_CORE_URL", ""))
         self._transport = transport or self._http
         self.timeout = timeout
-        # Auth is configurable and optional. AAMOS Core gates every endpoint,
-        # so set one of these (env or arg): a bearer token → Authorization,
-        # or an API key → X-API-Key. Neither is ever logged.
+        # Auth is configurable and optional. AAMOS Core gates every endpoint.
+        # Set whichever scheme AAMOS-dev confirms (env or arg); none is logged:
+        #   AAMOS_TOKEN     → Authorization: Bearer <token>
+        #   AAMOS_API_KEY   → X-API-Key: <key>
+        #   AAMOS_AUTH_HEADER + AAMOS_AUTH_VALUE → a fully custom header,
+        #       e.g. AAMOS_AUTH_HEADER=X-Service-Token (covers non-standard
+        #       schemes; the smoke test showed HS256/RS256 tokens are rejected,
+        #       so the real credential must come from AAMOS Core, not be minted).
         self.token = token if token is not None else os.environ.get("AAMOS_TOKEN", "")
         self.api_key = (api_key if api_key is not None
                         else os.environ.get("AAMOS_API_KEY", ""))
+        self.auth_header = os.environ.get("AAMOS_AUTH_HEADER", "")
+        self.auth_value = os.environ.get("AAMOS_AUTH_VALUE", "")
 
     def auth_headers(self) -> dict[str, str]:
         h: dict[str, str] = {}
@@ -105,6 +112,8 @@ class AamosClient:
             h["Authorization"] = f"Bearer {self.token}"
         if self.api_key:
             h["X-API-Key"] = self.api_key
+        if self.auth_header and self.auth_value:
+            h[self.auth_header] = self.auth_value
         return h
 
     @property

@@ -34,7 +34,7 @@ from typing import Any, Callable
 # has migrated its PxWeb structure; use scripts/scb_probe.py --discover to
 # navigate the current tree, then set these).
 PXWEB_BASE = os.environ.get(
-    "LANDVEX_SCB_BASE", "https://api.scb.se/OV0104/v1/doryen/sv/ssd")
+    "LANDVEX_SCB_BASE", "https://api.scb.se/OV0104/v1/doris/sv/ssd")
 
 # Tabeller (relativt PXWEB_BASE). Verifieras med proben – se moduldoc.
 POP_TABLE = os.environ.get(
