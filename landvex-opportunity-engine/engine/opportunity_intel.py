@@ -174,8 +174,14 @@ def _process_band(pb: tuple[int, int]) -> str:
 
 
 def support_programs(report, vertical_id: str,
-                     specialization: str | None = None) -> dict[str, Any]:
-    """Vilka stöd/program som passar verksamheten + platsen."""
+                     specialization: str | None = None,
+                     programs=None) -> dict[str, Any]:
+    """Vilka stöd/program som passar verksamheten + platsen.
+
+    `programs` (a datasources.programs.ProgramsClient) is optional: when
+    connected it prepends REAL registry programs (real amounts/deadlines,
+    marked source="registry") above the signal-derived archetypes (marked
+    source="archetype"). A registry error never breaks the response."""
     matches = []
     total_lo = total_hi = 0
     for p in SUPPORT_PROGRAMS:
@@ -204,20 +210,56 @@ def support_programs(report, vertical_id: str,
             "evidence": evidence,
             "source_hint_en": p.source_hint_en,
             "notis_en": p.notis_en,
+            "source": "archetype",
         })
     matches.sort(key=lambda m: (-m["fit"], -m["amount_estimate_local"]))
+
+    # Live registry programs (real amounts/deadlines) prepended, if connected.
+    live: list[dict] = []
+    live_connected = bool(programs is not None and getattr(programs, "connected", False))
+    if live_connected:
+        try:
+            loc = report.location
+            for rec in programs.fetch_programs(loc.lat, loc.lon, vertical_id):
+                amt = rec.get("amount_local")
+                live.append({
+                    "id": rec["id"], "label_en": rec["label_en"],
+                    "fit": report.opportunity_score,   # generic local strength
+                    "eligibility_probability_pct": None,
+                    "amount_estimate_local": (amt[1] if isinstance(amt, list)
+                                              and amt else None),
+                    "amount_band_local": amt if isinstance(amt, list) else None,
+                    "process_time_en": None,
+                    "documents_en": rec.get("documents_en") or [],
+                    "combinable": True,
+                    "evidence": [],
+                    "source_hint_en": rec.get("provider") or "registry",
+                    "notis_en": rec.get("raw_summary_en") or "",
+                    "deadline": rec.get("deadline"),
+                    "url": rec.get("url") or "",
+                    "source": "registry",
+                })
+        except Exception:
+            live_connected = False       # honest degradation → archetypes only
+
+    all_programs = live + matches
+    notis = ("Live registry programs (real amounts/deadlines) shown first; "
+             "the rest are signal-derived archetype estimates."
+             if live else
+             "Program fit and amounts are heuristics derived from local "
+             "signals. Real amounts, deadlines and eligibility come from a "
+             "live programs registry (EU Funding & Tenders, national "
+             "energy/growth agencies, regional funds) connected as an adapter "
+             "– set LANDVEX_PROGRAMS_URL to enable.")
     return {
-        "programs": matches,
-        "count": len(matches),
+        "programs": all_programs,
+        "count": len(all_programs),
+        "live_count": len(live),
         "combinable_total_estimate_local": [int(round(total_lo, -3)),
                                             int(round(total_hi, -3))],
         "horizon_note_en": "Combinable standard-estimate total over a typical "
                            "3-year window – NOT a live figure.",
-        "notis_en": "Program fit and amounts are heuristics derived from local "
-                    "signals. Real amounts, deadlines and eligibility come from "
-                    "a live programs registry (EU Funding & Tenders, national "
-                    "energy/growth agencies, regional funds) connected as an "
-                    "adapter – not yet live.",
+        "notis_en": notis,
     }
 
 
@@ -614,8 +656,12 @@ def opportunity_intel(location: Location, vertical_id: str,
                       team_size: str = "1",
                       company_form: str = "aktiebolag",
                       market: str = DEFAULT_MARKET,
-                      include_expansion: bool = True) -> dict[str, Any]:
-    """Hela Opportunity Intelligence-lagret för en plats + verksamhet."""
+                      include_expansion: bool = True,
+                      programs_client=None) -> dict[str, Any]:
+    """Hela Opportunity Intelligence-lagret för en plats + verksamhet.
+
+    `programs_client` (datasources.programs.ProgramsClient) is optional: when
+    connected, real registry programs are merged into support_programs."""
     if vertical_id not in VERTICALS:
         raise ValueError(f"Unknown vertical: {vertical_id}. "
                          f"Available: {', '.join(sorted(VERTICALS))}")
@@ -623,7 +669,8 @@ def opportunity_intel(location: Location, vertical_id: str,
     boost = specialization_boost(vertical_id, specialization)
     report = analyze(location, vertical_id, resolver=resolver, factor_boost=boost)
 
-    programs = support_programs(report, vertical_id, specialization)
+    programs = support_programs(report, vertical_id, specialization,
+                                programs=programs_client)
     # "You're missing money": kombinerbara stöd som ännu inte sökts.
     missing = {
         "unclaimed_programs": [{"id": p["id"], "label_en": p["label_en"],
