@@ -39,7 +39,8 @@ DEFAULT_MARKET = "us"
 FX_PER_SEK = {"SEK": 1.0, "USD": 0.095, "EUR": 0.088, "PLN": 0.38,
               "CAD": 0.13, "MXN": 1.8, "COP": 400.0, "MAD": 0.95,
               "NGN": 150.0, "XOF": 55.0,
-              "DKK": 0.66, "NOK": 1.0, "CZK": 2.2}
+              "DKK": 0.66, "NOK": 1.0, "CZK": 2.2,
+              "RON": 0.44, "HUF": 35.0, "BGN": 0.17}
 
 
 
@@ -108,8 +109,24 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("us-elpaso", "El Paso", 31.76, -106.49),
         ("us-tulsa", "Tulsa", 36.15, -95.99),
         ("us-grandrapids", "Grand Rapids", 42.96, -85.66),
-        ("us-charleston", "Charleston", 32.78, -79.93),
-        ("us-spokane", "Spokane", 47.66, -117.43))),
+        ("us-charleston", "Charleston (SC)", 32.78, -79.93),
+        ("us-spokane", "Spokane", 47.66, -117.43),
+        # Remaining state seats so all 50 states are represented.
+        ("us-anchorage", "Anchorage (AK)", 61.22, -149.90),
+        ("us-littlerock", "Little Rock (AR)", 34.75, -92.29),
+        ("us-wilmington", "Wilmington (DE)", 39.74, -75.55),
+        ("us-honolulu", "Honolulu (HI)", 21.31, -157.86),
+        ("us-wichita", "Wichita (KS)", 37.69, -97.34),
+        ("us-portlandme", "Portland (ME)", 43.66, -70.26),
+        ("us-jackson", "Jackson (MS)", 32.30, -90.18),
+        ("us-billings", "Billings (MT)", 45.79, -108.50),
+        ("us-manchester", "Manchester (NH)", 42.99, -71.46),
+        ("us-newark", "Newark (NJ)", 40.74, -74.17),
+        ("us-fargo", "Fargo (ND)", 46.88, -96.79),
+        ("us-siouxfalls", "Sioux Falls (SD)", 43.55, -96.70),
+        ("us-burlington", "Burlington (VT)", 44.48, -73.21),
+        ("us-charlestonwv", "Charleston (WV)", 38.35, -81.63),
+        ("us-cheyenne", "Cheyenne (WY)", 41.14, -104.82))),
 
     Market("se", "Sweden", "SEK", "municipality",
            (55.0, 69.5, 10.5, 24.5), tuple(KOMMUNER), calibrated=True),
@@ -355,6 +372,95 @@ MARKETS: dict[str, Market] = {m.id: m for m in [
         ("cz-plzen", "Plzeň", 49.75, 13.38),
         ("cz-liberec", "Liberec", 50.77, 15.06),
         ("cz-olomouc", "Olomouc", 49.59, 17.25))),
+
+    # Remaining EU-27 members so the whole union is represented.
+    Market("gr", "Greece", "EUR", "city",
+           (34.8, 41.8, 19.3, 28.3), _r(
+        ("gr-athens", "Athens", 37.98, 23.73),
+        ("gr-thessaloniki", "Thessaloniki", 40.64, 22.94),
+        ("gr-patras", "Patras", 38.25, 21.73),
+        ("gr-heraklion", "Heraklion", 35.34, 25.14),
+        ("gr-larissa", "Larissa", 39.64, 22.42))),
+
+    Market("ro", "Romania", "RON", "city",
+           (43.6, 48.3, 20.2, 29.7), _r(
+        ("ro-bucharest", "Bucharest", 44.43, 26.10),
+        ("ro-cluj", "Cluj-Napoca", 46.77, 23.60),
+        ("ro-timisoara", "Timișoara", 45.76, 21.23),
+        ("ro-iasi", "Iași", 47.16, 27.59),
+        ("ro-constanta", "Constanța", 44.18, 28.63))),
+
+    Market("hu", "Hungary", "HUF", "city",
+           (45.7, 48.6, 16.1, 22.9), _r(
+        ("hu-budapest", "Budapest", 47.50, 19.04),
+        ("hu-debrecen", "Debrecen", 47.53, 21.63),
+        ("hu-szeged", "Szeged", 46.25, 20.15),
+        ("hu-miskolc", "Miskolc", 48.10, 20.79),
+        ("hu-pecs", "Pécs", 46.07, 18.23))),
+
+    Market("bg", "Bulgaria", "BGN", "city",
+           (41.2, 44.2, 22.3, 28.6), _r(
+        ("bg-sofia", "Sofia", 42.70, 23.32),
+        ("bg-plovdiv", "Plovdiv", 42.14, 24.75),
+        ("bg-varna", "Varna", 43.21, 27.91),
+        ("bg-burgas", "Burgas", 42.51, 27.47))),
+
+    Market("hr", "Croatia", "EUR", "city",
+           (42.4, 46.6, 13.5, 19.4), _r(
+        ("hr-zagreb", "Zagreb", 45.81, 15.98),
+        ("hr-split", "Split", 43.51, 16.44),
+        ("hr-rijeka", "Rijeka", 45.33, 14.44),
+        ("hr-osijek", "Osijek", 45.55, 18.69))),
+
+    Market("sk", "Slovakia", "EUR", "city",
+           (47.7, 49.6, 16.8, 22.6), _r(
+        ("sk-bratislava", "Bratislava", 48.15, 17.11),
+        ("sk-kosice", "Košice", 48.72, 21.26),
+        ("sk-presov", "Prešov", 49.00, 21.24),
+        ("sk-zilina", "Žilina", 49.22, 18.74))),
+
+    Market("si", "Slovenia", "EUR", "city",
+           (45.4, 46.9, 13.4, 16.6), _r(
+        ("si-ljubljana", "Ljubljana", 46.06, 14.51),
+        ("si-maribor", "Maribor", 46.55, 15.65),
+        ("si-celje", "Celje", 46.23, 15.27))),
+
+    Market("lt", "Lithuania", "EUR", "city",
+           (53.9, 56.5, 21.0, 26.9), _r(
+        ("lt-vilnius", "Vilnius", 54.69, 25.28),
+        ("lt-kaunas", "Kaunas", 54.90, 23.90),
+        ("lt-klaipeda", "Klaipėda", 55.70, 21.14),
+        ("lt-siauliai", "Šiauliai", 55.93, 23.32))),
+
+    Market("lv", "Latvia", "EUR", "city",
+           (55.7, 58.1, 21.0, 28.2), _r(
+        ("lv-riga", "Riga", 56.95, 24.11),
+        ("lv-daugavpils", "Daugavpils", 55.87, 26.52),
+        ("lv-liepaja", "Liepāja", 56.51, 21.01))),
+
+    Market("ee", "Estonia", "EUR", "city",
+           (57.5, 59.7, 21.8, 28.2), _r(
+        ("ee-tallinn", "Tallinn", 59.44, 24.75),
+        ("ee-tartu", "Tartu", 58.38, 26.72),
+        ("ee-narva", "Narva", 59.38, 28.19))),
+
+    Market("lu", "Luxembourg", "EUR", "city",
+           (49.4, 50.2, 5.7, 6.6), _r(
+        ("lu-luxembourg", "Luxembourg City", 49.61, 6.13),
+        ("lu-eschsuralzette", "Esch-sur-Alzette", 49.50, 5.98),
+        ("lu-dudelange", "Dudelange", 49.48, 6.09))),
+
+    Market("cy", "Cyprus", "EUR", "city",
+           (34.5, 35.7, 32.2, 34.6), _r(
+        ("cy-nicosia", "Nicosia", 35.19, 33.36),
+        ("cy-limassol", "Limassol", 34.71, 33.02),
+        ("cy-larnaca", "Larnaca", 34.92, 33.62))),
+
+    Market("mt", "Malta", "EUR", "city",
+           (35.78, 36.10, 14.18, 14.58), _r(
+        ("mt-valletta", "Valletta", 35.90, 14.51),
+        ("mt-birkirkara", "Birkirkara", 35.90, 14.46),
+        ("mt-sliema", "Sliema", 35.91, 14.50))),
 ]}
 
 # Marknadsgrupper för flerlandsfrågor ("Var i Europa ...?").
@@ -366,7 +472,7 @@ MARKET_GROUPS: dict[str, tuple[str, ...]] = {
     "afrika": ("ma", "ng", "sn"),
     "varlden": tuple(MARKETS),
 }
-GROUP_BBOX = {"eu": (35.5, 71.0, -11.0, 32.0),
+GROUP_BBOX = {"eu": (34.0, 71.0, -11.0, 35.0),
               "amerika": (0.5, 54.0, -128.0, -60.0),
               "afrika": (4.0, 36.0, -17.8, 15.0),
               "varlden": (0.5, 71.0, -128.0, 32.0)}

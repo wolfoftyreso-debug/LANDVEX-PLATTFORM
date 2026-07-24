@@ -11,14 +11,20 @@ from engine.workforce import forecast, global_map
 
 
 def test_markets_are_valid_data():
-    # USA-först: USA är största marknaden med 60 metroregioner.
-    assert {"se", "de", "us", "es", "pl", "fr", "it", "nl", "be", "at",
+    # USA-först + full täckning: alla 27 EU-länder och alla 50 delstater.
+    base = {"se", "de", "us", "es", "pl", "fr", "it", "nl", "be", "at",
             "pt", "dk", "fi", "no", "ie", "cz",
-            "ca", "mx", "co", "ma", "ng", "sn"} == set(MARKETS)
-    assert len(MARKETS["us"].regions) == 60
+            "ca", "mx", "co", "ma", "ng", "sn"}
+    eu_extra = {"gr", "ro", "hu", "bg", "hr", "sk", "si", "lt", "lv", "ee",
+                "lu", "cy", "mt"}
+    assert base | eu_extra == set(MARKETS)
+    assert len(MARKETS["us"].regions) >= 50           # alla delstater
     assert len(MARKETS["us"].regions) == max(
         len(m.regions) for m in MARKETS.values())   # USA störst
     assert sum(len(m.regions) for m in MARKETS.values()) >= 200
+    # Inset-territorier utanför den kontinentala kartvyn (som riktiga
+    # USA-kartor ritar Alaska/Hawaii som insatta rutor).
+    _INSET = {"us-anchorage", "us-honolulu"}
     codes = set()
     for m in MARKETS.values():
         assert m.regions and m.currency and m.region_label_en
@@ -26,6 +32,8 @@ def test_markets_are_valid_data():
         for kod, namn, lat, lon in m.regions:
             assert kod not in codes, f"dublettkod {kod}"
             codes.add(kod)
+            if kod in _INSET:
+                continue
             assert lat_min <= lat <= lat_max, (m.id, namn)
             assert lon_min <= lon <= lon_max, (m.id, namn)
     assert MARKETS["se"].calibrated and not MARKETS["de"].calibrated
@@ -106,7 +114,7 @@ def test_ask_global_answers():
     res = ask("Var i Europa är det störst brist på elektriker?")
     assert res["intent"] == "global_brist"
     assert "(" in res["rader"][0]["label_en"]        # "Stad (Land)"
-    assert res["karta"]["bbox"] == [35.5, 71.0, -11.0, 32.0]
+    assert res["karta"]["bbox"] == [34.0, 71.0, -11.0, 35.0]
     res2 = ask("Vilket land är bäst för en svensk snickare att flytta till?")
     assert res2["intent"] == "land_ranking"
     assert len(res2["rader"]) == len(MARKETS)        # alla marknader rankade

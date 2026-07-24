@@ -59,7 +59,10 @@ FRAGOR = [
 # Demoprincip: ALLT som går att välja i demon är förberäknat – val utan
 # data (fler marknader, andra målår) erbjuds inte alls. Därför bakas
 # alla vertikaler och alla yrken för demomarknaderna.
-DEMO_MARKETS = ("us", "se")
+# Marknader som förberäknas i den statiska demon. Hela marknadslistan
+# (alla 27 EU-länder + alla delstater) visas ändå i menyn – icke-bakade
+# marknader hänvisar ärligt till live-API:t.
+DEMO_MARKETS = ("us", "se", "de")
 
 
 def _strip(f: dict) -> dict:
@@ -76,7 +79,10 @@ def build(out_path: str) -> None:
         "options": {**profile_options(),
                     "scan_levels": [SCAN_LEVEL_OPTIONS[0]]},
         "occupations": occupation_catalog(),
-        "markets": [m for m in market_catalog() if m["id"] in DEMO_MARKETS],
+        # Hela marknadskatalogen visas i menyn (alla EU-länder + delstater);
+        # 'demo_precomputed' markerar vilka som är förberäknade i demon.
+        "markets": [{**m, "demo_precomputed": m["id"] in DEMO_MARKETS}
+                    for m in market_catalog()],
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
         "risk": {}, "plans": {}, "gaps": {}, "opportunities": {},

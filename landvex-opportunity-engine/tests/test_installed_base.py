@@ -81,7 +81,8 @@ def test_ask_service_intents_and_answers():
 
     res = ask("Vilken region har flest värmepumpar som närmar sig utbytesålder?")
     assert res["intent"] == "service_karta"
-    assert len(res["karta"]["heatmap"]) == 60      # US-först: default-marknad USA
+    from engine.markets import MARKETS
+    assert len(res["karta"]["heatmap"]) == len(MARKETS["us"].regions)  # US-först
     assert "estimate" in res["rader"][0]["detalj"]["installerad_bas"]
 
     res2 = ask("Hur ser servicebehovet ut i Umeå?")

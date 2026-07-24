@@ -50,6 +50,18 @@
 
   /* Profilpanel */
   .profil { padding: 16px; border-right: 1px solid var(--line); overflow-y: auto; }
+  /* Guide – kompakt stegflöde */
+  #guideBar { height: 5px; border-radius: 999px; background: var(--panel2);
+              overflow: hidden; margin-bottom: 10px; }
+  #guideBarFill { height: 100%; width: 0; background: var(--accent);
+                  border-radius: 999px; transition: width .3s var(--fjader); }
+  #guideActions { position: sticky; bottom: 0; display: flex; gap: 8px;
+                  margin-top: 14px; padding: 10px 0 4px;
+                  background: linear-gradient(to top, var(--panel) 70%, transparent);
+                  z-index: 3; }
+  #guideActions #guideTillbaka { width: auto; flex: 0 0 auto; }
+  #guideActions #guideNasta { flex: 1; background: var(--accent); border: none;
+                  color: #fff; font-weight: 650; font-size: 15px; }
   .profil h2, .resultat h2 { font-size: 12px; text-transform: uppercase;
     letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
   .falt { margin-bottom: 12px; }
@@ -226,16 +238,15 @@
   <aside class="profil">
     <div id="vyGuide">
       <h2 id="guideRubrik">Guide</h2>
-      <div class="falt"><div id="guideProgress" class="motiv"></div></div>
-      <div id="guideFraga" style="font-size:14px;font-weight:600;margin-bottom:10px"></div>
+      <div id="guideBar"><div id="guideBarFill"></div></div>
+      <div id="guideProgress" class="motiv" style="margin-bottom:8px"></div>
+      <div id="guideFraga" style="font-size:15px;font-weight:600;margin-bottom:10px"></div>
       <div id="guideSvar"></div>
-      <div class="sim" style="margin-top:12px">
-        <button id="guideTillbaka" style="width:auto">‹ Back</button>
-        <button id="guideNasta" style="background:var(--accent);border:none;color:#fff;font-weight:600">Next ›</button>
+      <div id="guideActions">
+        <button id="guideTillbaka">‹ Back</button>
+        <button id="guideNasta">Continue ›</button>
       </div>
-      <div class="falt" style="margin-top:10px">
-        <button id="guideOm" class="chip exempel" style="border:1px solid var(--line)"><svg class="ikon"><use href="#i-om"/></svg> Restart the guide</button>
-      </div>
+      <button id="guideOm" class="chip exempel" style="border:1px solid var(--line);margin-top:8px"><svg class="ikon"><use href="#i-om"/></svg> Restart the guide</button>
     </div>
     <div id="vyFraga" style="display:none">
       <h2>Ask Landvex</h2>
@@ -1215,9 +1226,13 @@ function guideStegLista() {
 function guideRita() {
   const steg = guideStegLista();
   const p = $("guideProgress"), f = $("guideFraga"), s = $("guideSvar");
-  $("guideTillbaka").style.visibility = guide.steg >= 0 ? "visible" : "hidden";
-  $("guideNasta").innerHTML = (guide.steg === steg.length - 1)
-    ? `Run analysis ${ikon("bock")}` : "Next ›";
+  const total = steg.length + 1;
+  const done = guide.flode ? guide.steg + 1 : 0;
+  $("guideBarFill").style.width = (100 * done / (total || 1)) + "%";
+  $("guideTillbaka").style.visibility = (guide.flode && guide.steg >= 0)
+    ? "visible" : "hidden";
+  const sista = guide.steg === steg.length - 1;
+  $("guideNasta").innerHTML = sista ? `Run analysis ${ikon("bock")}` : "Continue ›";
   if (guide.steg < 0) {
     p.textContent = "Choose a mission";
     f.textContent = GUIDE_FLOWS.start.fraga;
@@ -1226,28 +1241,34 @@ function guideRita() {
         <div class="plats" style="font-size:13.5px">${ikon(v.ikon)} ${v.label}</div>
         <p class="motiv">${v.info}</p>
       </div>`).join("");
+    // Tap a mission → jump straight into its first question (no extra Next).
     s.querySelectorAll(".guideval").forEach(k => k.onclick = () => {
-      guide.flode = k.dataset.val; guideRita();
+      guide.flode = k.dataset.val; guide.steg = 0; guideRita();
     });
-    $("guideNasta").style.visibility = guide.flode ? "visible" : "hidden";
+    $("guideNasta").style.visibility = "hidden";
     return;
   }
   $("guideNasta").style.visibility = "visible";
   const falt = GUIDE_FALT[steg[guide.steg]];
-  p.textContent = `Step ${guide.steg + 2} of ${steg.length + 1}`;
+  p.innerHTML = `Step ${guide.steg + 2} of ${total} · <span style="color:var(--muted)">${esc(falt.fraga)}</span>`;
   f.textContent = falt.fraga;
   const nuv = guide.svar[steg[guide.steg]];
   if (falt.typ === "select") {
     const alternativ = falt.kalla();
     s.innerHTML = `<select id="guideInput">` + alternativ.map(o =>
       `<option value='${JSON.stringify(o.id)}' ${JSON.stringify(o.id) === nuv ? "selected" : ""}>${esc(o.label_en)}</option>`).join("") + `</select>` +
-      `<p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
+      `<p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>` +
+      `<p class="motiv" style="font-size:11px;color:var(--muted)">Pick an option, then Continue ›</p>`;
   } else if (falt.typ === "chips") {
     s.innerHTML = `<div class="chips">` + falt.kalla().map(o => `
       <span class="chip ${nuv === JSON.stringify(o.id) ? "on" : ""}" data-v='${JSON.stringify(o.id)}'>${esc(o.label_en)}</span>`).join("") +
       `</div><p class="motiv" style="margin-top:6px">${ikon("info")} ${esc(falt.info)}</p>`;
+    // Tap a chip → select and advance (or run on the last step).
     s.querySelectorAll(".chip").forEach(c => c.onclick = () => {
-      guide.svar[steg[guide.steg]] = c.dataset.v; guideRita();
+      s.querySelectorAll(".chip").forEach(x => x.classList.remove("on"));
+      c.classList.add("on");
+      guide.svar[steg[guide.steg]] = c.dataset.v;
+      setTimeout(guideNext, 160);
     });
   } else {
     s.innerHTML = `<input type="number" id="guideInput" data-guide="platser" min="0" ` +
@@ -1279,11 +1300,11 @@ async function guideKor() {
       const kort = document.querySelector("#hotspots .kort");
       if (kort) {
         kort.classList.add("open");
-        kort.querySelector(".planBtn").click();
-        kort.querySelector(".riskBtn").click();
+        (document.querySelector(".resultat") || kort)
+          .scrollIntoView({ behavior: "smooth", block: "start" });
       }
-      st.textContent = `Guide complete: ${res.hotspots.length} locations ranked – ` +
-        `the top candidate's establishment plan and risk profile are open.`;
+      st.textContent = `Guide complete: ${res.hotspots.length} locations ranked. ` +
+        `Open the top card's buttons for the plan, risk and intelligence layers.`;
     } else if (guide.flode === "kompetens") {
       $("yrke").value = sv("yrke");
       $("marknadKomp").value = marknad;
@@ -1328,13 +1349,13 @@ async function guideKor() {
   }
 }
 
-$("guideNasta").onclick = async () => {
+async function guideNext() {
   const steg = guideStegLista();
   if (guide.steg >= 0) {
     const input = $("guideInput");
     if (input) guide.svar[steg[guide.steg]] =
       input.type === "number" ? JSON.stringify(+input.value) : input.value;
-    else if (!guide.svar[steg[guide.steg]]) {
+    if (!guide.svar[steg[guide.steg]]) {
       $("status").textContent = "Pick an option to continue.";
       return;
     }
@@ -1345,7 +1366,9 @@ $("guideNasta").onclick = async () => {
   }
   guide.steg += 1;
   guideRita();
-};
+  $("guideFraga").scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+$("guideNasta").onclick = guideNext;
 $("guideTillbaka").onclick = () => {
   if (guide.steg >= 0) { guide.steg -= 1; guideRita(); }
 };
@@ -1635,8 +1658,10 @@ $("ritaIndex").onclick = async () => {
     for (const o of await api("/v1/workforce/occupations"))
       $("yrke").add(new Option(o.label_en, o.id));
     for (const m of await api("/v1/markets")) {
+      // I den statiska demon markeras marknader som inte är förberäknade.
+      const demoNote = m.demo_precomputed === false ? " · live API only" : "";
       const label = `${m.label_en} (${m.antal_regioner} ${m.region_label_en}s` +
-                    `${m.kalibrerad ? "" : " · simulated data"})`;
+                    `${m.kalibrerad ? "" : " · simulated data"}${demoNote})`;
       $("marknadEtab").add(new Option(label, m.id));
       $("marknadKomp").add(new Option(label, m.id));
       $("marknadIndex").add(new Option(label, m.id));
