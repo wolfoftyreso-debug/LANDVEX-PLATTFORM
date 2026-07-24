@@ -48,6 +48,51 @@
             gap: 0; height: calc(100vh - 51px); }
   @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; height: auto; } }
 
+  /* Intro-overlay – hero för nya användare / demokund */
+  #intro { position: fixed; inset: 0; z-index: 50; display: none;
+           align-items: center; justify-content: center; padding: 24px;
+           background:
+             radial-gradient(1200px 600px at 50% -10%, rgba(0,122,255,.22), transparent 60%),
+             radial-gradient(900px 500px at 100% 110%, rgba(52,199,89,.18), transparent 60%),
+             var(--bg);
+           -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+           overflow-y: auto; }
+  #intro.on { display: flex; animation: introIn .4s var(--fjader); }
+  @keyframes introIn { from { opacity: 0; } to { opacity: 1; } }
+  body.intro-open { overflow: hidden; }
+  .intro-inner { max-width: 640px; text-align: center; }
+  .intro-logo { width: 60px; height: 60px; margin-bottom: 14px;
+                filter: drop-shadow(0 8px 24px rgba(0,122,255,.35)); }
+  .intro-eyebrow { font-size: 12px; letter-spacing: 3px; font-weight: 700;
+                   color: var(--accent); margin-bottom: 10px; }
+  .intro-h { font-size: clamp(26px, 4.4vw, 42px); font-weight: 750;
+             line-height: 1.1; letter-spacing: -.02em; margin: 0 0 14px; }
+  .intro-h em { font-style: normal; color: var(--accent); }
+  .intro-sub { font-size: 16px; color: var(--muted); line-height: 1.5;
+               max-width: 540px; margin: 0 auto 22px; }
+  .intro-sub em { font-style: normal; color: var(--text); font-weight: 600; }
+  .intro-pick { font-size: 13px; font-weight: 600; color: var(--muted);
+                margin-bottom: 10px; }
+  .intro-chips { justify-content: center; gap: 8px; }
+  .intro-chips .chip { font-size: 14px; padding: 9px 15px; cursor: pointer; }
+  #introResult { margin-top: 18px; }
+  .intro-card { background: var(--panel); border: 1px solid var(--line);
+                border-radius: 16px; padding: 18px; max-width: 460px;
+                margin: 0 auto; text-align: left;
+                box-shadow: 0 20px 60px rgba(0,0,0,.25);
+                animation: introIn .35s var(--fjader); }
+  .intro-card .ic-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .intro-card .ic-place { font-weight: 700; font-size: 17px; }
+  .intro-card .ic-score { font-size: 30px; font-weight: 800; }
+  .intro-card .ic-stars { color: var(--accent); letter-spacing: 2px; font-size: 15px; }
+  .intro-card .ic-pct { color: var(--gron); font-weight: 650; font-size: 14px; margin: 8px 0; }
+  .intro-card .ic-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .intro-card .ic-actions button { flex: 1; }
+  .intro-card .ic-primary { background: var(--accent); border: none; color: #fff; font-weight: 650; }
+  .intro-skip { margin-top: 20px; width: auto; background: transparent;
+                border: none; color: var(--muted); font-size: 13px; cursor: pointer; }
+  .logomark { cursor: pointer; }
+
   /* Profilpanel */
   .profil { padding: 16px; border-right: 1px solid var(--line); overflow-y: auto; }
   /* Guide – kompakt stegflöde */
@@ -212,6 +257,24 @@
   <symbol id="i-ned" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></symbol>
   <symbol id="i-puls" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
 </defs></svg>
+<div id="intro" aria-hidden="true">
+  <div class="intro-inner">
+    <svg class="intro-logo" viewBox="0 0 24 24" aria-hidden="true">
+      <defs><linearGradient id="lvxg2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#007AFF"/><stop offset="1" stop-color="#34C759"/></linearGradient></defs>
+      <polygon points="12 2 22 7 12 12 2 7" fill="url(#lvxg2)"/>
+      <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg2)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="intro-eyebrow">LANDVEX · OPPORTUNITY ENGINE</div>
+    <h2 class="intro-h">Where do <em>you</em> have the highest chance of success — and the money to prove it?</h2>
+    <p class="intro-sub">Not “where are the most people.” Where <em>your</em> business wins: a personalized Opportunity Score, the support you’re leaving on the table, and a live risk radar.</p>
+    <p class="intro-pick">Pick your trade — see your best location right now:</p>
+    <div id="introChips" class="chips intro-chips"></div>
+    <div id="introResult"></div>
+    <button id="introSkip" class="intro-skip">Skip intro →</button>
+  </div>
+</div>
 <header>
   <svg class="logomark" viewBox="0 0 24 24" aria-hidden="true">
     <defs><linearGradient id="lvxg" x1="0" y1="0" x2="1" y2="1">
@@ -1739,6 +1802,88 @@ $("ritaIndex").onclick = async () => {
   } catch (e) {
     $("status").textContent = "Could not reach the API: " + e.message;
   }
+})();
+
+// ── Intro-hero för nya användare / demokund ─────────────────────────
+const INTRO_TRADES = [
+  ["elektriker", "Electrician"], ["vvs", "Plumber"], ["bygg", "Construction"],
+  ["malare", "Painter"], ["bilverkstad", "Auto repair"], ["restaurang", "Restaurant"],
+  ["cafe", "Café"], ["frisor", "Hair salon"], ["gym", "Gym"], ["tandlakare", "Dentist"],
+];
+let introVal = null;
+
+function introVisa() {
+  $("intro").classList.add("on");
+  document.body.classList.add("intro-open");
+  $("intro").setAttribute("aria-hidden", "false");
+}
+function introStang() {
+  $("intro").classList.remove("on");
+  document.body.classList.remove("intro-open");
+  $("intro").setAttribute("aria-hidden", "true");
+  try { localStorage.setItem("landvex_intro_v1", "1"); } catch (e) {}
+}
+
+async function introKor(id, label) {
+  introVal = id;
+  document.querySelectorAll("#introChips .chip").forEach(c =>
+    c.classList.toggle("on", c.dataset.v === id));
+  const ut = $("introResult");
+  ut.innerHTML = "<p class='motiv'>Finding your best location …</p>";
+  try {
+    const res = await api("/v1/scan",
+      { profile: { vertical_id: id }, market: "us", top_n: 1 });
+    const h = res.hotspots[0];
+    ut.innerHTML = `<div class="intro-card">
+      <div class="ic-top">
+        <div><div class="ic-place">${ikon("pin")} ${esc(h.lage_en)}</div>
+          <div class="ic-stars">${"★".repeat(h.stars || 0)}<span style="color:var(--line)">${"★".repeat(5 - (h.stars || 0))}</span></div></div>
+        <div class="ic-score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</div>
+      </div>
+      ${h.percentile_en ? `<div class="ic-pct">${ikon("upp","pos")} ${esc(h.percentile_en)}</div>` : ""}
+      <p class="motiv">${esc((h.motivering_en || [])[0] || "")}</p>
+      <div class="ic-actions">
+        <button class="ic-primary" id="introFull">See full analysis →</button>
+        <button id="introAnnan">Try another</button>
+      </div></div>`;
+    $("introFull").onclick = () => introReveal(id, label);
+    $("introAnnan").onclick = () => { ut.innerHTML = "";
+      document.querySelectorAll("#introChips .chip").forEach(c => c.classList.remove("on")); };
+  } catch (e) {
+    ut.innerHTML = `<p class="motiv">This trade isn't precomputed in the demo — try another, or enter and use the guide. (${esc(e.message)})</p>`;
+  }
+}
+
+async function introReveal(id, label) {
+  introStang();
+  try {
+    const res = await api("/v1/scan",
+      { profile: { vertical_id: id }, market: "us", top_n: INSTALL.topN || 5 });
+    senasteScan = res; ritaKarta(res); ritaHotspots(res);
+    const kort = document.querySelector("#hotspots .kort");
+    if (kort) { kort.classList.add("open");
+      (document.querySelector(".resultat") || kort).scrollIntoView({ behavior: "smooth", block: "start" }); }
+    $("status").textContent =
+      `Your top ${res.hotspots.length} locations for ${res.vertical_label_en.toLowerCase()} ` +
+      `in the US — open a card for the plan, risk and intelligence layers.`;
+  } catch (e) {
+    $("status").textContent = "Error: " + e.message;
+  }
+}
+
+(function introInit() {
+  const wrap = $("introChips");
+  if (!wrap) return;
+  wrap.innerHTML = INTRO_TRADES.map(([id, label]) =>
+    `<span class="chip" data-v="${id}">${label}</span>`).join("");
+  wrap.querySelectorAll(".chip").forEach(c =>
+    c.onclick = () => introKor(c.dataset.v, c.textContent));
+  $("introSkip").onclick = introStang;
+  const logo = document.querySelector("header .logomark");
+  if (logo) logo.onclick = introVisa;
+  let seen = false;
+  try { seen = localStorage.getItem("landvex_intro_v1") === "1"; } catch (e) {}
+  if (!seen) introVisa();
 })();
 </script>
 </body>
