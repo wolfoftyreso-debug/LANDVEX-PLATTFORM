@@ -533,7 +533,62 @@ function lasProfil() {
   return p;
 }
 
+// ── Real map layer (optional, config-flagged — dormant by default) ──
+// The app ships the dependency-free SVG map so it works fully offline.
+// In production infra, switch to real tiles (MapLibre GL + OpenStreetMap
+// — free, no API key) in one step, WITHOUT touching the engine:
+//   1. Include MapLibre GL JS + CSS on the page (self-hosted or CDN).
+//   2. Provide a raster tile URL template via ANY of:
+//        window.LANDVEX_MAP_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+//        <meta name="landvex-map-tiles" content="…/{z}/{x}/{y}.png">
+//        ?maptiles=<url-encoded template>
+// Only when BOTH a tile URL and window.maplibregl are present does the
+// map switch to real tiles; otherwise the SVG renders (unchanged). The
+// tile path must be verified in an environment WITH network access — the
+// sandbox/offline demo blocks external hosts by policy/CSP, so this stays
+// a thin, dormant skeleton here.
+const REALMAP = {
+  tilesUrl() {
+    const q = new URLSearchParams(location.search).get("maptiles");
+    if (q) return decodeURIComponent(q);
+    if (window.LANDVEX_MAP_TILES) return window.LANDVEX_MAP_TILES;
+    const meta = document.querySelector('meta[name="landvex-map-tiles"]');
+    return meta ? meta.content : null;
+  },
+  enabled() { return !!(this.tilesUrl() && window.maplibregl); },
+  _map: null, _markers: [],
+  render(res) {
+    const tiles = this.tilesUrl(), host = document.querySelector(".karta");
+    host.style.position = host.style.position || "relative";
+    if (!this._map) {
+      let c = document.getElementById("mlmap");
+      if (!c) { c = document.createElement("div"); c.id = "mlmap";
+        c.style.cssText = "position:absolute;inset:0"; host.appendChild(c); }
+      this._map = new maplibregl.Map({ container: "mlmap", center: [0, 20], zoom: 1,
+        style: { version: 8,
+          sources: { osm: { type: "raster", tiles: [tiles], tileSize: 256,
+                            attribution: "© OpenStreetMap contributors" } },
+          layers: [{ id: "osm", type: "raster", source: "osm" }] } });
+    }
+    const [la0, la1, lo0, lo1] = res.bbox || [24, 50, -125, -66];
+    this._map.fitBounds([[lo0, la0], [lo1, la1]], { padding: 24, animate: false });
+    this.clear();
+    const col = { gron: "#34C759", gul: "#FFCC00", rod: "#FF3B30" };
+    for (const p of res.heatmap) {
+      const el = document.createElement("div");
+      el.style.cssText = `width:12px;height:12px;border-radius:50%;cursor:pointer;` +
+        `background:${col[p.band] || "#8E8E93"};border:1.5px solid #fff`;
+      el.title = `${p.kommun} — score ${p.score}`;
+      el.onclick = () => valjKommun(p.kommun_kod);
+      this._markers.push(new maplibregl.Marker({ element: el })
+        .setLngLat([p.lon, p.lat]).addTo(this._map));
+    }
+  },
+  clear() { this._markers.forEach(m => m.remove()); this._markers = []; },
+};
+
 function ritaKarta(res) {
+  if (REALMAP.enabled()) { REALMAP.render(res); return; }   // production tiles
   tomKarta();
   setBox(res.bbox || US_BOX);
   vb = { x: 0, y: 0, w: W, h: H }; applyVB();
