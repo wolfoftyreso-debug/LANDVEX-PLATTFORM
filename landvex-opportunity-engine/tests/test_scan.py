@@ -195,6 +195,48 @@ def test_specialization_personalizes_score_and_percentile():
     assert g["specialization"] is None and "percentile" in g["hotspots"][0]
 
 
+def test_stars_outlook_workstyle_and_company_form():
+    """★-betyg, 2-årsprognos, arbetssätt-tilt och företagsform."""
+    from engine.scan import scan
+    from engine.profile import profile_from_dict
+    r = scan(profile_from_dict({"vertical_id": "bygg"}), top_n=8, market="se")
+    h = r["hotspots"][0]
+    # Stjärnor 1–5 följer scoren.
+    assert 1 <= h["stars"] <= 5
+    # 2-årsprognos: fält + ärlig heuristik-not, aldrig "sanning".
+    o = h["outlook_2y"]
+    assert set(("demand_today", "demand_in_2y", "reasons", "notis_en")) <= set(o)
+    assert 0 <= o["demand_in_2y"] <= 100 and "not a forecast" in o["notis_en"]
+    # Företagsform valideras.
+    p = profile_from_dict({"vertical_id": "elektriker",
+                           "company_form": "enskild_firma"})
+    assert p.company_form == "enskild_firma"
+    try:
+        profile_from_dict({"vertical_id": "elektriker",
+                           "company_form": "kommun"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ogiltig företagsform skulle avvisats")
+    # Arbetssätt tiltar rankningen (aldrig grundscoren).
+    a = [x["kommun"] for x in scan(profile_from_dict(
+        {"vertical_id": "elektriker", "work_style": "offentligt"}),
+        top_n=5, market="se")["hotspots"]]
+    b = [x["kommun"] for x in scan(profile_from_dict(
+        {"vertical_id": "elektriker", "work_style": "entreprenader"}),
+        top_n=5, market="se")["hotspots"]]
+    assert a != b
+    # Grundscoren är oförändrad av arbetssätt (bara rankningen tiltas).
+    s1 = {x["kommun_kod"]: x["opportunity_score"] for x in scan(
+        profile_from_dict({"vertical_id": "elektriker"}),
+        top_n=40, market="se")["hotspots"]}
+    s2 = {x["kommun_kod"]: x["opportunity_score"] for x in scan(
+        profile_from_dict({"vertical_id": "elektriker",
+                           "work_style": "offentligt"}),
+        top_n=40, market="se")["hotspots"]}
+    assert s1 == s2
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

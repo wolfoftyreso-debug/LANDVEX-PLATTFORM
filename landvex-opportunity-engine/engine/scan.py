@@ -27,7 +27,7 @@ from .datasources.base import Resolver
 from .datasources.scb import _haversine_km
 from .markets import DEFAULT_MARKET, get_market, plural_region_label
 from .models import Location
-from .profile import BusinessProfile
+from .profile import BusinessProfile, WORK_STYLE_SIGNALS
 from .scoring import analyze
 from .signals import CATALOG
 from .verticals import VERTICALS
@@ -227,6 +227,40 @@ _ROI_UNAVAILABLE = {
 }
 
 
+def _stars(score: float) -> int:
+    """Opportunity Score (0–100) → 1–5 stjärnor."""
+    return max(1, min(5, int(round(score / 20.0))))
+
+
+def _outlook_2y(report, momentum: dict) -> dict[str, Any]:
+    """2-årsprognos för efterfrågan – tydligt märkt heuristik, aldrig
+    en sanning. 'Idag X → om två år Y', med de starkaste
+    tillväxtdrivarna som anledning (klickbara tillbaka via signalerna).
+    """
+    today = momentum["value"]
+    # Tillväxtstyrka: hur långt momentum ligger från neutralt (50).
+    strength = (today - 50) / 50.0                 # -1 … 1
+    in_2y = int(round(max(0, min(100, today + strength * 18))))
+    reasons = []
+    for sid in _MOMENTUM_SIGNALS:
+        sig = report.signals.get(sid)
+        if not sig or sig.get("normalized", 0) < 0.55:
+            continue
+        d = CATALOG[sid]
+        reasons.append({"signal_id": sid, "label_en": d.label_en,
+                        "value": sig["value"], "unit": d.unit,
+                        "source": sig["source"]})
+    reasons.sort(key=lambda r: -report.signals[r["signal_id"]]["normalized"])
+    return {
+        "demand_today": today, "demand_in_2y": in_2y,
+        "direction": momentum["direction"],
+        "reasons": reasons[:5],
+        "notis_en": ("Heuristic 2-year projection from current growth "
+                     "signals – a scenario, not a forecast. Widens/narrows "
+                     "as real time-series data connects."),
+    }
+
+
 def _band(score: float) -> str:
     return "gron" if score >= 70 else "gul" if score >= 45 else "rod"
 
@@ -278,10 +312,18 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
 
         risk_index = int(round(report.risk_score * 100))
         momentum = _momentum(report)
+        # Arbetssätt tiltar rankningen mot de signaler nischen lever på
+        # (aldrig grundscoren). Normaliserat signalvärde 0–1 × vikt.
+        ws_tilt = 0.0
+        for sid, w in WORK_STYLE_SIGNALS.get(profile.work_style or "", {}).items():
+            sig = report.signals.get(sid)
+            if sig and sig.get("normalized") is not None:
+                ws_tilt += w * sig["normalized"]
         rank = (report.opportunity_score
                 - _RISK_PENALTY[profile.risk_tolerance] * risk_index
                 - _GOAL_RISK_EXTRA[profile.goal] * risk_index
-                + _GOAL_MOMENTUM[profile.goal] * (momentum["value"] - 50))
+                + _GOAL_MOMENTUM[profile.goal] * (momentum["value"] - 50)
+                + ws_tilt)
         scored.append({"report": report, "env": env, "rank_score": round(rank, 1),
                        "risk_index": risk_index, "momentum": momentum,
                        "code": code, "name": name, "punkt": plabel,
@@ -319,6 +361,8 @@ def scan(profile: BusinessProfile, resolver: Resolver | None = None,
             "lage_en": f"{s['name']}, {_POINT_LABEL_EN[s['punkt']]}",
             "lat": s["lat"], "lon": s["lon"],
             "opportunity_score": r.opportunity_score,
+            "stars": _stars(r.opportunity_score),
+            "outlook_2y": _outlook_2y(r, s["momentum"]),
             "rank_score": s["rank_score"],
             # Percentil + personlig mening: "du slår X % av lägena".
             "percentile": _percentil(r.opportunity_score),

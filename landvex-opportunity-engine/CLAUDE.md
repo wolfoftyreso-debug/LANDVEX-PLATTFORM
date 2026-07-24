@@ -378,6 +378,20 @@ OIDC.
   folkstatistik). Guiden har ett specialiseringssteg (villkorat på
   vald bransch); demon bakar alla nisch-varianter (86 svep). "Varför?"
   finns redan via drivkrafter med källa per rad.
+- **Rikare profil + framtidssimulering (v0.28):** Fyller ut visionens
+  flöde. Steg 1: `company_form` (enskild firma/AB/anställd/frilans).
+  Steg 2: `work_style` (många små jobb/stora entreprenader/åter-
+  kommande/offentlig sektor) som **tiltar rankningen** mot de signaler
+  arbetssättet lever på (WORK_STYLE_SIGNALS, aldrig grundscoren –
+  offentligt→infra_invest, entreprenader→byggloven/utveckling).
+  Output: varje beslutskort har **★-betyg** (1–5 av scoren) och en
+  **2-årsprognos** (`outlook_2y`): "Efterfrågan 64 → 69, anledning:
+  befolkningstillväxt, infrastrukturinvestering, detaljplaner…" –
+  tydligt märkt heuristisk scenario, inte prognos, med drivarna som
+  källor. Guiden frågar företagsform + arbetssätt; demon bakar
+  varianterna. Kvar av visionen (kräver Bernts datakällor): Google-
+  sökvolymer, konkurrenters betyg/väntetid, försäkringsskador,
+  jobbannonser – ramverket tar dem som nya signal-rader när de finns.
 - Övriga signaler är mockade. Varje rapport redovisar `data_coverage`
   och bär caveats tills fler källor kopplats in.
 

@@ -73,6 +73,30 @@ PROFILE_OPTIONS: dict[str, list[dict[str, Any]]] = {
         {"id": "exit",           "label_en": "Exit"},
         {"id": "passiv_inkomst", "label_en": "Passive income"},
     ],
+    # Steg 1: företagsform (påverkar etableringsplanens ramar).
+    "company_form": [
+        {"id": "enskild_firma", "label_en": "Sole trader"},
+        {"id": "aktiebolag",    "label_en": "Limited company"},
+        {"id": "anstalld",      "label_en": "Employed"},
+        {"id": "frilans",       "label_en": "Freelance"},
+    ],
+    # Steg 2: hur du vill jobba (tiltar rankningen mot rätt signaler).
+    "work_style": [
+        {"id": "smajobb",      "label_en": "Many small jobs"},
+        {"id": "entreprenader", "label_en": "Large contracts"},
+        {"id": "aterkommande", "label_en": "Recurring customers"},
+        {"id": "offentligt",   "label_en": "Public sector"},
+    ],
+}
+
+# Arbetssätt tiltar rankningen mot de signaler som nischen lever på.
+# Ren data (normaliserad signal → poängjustering), aldrig grundscoren.
+WORK_STYLE_SIGNALS: dict[str, dict[str, float]] = {
+    "smajobb":      {"pop_radius": 8.0, "residential_density": 6.0},
+    "entreprenader": {"building_permits": 9.0, "development_m2": 7.0,
+                      "detail_plans": 5.0},
+    "aterkommande": {"population_total": 7.0, "detached_homes": 6.0},
+    "offentligt":   {"infra_invest": 9.0, "building_permits": 4.0},
 }
 
 
@@ -94,6 +118,8 @@ class BusinessProfile:
     horizon_years: int = 3
     goal: str = "stabilitet"
     specialization: str | None = None        # nisch inom vertikalen
+    company_form: str = "aktiebolag"         # enskild firma/AB/anställd/frilans
+    work_style: str | None = None            # hur du vill jobba (tiltar rank)
     name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -143,6 +169,9 @@ def profile_from_dict(d: dict[str, Any]) -> BusinessProfile:
         horizon_years=choice("horizon_years", 3),
         goal=choice("goal", "stabilitet"),
         specialization=_spec_choice(vid, d.get("specialization")),
+        company_form=choice("company_form", "aktiebolag"),
+        work_style=(choice("work_style", None)
+                    if d.get("work_style") not in (None, "", "alla") else None),
         name=str(d.get("name", "")),
     )
 

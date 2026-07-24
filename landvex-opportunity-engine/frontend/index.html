@@ -562,6 +562,7 @@ function ritaHotspots(res) {
         <span class="plats">${ikon("pin")} ${esc(h.lage_en)} <small style="color:var(--muted)">#${h.rank}</small></span>
         <span class="score ${scoreKlass(h.opportunity_score)}">${Math.round(h.opportunity_score)}</span>
       </div>
+      ${h.stars ? `<p class="motiv" style="color:var(--gul);font-size:15px;letter-spacing:2px;margin:2px 0">${"★".repeat(h.stars)}<span style="color:var(--line)">${"★".repeat(5 - h.stars)}</span></p>` : ""}
       ${h.percentile_en ? `<p class="motiv" style="color:var(--accent);font-weight:600">${ikon("upp", "pos")} ${esc(h.percentile_en)}</p>` : ""}
       <div class="metrik">
         <div><b>${h.confidence}</b><span>Confidence</span></div>
@@ -578,6 +579,11 @@ function ritaHotspots(res) {
             <span>${ikon(d.direction === "driver" ? "upp" : "ned", d.direction === "driver" ? "pos" : "neg")} ${esc(d.label_en)}</span>
             <span class="${d.direction === "driver" ? "pos" : "neg"}">${esc(d.value)} ${esc(d.unit)}</span>
           </div>`).join("")}
+        ${h.outlook_2y ? `<h4>Demand outlook – 2 years</h4>
+        <p class="motiv"><b>${h.outlook_2y.demand_today} → ${h.outlook_2y.demand_in_2y}</b>
+           <small style="color:var(--muted)">(demand index, ${esc(h.outlook_2y.direction === "forbattras" ? "improving" : h.outlook_2y.direction === "forsvagas" ? "weakening" : "stable")})</small></p>
+        ${h.outlook_2y.reasons.length ? h.outlook_2y.reasons.map(r => `<div class="driver"><span>${ikon("upp", "pos")} ${esc(r.label_en)}</span><span class="pos">${esc(r.value)} ${esc(r.unit)}</span></div>`).join("") : `<p class="roi-notis">No strong growth drivers at this location yet.</p>`}
+        <p class="roi-notis">${esc(h.outlook_2y.notis_en)}</p>` : ""}
         <h4>Economics – standard scenario</h4>
         ${eko.status === "ej_kalibrerad"
           ? `<p class="roi-notis">${esc(eko.notis_en)}</p>`
@@ -989,9 +995,10 @@ const GUIDE_FLOWS = {
     ],
   },
   steg: {
-    starta: ["bransch", "specialisering", "marknad", "budget", "team", "risk", "mal"],
+    starta: ["bransch", "specialisering", "foretagsform", "team", "marknad",
+             "arbetssatt", "budget", "risk", "mal"],
     kompetens: ["yrke", "marknad", "malar", "platser"],
-    lage: ["bransch", "specialisering", "marknad"],
+    lage: ["bransch", "specialisering", "arbetssatt", "marknad"],
     obalans: ["bransch", "marknad"],
   },
 };
@@ -1015,6 +1022,14 @@ const GUIDE_FALT = {
              typ: "select",
              kalla: () => [...document.querySelectorAll("#marknadEtab option")]
                .map(o => ({ id: o.value, label_en: o.textContent })) },
+  foretagsform: { fraga: "What is your company form?",
+                  info: "Part of describing your business – shapes the "
+                      + "establishment plan (setup, capital, tax).",
+                  typ: "chips", kalla: () => OPTIONS.company_form },
+  arbetssatt: { fraga: "How do you want to work?",
+                info: "Tilts the ranking toward the signals your way of "
+                    + "working lives on – never the base score.",
+                typ: "chips", kalla: () => OPTIONS.work_style },
   budget: { fraga: "How large is the investment budget?",
             info: "Affects budget fit in the establishment plan.",
             typ: "chips", kalla: () => OPTIONS.budget_band },
@@ -1102,6 +1117,8 @@ async function guideKor() {
       const profil = { vertical_id: sv("bransch") };
       const spec = sv("specialisering");
       if (spec && spec !== "generell") profil.specialization = spec;
+      if (sv("foretagsform")) profil.company_form = sv("foretagsform");
+      if (sv("arbetssatt")) profil.work_style = sv("arbetssatt");
       if (sv("budget")) profil.budget_band = sv("budget");
       if (sv("team")) profil.team_size = sv("team");
       if (sv("risk")) profil.risk_tolerance = sv("risk");
