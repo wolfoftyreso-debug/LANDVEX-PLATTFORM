@@ -468,6 +468,8 @@ python3 -m api.dev_server          # → öppna http://localhost:8000/ för kart
 python3 demo.py                    # exempelrapporter frisör/elektriker/café
 python3 -m api.dev_server          # dev-API utan beroenden, port 8000
 python3 -m engine.datasources.scb 59.31 18.07   # live-prob mot SCB (kräver nät)
+python3 -m scripts.scb_probe 59.31 18.07   # SCB PxWeb pre-flight (kräver nät)
+AAMOS_CORE_URL=http://127.0.0.1:3100 python3 -m scripts.aamos_smoke   # AAMOS-handskakning (kräver nät)
 pip install -r requirements.txt && uvicorn api.main:app   # produktions-API
 ```
 
