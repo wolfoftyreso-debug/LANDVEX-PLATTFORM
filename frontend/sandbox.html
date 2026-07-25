@@ -54,6 +54,19 @@
   .k{color:var(--accent2)}.s{color:#9fe6b0}.n{color:#ffcf8a}.b{color:#ff9db0}
   .note{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.55}
   .foot{margin-top:22px;border-top:1px solid var(--line);padding-top:14px;font-size:11.5px;color:var(--dim);line-height:1.6}
+  .roles{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+  .roles button{font-size:12px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid var(--line2);
+    background:var(--panel2);color:var(--muted);cursor:pointer}
+  .roles button:hover{border-color:var(--accent);color:var(--ink)}
+  .roles button[aria-pressed=true]{background:rgba(10,132,255,.18);border-color:var(--accent);color:#cfe6ff}
+  .journey{display:none;background:linear-gradient(180deg,rgba(10,132,255,.10),transparent),var(--panel);
+    border:1px solid var(--line2);border-radius:13px;padding:14px 16px;margin-bottom:16px}
+  .journey.on{display:block}
+  .journey .q{font-size:15px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
+  .journey .d{font-size:12.5px;color:var(--muted);margin:0 0 8px;line-height:1.55}
+  .journey .row{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}
+  .journey .row b{color:var(--accent2);font-weight:600}
+  .journey .ans{font-family:var(--mono);font-size:11.5px;color:var(--good)}
 </style></head><body>
 <div class="app">
   <aside class="side">
@@ -61,6 +74,13 @@
     <nav id="nav" aria-label="Endpoints"></nav>
   </aside>
   <main>
+    <div class="roles" id="roles" aria-label="Entry point (role)"></div>
+    <div class="journey" id="journey">
+      <p class="q" id="jq"></p>
+      <p class="d" id="jd"></p>
+      <div class="row"><span>Answered by <span class="ans" id="jans"></span></span>
+        <span><b>Event overlay:</b> <span id="jfeeds"></span></span></div>
+    </div>
     <div class="bar"><span class="meth" id="meth">GET</span><span class="path" id="path"></span><span class="status" id="hstatus"></span></div>
     <h1 id="title"></h1>
     <p class="desc" id="desc"></p>
@@ -82,9 +102,31 @@ var E=[
  ["Overview","Everything (catalog)","GET","/v1/catalog","Self-describing list of every engine and endpoint."],
  ["Overview","Data sources (live/mock)","GET","/v1/sources","Connection cockpit: each adapter, its state, and the env var to go live."],
  ["Overview","Health","GET","/health","Engine version + per-source status."],
+ ["Overview","Entry points (roles)","GET","/v1/entrypoints","Six decision journeys — each ends in an answer, not a toolbox."],
+ ["Geography","Countries (level 1)","GET","/v1/admin","Ten countries with complete first-level units + official level-2 registers."],
+ ["Geography","Sweden kommuner (Örebro län)","GET","/v1/admin?country=se&level=2&parent=18","Level 2 down to municipality — coverage honestly labelled partial until LANDVEX_GEO_URL loads the full official register."],
+ ["Geography","US counties (California)","GET","/v1/admin?country=us&level=2&parent=CA","US Census FIPS counties under a state; full register loads live."],
+ ["Control","Monitors & rules","GET","/v1/monitors","The watch registry: four detection rules (all data), cadences, and every registered monitor."],
+ ["Control","Define a watch","POST","/v1/monitors","Register a watch on any metric. An owner is mandatory — no alert without someone accountable.",{metric:"debt_gdp",scope:"SE",rule:"threshold",owner:"finance-unit",params:{level:60,direction:"above"},cadence:{every:"daily"}},
+   {"Threshold":{metric:"debt_gdp",scope:"SE",rule:"threshold",owner:"finance-unit",params:{level:60,direction:"above"},cadence:{every:"daily"}},"Anomaly":{metric:"er_visits",scope:"us-FL",rule:"anomaly",owner:"health-board",params:{z_threshold:2},cadence:{every:"hourly"}},"Sustained decline":{metric:"school_outcomes",scope:"se-1880",rule:"sustained_decline",owner:"education-board",params:{min_r2:0.5},cadence:{every:"weekly"}}}],
+ ["Control","Evaluate once","POST","/v1/monitors/evaluate","Run a rule against a series right now (inline monitor — no registration needed).",{monitor:{id:"demo",metric:"debt_gdp",scope:"SE",rule:"threshold",owner:"finance-unit",params:{level:60,direction:"above"}},series:[55,58,62]},
+   {"Breach":{monitor:{id:"demo",metric:"debt_gdp",scope:"SE",rule:"threshold",owner:"finance-unit",params:{level:60,direction:"above"}},series:[55,58,62]},"Calm":{monitor:{id:"demo",metric:"debt_gdp",scope:"SE",rule:"threshold",owner:"finance-unit",params:{level:60,direction:"above"}},series:[40,42,41]},"Too thin (honest)":{monitor:{id:"demo",metric:"x",scope:"SE",rule:"sustained_decline",owner:"o",params:{}},series:[5,4]}}],
+ ["Control","Run due (cron tick)","POST","/v1/monitors/run","The cron entry: evaluates every registered monitor that is due at 'now'. Define a watch first, then paste its id into series_by_id.",{now:100000,series_by_id:{"PASTE_MONITOR_ID":[55,58,62]}}],
+ ["Control","Escalate → owned decision","POST","/v1/monitors/escalate","Close the loop: a triggered finding becomes a decision with three owners + an expected outcome.",{finding:{triggered:true,metric:"debt_gdp",scope:"SE",detail:"latest 62 ≥ level 60"},owners:{formellt:"finance-minister",operativt:"debt-office",uppfoljning:"audit-office"},expected:{metric:"debt_gdp",direction:"decrease",target:60},committed_at:"2026-07-25"}],
+ ["Decide","Expected value (cost/benefit)","POST","/v1/flows/expected-value","Beyond the feelings: certain costs vs probability-weighted gains → net value, BCR, break-even probability, sensitivity.",{decision:"fund the program?",costs:[{label:"annual cost",amount:120,source:"budget office"}],benefits:[{label:"trade uplift",amount:300,probability:0.6,source:"customs data"},{label:"tourism uplift",amount:80,probability:0.4,source:"tourist board"}]},
+   {"Protection vs gain":{decision:"is the protection worth it?",costs:[{label:"protection cost",amount:500,source:"budget"}],benefits:[{label:"secured trade flows",amount:900,probability:0.55,source:"customs"},{label:"strategic access",amount:300,probability:0.35,source:"trade registry"}]},"Public artwork":{decision:"was the sculpture a good deal?",costs:[{label:"purchase + install",amount:1.6,source:"municipal budget"}],benefits:[{label:"tourism uplift",amount:2.2,probability:0.5,source:"tourist board"},{label:"media attention value",amount:1.1,probability:0.6,source:"media analysis"}]},"Unsourced (refuses)":{decision:"gut feeling",costs:[{label:"c",amount:100}],benefits:[{label:"g",amount:400,probability:0.5}]}}],
+ ["Decide","Decision report (full card)","POST","/v1/report","One call, the whole decision basis: opportunity + risk + plan + segments + service + indices.",{kommun_kod:"1880",vertical:"elektriker",market:"se"}],
+ ["Opportunity","Market sweep (scan)","POST","/v1/scan","Sweep a market with your profile → ranked hotspots with full decision cards.",{profile:{namn:"Demo",vertical:"elektriker",specialization:"laddboxar"},top_n:5,market:"se"}],
+ ["Opportunity","Analyze one location","POST","/v1/analyze","Full opportunity report for one point: score, factors, risk, narratives.",{lat:59.27,lon:15.21,vertical:"elektriker"}],
+ ["Opportunity","Establishment plan","POST","/v1/plan","From analysis to action: premises, financing, staffing (real recruiting picture), risks.",{kommun_kod:"1880",vertical:"elektriker",market:"se"}],
+ ["Opportunity","Opportunity intelligence","POST","/v1/opportunities","Support programs, missing money, hidden niches, legal guide, lifecycle advice.",{lat:59.27,lon:15.21,vertical:"elektriker",market:"se"}],
+ ["Opportunity","Risk intelligence","POST","/v1/risk-intelligence","Dual meters: 10 risk categories (computed or honestly 'monitoring') + Business Signals.",{lat:59.27,lon:15.21,vertical:"elektriker",market:"se"}],
+ ["Opportunity","Gap analysis","POST","/v1/gaps","Imbalances: high demand × low supply × positive development, per region.",{vertical:"elektriker",market:"se",top_n:5}],
+ ["Workforce","Forecast (5–20 yrs)","POST","/v1/workforce/forecast","Which occupations will a municipality need — with confidence intervals + assumptions.",{kommun_kod:"1880",target_year:2035,market:"se"}],
+ ["Accountability","Resolve a decision","POST","/v1/decisions/resolve","Close the loop: actual outcome vs the committed expectation.",{decision_id:"PASTE_DECISION_ID",actual_value:58,baseline:62}],
  ["Ask","Ask Landvex","POST","/v1/ask","Natural-language → engine data. Crisis queries get support resources.",{question:"What are the biggest opportunities in Örebro?"},
    {"Neutral":{question:"What is the population trend in Malmö?"},"Value-judgement (flagged)":{question:"Which is the best location for a gym?"}}],
- ["Indices","Index families","GET","/v1/indices/families","The 22 city indices grouped into six themes."],
+ ["Indices","Index families","GET","/v1/indices/families","All city indices (incl. Rights & Inclusion and the Contradiction Index) grouped into six themes."],
  ["Indices","City assessment","POST","/v1/indices/assess","All indices for one city, each with sourced drivers.",{kommun_kod:"0180",market:"se"}],
  ["Indices","λ balance","POST","/v1/lambda","Geometric-mean balance across 8 axes.",{axes:{ECON:88,HEALTH:70,LABOR:84,EDUC:78,SOCIAL:66,CLIMATE:52,GOV:60,DEMO:82}}],
  ["Analysis","Peer benchmark","POST","/v1/benchmark","Is a value an outlier or normal vs peers?",{value:44,peers:[42,45,38,51,47,40,44,49,46,43],label:"Örebro",metric:"parking_per_100_jobs"},
@@ -109,20 +151,55 @@ var E=[
  ["Facts","Setpoint assess","POST","/v1/setpoints/assess","Value vs a calibrated reference band.",{code:"debt_to_gdp",value:90}],
  ["Facts","Cite a figure","POST","/v1/cite","Turn a number into a verifiable, versioned claim.",{statement:"Malmö population grew 1.2% in 2025",value:1.2,source:{authority:"SCB"},time:{observed_at:"2025-12-31"},owners:{formellt:"KS"}}]
 ];
-var $=id=>document.getElementById(id),cur=0;
+var $=id=>document.getElementById(id),cur=0,ROLES=[],curRole="";
 function synHi(o){return JSON.stringify(o,null,2)
   .replace(/(&)/g,"&amp;").replace(/</g,"&lt;")
   .replace(/"([^"]+)":/g,'"<span class="k">$1</span>":')
   .replace(/: "([^"]*)"/g,': <span class="s">"$1"</span>')
   .replace(/: (-?\d+\.?\d*)/g,': <span class="n">$1</span>')
   .replace(/: (true|false|null)/g,': <span class="b">$1</span>');}
-function nav(){
-  var n=$("nav"),groups={};E.forEach((e,i)=>{(groups[e[0]]=groups[e[0]]||[]).push(i);});
+function nav(allowed){
+  var n=$("nav");n.innerHTML="";
+  var groups={};E.forEach(function(e,i){
+    if(allowed&&!allowed.has(i)&&e[0]!=="Overview")return;
+    (groups[e[0]]=groups[e[0]]||[]).push(i);});
   Object.keys(groups).forEach(function(g){
     var h=document.createElement("div");h.className="grp";h.textContent=g;n.appendChild(h);
     groups[g].forEach(function(i){var b=document.createElement("button");b.type="button";b.textContent=E[i][1];
       b.dataset.i=i;b.onclick=()=>sel(i);n.appendChild(b);});});
+  Array.prototype.forEach.call(n.querySelectorAll("button"),b=>b.setAttribute("aria-current",+b.dataset.i===cur?"true":"false"));
 }
+function roleMatches(role){
+  var set=new Set(),paths=(role.tools||[]).concat([role.answered_by]);
+  E.forEach(function(e,i){var p=e[3].split("?")[0];
+    paths.forEach(function(t){if(p===t||p.indexOf(t+"/")===0)set.add(i);});});
+  return set;
+}
+function selRole(id){
+  curRole=id;
+  Array.prototype.forEach.call($("roles").querySelectorAll("button"),b=>b.setAttribute("aria-pressed",b.dataset.r===id?"true":"false"));
+  var j=$("journey");
+  if(!id){j.className="journey";nav();return;}
+  var role=ROLES.find(r=>r.id===id);if(!role){j.className="journey";nav();return;}
+  $("jq").textContent=role.question_en;
+  $("jd").textContent=role.decision_en+" — "+role.deliverable_en;
+  $("jans").textContent=role.answered_by;
+  $("jfeeds").textContent=(role.event_feeds||[]).join(", ")||"—";
+  j.className="journey on";
+  var set=roleMatches(role);nav(set);
+  var first=E.findIndex(function(e,i){return set.has(i);});
+  if(first>=0&&!set.has(cur))sel(first);
+}
+function rolesBar(){
+  var n=$("roles");n.innerHTML="";
+  var all=document.createElement("button");all.type="button";all.textContent="All engines";
+  all.dataset.r="";all.onclick=()=>selRole("");all.setAttribute("aria-pressed","true");n.appendChild(all);
+  ROLES.forEach(function(r){var b=document.createElement("button");b.type="button";
+    b.textContent=r.label_en;b.dataset.r=r.id;b.onclick=()=>selRole(r.id);n.appendChild(b);});
+}
+fetch("/v1/entrypoints").then(r=>r.json()).then(function(d){
+  ROLES=Array.isArray(d)?d:[];rolesBar();
+}).catch(function(){/* roles are an overlay; the console works without them */});
 function sel(i){cur=i;var e=E[i];
   Array.prototype.forEach.call($("nav").querySelectorAll("button"),b=>b.setAttribute("aria-current",+b.dataset.i===i?"true":"false"));
   $("meth").textContent=e[2];$("meth").className="meth "+e[2];$("path").textContent=e[3];
