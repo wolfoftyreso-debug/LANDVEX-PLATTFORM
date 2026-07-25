@@ -46,6 +46,8 @@ from engine.strim import (build_entity, cite as strim_cite, entity_types,
                           to_jsonld)
 from engine.datasources.kolada import KoladaClient
 from engine.datasources.svk import SvkClient
+from engine.outcomes import (calibration as outcome_calibration,
+                             expected_roi, log_outcome, record as record_outcome)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -553,6 +555,39 @@ def kolada_status():
 @app.get("/v1/svk")
 def svk_status():
     return SvkClient().status()
+
+
+class OutcomeRequest(BaseModel):
+    location: dict = Field(default_factory=dict)
+    vertical: str
+    predicted_score: float
+    survived: bool
+    months_active: int = 0
+    revenue_index: float | None = None
+    established_at: str = ""
+
+
+class RoiRequest(BaseModel):
+    score: float
+
+
+@app.post("/v1/outcomes")
+def outcomes_log(req: OutcomeRequest):
+    rec = log_outcome(req.location, req.vertical, req.predicted_score,
+                      req.survived, months_active=req.months_active,
+                      revenue_index=req.revenue_index,
+                      established_at=req.established_at)
+    return {"id": record_outcome(rec), "calibration": outcome_calibration()}
+
+
+@app.get("/v1/outcomes/calibration")
+def outcomes_calibration():
+    return outcome_calibration()
+
+
+@app.post("/v1/outcomes/roi")
+def outcomes_roi(req: RoiRequest):
+    return expected_roi(req.score)
 
 
 class SegmentAnalyzeRequest(BaseModel):

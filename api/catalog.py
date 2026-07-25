@@ -148,6 +148,13 @@ API_CATALOG: dict = {
                            "URL is set.",
          "endpoints": [{"method": "GET", "path": "/v1/kolada"},
                        {"method": "GET", "path": "/v1/svk"}]},
+        {"id": "outcomes", "label_en": "Outcome Calibration",
+         "beskrivning_en": "Logs establishments and real outcomes, calibrates "
+                           "the model (Brier, reliability), and unlocks a "
+                           "survival-based expected_roi once data exists.",
+         "endpoints": [{"method": "POST", "path": "/v1/outcomes"},
+                       {"method": "GET", "path": "/v1/outcomes/calibration"},
+                       {"method": "POST", "path": "/v1/outcomes/roi"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

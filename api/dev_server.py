@@ -54,6 +54,8 @@ from engine.strim import (build_entity, cite as strim_cite, entity_types,
                           to_jsonld)
 from engine.datasources.kolada import KoladaClient
 from engine.datasources.svk import SvkClient
+from engine.outcomes import (calibration as outcome_calibration,
+                             expected_roi, log_outcome, record as record_outcome)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -216,6 +218,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, KoladaClient().status())
         if parsed.path == "/v1/svk":
             return self._send(200, SvkClient().status())
+        if parsed.path == "/v1/outcomes/calibration":
+            return self._send(200, outcome_calibration())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -379,6 +383,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/decision":
                 return self._send(200, decision_evaluate(
                     str(req["template"]), req.get("answers") or {}))
+            if self.path == "/v1/outcomes":
+                rec = log_outcome(
+                    req.get("location") or {}, str(req["vertical"]),
+                    float(req["predicted_score"]), bool(req["survived"]),
+                    months_active=int(req.get("months_active", 0)),
+                    revenue_index=req.get("revenue_index"),
+                    established_at=str(req.get("established_at", "")))
+                return self._send(200, {"id": record_outcome(rec),
+                                        "calibration": outcome_calibration()})
+            if self.path == "/v1/outcomes/roi":
+                return self._send(200, expected_roi(float(req["score"])))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),

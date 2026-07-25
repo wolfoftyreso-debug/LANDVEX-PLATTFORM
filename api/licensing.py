@@ -57,6 +57,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/strim": "core",                      # kunskapsgraf + status öppna
     "/v1/kolada": "core",
     "/v1/svk": "core",
+    "/v1/outcomes": "opportunity",            # utfallslogg + kalibrering + roi
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
