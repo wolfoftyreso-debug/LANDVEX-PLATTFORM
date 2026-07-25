@@ -289,23 +289,27 @@ budget, monthly usage window, legal-acceptance capture. Do not rebuild.
 
 ---
 
-## Prioritised port plan (5 phases)
+## Port plan — COMPLETE (v1.1.0, 2026-07-25)
 
-Ordered by value × portability × independence-from-external-data.
+All five phases shipped. Each phase carries its own `tests/test_*.py` (no
+pytest, no network) and keeps `engine/` dependency-free. 38 suites green;
+both API layers kept in sync by the contract test.
 
-1. **Foundation (pure, self-contained, biggest differentiator).**
-   `engine/integrity.py` (B) + `engine/scorekit.py` (A) + `engine/stats.py` (D).
-   No external data, aligns with Landvex honesty principles, unlocks everything else.
-2. **Composite index + calibration.** `engine/lambda_index.py` (C) +
-   `engine/setpoints.py` (E). Plug λ into `indices.py`.
-3. **Claims substrate + governance.** `engine/claims.py` (J) + governance fields/
-   predicates (K). Makes every Landvex number a citable versioned claim.
-4. **Change detection = the missing "monitoring".** `engine/kpi.py` (F) +
-   `engine/feeds.py` (H) + `engine/worthiness.py` (I). This is exactly what
-   `risk_intel.py` flagged as "requires monitoring history".
-5. **Real data + packaging.** Ingestion adapters (G: Kolada, SVK) in the Resolver
-   pattern; refine licensing/quotas (M). STRIM pattern (L) only if a citable
-   entity-graph product is wanted.
+1. ✅ **Foundation.** `integrity.py` (B) · `scorekit.py` (A) · `stats.py` (D) ·
+   `kpi.py` (F). Endpoints `/v1/kpi`, `/v1/kpi/evaluate`; neutrality flag on `/v1/ask`.
+2. ✅ **Composite index + calibration.** `lambda_index.py` (C) · `setpoints.py` (E).
+   Endpoints `/v1/lambda`, `/v1/setpoints`, `/v1/setpoints/assess`. λ oscilloscope
+   wired into the frontend Console.
+3. ✅ **Claims substrate + governance.** `claims.py` (J + K). Endpoint `/v1/cite`.
+4. ✅ **Change detection.** `feeds.py` (H) · `worthiness.py` (I) · `decision.py` (J).
+   Endpoints `/v1/feeds(+/events)`, `/v1/worthiness`, `/v1/decision`; crisis gate
+   ahead of `/v1/ask`. This is what `risk_intel.py` flagged as "requires monitoring
+   history".
+5. ✅ **Real data + packaging.** `datasources/kolada.py` · `datasources/svk.py` (G)
+   with the real endpoint ids and honest degradation; `strim.py` (L/M); complexity
+   budget + monthly window in `api/licensing.py` (N). Endpoints `/v1/strim(+/entity)`,
+   `/v1/kolada`, `/v1/svk`; probes `scripts/kolada_probe.py`, `scripts/svk_probe.py`.
 
-Each phase ships with its own `tests/test_*.py` (no pytest, no network — Landvex
-convention) and keeps `engine/` dependency-free.
+Remaining as future data work (not code gaps): connect the live Kolada/SVK URLs
+(the adapters degrade honestly until then), and the outcome-logging + calibration
+harness that unlocks `expected_roi` (Landvex backlog #11) — the compounding lever.
