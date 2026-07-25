@@ -61,6 +61,7 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    ledger as accountability_ledger,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
+from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -418,6 +419,21 @@ class Handler(BaseHTTPRequestHandler):
                     dcn, float(req["actual_value"]),
                     baseline=req.get("baseline"),
                     resolved_at=str(req.get("resolved_at", ""))))
+            if self.path == "/v1/correlate":
+                out = cross_domain(req.get("a") or [], req.get("b") or [],
+                                   label_a=req.get("label_a", "A"),
+                                   label_b=req.get("label_b", "B"))
+                if req.get("control"):
+                    out["partial"] = partial_correlation(
+                        req["a"], req["b"], req["control"],
+                        label_a=req.get("label_a", "A"),
+                        label_b=req.get("label_b", "B"),
+                        label_c=req.get("label_c", "C"))
+                return self._send(200, out)
+            if self.path == "/v1/correlate/cross-market":
+                return self._send(200, cross_market(
+                    req.get("markets") or [], label_a=req.get("label_a", "A"),
+                    label_b=req.get("label_b", "B")))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),

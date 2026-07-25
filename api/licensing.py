@@ -59,6 +59,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/svk": "core",
     "/v1/outcomes": "opportunity",            # utfallslogg + kalibrering + roi
     "/v1/decisions": "opportunity",           # ansvarsloop (commit/resolve/ledger)
+    "/v1/correlate": "opportunity",           # tvärdomän-korrelation
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

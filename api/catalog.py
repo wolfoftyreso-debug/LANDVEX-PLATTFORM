@@ -155,6 +155,13 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "POST", "path": "/v1/outcomes"},
                        {"method": "GET", "path": "/v1/outcomes/calibration"},
                        {"method": "POST", "path": "/v1/outcomes/roi"}]},
+        {"id": "correlate", "label_en": "Cross-domain Correlation",
+         "beskrivning_en": "Surfaces associations across domains (e.g. diet x "
+                           "pharma x living) as hypotheses — never causation: "
+                           "spurious flag, confounder control (partial "
+                           "correlation), and replication across markets.",
+         "endpoints": [{"method": "POST", "path": "/v1/correlate"},
+                       {"method": "POST", "path": "/v1/correlate/cross-market"}]},
         {"id": "accountability", "label_en": "Accountability Loop",
          "beskrivning_en": "Commits a decision to a responsible owner + an "
                            "expected outcome, resolves it against the actual, "

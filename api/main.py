@@ -53,6 +53,7 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    ledger as accountability_ledger,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
+from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -650,6 +651,36 @@ def decisions_resolve(req: DecisionResolveRequest):
 @app.get("/v1/decisions/ledger")
 def decisions_ledger():
     return accountability_ledger()
+
+
+class CorrelateRequest(BaseModel):
+    a: list[float]
+    b: list[float]
+    control: list[float] | None = None
+    label_a: str = "A"
+    label_b: str = "B"
+    label_c: str = "C"
+
+
+class CrossMarketRequest(BaseModel):
+    markets: list[dict] = Field(default_factory=list)
+    label_a: str = "A"
+    label_b: str = "B"
+
+
+@app.post("/v1/correlate")
+def correlate_ep(req: CorrelateRequest):
+    out = cross_domain(req.a, req.b, label_a=req.label_a, label_b=req.label_b)
+    if req.control:
+        out["partial"] = partial_correlation(
+            req.a, req.b, req.control, label_a=req.label_a,
+            label_b=req.label_b, label_c=req.label_c)
+    return out
+
+
+@app.post("/v1/correlate/cross-market")
+def correlate_cross_market(req: CrossMarketRequest):
+    return cross_market(req.markets, label_a=req.label_a, label_b=req.label_b)
 
 
 class SegmentAnalyzeRequest(BaseModel):
