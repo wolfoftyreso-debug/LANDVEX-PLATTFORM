@@ -396,6 +396,26 @@ def _fold(s: str) -> str:
     return s.lower().translate(_FOLD_MAP)
 
 
+# Diakritvikning: de flesta skriver "Orebro", "Malmo", "Zurich" och
+# "Genf/Geneve" utan tecken – särskilt på ett engelskt tangentbord. Utan
+# den här mappningen matchar en helt korrekt fråga ingen region alls.
+_ASCII_MAP = str.maketrans({
+    "å": "a", "ä": "a", "á": "a", "à": "a", "â": "a", "ã": "a",
+    "ö": "o", "ó": "o", "ò": "o", "ô": "o", "õ": "o", "ø": "o",
+    "é": "e", "è": "e", "ê": "e", "ë": "e",
+    "í": "i", "ì": "i", "î": "i", "ï": "i",
+    "ú": "u", "ù": "u", "û": "u", "ü": "u",
+    "ç": "c", "ñ": "n", "ß": "ss", "ł": "l", "ř": "r", "š": "s",
+    "ž": "z", "č": "c", "ě": "e", "ů": "u", "ý": "y", "ą": "a",
+    "ę": "e", "ś": "s", "ć": "c", "ń": "n", "ź": "z", "ż": "z",
+})
+
+
+def _ascii(s: str) -> str:
+    """Diakritlös form för jämförelse – aldrig för visning."""
+    return s.translate(_ASCII_MAP)
+
+
 def _region_names(folded_label: str) -> list[str]:
     names = [folded_label]
     for a, b in _CITY_EXONYMS:
@@ -403,24 +423,66 @@ def _region_names(folded_label: str) -> list[str]:
             names.append(_fold(a))
         elif folded_label == _fold(a):
             names.append(_fold(b))
-    return names
+    # Skrivet utan diakriter ska träffa lika bra som med.
+    names += [_ascii(n) for n in list(names)]
+    return list(dict.fromkeys(names))
 
 
 def _find_region(q: str) -> tuple[str, tuple] | None:
-    """Search all markets for a region name. Returns (market_id, region)."""
+    """Search all markets for a region name. Returns (market_id, region).
+
+    Jämför både som skrivet och diakritlöst, så "Orebro" hittar Örebro.
+    """
+    qa = _ascii(q)
     for m in MARKETS.values():
         for r in m.regions:
             for name in _region_names(_fold(r[1])):
-                if re.search(rf"\b{re.escape(name)}s?\b", q):
+                pat = rf"\b{re.escape(name)}s?\b"
+                if re.search(pat, q) or re.search(pat, qa):
                     return m.id, r
     return None
 
 
-def _find_unmatched_kommun(q: str) -> str | None:
+# Ord som följer "in/i" utan att vara en plats – får aldrig tolkas som en
+# okänd ort (annars vägrar motorn svara på fullt begripliga frågor).
+_NOT_A_PLACE = {
+    "the", "a", "an", "this", "that", "these", "those", "my", "our", "your",
+    "which", "what", "where", "general", "total", "particular", "fact",
+    "order", "terms", "need", "demand", "shortage", "risk", "future",
+    "europe", "america", "africa", "asia", "world", "eu", "us", "usa",
+    "sweden", "denmark", "norway", "finland", "germany", "france", "spain",
+    "italy", "poland", "canada", "mexico", "morocco", "nigeria", "senegal",
+    "min", "vilken", "vilket", "vad", "var", "framtiden", "branschen",
+    "sverige", "europa", "varlden", "landet", "staden", "kommunen",
+}
+
+
+def _find_unmatched_kommun(q: str, raw: str = "") -> str | None:
+    """En ort som frågan pekar ut men systemet inte täcker.
+
+    Fångar både det uttalade fallet ("in X municipality") och det farliga:
+    ett bart ortsnamn ("in Leningrad") som INTE matchade någon region i
+    någon marknad. Utan det senare faller frågan igenom till standard-
+    marknaden och besvaras för fel världsdel – ett svar om Dallas på en
+    fråga om Leningrad. Hellre säga "den orten täcks inte" än svara om en
+    annan plats.
+
+    Egennamn känns igen på versalen i originalfrågan (`raw`), vilket håller
+    vanliga ord borta; `_NOT_A_PLACE` fångar resten.
+    """
     m = re.search(r"\bin\s+([a-zåäö]+?)s?\s+municipality\b", q)
     if not m:
         m = re.search(r"\bi\s+([a-zåäö]+?)s?\s+kommun\b", q)
-    return m.group(1).capitalize() if m else None
+    if m:
+        return m.group(1).capitalize()
+    if not raw:
+        return None
+    # Versalt ord efter "in/i" som inte matchat någon känd geografi.
+    for cand in re.findall(r"\b(?:in|i)\s+([A-ZÅÄÖ][\wÀ-ÿ'’\-]{2,})", raw):
+        if _fold(cand).strip("'’-") in _NOT_A_PLACE:
+            continue
+        return cand
+    return None
 
 
 def _find_in_lexicon(q: str, lexicon: dict[str, str]) -> str | None:
@@ -497,7 +559,8 @@ def parse(question: str) -> Query:
                   market=market, group=group,
                   occupation_id=occ, vertical_id=vert,
                   top_n=_find_top_n(q), target_year=_find_year(q),
-                  unmatched_kommun=None if kommun else _find_unmatched_kommun(q),
+                  unmatched_kommun=None if (kommun or market or group)
+                  else _find_unmatched_kommun(q, question),
                   raw=question)
 
     gap = any(w in q for w in _GAP_WORDS)
@@ -1004,13 +1067,16 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
         se = get_market("se")
         exempel = ", ".join(r[1] for r in se.regions[:6])
         return {**base,
-                "svar_en": f"{query.unmatched_kommun} municipality is not "
-                           f"included yet – the map data covers "
-                           f"{len(se.regions)} larger Swedish "
-                           f"municipalities plus regions in Germany, the "
-                           f"USA, Spain, Poland and France (e.g. "
-                           f"{exempel}). More are added in the geodata "
-                           f"phase.",
+                # Täckningen räknas ur MARKETS, aldrig ur en handskriven
+                # mening – annars åldras löftet snabbare än plattformen.
+                "svar_en": f"{query.unmatched_kommun} is not covered yet. "
+                           f"The platform currently answers for "
+                           f"{sum(len(m.regions) for m in MARKETS.values())} "
+                           f"regions across {len(MARKETS)} markets "
+                           f"({', '.join(sorted(m.id.upper() for m in MARKETS.values()))}). "
+                           f"Swedish examples: {exempel}. Rather than answer "
+                           f"for somewhere else, the platform says a place is "
+                           f"outside its coverage.",
                 "caveats_en": []}
     if query.intent == "hjalp":
         return {**base, **_HELP, "caveats_en": []}

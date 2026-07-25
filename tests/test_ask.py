@@ -2,6 +2,8 @@
 python3 -m tests.test_ask"""
 from __future__ import annotations
 
+import json
+
 from engine.ask import ask, parse
 
 # The platform's canonical example questions – all must parse to a
@@ -225,6 +227,44 @@ def test_ask_deterministic_and_empty():
     res = ask("")
     assert res["intent"] == "hjalp" and res["forslag_en"]
     assert res["svar_en"].startswith("I understand questions")
+
+
+def test_a_place_we_do_not_cover_is_never_answered_for_somewhere_else():
+    """En fråga om Leningrad fick tidigare ett svar om Dallas.
+
+    Faller en okänd ort igenom till standardmarknaden svarar motorn om fel
+    världsdel utan att säga det – exakt det plattformen lovar att inte göra.
+    """
+    q = parse("Is it a good opportunity to open a hair salon "
+              "with 3 employees in Leningrad?")
+    assert q.intent == "okand_kommun"
+    assert q.unmatched_kommun == "Leningrad"
+    res = ask("Is it a good opportunity to open a hair salon in Leningrad?")
+    assert res["intent"] == "okand_kommun"
+    assert not res["rader"]                       # inga resultat om annan ort
+    assert "not covered" in res["svar_en"]
+    assert "Leningrad" in res["svar_en"]
+    # Täckningen ska räknas fram, inte påstås i en åldrande mening.
+    from engine.markets import MARKETS
+    assert str(len(MARKETS)) in res["svar_en"]
+
+
+def test_places_written_without_diacritics_still_match():
+    """De flesta skriver Orebro och Umea – det ska träffa rätt kommun."""
+    for written, expected in (("Orebro", "Örebro"), ("Umea", "Umeå"),
+                              ("Malmo", "Malmö"), ("Goteborg", "Göteborg")):
+        q = parse(f"What are the biggest opportunities in {written}?")
+        assert q.kommun is not None, f"{written} matchade ingen region"
+        assert q.kommun[1] == expected, (written, q.kommun[1])
+        assert q.unmatched_kommun is None
+
+
+def test_regions_groups_and_countries_are_not_mistaken_for_unknown_places():
+    for qn in ("Where in Europe is it best to open a gym?",
+               "Var finns flest djurägare i Sverige?",
+               "Best location for a hair salon in Dallas?"):
+        q = parse(qn)
+        assert q.intent != "okand_kommun", qn
 
 
 if __name__ == "__main__":
