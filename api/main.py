@@ -38,6 +38,10 @@ from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
 from engine.setpoints import assess_zone, catalog as setpoints_catalog
 from engine.claims import build_claim, cite, validate_governance, verify as verify_claim
+from engine.feeds import catalog as feeds_catalog, generate as generate_feed
+from engine.worthiness import select_for_wrap
+from engine.decision import (crisis_scan, evaluate as decision_evaluate,
+                             templates as decision_templates)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -279,6 +283,10 @@ class AskRequest(BaseModel):
 @app.post("/v1/ask")
 def ask_landvex(req: AskRequest):
     try:
+        # Krisgrind går FÖRE motordata: suicid/självskada → nödresurser.
+        kris = crisis_scan(req.question, country="us")
+        if kris:
+            return kris
         svar = ask(req.question, resolver=RESOLVER)
         # Integritetsgrind (skördat lager E): flagga icke-neutrala frågor
         # ärligt utan att blockera motorsvaret – förklarbarhet, inte censur.
@@ -459,6 +467,51 @@ def _cite_response(req: "CiteRequest") -> dict:
 @app.post("/v1/cite")
 def cite_ep(req: CiteRequest):
     return _cite_response(req)
+
+
+class FeedEventsRequest(BaseModel):
+    feed: str
+    rows: list[dict] = Field(default_factory=list)
+
+
+class WorthinessRequest(BaseModel):
+    snapshots: list[dict] = Field(default_factory=list)
+
+
+class DecisionRequest(BaseModel):
+    template: str
+    answers: dict = Field(default_factory=dict)
+
+
+@app.get("/v1/feeds")
+def feeds_registry():
+    return feeds_catalog()
+
+
+@app.post("/v1/feeds/events")
+def feeds_events(req: FeedEventsRequest):
+    try:
+        return {"events": generate_feed(req.feed, req.rows)}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/worthiness")
+def worthiness_ep(req: WorthinessRequest):
+    return select_for_wrap(req.snapshots)
+
+
+@app.get("/v1/decision")
+def decision_registry():
+    return decision_templates()
+
+
+@app.post("/v1/decision")
+def decision_ep(req: DecisionRequest):
+    try:
+        return decision_evaluate(req.template, req.answers)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 class SegmentAnalyzeRequest(BaseModel):

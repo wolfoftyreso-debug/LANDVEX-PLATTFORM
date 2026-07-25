@@ -46,6 +46,10 @@ from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
 from engine.setpoints import assess_zone, catalog as setpoints_catalog
 from engine.claims import build_claim, cite, validate_governance, verify as verify_claim
+from engine.feeds import catalog as feeds_catalog, generate as generate_feed
+from engine.worthiness import select_for_wrap
+from engine.decision import (crisis_scan, evaluate as decision_evaluate,
+                             templates as decision_templates)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -198,6 +202,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, kpi_catalog())
         if parsed.path == "/v1/setpoints":
             return self._send(200, setpoints_catalog())
+        if parsed.path == "/v1/feeds":
+            return self._send(200, feeds_catalog())
+        if parsed.path == "/v1/decision":
+            return self._send(200, decision_templates())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -352,8 +360,20 @@ class Handler(BaseHTTPRequestHandler):
                                   for s in ("text", "apa", "bibtex")},
                     "governance": {"ok": ok, "missing": missing},
                     "verified": verify_claim(claim)})
+            if self.path == "/v1/feeds/events":
+                return self._send(200, {"events": generate_feed(
+                    str(req["feed"]), req.get("rows") or [])})
+            if self.path == "/v1/worthiness":
+                return self._send(200, select_for_wrap(
+                    req.get("snapshots") or []))
+            if self.path == "/v1/decision":
+                return self._send(200, decision_evaluate(
+                    str(req["template"]), req.get("answers") or {}))
             if self.path == "/v1/ask":
                 q = str(req.get("question", ""))
+                kris = crisis_scan(q, country="us")
+                if kris:
+                    return self._send(200, kris)
                 svar = ask(q, resolver=RESOLVER)
                 block = classify_query(q)
                 if block:

@@ -120,6 +120,22 @@ API_CATALOG: dict = {
                            "versioned claim with 3-owner governance and "
                            "text/APA/BibTeX citations.",
          "endpoints": [{"method": "POST", "path": "/v1/cite"}]},
+        {"id": "feeds", "label_en": "Intelligence Feeds",
+         "beskrivning_en": "Change detection: turns KPI movements into "
+                           "deduplicated why-now events (top changes, "
+                           "structural decline, priority alerts, anomalies).",
+         "endpoints": [{"method": "GET", "path": "/v1/feeds"},
+                       {"method": "POST", "path": "/v1/feeds/events"}]},
+        {"id": "worthiness", "label_en": "Significance Selector",
+         "beskrivning_en": "Scores which changes are worth surfacing and "
+                           "ranks them hero/primary/secondary/mention.",
+         "endpoints": [{"method": "POST", "path": "/v1/worthiness"}]},
+        {"id": "decision", "label_en": "Decision Graph",
+         "beskrivning_en": "Structured decision basis (coverage, gaps, "
+                           "assumptions) — never a recommendation. Crisis "
+                           "queries are met with support resources.",
+         "endpoints": [{"method": "GET", "path": "/v1/decision"},
+                       {"method": "POST", "path": "/v1/decision"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},
