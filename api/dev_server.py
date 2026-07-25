@@ -44,6 +44,7 @@ from engine.scoring import analyze
 from engine.ask import ask
 from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
+from engine.setpoints import assess_zone, catalog as setpoints_catalog
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -194,6 +195,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, market_catalog())
         if parsed.path == "/v1/kpi":
             return self._send(200, kpi_catalog())
+        if parsed.path == "/v1/setpoints":
+            return self._send(200, setpoints_catalog())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -330,6 +333,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, lambda_score(
                     {str(k): float(v) for k, v in
                      (req.get("axes") or {}).items()}))
+            if self.path == "/v1/setpoints/assess":
+                return self._send(200, assess_zone(
+                    str(req["code"]), float(req["value"])))
             if self.path == "/v1/ask":
                 q = str(req.get("question", ""))
                 svar = ask(q, resolver=RESOLVER)

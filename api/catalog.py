@@ -109,6 +109,12 @@ API_CATALOG: dict = {
                            "axes (~1.0 balanced); penalises extremes so a "
                            "strong axis cannot mask a weak one.",
          "endpoints": [{"method": "POST", "path": "/v1/lambda"}]},
+        {"id": "setpoints", "label_en": "Setpoint & Tolerance",
+         "beskrivning_en": "Calibrated reference thresholds per indicator "
+                           "(Maastricht 60%, Gini 0.30, TFR 2.1 …) with four "
+                           "nested zones and sourced derivation.",
+         "endpoints": [{"method": "GET", "path": "/v1/setpoints"},
+                       {"method": "POST", "path": "/v1/setpoints/assess"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

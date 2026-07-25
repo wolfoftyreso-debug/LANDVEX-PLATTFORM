@@ -35,6 +35,7 @@ from engine.scoring import analyze
 from engine.ask import ask
 from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
+from engine.setpoints import assess_zone, catalog as setpoints_catalog
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -410,6 +411,24 @@ def kpi_evaluate(req: KpiEvalRequest):
 @app.post("/v1/lambda")
 def lambda_ep(req: LambdaRequest):
     return lambda_score(req.axes)
+
+
+class SetpointRequest(BaseModel):
+    code: str
+    value: float
+
+
+@app.get("/v1/setpoints")
+def setpoints_registry():
+    return setpoints_catalog()
+
+
+@app.post("/v1/setpoints/assess")
+def setpoints_assess(req: SetpointRequest):
+    try:
+        return assess_zone(req.code, req.value)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 class SegmentAnalyzeRequest(BaseModel):
