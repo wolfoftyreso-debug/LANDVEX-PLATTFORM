@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 *.db
 landvex-demo.html
+
+# Runtime-generated audit log (api/security.py)
+landvex-audit.log
+*.log
