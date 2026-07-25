@@ -220,6 +220,17 @@ API_CATALOG: dict = {
                            "sensitivity (where the conclusion is fragile). "
                            "Gated on credible sources; a framing, never advice.",
          "endpoints": [{"method": "POST", "path": "/v1/flows/expected-value"}]},
+        {"id": "inbox", "label_en": "Event Routing (who it is for)",
+         "beskrivning_en": "Turns broadcast feeds into 'your decision may have "
+                           "changed'. A visitor registers what they have at "
+                           "stake (a place, a trade, an occupation, a decision "
+                           "they own, a watch they set); movements are routed "
+                           "by that stake, ranked so accountability outranks "
+                           "curiosity, and everything held back is listed with "
+                           "its reason.",
+         "endpoints": [{"method": "GET", "path": "/v1/inbox"},
+                       {"method": "POST", "path": "/v1/inbox/subscribe"},
+                       {"method": "POST", "path": "/v1/inbox/route"}]},
         {"id": "monitors", "label_en": "Control Monitors (cron)",
          "beskrivning_en": "Register a watch on a metric — threshold breach, "
                            "structural change-point, anomaly or sustained "

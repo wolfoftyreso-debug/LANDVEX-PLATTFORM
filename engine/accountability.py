@@ -173,6 +173,12 @@ def _all_resolutions() -> list[dict]:
     return _STORE.all_resolutions() if _STORE is not None else list(_RESOLUTIONS)
 
 
+def all_decisions() -> list[dict]:
+    """Alla åtagna beslut (store eller process-minne). Publik läsning så
+    andra lager – t.ex. händelseroutningen – slipper nå interna funktioner."""
+    return _all_decisions()
+
+
 def get_decision(decision_id: str) -> dict | None:
     for d in _all_decisions():
         if d["id"] == decision_id:

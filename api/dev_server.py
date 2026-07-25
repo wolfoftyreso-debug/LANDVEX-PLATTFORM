@@ -57,11 +57,13 @@ from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
                              expected_roi, log_outcome, record as record_outcome,
                              set_store as set_outcome_store)
-from engine.accountability import (commit as commit_decision, get_decision,
+from engine.accountability import (all_decisions as accountability_all_decisions,
+                                   commit as commit_decision, get_decision,
                                    ledger as accountability_ledger,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine import inbox as inbox_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -266,6 +268,11 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
+        if parsed.path == "/v1/inbox":
+            sub = parse_qs(parsed.query).get("subscriber", [""])[0]
+            return self._send(200, {
+                "subscriptions": inbox_engine.subscriptions(sub),
+                "stake_kinds": list(inbox_engine.STAKE_WEIGHT)})
         if parsed.path == "/v1/monitors":
             return self._send(200, monitors_engine.catalog())
         if parsed.path == "/v1/kolada":
@@ -475,6 +482,25 @@ class Handler(BaseHTTPRequestHandler):
                     horizon_years=int(req.get("horizon_years", 1)),
                     decision=str(req.get("decision", "")),
                     currency=str(req.get("currency", "USD"))))
+            if self.path == "/v1/inbox/subscribe":
+                return self._send(200, inbox_engine.subscribe(
+                    str(req.get("subscriber", "")), str(req.get("role", "citizen")),
+                    req.get("stakes") or [],
+                    min_severity=str(req.get("min_severity", "medium")),
+                    threshold=float(req.get("threshold", 50.0))))
+            if self.path == "/v1/inbox/route":
+                evs = list(req.get("events") or [])
+                evs += [inbox_engine.from_feed_event(e)
+                        for e in (req.get("feed_events") or [])]
+                evs += [inbox_engine.from_finding(f)
+                        for f in (req.get("findings") or [])]
+                decisions = accountability_all_decisions()
+                who = str(req.get("subscriber", ""))
+                if who:
+                    return self._send(200, inbox_engine.brief(
+                        who, evs, decisions=decisions, now=req.get("now", "")))
+                return self._send(200, inbox_engine.route(
+                    evs, decisions=decisions, now=req.get("now", "")))
             if self.path == "/v1/monitors":
                 return self._send(200, monitors_engine.define(
                     str(req["metric"]), str(req["scope"]), str(req["rule"]),

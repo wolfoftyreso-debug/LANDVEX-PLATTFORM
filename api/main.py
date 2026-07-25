@@ -49,11 +49,13 @@ from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
                              expected_roi, log_outcome, record as record_outcome,
                              set_store as set_outcome_store)
-from engine.accountability import (commit as commit_decision, get_decision,
+from engine.accountability import (all_decisions as accountability_all_decisions,
+                                   commit as commit_decision, get_decision,
                                    ledger as accountability_ledger,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine import inbox as inbox_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -657,6 +659,56 @@ class MonitorEscalateRequest(BaseModel):
     expected: dict = Field(default_factory=dict)
     committed_at: str = ""
     horizon_months: int = 0
+
+
+class SubscribeRequest(BaseModel):
+    subscriber: str
+    role: str = "citizen"
+    stakes: list[dict] = Field(default_factory=list)
+    min_severity: str = "medium"
+    threshold: float = 50.0
+
+
+class RouteRequest(BaseModel):
+    events: list[dict] = Field(default_factory=list)
+    findings: list[dict] = Field(default_factory=list)
+    feed_events: list[dict] = Field(default_factory=list)
+    subscriber: str = ""
+    now: float | str = ""
+
+
+def _collect_events(req) -> list[dict]:
+    """Feed-händelser och bevakningsfynd blir samma händelseform."""
+    evs = list(req.events)
+    evs += [inbox_engine.from_feed_event(e) for e in req.feed_events]
+    evs += [inbox_engine.from_finding(f) for f in req.findings]
+    return evs
+
+
+@app.get("/v1/inbox")
+def inbox_subscriptions(subscriber: str = ""):
+    return {"subscriptions": inbox_engine.subscriptions(subscriber),
+            "stake_kinds": list(inbox_engine.STAKE_WEIGHT)}
+
+
+@app.post("/v1/inbox/subscribe")
+def inbox_subscribe(req: SubscribeRequest):
+    try:
+        return inbox_engine.subscribe(req.subscriber, req.role, req.stakes,
+                                      min_severity=req.min_severity,
+                                      threshold=req.threshold)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/inbox/route")
+def inbox_route(req: RouteRequest):
+    decisions = accountability_all_decisions()
+    evs = _collect_events(req)
+    if req.subscriber:
+        return inbox_engine.brief(req.subscriber, evs, decisions=decisions,
+                                  now=req.now)
+    return inbox_engine.route(evs, decisions=decisions, now=req.now)
 
 
 @app.get("/v1/monitors")
