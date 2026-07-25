@@ -54,6 +54,9 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine.scenario import project as scenario_project
+from engine.eventstudy import before_after, diff_in_diff
+from engine.benchmark import benchmark
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -681,6 +684,62 @@ def correlate_ep(req: CorrelateRequest):
 @app.post("/v1/correlate/cross-market")
 def correlate_cross_market(req: CrossMarketRequest):
     return cross_market(req.markets, label_a=req.label_a, label_b=req.label_b)
+
+
+class ScenarioRequest(BaseModel):
+    series: list[float]
+    sources: list = Field(default_factory=list)
+    horizon: int = 3
+    coverage: float = 1.0
+    metric: str = "indicator"
+
+
+class EventStudyRequest(BaseModel):
+    series: list[float] | None = None
+    split_index: int | None = None
+    treated_pre: list[float] | None = None
+    treated_post: list[float] | None = None
+    control_pre: list[float] | None = None
+    control_post: list[float] | None = None
+    metric: str = "indicator"
+    event: str = "intervention"
+
+
+class BenchmarkRequest(BaseModel):
+    value: float
+    peers: list[float] = Field(default_factory=list)
+    label: str = "unit"
+    metric: str = "ratio"
+    higher_is_better: bool | None = None
+    sources: list = Field(default_factory=list)
+
+
+@app.post("/v1/scenario")
+def scenario_ep(req: ScenarioRequest):
+    return scenario_project(req.series, req.sources, horizon=req.horizon,
+                            coverage=req.coverage, metric=req.metric)
+
+
+@app.post("/v1/event-study")
+def event_study_ep(req: EventStudyRequest):
+    try:
+        if req.treated_pre is not None:
+            return diff_in_diff(req.treated_pre, req.treated_post or [],
+                                req.control_pre or [], req.control_post or [],
+                                metric=req.metric, event=req.event)
+        if req.series is not None and req.split_index is not None:
+            return before_after(req.series, req.split_index, metric=req.metric,
+                                event=req.event)
+        raise HTTPException(status_code=422,
+                            detail="provide series+split_index or the four DiD arrays")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/benchmark")
+def benchmark_ep(req: BenchmarkRequest):
+    return benchmark(req.value, req.peers, label=req.label, metric=req.metric,
+                     higher_is_better=req.higher_is_better, sources=req.sources)
 
 
 class SegmentAnalyzeRequest(BaseModel):

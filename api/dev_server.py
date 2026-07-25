@@ -62,6 +62,9 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine.scenario import project as scenario_project
+from engine.eventstudy import before_after, diff_in_diff
+from engine.benchmark import benchmark
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -434,6 +437,32 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, cross_market(
                     req.get("markets") or [], label_a=req.get("label_a", "A"),
                     label_b=req.get("label_b", "B")))
+            if self.path == "/v1/scenario":
+                return self._send(200, scenario_project(
+                    req.get("series") or [], req.get("sources") or [],
+                    horizon=int(req.get("horizon", 3)),
+                    coverage=float(req.get("coverage", 1.0)),
+                    metric=str(req.get("metric", "indicator"))))
+            if self.path == "/v1/event-study":
+                if req.get("treated_pre") is not None:
+                    return self._send(200, diff_in_diff(
+                        req["treated_pre"], req.get("treated_post") or [],
+                        req.get("control_pre") or [], req.get("control_post") or [],
+                        metric=str(req.get("metric", "indicator")),
+                        event=str(req.get("event", "intervention"))))
+                if req.get("series") is not None and req.get("split_index") is not None:
+                    return self._send(200, before_after(
+                        req["series"], int(req["split_index"]),
+                        metric=str(req.get("metric", "indicator")),
+                        event=str(req.get("event", "intervention"))))
+                return self._send(422, {"error": "provide series+split_index or the four DiD arrays"})
+            if self.path == "/v1/benchmark":
+                return self._send(200, benchmark(
+                    float(req["value"]), req.get("peers") or [],
+                    label=str(req.get("label", "unit")),
+                    metric=str(req.get("metric", "ratio")),
+                    higher_is_better=req.get("higher_is_better"),
+                    sources=req.get("sources") or []))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),

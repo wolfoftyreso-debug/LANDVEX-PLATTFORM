@@ -162,6 +162,23 @@ API_CATALOG: dict = {
                            "correlation), and replication across markets.",
          "endpoints": [{"method": "POST", "path": "/v1/correlate"},
                        {"method": "POST", "path": "/v1/correlate/cross-market"}]},
+        {"id": "scenario", "label_en": "Credible Scenarios",
+         "beskrivning_en": "Credibility-gated societal scenarios: only speaks "
+                           "when there are enough credible sources AND a "
+                           "systematic historical tendency; shows the basis, a "
+                           "widening band and explicit assumptions. Never a "
+                           "bare prediction.",
+         "endpoints": [{"method": "POST", "path": "/v1/scenario"}]},
+        {"id": "event_study", "label_en": "Event Study",
+         "beskrivning_en": "Before/after an intervention and difference-in-"
+                           "differences vs controls (e.g. legalisation -> "
+                           "accidents). Observational, parallel-trends stated.",
+         "endpoints": [{"method": "POST", "path": "/v1/event-study"}]},
+        {"id": "benchmark", "label_en": "Peer Benchmark",
+         "beskrivning_en": "Places a value in the distribution of comparable "
+                           "units (percentile, z-score, outlier band) — is a "
+                           "claimed shortage/excess actually unusual, or normal?",
+         "endpoints": [{"method": "POST", "path": "/v1/benchmark"}]},
         {"id": "accountability", "label_en": "Accountability Loop",
          "beskrivning_en": "Commits a decision to a responsible owner + an "
                            "expected outcome, resolves it against the actual, "
