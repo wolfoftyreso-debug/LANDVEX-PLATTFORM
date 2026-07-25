@@ -209,6 +209,18 @@ API_CATALOG: dict = {
                            "cantons, 16 German Länder, 21 Swedish counties; "
                            "municipality level loads from official registers.",
          "endpoints": [{"method": "GET", "path": "/v1/admin"}]},
+        {"id": "monitors", "label_en": "Control Monitors (cron)",
+         "beskrivning_en": "Register a watch on a metric — threshold breach, "
+                           "structural change-point, anomaly or sustained "
+                           "decline — run it on a schedule (cron), and escalate "
+                           "a triggered finding into an owned decision. "
+                           "Control-infrastructure intelligence: find errors "
+                           "and deviations, closed against accountability.",
+         "endpoints": [{"method": "GET", "path": "/v1/monitors"},
+                       {"method": "POST", "path": "/v1/monitors"},
+                       {"method": "POST", "path": "/v1/monitors/evaluate"},
+                       {"method": "POST", "path": "/v1/monitors/run"},
+                       {"method": "POST", "path": "/v1/monitors/escalate"}]},
         {"id": "sensitive", "label_en": "Sensitive-category Guard",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

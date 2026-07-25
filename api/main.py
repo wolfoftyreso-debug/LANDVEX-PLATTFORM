@@ -54,6 +54,8 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine import monitors as monitors_engine
+from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -167,6 +169,7 @@ else:
 set_outcome_store(STORE)
 set_accountability_store(STORE)
 set_corrections_store(STORE)
+set_monitors_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -608,6 +611,75 @@ def admin_ep(country: str = ""):
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
     return admin_countries()
+
+
+class MonitorDefineRequest(BaseModel):
+    metric: str
+    scope: str
+    rule: str
+    owner: str
+    params: dict = Field(default_factory=dict)
+    cadence: dict = Field(default_factory=dict)
+    label: str = ""
+
+
+class MonitorEvaluateRequest(BaseModel):
+    monitor_id: str = ""
+    monitor: dict | None = None
+    series: list[float] = Field(default_factory=list)
+    evaluated_at: float | str = ""
+
+
+class MonitorRunRequest(BaseModel):
+    now: float | str
+    series_by_id: dict = Field(default_factory=dict)
+
+
+class MonitorEscalateRequest(BaseModel):
+    finding: dict
+    owners: dict = Field(default_factory=dict)
+    expected: dict = Field(default_factory=dict)
+    committed_at: str = ""
+    horizon_months: int = 0
+
+
+@app.get("/v1/monitors")
+def monitors_catalog():
+    return monitors_engine.catalog()
+
+
+@app.post("/v1/monitors")
+def monitors_define(req: MonitorDefineRequest):
+    try:
+        return monitors_engine.define(
+            req.metric, req.scope, req.rule, req.owner,
+            params=req.params, cadence=req.cadence or None, label=req.label)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/monitors/evaluate")
+def monitors_evaluate(req: MonitorEvaluateRequest):
+    mon = req.monitor or monitors_engine.get_monitor(req.monitor_id)
+    if mon is None:
+        raise HTTPException(status_code=404, detail="unknown monitor")
+    return monitors_engine.evaluate(mon, req.series, evaluated_at=req.evaluated_at)
+
+
+@app.post("/v1/monitors/run")
+def monitors_run(req: MonitorRunRequest):
+    mons = monitors_engine.all_monitors()
+    return monitors_engine.run_due(mons, req.now, req.series_by_id)
+
+
+@app.post("/v1/monitors/escalate")
+def monitors_escalate(req: MonitorEscalateRequest):
+    try:
+        return monitors_engine.escalate(
+            req.finding, req.owners, req.expected,
+            committed_at=req.committed_at, horizon_months=req.horizon_months)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/kolada")

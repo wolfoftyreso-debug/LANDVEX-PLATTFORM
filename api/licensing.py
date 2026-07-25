@@ -71,6 +71,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/sources": "core",                    # anslutnings-cockpit (live/mock)
     "/v1/entrypoints": "core",                # roll-baserade ingångar (overlay)
     "/v1/admin": "core",                      # administrativt register
+    "/v1/monitors": "monitoring",             # bevakningar + cron (styrd API)
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
@@ -131,12 +132,14 @@ PLANS: dict[str, dict] = _PlanMap({
         "quota_per_month": 10000,
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
-                         "intelligence_map_live"),
+                         "intelligence_map_live", "monitoring"),
         "ingar_en": ["Everything in Free",
                      "Opportunity: market sweeps, gap analysis, "
                      "establishment plans, risk, comparisons, segments",
                      "Workforce: forecasts, simulation, shortage maps",
                      "Demand Intelligence: installed base & service needs",
+                     "Control Monitors: scheduled watches (cron), anomaly "
+                     "detection, escalation to owned decisions",
                      "Intelligence Map incl. live layers",
                      "AAMOS platform status & integrations (live once "
                      "AAMOS_CORE_URL is set)",
@@ -152,7 +155,7 @@ PLANS: dict[str, dict] = _PlanMap({
         "quota_per_month": None,   # obegränsat
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
-                         "intelligence_map_live", "partner_api",
+                         "intelligence_map_live", "monitoring", "partner_api",
                          "platform_ops"),
         "ingar_en": ["Everything in Growth",
                      "Partner API + agent manifest",

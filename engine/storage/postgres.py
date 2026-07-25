@@ -104,6 +104,23 @@ CREATE TABLE IF NOT EXISTS corrections (
     payload      JSONB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_corrections_tgt ON corrections(target_key, region);
+
+CREATE TABLE IF NOT EXISTS monitors (
+    id      TEXT PRIMARY KEY,
+    owner   TEXT NOT NULL DEFAULT '',
+    metric  TEXT NOT NULL DEFAULT '',
+    payload JSONB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS findings (
+    checksum   TEXT NOT NULL,
+    monitor_id TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL,
+    triggered  BOOLEAN NOT NULL,
+    payload    JSONB NOT NULL,
+    PRIMARY KEY (monitor_id, checksum)
+);
+CREATE INDEX IF NOT EXISTS idx_findings_mon ON findings(monitor_id);
 """
 
 
@@ -308,6 +325,44 @@ class PostgresStore(Store):
     def all_corrections(self) -> list[dict[str, Any]]:
         with self._conn.cursor() as cur:
             cur.execute("SELECT payload FROM corrections ORDER BY created_at, id")
+            return [r[0] for r in cur.fetchall()]
+
+    # ── Bevakningar (kontroll-infrastruktur / cron) ──────────────────
+    def save_monitor(self, record: dict[str, Any]) -> str:
+        import json
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO monitors (id, owner, metric, payload) "
+                "VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE "
+                "SET owner=EXCLUDED.owner, metric=EXCLUDED.metric, "
+                "payload=EXCLUDED.payload",
+                (record["id"], record.get("owner", ""),
+                 record.get("metric", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_monitors(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM monitors ORDER BY id")
+            return [r[0] for r in cur.fetchall()]
+
+    def save_finding(self, record: dict[str, Any]) -> str:
+        import json
+        import time
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO findings (checksum, monitor_id, created_at, "
+                "triggered, payload) VALUES (%s,%s,%s,%s,%s) "
+                "ON CONFLICT (monitor_id, checksum) DO NOTHING",
+                (record["checksum"], record["monitor_id"], time.time(),
+                 bool(record.get("triggered")),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["checksum"]
+
+    def all_findings(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM findings "
+                        "ORDER BY created_at, checksum")
             return [r[0] for r in cur.fetchall()]
 
     def close(self) -> None:

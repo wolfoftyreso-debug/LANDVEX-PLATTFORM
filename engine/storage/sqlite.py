@@ -58,6 +58,23 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_corrections_tgt ON corrections(target_key, region);
     """),
+    (5, """
+    CREATE TABLE IF NOT EXISTS monitors (
+        id      TEXT PRIMARY KEY,
+        owner   TEXT NOT NULL DEFAULT '',
+        metric  TEXT NOT NULL DEFAULT '',
+        payload TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS findings (
+        checksum   TEXT NOT NULL,
+        monitor_id TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        triggered  INTEGER NOT NULL,
+        payload    TEXT NOT NULL,
+        PRIMARY KEY (monitor_id, checksum)
+    );
+    CREATE INDEX IF NOT EXISTS idx_findings_mon ON findings(monitor_id);
+    """),
 ]
 
 _DDL = """
@@ -341,6 +358,41 @@ class SqliteStore(Store):
         with self._lock:
             rows = self._conn.execute(
                 "SELECT payload FROM corrections ORDER BY created_at, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    # ── Bevakningar (kontroll-infrastruktur / cron) ──────────────────
+    def save_monitor(self, record: dict[str, Any]) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO monitors (id, owner, metric, payload) "
+                "VALUES (?,?,?,?)",
+                (record["id"], record.get("owner", ""),
+                 record.get("metric", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_monitors(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM monitors ORDER BY id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def save_finding(self, record: dict[str, Any]) -> str:
+        import time
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO findings (checksum, monitor_id, "
+                "created_at, triggered, payload) VALUES (?,?,?,?,?)",
+                (record["checksum"], record["monitor_id"], time.time(),
+                 1 if record.get("triggered") else 0,
+                 json.dumps(record, ensure_ascii=False)))
+        return record["checksum"]
+
+    def all_findings(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM findings ORDER BY created_at, checksum"
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def close(self) -> None:

@@ -108,5 +108,21 @@ class Store(ABC):
     def all_corrections(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    # ── Bevakningar (kontroll-infrastruktur / cron) ──────────────────
+    def save_monitor(self, record: dict[str, Any]):
+        """Persistera/uppdatera en bevakning (idempotent på id). None =
+        stöds ej → process-minne."""
+        return None
+
+    def all_monitors(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def save_finding(self, record: dict[str, Any]):
+        """Persistera en avvikelse (append-only, idempotent på checksum)."""
+        return None
+
+    def all_findings(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def close(self) -> None:  # valfritt att överskugga
         pass

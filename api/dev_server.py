@@ -62,6 +62,8 @@ from engine.accountability import (commit as commit_decision, get_decision,
                                    resolve as resolve_decision,
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
+from engine import monitors as monitors_engine
+from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -115,6 +117,7 @@ STORE = SqliteStore(_DB) if _DB.lower() not in ("off", "0", "") else None
 set_outcome_store(STORE)
 set_accountability_store(STORE)
 set_corrections_store(STORE)
+set_monitors_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -260,6 +263,8 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
+        if parsed.path == "/v1/monitors":
+            return self._send(200, monitors_engine.catalog())
         if parsed.path == "/v1/kolada":
             return self._send(200, KoladaClient().status())
         if parsed.path == "/v1/svk":
@@ -460,6 +465,30 @@ class Handler(BaseHTTPRequestHandler):
                     dcn, float(req["actual_value"]),
                     baseline=req.get("baseline"),
                     resolved_at=str(req.get("resolved_at", ""))))
+            if self.path == "/v1/monitors":
+                return self._send(200, monitors_engine.define(
+                    str(req["metric"]), str(req["scope"]), str(req["rule"]),
+                    str(req.get("owner", "")), params=req.get("params") or {},
+                    cadence=req.get("cadence") or None,
+                    label=str(req.get("label", ""))))
+            if self.path == "/v1/monitors/evaluate":
+                mon = req.get("monitor") or monitors_engine.get_monitor(
+                    str(req.get("monitor_id", "")))
+                if mon is None:
+                    return self._send(404, {"error": "unknown monitor"})
+                return self._send(200, monitors_engine.evaluate(
+                    mon, req.get("series") or [],
+                    evaluated_at=req.get("evaluated_at", "")))
+            if self.path == "/v1/monitors/run":
+                return self._send(200, monitors_engine.run_due(
+                    monitors_engine.all_monitors(), req["now"],
+                    req.get("series_by_id") or {}))
+            if self.path == "/v1/monitors/escalate":
+                return self._send(200, monitors_engine.escalate(
+                    req["finding"], req.get("owners") or {},
+                    req.get("expected") or {},
+                    committed_at=str(req.get("committed_at", "")),
+                    horizon_months=int(req.get("horizon_months", 0))))
             if self.path == "/v1/correlate":
                 out = cross_domain(req.get("a") or [], req.get("b") or [],
                                    label_a=req.get("label_a", "A"),
