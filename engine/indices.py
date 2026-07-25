@@ -125,7 +125,66 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "styrka", "free",
              (("life_satisfaction", 0.6), ("crime_index", 0.2),
               ("transit_score", 0.2))),
+    IndexDef("labor_market", "Labour Market",
+             "Labour participation and the local business base. Higher is a "
+             "stronger, more inclusive job market.",
+             "styrka", "free",
+             (("labor_participation", 0.7), ("business_density", 0.3))),
+    IndexDef("justice", "Justice & Rule of Law",
+             "Court efficiency, case clearance and enforcement (proxy). Higher "
+             "means faster, more reliable justice.",
+             "styrka", "free", (("justice_efficiency", 1.0),)),
+    IndexDef("education", "Education",
+             "School outcomes and the digital learning base. Higher is better "
+             "attainment and access.",
+             "styrka", "free",
+             (("education_outcomes", 0.7), ("digital_connectivity", 0.3))),
+    IndexDef("social_trust", "Social Trust",
+             "Interpersonal and institutional trust — the social capital a "
+             "place runs on. Higher is more trust.",
+             "styrka", "free", (("social_trust", 1.0),)),
+    IndexDef("energy_resilience", "Energy Resilience",
+             "Grid stability, supply diversity and reserve margin (proxy). "
+             "Higher is more resilient.",
+             "styrka", "free", (("energy_resilience", 1.0),)),
+    IndexDef("mobility", "Active Mobility",
+             "Walking, cycling and transit access — how well a place moves "
+             "without a car. Higher is better.",
+             "styrka", "free",
+             (("active_mobility", 0.6), ("transit_score", 0.4))),
+    IndexDef("food_security", "Food Security",
+             "Access to affordable, adequate food (supply, price, deserts "
+             "proxy). Higher is more secure.",
+             "styrka", "free", (("food_access", 1.0),)),
 ]}
+
+# Tematiska familjer – grupperar indexen för en läsbar samhällsöversikt.
+# (Ren metadata; index_catalog/assess är oförändrade.)
+INDEX_FAMILIES: dict[str, tuple[str, ...]] = {
+    "Economy": ("commercial_activity", "digital_readiness", "infrastructure_risk",
+                "housing_affordability", "haircut_index", "labor_market"),
+    "Health": ("city_health", "healthcare_access", "sanitation", "air_quality",
+               "food_security"),
+    "Safety": ("safety_index", "road_safety", "justice"),
+    "Environment": ("climate_risk", "air_quality"),
+    "Society": ("wellbeing", "social_trust", "gender_balance", "education",
+                "mobility"),
+    "Growth & governance": ("urban_growth", "energy_resilience",
+                            "contradiction_index"),
+}
+
+
+def index_families() -> list[dict]:
+    """Indexen grupperade i tematiska familjer (för översiktsvyer)."""
+    known = set(INDEX_TYPES) | {"contradiction_index"}
+    return [{"family": fam,
+             "indices": [{"id": i, "label_en": INDEX_TYPES[i].label_en}
+                         for i in ids if i in INDEX_TYPES]
+             + ([{"id": "contradiction_index",
+                  "label_en": "Contradiction Index"}]
+                if "contradiction_index" in ids else [])}
+            for fam, ids in INDEX_FAMILIES.items()
+            if all(i in known for i in ids)]
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.
 _PLANNED = (("building_permits", 0.5), ("detail_plans", 0.5))

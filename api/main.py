@@ -68,7 +68,8 @@ from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import DEFAULT_MARKET, market_catalog
-from engine.indices import city_assessment, index_catalog, index_map
+from engine.indices import (city_assessment, index_catalog, index_families,
+                            index_map)
 from engine.installed_base import (product_catalog, service_analysis,
                                    service_demand_map)
 from engine.plan import establishment_plan
@@ -993,6 +994,11 @@ def indices(request: Request):
                 ix["last"] = True
                 ix["las_notis_en"] = upgrade_hint_en("intelligence_map_live")
     return kat
+
+
+@app.get("/v1/indices/families")
+def indices_families():
+    return index_families()
 
 
 @app.get("/v1/indices/map")

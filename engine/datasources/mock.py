@@ -116,6 +116,13 @@ class MockSource(DataSource):
             "air_quality": round(max(20, min(99, 80 - u * 25 + rng.uniform(-12, 12))), 0),
             "digital_connectivity": round(max(25, min(99, 40 + u * 30 + income * 0.20 + rng.uniform(-8, 8))), 0),
             "life_satisfaction": round(max(30, min(95, 55 + income * 0.25 - u * 5 + rng.uniform(-8, 10))), 0),
+            "labor_participation": round(max(30, min(95, 60 + income * 0.25 + g * 1.5 + rng.uniform(-8, 8))), 0),
+            "justice_efficiency": round(max(25, min(95, 55 + income * 0.30 + rng.uniform(-12, 12))), 0),
+            "education_outcomes": round(max(30, min(97, 50 + income * 0.40 + rng.uniform(-10, 10))), 0),
+            "social_trust": round(max(20, min(92, 45 + income * 0.35 - u * 3 + rng.uniform(-10, 12))), 0),
+            "energy_resilience": round(max(30, min(98, 65 + income * 0.15 + rng.uniform(-12, 12))), 0),
+            "active_mobility": round(max(20, min(95, 35 + u * 40 + rng.uniform(-10, 10))), 0),
+            "food_access": round(max(35, min(98, 60 + income * 0.20 + u * 8 + rng.uniform(-8, 8))), 0),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)

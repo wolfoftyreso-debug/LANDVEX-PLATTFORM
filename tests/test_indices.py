@@ -14,7 +14,10 @@ def test_index_types_are_valid_data():
                                 "city_health", "sanitation", "haircut_index", "gender_balance",
                                 "road_safety", "healthcare_access",
                                 "housing_affordability", "air_quality",
-                                "digital_readiness", "wellbeing"}
+                                "digital_readiness", "wellbeing",
+                                "labor_market", "justice", "education",
+                                "social_trust", "energy_resilience",
+                                "mobility", "food_security"}
     for ix in INDEX_TYPES.values():
         assert ix.riktning in ("risk", "styrka")
         assert ix.niva in ("free", "live")
@@ -22,13 +25,13 @@ def test_index_types_are_valid_data():
         for sid, _ in ix.signals:
             assert sid in CATALOG, (ix.id, sid)
     kat = index_catalog()
-    assert len(kat) == 16                             # 15 index + kontradiktion
+    assert len(kat) == 23                             # 22 index + kontradiktion
     assert any(k["id"] == "contradiction_index" for k in kat)
 
 
 def test_city_assessment_is_traceable():
     res = city_assessment("0180", market="se")                     # Stockholm
-    assert len(res["index"]) == 16     # 15 index + Contradiction Index
+    assert len(res["index"]) == 23     # 22 index + Contradiction Index
     for ix in res["index"]:
         assert 0 <= ix["varde"] <= 100
         assert ix["band"] in ("lag", "mattlig", "forhojd", "hog")

@@ -108,4 +108,11 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("air_quality",       "Air quality",                  "0–100",  "linear",  0, 100),
     _s("digital_connectivity","Digital connectivity",       "0–100",  "linear",  0, 100),
     _s("life_satisfaction", "Life satisfaction",            "0–100",  "linear",  0, 100),
+    _s("labor_participation","Labour participation",        "0–100",  "linear",  0, 100),
+    _s("justice_efficiency","Justice efficiency",           "0–100",  "linear",  0, 100),
+    _s("education_outcomes","Education outcomes",           "0–100",  "linear",  0, 100),
+    _s("social_trust",      "Social trust",                 "0–100",  "linear",  0, 100),
+    _s("energy_resilience", "Energy resilience",            "0–100",  "linear",  0, 100),
+    _s("active_mobility",   "Active mobility",              "0–100",  "linear",  0, 100),
+    _s("food_access",       "Food access",                  "0–100",  "linear",  0, 100),
 ]}
