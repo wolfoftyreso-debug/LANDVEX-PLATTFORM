@@ -54,6 +54,16 @@ def test_compensation_context_none_on_record():
     assert W.compensation_context("astronaut", "se")["net_real_vs_nominal"] == "no context on record"
 
 
+def test_labor_intensity_axis():
+    # Thailand-restaurang: mest väntan → låg intensitet.
+    th = W.compensation_context("waiter", "th")
+    assert th["labor_intensity"] == "low" and th["intensity_notes"]
+    # USA-kedja: producera varje minut → hög intensitet.
+    us = W.compensation_context("waiter", "us")
+    assert us["labor_intensity"] == "high"
+    assert "wage-per-effort" in th["caveat"]
+
+
 def test_rank_by_wage():
     r = W.rank_by_wage("se")
     wages = [o["monthly_wage"] for o in r["occupations"]]

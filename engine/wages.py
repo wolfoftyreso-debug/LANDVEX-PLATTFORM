@@ -119,27 +119,53 @@ COMP_CONTEXT: tuple[dict, ...] = (
 )
 
 
-def compensation_context(occupation: str, region: str) -> dict:
-    """Icke-kontanta förmåner/kostnader som gör en rå lönejämförelse
-    vilseledande (boende, egna verktyg, dricks/provision, betala-för-passet).
+# Arbetsintensitet: hur mycket som faktiskt krävs per betald timme. Låg lön
+# med mest väntan kan vara en bättre affär per ansträngning än hög lön med
+# krav på produktion varje minut. `intensity` ∈ low|moderate|high.
+LABOR_CONTEXT: tuple[dict, ...] = (
+    {"occupation": "wait", "region": "th", "intensity": "low",
+     "note": "Often idle between occasional customers — effort per paid hour "
+     "is low."},
+    {"occupation": "restaurant", "region": "th", "intensity": "low",
+     "note": "Downtime is common; presence, not constant output, is expected."},
+    {"occupation": "wait", "region": "us", "intensity": "high",
+     "note": "Organized chain — expected to produce every minute of presence."},
+    {"occupation": "restaurant", "region": "us", "intensity": "high",
+     "note": "Chain productivity targets — continuous output during the shift."},
+    {"occupation": "factory", "region": "cn", "intensity": "high",
+     "note": "Line pace sets output; little idle time."},
+)
 
-    Matchar löst på yrkessträng + region. Returnerar tillämpliga faktorer,
-    en netto-riktning och en tydlig caveat.
+
+def compensation_context(occupation: str, region: str) -> dict:
+    """Icke-kontanta förmåner/kostnader OCH arbetsintensitet som gör en rå
+    lönejämförelse vilseledande (boende, egna verktyg, dricks/provision,
+    betala-för-passet; och hur mycket som krävs per betald timme).
+
+    Matchar löst på yrkessträng + region. Returnerar faktorer, netto-riktning,
+    arbetsintensitet och en tydlig caveat.
     """
     q = (occupation or "").lower()
-    rows = [c for c in COMP_CONTEXT
-            if (c["occupation"] in q or q in c["occupation"])
-            and c["region"] == region.lower()]
+    def _match(table):
+        return [c for c in table
+                if (c["occupation"] in q or q in c["occupation"])
+                and c["region"] == region.lower()]
+    rows = _match(COMP_CONTEXT)
+    intensity_rows = _match(LABOR_CONTEXT)
     plus = sum(1 for c in rows if c["direction"] == "+")
     minus = sum(1 for c in rows if c["direction"] == "-")
     net = "higher" if plus > minus else "lower" if minus > plus else "mixed/neutral"
+    intensity = intensity_rows[0]["intensity"] if intensity_rows else "unknown"
     return {
         "occupation": occupation, "region": region, "factors": rows,
         "net_real_vs_nominal": net if rows else "no context on record",
-        "caveat": ("Nominal wage is not real compensation. In-kind housing, "
-                   "self-provided tools, tips/commission and pay-to-work can "
-                   "move the real position far from the cash figure — compare "
-                   "these before comparing wages."),
+        "labor_intensity": intensity,
+        "intensity_notes": [c["note"] for c in intensity_rows],
+        "caveat": ("Nominal wage is not real compensation, and not the same "
+                   "effort. In-kind housing, self-provided tools, tips/"
+                   "commission and pay-to-work move the real cash position; "
+                   "work intensity (idle waiting vs producing every minute) "
+                   "moves the wage-per-effort. Compare both before wages."),
     }
 
 
