@@ -581,6 +581,12 @@ def strim_entity(req: StrimEntityRequest):
             "citations": {s: strim_cite(ent, s) for s in ("text", "apa", "bibtex")}}
 
 
+@app.get("/v1/sources")
+def sources():
+    from api.sources import sources_status
+    return sources_status()
+
+
 @app.get("/v1/kolada")
 def kolada_status():
     return KoladaClient().status()

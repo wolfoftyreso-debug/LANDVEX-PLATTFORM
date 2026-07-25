@@ -146,7 +146,8 @@ API_CATALOG: dict = {
          "beskrivning_en": "Connection status for the Kolada and SVK/ENTSO-E "
                            "adapters — honestly not-connected until their "
                            "URL is set.",
-         "endpoints": [{"method": "GET", "path": "/v1/kolada"},
+         "endpoints": [{"method": "GET", "path": "/v1/sources"},
+                       {"method": "GET", "path": "/v1/kolada"},
                        {"method": "GET", "path": "/v1/svk"}]},
         {"id": "outcomes", "label_en": "Outcome Calibration",
          "beskrivning_en": "Logs establishments and real outcomes, calibrates "

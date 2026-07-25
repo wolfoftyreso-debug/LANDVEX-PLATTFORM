@@ -235,6 +235,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, decision_templates())
         if parsed.path == "/v1/strim":
             return self._send(200, entity_types())
+        if parsed.path == "/v1/sources":
+            from api.sources import sources_status
+            return self._send(200, sources_status())
         if parsed.path == "/v1/kolada":
             return self._send(200, KoladaClient().status())
         if parsed.path == "/v1/svk":
