@@ -123,6 +123,14 @@ class MockSource(DataSource):
             "energy_resilience": round(max(30, min(98, 65 + income * 0.15 + rng.uniform(-12, 12))), 0),
             "active_mobility": round(max(20, min(95, 35 + u * 40 + rng.uniform(-10, 10))), 0),
             "food_access": round(max(35, min(98, 60 + income * 0.20 + u * 8 + rng.uniform(-8, 8))), 0),
+            # Rättigheter & inkludering: rättsskydd samvarierar med
+            # institutionell styrka (inkomst som proxy), urbanitet höjer
+            # rapporterad trygghet något. Allt mock, märkt som mock.
+            "civil_rights_protection": round(max(20, min(98, 55 + income * 0.30 + rng.uniform(-12, 12))), 0),
+            "marriage_equality_years": round(max(0, min(25, 8 + income * 0.10 + rng.uniform(-6, 8))), 0),
+            "antidiscrimination_scope": round(max(20, min(98, 50 + income * 0.35 + rng.uniform(-12, 12))), 0),
+            "minority_safety": round(max(20, min(95, 45 + income * 0.25 + u * 6 + rng.uniform(-12, 12))), 0),
+            "gender_pay_gap": round(max(2, min(28, 18 - income * 0.08 + rng.uniform(-4, 5))), 1),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)

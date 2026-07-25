@@ -256,10 +256,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, entrypoints())
         if parsed.path == "/v1/admin":
             from engine.admin import admin_countries, admin_units
-            country = parse_qs(parsed.query).get("country", [""])[0]
+            qs = parse_qs(parsed.query)
+            country = qs.get("country", [""])[0]
             if country:
                 try:
-                    return self._send(200, admin_units(country))
+                    return self._send(200, admin_units(
+                        country, level=int(qs.get("level", ["1"])[0]),
+                        parent=qs.get("parent", [""])[0]))
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
@@ -465,6 +468,13 @@ class Handler(BaseHTTPRequestHandler):
                     dcn, float(req["actual_value"]),
                     baseline=req.get("baseline"),
                     resolved_at=str(req.get("resolved_at", ""))))
+            if self.path == "/v1/flows/expected-value":
+                from engine.flows import expected_value
+                return self._send(200, expected_value(
+                    req.get("costs") or [], req.get("benefits") or [],
+                    horizon_years=int(req.get("horizon_years", 1)),
+                    decision=str(req.get("decision", "")),
+                    currency=str(req.get("currency", "USD"))))
             if self.path == "/v1/monitors":
                 return self._send(200, monitors_engine.define(
                     str(req["metric"]), str(req["scope"]), str(req["rule"]),

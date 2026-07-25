@@ -156,6 +156,17 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "Access to affordable, adequate food (supply, price, deserts "
              "proxy). Higher is more secure.",
              "styrka", "free", (("food_access", 1.0),)),
+    IndexDef("rights_inclusion", "Rights & Inclusion",
+             "Legal protection of civil rights, marriage equality maturity, "
+             "anti-discrimination scope, reported minority safety and the "
+             "gender pay gap. Descriptive of the legal/lived state — never "
+             "a verdict. Higher is stronger protection and inclusion.",
+             "styrka", "free",
+             (("civil_rights_protection", 0.30),
+              ("antidiscrimination_scope", 0.25),
+              ("minority_safety", 0.20),
+              ("marriage_equality_years", 0.10),
+              ("gender_pay_gap", 0.15))),
 ]}
 
 # Tematiska familjer – grupperar indexen för en läsbar samhällsöversikt.
@@ -168,7 +179,7 @@ INDEX_FAMILIES: dict[str, tuple[str, ...]] = {
     "Safety": ("safety_index", "road_safety", "justice"),
     "Environment": ("climate_risk", "air_quality"),
     "Society": ("wellbeing", "social_trust", "gender_balance", "education",
-                "mobility"),
+                "mobility", "rights_inclusion"),
     "Growth & governance": ("urban_growth", "energy_resilience",
                             "contradiction_index"),
 }

@@ -1,16 +1,29 @@
-"""Administrativt register – delstater, kantoner, län, kommuner.
+"""Administrativt register – delstater, provinser, kantoner, län, regioner
+och nivån UNDER: kommuner/counties/communes.
 
 Full administrativ granularitet som DATA, frikopplat från marknadens
-metroregioner. Här ligger de OFFICIELLA enheterna: USA:s 50 delstater,
-Schweiz 26 kantoner, Tysklands 16 förbundsländer, Sveriges 21 län. Nivån
-under (kommuner/counties/communes: US ~3143 counties, SE 290 kommuner, CH
-~2100 communes) laddas från de officiella registren (US Census FIPS,
-SCB kommunkod, Swiss BFS-Nr, Destatis AGS) via samma adapter-mönster –
-strukturen bär dem, listorna fylls på skarpt.
+metroregioner. Nivå 1 är KOMPLETT här (USA 50 delstater, Kanada 13
+provinser/territorier, Schweiz 26 kantoner, Tyskland 16 förbundsländer,
+Sverige 21 län, Frankrike 13 regioner, Spanien 17 autonoma regioner,
+Italien 20 regioner, Danmark 5 regioner, Nederländerna 12 provinser).
 
-Rent data, stdlib.
+Nivå 2 (kommuner: US ~3143 counties, SE 290 kommuner, CH ~2100 communes,
+DE ~11000 Gemeinden…) är för stor att bära inline utan att ljuga om
+underhållet. Den laddas därför SKARPT från de officiella registren via
+`MunicipalRegister` (config-aktiverad: LANDVEX_GEO_URL, injicerbar
+transport, ärlig degradering) och faller annars tillbaka på en MÄRKT
+seed med de största enheterna per land – coverage redovisas alltid
+(`coverage: partial/full`, `official_total`). Aldrig ett register som
+låtsas vara komplett.
+
+Rent stdlib.
 """
 from __future__ import annotations
+
+import json
+import os
+import urllib.request
+from typing import Callable
 
 US_STATES = (
     ("AL", "Alabama"), ("AK", "Alaska"), ("AZ", "Arizona"), ("AR", "Arkansas"),
@@ -29,6 +42,14 @@ US_STATES = (
     ("UT", "Utah"), ("VT", "Vermont"), ("VA", "Virginia"),
     ("WA", "Washington"), ("WV", "West Virginia"), ("WI", "Wisconsin"),
     ("WY", "Wyoming"),
+)
+
+CA_PROVINCES = (
+    ("AB", "Alberta"), ("BC", "British Columbia"), ("MB", "Manitoba"),
+    ("NB", "New Brunswick"), ("NL", "Newfoundland and Labrador"),
+    ("NS", "Nova Scotia"), ("NT", "Northwest Territories"),
+    ("NU", "Nunavut"), ("ON", "Ontario"), ("PE", "Prince Edward Island"),
+    ("QC", "Quebec"), ("SK", "Saskatchewan"), ("YT", "Yukon"),
 )
 
 CH_CANTONS = (
@@ -61,34 +82,224 @@ SE_LAN = (
     ("24", "Västerbotten"), ("25", "Norrbotten"),
 )
 
-# country → (level_en, units, municipal_note)
+FR_REGIONS = (
+    ("ARA", "Auvergne-Rhône-Alpes"), ("BFC", "Bourgogne-Franche-Comté"),
+    ("BRE", "Bretagne"), ("CVL", "Centre-Val de Loire"), ("COR", "Corse"),
+    ("GES", "Grand Est"), ("HDF", "Hauts-de-France"), ("IDF", "Île-de-France"),
+    ("NOR", "Normandie"), ("NAQ", "Nouvelle-Aquitaine"), ("OCC", "Occitanie"),
+    ("PDL", "Pays de la Loire"), ("PAC", "Provence-Alpes-Côte d'Azur"),
+)
+
+ES_COMMUNITIES = (
+    ("AN", "Andalucía"), ("AR", "Aragón"), ("AS", "Asturias"),
+    ("IB", "Illes Balears"), ("CN", "Canarias"), ("CB", "Cantabria"),
+    ("CL", "Castilla y León"), ("CM", "Castilla-La Mancha"),
+    ("CT", "Cataluña"), ("VC", "Comunitat Valenciana"),
+    ("EX", "Extremadura"), ("GA", "Galicia"), ("MD", "Madrid"),
+    ("MC", "Murcia"), ("NC", "Navarra"), ("PV", "País Vasco"),
+    ("RI", "La Rioja"),
+)
+
+IT_REGIONS = (
+    ("ABR", "Abruzzo"), ("BAS", "Basilicata"), ("CAL", "Calabria"),
+    ("CAM", "Campania"), ("EMR", "Emilia-Romagna"),
+    ("FVG", "Friuli-Venezia Giulia"), ("LAZ", "Lazio"), ("LIG", "Liguria"),
+    ("LOM", "Lombardia"), ("MAR", "Marche"), ("MOL", "Molise"),
+    ("PIE", "Piemonte"), ("PUG", "Puglia"), ("SAR", "Sardegna"),
+    ("SIC", "Sicilia"), ("TOS", "Toscana"),
+    ("TAA", "Trentino-Alto Adige"), ("UMB", "Umbria"),
+    ("VDA", "Valle d'Aosta"), ("VEN", "Veneto"),
+)
+
+DK_REGIONS = (
+    ("84", "Hovedstaden"), ("85", "Sjælland"), ("83", "Syddanmark"),
+    ("82", "Midtjylland"), ("81", "Nordjylland"),
+)
+
+NL_PROVINCES = (
+    ("DR", "Drenthe"), ("FL", "Flevoland"), ("FR", "Friesland"),
+    ("GE", "Gelderland"), ("GR", "Groningen"), ("LI", "Limburg"),
+    ("NB", "Noord-Brabant"), ("NH", "Noord-Holland"), ("OV", "Overijssel"),
+    ("UT", "Utrecht"), ("ZE", "Zeeland"), ("ZH", "Zuid-Holland"),
+)
+
+# country → nivå-1-register + officiellt nivå-2-register (namn + total).
 ADMIN_LEVELS: dict[str, dict] = {
     "us": {"level_en": "state", "units": US_STATES,
-           "sub_level": "county (~3143) — US Census FIPS"},
+           "sub_level": "county", "sub_register": "US Census FIPS",
+           "sub_official_total": 3143},
+    "ca": {"level_en": "province/territory", "units": CA_PROVINCES,
+           "sub_level": "census subdivision (municipality)",
+           "sub_register": "StatCan SGC", "sub_official_total": 5161},
     "ch": {"level_en": "canton", "units": CH_CANTONS,
-           "sub_level": "commune (~2100) — Swiss BFS-Nr"},
+           "sub_level": "commune", "sub_register": "Swiss BFS-Nr",
+           "sub_official_total": 2131},
     "de": {"level_en": "federal state (Land)", "units": DE_LANDER,
-           "sub_level": "Gemeinde (~11000) — Destatis AGS"},
+           "sub_level": "Gemeinde", "sub_register": "Destatis AGS",
+           "sub_official_total": 10786},
     "se": {"level_en": "county (län)", "units": SE_LAN,
-           "sub_level": "municipality (290) — SCB kommunkod"},
+           "sub_level": "municipality (kommun)",
+           "sub_register": "SCB kommunkod", "sub_official_total": 290},
+    "fr": {"level_en": "region", "units": FR_REGIONS,
+           "sub_level": "commune", "sub_register": "INSEE COG",
+           "sub_official_total": 34955},
+    "es": {"level_en": "autonomous community", "units": ES_COMMUNITIES,
+           "sub_level": "municipio", "sub_register": "INE código",
+           "sub_official_total": 8131},
+    "it": {"level_en": "region", "units": IT_REGIONS,
+           "sub_level": "comune", "sub_register": "ISTAT codice",
+           "sub_official_total": 7896},
+    "dk": {"level_en": "region", "units": DK_REGIONS,
+           "sub_level": "kommune", "sub_register": "Danmarks Statistik",
+           "sub_official_total": 98},
+    "nl": {"level_en": "province", "units": NL_PROVINCES,
+           "sub_level": "gemeente", "sub_register": "CBS code",
+           "sub_official_total": 342},
+}
+
+# ── Nivå 2: seed (största enheterna, MÄRKT partiell) ─────────────────────
+# {country: ((code, name, parent_level1_code), …)} – koder ur de officiella
+# registren (SCB kommunkod, Census FIPS, StatCan SGC). Seed = demonstration
+# och fallback; det kompletta registret laddas via MunicipalRegister.
+MUNICIPAL_SEED: dict[str, tuple[tuple[str, str, str], ...]] = {
+    "se": (
+        ("0180", "Stockholm", "01"), ("1480", "Göteborg", "14"),
+        ("1280", "Malmö", "12"), ("0380", "Uppsala", "03"),
+        ("0580", "Linköping", "05"), ("1880", "Örebro", "18"),
+        ("1980", "Västerås", "19"), ("1283", "Helsingborg", "12"),
+        ("0581", "Norrköping", "05"), ("0680", "Jönköping", "06"),
+        ("2480", "Umeå", "24"), ("1281", "Lund", "12"),
+        ("1490", "Borås", "14"), ("2180", "Gävle", "21"),
+        ("0484", "Eskilstuna", "04"), ("0181", "Södertälje", "01"),
+        ("1780", "Karlstad", "17"), ("0780", "Växjö", "07"),
+        ("1380", "Halmstad", "13"), ("2281", "Sundsvall", "22"),
+        ("2580", "Luleå", "25"), ("1488", "Trollhättan", "14"),
+        ("2380", "Östersund", "23"), ("2081", "Borlänge", "20"),
+        ("0880", "Kalmar", "08"), ("2080", "Falun", "20"),
+        ("1290", "Kristianstad", "12"), ("1080", "Karlskrona", "10"),
+        ("0980", "Gotland", "09"),
+    ),
+    "us": (
+        ("06037", "Los Angeles County", "CA"), ("17031", "Cook County", "IL"),
+        ("48201", "Harris County", "TX"), ("04013", "Maricopa County", "AZ"),
+        ("06073", "San Diego County", "CA"), ("06059", "Orange County", "CA"),
+        ("12086", "Miami-Dade County", "FL"), ("48113", "Dallas County", "TX"),
+        ("36047", "Kings County", "NY"), ("06065", "Riverside County", "CA"),
+        ("32003", "Clark County", "NV"), ("53033", "King County", "WA"),
+        ("36081", "Queens County", "NY"), ("48439", "Tarrant County", "TX"),
+        ("48029", "Bexar County", "TX"), ("12011", "Broward County", "FL"),
+        ("06085", "Santa Clara County", "CA"), ("26163", "Wayne County", "MI"),
+        ("06001", "Alameda County", "CA"), ("25017", "Middlesex County", "MA"),
+    ),
+    "ca": (
+        ("3520005", "Toronto", "ON"), ("2466023", "Montréal", "QC"),
+        ("4806016", "Calgary", "AB"), ("3506008", "Ottawa", "ON"),
+        ("4811061", "Edmonton", "AB"), ("4611040", "Winnipeg", "MB"),
+        ("3521005", "Mississauga", "ON"), ("5915022", "Vancouver", "BC"),
+        ("3521010", "Brampton", "ON"), ("3525005", "Hamilton", "ON"),
+    ),
 }
 
 
+def _http_transport(url: str, timeout: float) -> str:
+    req = urllib.request.Request(url, headers={"Accept": "application/json",
+                                               "User-Agent": "landvex/admin"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", "replace")
+
+
+class MunicipalRegister:
+    """Nivå 2 skarpt: laddar kompletta kommunregister från en konfigurerad
+    källa (samma adapter-mönster som Kolada/SvK).
+
+    Kontrakt: LANDVEX_GEO_URL pekar på en bas som serverar
+    {base}/{country}.json = [{"code","name","parent"}, …] (speglad från de
+    officiella registren: Census FIPS, SCB, StatCan SGC, INSEE COG…).
+    Ej ansluten eller fel → ärlig degradering till MUNICIPAL_SEED, märkt
+    coverage="partial". Hittar aldrig på enheter.
+    """
+
+    def __init__(self, base_url: str | None = None,
+                 transport: Callable[[str, float], str] | None = None,
+                 timeout: float = 8.0):
+        self.base_url = (base_url if base_url is not None
+                         else os.environ.get("LANDVEX_GEO_URL", "")).rstrip("/")
+        self._transport = transport or _http_transport
+        self.timeout = timeout
+
+    @property
+    def connected(self) -> bool:
+        return bool(self.base_url)
+
+    def fetch(self, country: str) -> list[dict] | None:
+        """Komplett nivå-2-lista för ett land, eller None (ej ansluten/fel)."""
+        if not self.connected:
+            return None
+        try:
+            raw = json.loads(self._transport(
+                f"{self.base_url}/{country}.json", self.timeout))
+        except Exception:  # noqa: BLE001 - ärlig degradering
+            return None
+        if not isinstance(raw, list):
+            return None
+        out = []
+        for row in raw:
+            if isinstance(row, dict) and row.get("code") and row.get("name"):
+                out.append({"code": str(row["code"]), "name": str(row["name"]),
+                            "parent": str(row.get("parent", ""))})
+        return out or None
+
+    def status(self) -> dict:
+        return {"name": "geo", "connected": self.connected,
+                "base_url": self.base_url or None,
+                "seeded_countries": sorted(MUNICIPAL_SEED)}
+
+
 def admin_countries() -> list[dict]:
-    """Vilka länder som har ett administrativt register + räkning."""
+    """Vilka länder som har ett administrativt register + räkning per nivå."""
     return [{"country": c, "level_en": d["level_en"], "count": len(d["units"]),
-             "sub_level": d["sub_level"]}
+             "sub_level": d["sub_level"], "sub_register": d["sub_register"],
+             "sub_official_total": d["sub_official_total"],
+             "sub_seeded": len(MUNICIPAL_SEED.get(c, ()))}
             for c, d in ADMIN_LEVELS.items()]
 
 
-def admin_units(country: str) -> dict:
-    """Alla administrativa enheter för ett land."""
+def admin_units(country: str, level: int = 1, parent: str = "",
+                register: MunicipalRegister | None = None) -> dict:
+    """Administrativa enheter för ett land.
+
+    level=1: komplett nivå 1 (delstater/kantoner/län/regioner).
+    level=2: kommunnivån – skarpt via MunicipalRegister om ansluten
+    (coverage="full"), annars märkt seed (coverage="partial",
+    official_total redovisat). parent filtrerar på nivå-1-kod.
+    """
     d = ADMIN_LEVELS.get(country)
     if d is None:
         raise ValueError(f"no administrative register for country: {country}")
-    return {"country": country, "level_en": d["level_en"],
-            "count": len(d["units"]),
-            "units": [{"code": c, "name": n} for c, n in d["units"]],
-            "sub_level": d["sub_level"],
-            "note": "Sub-municipal units load from the official register via the "
-                    "adapter pattern; this level is complete."}
+    if level == 1:
+        return {"country": country, "level": 1, "level_en": d["level_en"],
+                "count": len(d["units"]), "coverage": "full",
+                "units": [{"code": c, "name": n} for c, n in d["units"]],
+                "sub_level": d["sub_level"],
+                "sub_register": d["sub_register"]}
+    if level != 2:
+        raise ValueError("level must be 1 or 2")
+
+    reg = register or MunicipalRegister()
+    live = reg.fetch(country)
+    if live is not None:
+        units, coverage, source = live, "full", "official register (live)"
+    else:
+        units = [{"code": c, "name": n, "parent": p}
+                 for c, n, p in MUNICIPAL_SEED.get(country, ())]
+        coverage, source = "partial", "seed (largest units)"
+    if parent:
+        units = [u for u in units if u.get("parent") == parent]
+    return {"country": country, "level": 2, "level_en": d["sub_level"],
+            "register": d["sub_register"], "coverage": coverage,
+            "source": source, "official_total": d["sub_official_total"],
+            "count": len(units), "parent": parent or None, "units": units,
+            "note": ("Complete list loads live from the official register "
+                     "once LANDVEX_GEO_URL is set; a partial seed is never "
+                     "presented as complete." if coverage == "partial"
+                     else "Loaded live from the configured register mirror.")}

@@ -42,6 +42,10 @@ ADAPTERS: tuple[dict, ...] = (
     {"id": "aamos", "name": "AAMOS Capability Platform", "env": "AAMOS_CORE_URL",
      "provides": ["platform_status", "agents", "cognition"],
      "official": "AAMOS Core (service-account token)", "default_on": False},
+    {"id": "geo", "name": "Municipal register mirror", "env": "LANDVEX_GEO_URL",
+     "provides": ["admin level 2: counties / kommuner / communes"],
+     "official": "US Census FIPS / SCB kommunkod / StatCan SGC / INSEE COG",
+     "default_on": False},
 )
 
 

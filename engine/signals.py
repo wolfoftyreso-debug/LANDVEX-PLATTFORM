@@ -115,4 +115,12 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("energy_resilience", "Energy resilience",            "0–100",  "linear",  0, 100),
     _s("active_mobility",   "Active mobility",              "0–100",  "linear",  0, 100),
     _s("food_access",       "Food access",                  "0–100",  "linear",  0, 100),
+    # ── Rättigheter & inkludering (fanns inte i dissg – luckan täpps här:
+    #    en samhällsprognos-plattform måste bära rättighetsdata; alltid
+    #    beskrivande, aldrig normativ) ───────────────────────────────────
+    _s("civil_rights_protection", "Civil-rights legal protection", "0–100", "linear", 0, 100),
+    _s("marriage_equality_years", "Years since marriage equality", "years", "saturating", 15),
+    _s("antidiscrimination_scope","Anti-discrimination law scope", "0–100", "linear", 0, 100),
+    _s("minority_safety",   "Reported minority safety",     "0–100",  "linear",  0, 100),
+    _s("gender_pay_gap",    "Gender pay gap",               "%",      "inverse", 0, 30),
 ]}

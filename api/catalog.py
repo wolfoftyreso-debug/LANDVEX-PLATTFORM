@@ -205,10 +205,21 @@ API_CATALOG: dict = {
                            "feeds as the live overlay.",
          "endpoints": [{"method": "GET", "path": "/v1/entrypoints"}]},
         {"id": "admin", "label_en": "Administrative Register",
-         "beskrivning_en": "Full administrative units — 50 US states, 26 Swiss "
-                           "cantons, 16 German Länder, 21 Swedish counties; "
-                           "municipality level loads from official registers.",
+         "beskrivning_en": "Complete level-1 units for 10 countries (US "
+                           "states, Canadian provinces, Swiss cantons, German "
+                           "Länder, Swedish counties, French/Spanish/Italian/"
+                           "Danish/Dutch regions) and a level-2 municipal tier "
+                           "(counties/kommuner/communes) that loads live from "
+                           "official registers — a partial seed is never "
+                           "presented as complete.",
          "endpoints": [{"method": "GET", "path": "/v1/admin"}]},
+        {"id": "flows", "label_en": "Cost/Benefit Flows",
+         "beskrivning_en": "Expected value beyond the feelings: certain costs "
+                           "against probability-weighted gains — net value, "
+                           "benefit/cost ratio, break-even probability and "
+                           "sensitivity (where the conclusion is fragile). "
+                           "Gated on credible sources; a framing, never advice.",
+         "endpoints": [{"method": "POST", "path": "/v1/flows/expected-value"}]},
         {"id": "monitors", "label_en": "Control Monitors (cron)",
          "beskrivning_en": "Register a watch on a metric — threshold breach, "
                            "structural change-point, anomaly or sustained "

@@ -603,14 +603,30 @@ def entrypoints_ep():
 
 
 @app.get("/v1/admin")
-def admin_ep(country: str = ""):
+def admin_ep(country: str = "", level: int = 1, parent: str = ""):
     from engine.admin import admin_countries, admin_units
     if country:
         try:
-            return admin_units(country)
+            return admin_units(country, level=level, parent=parent)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
     return admin_countries()
+
+
+class FlowsRequest(BaseModel):
+    costs: list[dict] = Field(default_factory=list)
+    benefits: list[dict] = Field(default_factory=list)
+    horizon_years: int = 1
+    decision: str = ""
+    currency: str = "USD"
+
+
+@app.post("/v1/flows/expected-value")
+def flows_expected_value(req: FlowsRequest):
+    from engine.flows import expected_value
+    return expected_value(req.costs, req.benefits,
+                          horizon_years=req.horizon_years,
+                          decision=req.decision, currency=req.currency)
 
 
 class MonitorDefineRequest(BaseModel):
