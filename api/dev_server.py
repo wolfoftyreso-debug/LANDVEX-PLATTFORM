@@ -64,6 +64,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine import customer as customer_engine
+from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -268,6 +270,10 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
+        if parsed.path == "/v1/customer/journey":
+            return self._send(200, customer_engine.journey())
+        if parsed.path == "/v1/visitor/contract":
+            return self._send(200, visitor_engine.contract())
         if parsed.path == "/v1/inbox":
             sub = parse_qs(parsed.query).get("subscriber", [""])[0]
             return self._send(200, {
@@ -482,6 +488,13 @@ class Handler(BaseHTTPRequestHandler):
                     horizon_years=int(req.get("horizon_years", 1)),
                     decision=str(req.get("decision", "")),
                     currency=str(req.get("currency", "USD"))))
+            if self.path == "/v1/customer/stage":
+                return self._send(200, customer_engine.stage(
+                    req.get("payload") or {}))
+            if self.path == "/v1/visitor":
+                prof = visitor_engine.from_onboarding(req.get("payload") or {})
+                return self._send(200, {"profile": prof,
+                                        "guide": visitor_engine.guide(prof)})
             if self.path == "/v1/inbox/subscribe":
                 return self._send(200, inbox_engine.subscribe(
                     str(req.get("subscriber", "")), str(req.get("role", "citizen")),

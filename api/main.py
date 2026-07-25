@@ -56,6 +56,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine import customer as customer_engine
+from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -683,6 +685,39 @@ def _collect_events(req) -> list[dict]:
     evs += [inbox_engine.from_feed_event(e) for e in req.feed_events]
     evs += [inbox_engine.from_finding(f) for f in req.findings]
     return evs
+
+
+class VisitorRequest(BaseModel):
+    payload: dict = Field(default_factory=dict)
+
+
+@app.get("/v1/visitor/contract")
+def visitor_contract():
+    return visitor_engine.contract()
+
+
+@app.post("/v1/visitor")
+def visitor_ingest(req: VisitorRequest):
+    """Onboarding-post in → besökarprofil, kännedomsnivå och nästa steg."""
+    try:
+        prof = visitor_engine.from_onboarding(req.payload)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"profile": prof, "guide": visitor_engine.guide(prof)}
+
+
+@app.get("/v1/customer/journey")
+def customer_journey():
+    return customer_engine.journey()
+
+
+@app.post("/v1/customer/stage")
+def customer_stage(req: VisitorRequest):
+    """Var i kedjan KYC → onboarding → uppsättning → aktiv kunden står."""
+    try:
+        return customer_engine.stage(req.payload)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/inbox")

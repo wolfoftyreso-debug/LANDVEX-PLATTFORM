@@ -73,6 +73,8 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/admin": "core",                      # administrativt register
     "/v1/monitors": "monitoring",             # bevakningar + cron (styrd API)
     "/v1/inbox": "monitoring",                # händelseroutning per intresse
+    "/v1/visitor": "core",                    # onboarding-sömmen
+    "/v1/customer": "core",                   # kundresan KYC→aktiv
     "/v1/flows": "opportunity",               # kostnad/nytta (förväntat värde)
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",

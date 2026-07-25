@@ -223,6 +223,28 @@ API_CATALOG: dict = {
                            "sensitivity (where the conclusion is fragile). "
                            "Gated on credible sources; a framing, never advice.",
          "endpoints": [{"method": "POST", "path": "/v1/flows/expected-value"}]},
+        {"id": "customer", "label_en": "Customer Journey (KYC → active)",
+         "beskrivning_en": "Where a customer stands across KYC, onboarding, "
+                           "platform setup and active operation — each stage "
+                           "naming its owner. KYC and onboarding are owned "
+                           "outside this platform and it says so instead of "
+                           "pretending to progress them. KYC is never "
+                           "performed or self-attested here: absent a "
+                           "provider verdict the answer is not_verified, and "
+                           "billing, live layers, partner API and sensitive "
+                           "analysis stay gated.",
+         "endpoints": [{"method": "GET", "path": "/v1/customer/journey"},
+                       {"method": "POST", "path": "/v1/customer/stage"}]},
+        {"id": "visitor", "label_en": "Visitor Seam (onboarding intake)",
+         "beskrivning_en": "The documented seam a customer onboarding "
+                           "delivers into. Accepts a customer record via "
+                           "field names or aliases, reports what is missing "
+                           "rather than inferring it, and grades how well the "
+                           "platform knows this visitor (unknown → partial → "
+                           "known → routed) with the single next question "
+                           "that lifts it a step.",
+         "endpoints": [{"method": "GET", "path": "/v1/visitor/contract"},
+                       {"method": "POST", "path": "/v1/visitor"}]},
         {"id": "inbox", "label_en": "Event Routing (who it is for)",
          "beskrivning_en": "Turns broadcast feeds into 'your decision may have "
                            "changed'. A visitor registers what they have at "
