@@ -1,7 +1,8 @@
+# Later rules win, so the catch-all goes first and the exceptions after it.
+* text=auto eol=lf
+
 # Windows launchers must keep CRLF: cmd.exe mis-parses goto labels in a
 # batch file that arrives with LF-only endings.
 *.bat text eol=crlf
 *.cmd text eol=crlf
-
-# Everything else stays LF in the repository.
-* text=auto eol=lf
+START-HERE.txt text eol=crlf
