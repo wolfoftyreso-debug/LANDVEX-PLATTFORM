@@ -45,6 +45,7 @@ from engine.ask import ask
 from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
 from engine.setpoints import assess_zone, catalog as setpoints_catalog
+from engine.claims import build_claim, cite, validate_governance, verify as verify_claim
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -336,6 +337,21 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/setpoints/assess":
                 return self._send(200, assess_zone(
                     str(req["code"]), float(req["value"])))
+            if self.path == "/v1/cite":
+                claim = build_claim(
+                    str(req.get("statement", "")), req.get("value"),
+                    req.get("source") or {}, req.get("jurisdiction") or {},
+                    req.get("time") or {}, unit=req.get("unit", ""),
+                    method=req.get("method", "observed"),
+                    uncertainty=req.get("uncertainty", ""),
+                    owners=req.get("owners") or {})
+                ok, missing = validate_governance(claim)
+                return self._send(200, {
+                    "claim": claim,
+                    "citations": {s: cite(claim, s)
+                                  for s in ("text", "apa", "bibtex")},
+                    "governance": {"ok": ok, "missing": missing},
+                    "verified": verify_claim(claim)})
             if self.path == "/v1/ask":
                 q = str(req.get("question", ""))
                 svar = ask(q, resolver=RESOLVER)

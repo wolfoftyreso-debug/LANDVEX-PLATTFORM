@@ -14,6 +14,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from typing import Any
 from pydantic import BaseModel, Field
 
 from api.health import build_health, source_status
@@ -36,6 +37,7 @@ from engine.ask import ask
 from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
 from engine.lambda_index import lambda_score
 from engine.setpoints import assess_zone, catalog as setpoints_catalog
+from engine.claims import build_claim, cite, validate_governance, verify as verify_claim
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -429,6 +431,34 @@ def setpoints_assess(req: SetpointRequest):
         return assess_zone(req.code, req.value)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+class CiteRequest(BaseModel):
+    statement: str
+    value: Any = None
+    unit: str = ""
+    source: dict = Field(default_factory=dict)
+    jurisdiction: dict = Field(default_factory=dict)
+    time: dict = Field(default_factory=dict)
+    owners: dict = Field(default_factory=dict)
+    method: str = "observed"
+    uncertainty: str = ""
+
+
+def _cite_response(req: "CiteRequest") -> dict:
+    claim = build_claim(req.statement, req.value, req.source, req.jurisdiction,
+                        req.time, unit=req.unit, method=req.method,
+                        uncertainty=req.uncertainty, owners=req.owners)
+    ok, missing = validate_governance(claim)
+    return {"claim": claim,
+            "citations": {s: cite(claim, s) for s in ("text", "apa", "bibtex")},
+            "governance": {"ok": ok, "missing": missing},
+            "verified": verify_claim(claim)}
+
+
+@app.post("/v1/cite")
+def cite_ep(req: CiteRequest):
+    return _cite_response(req)
 
 
 class SegmentAnalyzeRequest(BaseModel):

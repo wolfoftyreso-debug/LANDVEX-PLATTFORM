@@ -49,6 +49,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/lambda": "opportunity",
     "/v1/setpoints": "core",                  # registret; assess kräver mer
     "/v1/setpoints/assess": "opportunity",
+    "/v1/cite": "core",                       # citat/proveniens öppet
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

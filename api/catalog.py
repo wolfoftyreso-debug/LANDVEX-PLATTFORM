@@ -115,6 +115,11 @@ API_CATALOG: dict = {
                            "nested zones and sourced derivation.",
          "endpoints": [{"method": "GET", "path": "/v1/setpoints"},
                        {"method": "POST", "path": "/v1/setpoints/assess"}]},
+        {"id": "claims", "label_en": "Claims & Citation",
+         "beskrivning_en": "Turns a figure into a verifiable, content-hashed, "
+                           "versioned claim with 3-owner governance and "
+                           "text/APA/BibTeX citations.",
+         "endpoints": [{"method": "POST", "path": "/v1/cite"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},
