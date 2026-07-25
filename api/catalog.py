@@ -245,6 +245,17 @@ API_CATALOG: dict = {
                            "that lifts it a step.",
          "endpoints": [{"method": "GET", "path": "/v1/visitor/contract"},
                        {"method": "POST", "path": "/v1/visitor"}]},
+        {"id": "saturation", "label_en": "Market Saturation",
+         "beskrivning_en": "How saturated a trade's market is in a place: "
+                           "establishments per 10,000 residents, ranked "
+                           "against comparable regions, with the band, the "
+                           "peer median and how many more or fewer it would "
+                           "take to reach it. Every count states whether it "
+                           "came from an official business register or is an "
+                           "estimate. Density is never presented as "
+                           "opportunity.",
+         "endpoints": [{"method": "GET", "path": "/v1/registers"},
+                       {"method": "POST", "path": "/v1/saturation"}]},
         {"id": "inbox", "label_en": "Event Routing (who it is for)",
          "beskrivning_en": "Turns broadcast feeds into 'your decision may have "
                            "changed'. A visitor registers what they have at "

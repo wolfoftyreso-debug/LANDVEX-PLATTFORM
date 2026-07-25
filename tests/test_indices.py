@@ -6,6 +6,8 @@ from engine.indices import (CONTRADICTION_THRESHOLD, INDEX_TYPES,
                             city_assessment, index_catalog, index_map)
 from engine.markets import MARKETS
 from engine.signals import CATALOG
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 
 def test_index_types_are_valid_data():
@@ -51,7 +53,7 @@ def test_city_assessment_is_traceable():
 
 def test_index_map_contract():
     res = index_map("infrastructure_risk", market="se")
-    assert len(res["regioner"]) == 40
+    assert len(res["regioner"]) == SE_N
     varden = [r["varde"] for r in res["regioner"]]
     assert varden == sorted(varden, reverse=True)     # högst risk först
     assert all(h["band"] in ("gron", "gul", "orange", "rod")

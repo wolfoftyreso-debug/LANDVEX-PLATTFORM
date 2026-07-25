@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 
 from engine.ask import ask, parse
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 # The platform's canonical example questions – all must parse to a
 # real intent (never "hjalp"), with the entities asserted below.
@@ -208,7 +210,7 @@ def test_ask_national_with_map():
     res = ask("Where in Sweden is the need for nurses greatest?")
     assert res["intent"] == "nationell_brist"
     assert res["karta"]["typ"] == "efterfragan"
-    assert len(res["karta"]["kommuner"]) == 40
+    assert len(res["karta"]["kommuner"]) == SE_N
     assert all(k["efterfragan"] in ("mattad", "vaxande", "hog", "extrem")
                for k in res["karta"]["kommuner"])
     assert res["svar_en"].startswith("Largest calculated need")
@@ -265,6 +267,22 @@ def test_regions_groups_and_countries_are_not_mistaken_for_unknown_places():
                "Best location for a hair salon in Dallas?"):
         q = parse(qn)
         assert q.intent != "okand_kommun", qn
+
+
+def test_saturation_question_is_understood_in_both_languages():
+    for qn in ("How saturated is the market for electricians in Tyreso?",
+               "Hur pass mättad är marknaden för elektriker i Tyresö?"):
+        q = parse(qn)
+        assert q.intent == "marknadsmattnad", qn
+        assert q.vertical_id == "elektriker"     # yrkesordet syftar på branschen
+        assert q.kommun[1] == "Tyresö"
+    res = ask("Hur pass mättad är marknaden för elektriker i Tyresö?")
+    assert res["rader"], "inget mättnadssvar"
+    d = res["rader"][0]["detalj"]
+    assert d["industry_code"]["code"] == "43.21"          # NACE
+    # Utan anslutet register MÅSTE svaret säga att antalet är uppskattat.
+    assert d["measured"] is False
+    assert any("ESTIMATE" in c for c in res["caveats_en"])
 
 
 if __name__ == "__main__":

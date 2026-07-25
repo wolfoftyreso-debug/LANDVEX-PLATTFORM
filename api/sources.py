@@ -42,6 +42,12 @@ ADAPTERS: tuple[dict, ...] = (
     {"id": "aamos", "name": "AAMOS Capability Platform", "env": "AAMOS_CORE_URL",
      "provides": ["platform_status", "agents", "cognition"],
      "official": "AAMOS Core (service-account token)", "default_on": False},
+    {"id": "registers", "name": "Business registers (EU NACE / US NAICS)",
+     "env": "LANDVEX_REGISTER_URL",
+     "provides": ["establishment counts by industry and region"],
+     "official": "SCB/Bolagsverket, Destatis, INSEE SIRENE, INE, ISTAT, "
+                 "KVK, CVR, Br\u00f8nn\u00f8ysund, GUS, US Census CBP/QCEW",
+     "default_on": False},
     {"id": "geo", "name": "Municipal register mirror", "env": "LANDVEX_GEO_URL",
      "provides": ["admin level 2: counties / kommuner / communes"],
      "official": "US Census FIPS / SCB kommunkod / StatCan SGC / INSEE COG",

@@ -7,6 +7,8 @@ from engine.gaps import gap_analysis
 from engine.plan import PLAN_DATA, establishment_plan
 from engine.verticals import VERTICALS
 from engine.workforce import OCCUPATIONS
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 
 # ── Gap Analysis ─────────────────────────────────────────────────────
@@ -28,7 +30,7 @@ def test_gap_contract_and_ranking():
         assert all("bedomning_en" in r and "kalla" in r
                    for r in e["forklaring"]["efterfragan"])
         assert e["narrativ_en"]
-    assert len(res["heatmap"]) == 40
+    assert len(res["heatmap"]) == SE_N
     assert res["caveats_en"]
     assert gap_analysis("bilverkstad", top_n=5, market="se") == res     # determinism
 

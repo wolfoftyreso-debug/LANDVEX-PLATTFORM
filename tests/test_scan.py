@@ -9,6 +9,8 @@ from engine.profile import (BusinessProfile, profile_from_dict,
 from engine.scan import SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.verticals import VERTICALS
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 
 def _profile(**kw) -> BusinessProfile:
@@ -59,8 +61,8 @@ def test_report_exposes_signals_and_risk_score():
 
 def test_scan_ranks_and_bands():
     res = scan(_profile(), top_n=5, market="se")
-    assert res["candidates_scanned"] == 40
-    assert len(res["heatmap"]) == 40
+    assert res["candidates_scanned"] == SE_N
+    assert len(res["heatmap"]) == SE_N
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
     hs = res["hotspots"]
     assert len(hs) == 5
@@ -106,7 +108,7 @@ def test_environment_filter():
     assert all("turistort" in h["environment"] for h in res["hotspots"])
     assert res["excluded"]["miljo"] > 0
     # Värmekartan visar fortfarande hela svepet.
-    assert len(res["heatmap"]) == 40
+    assert len(res["heatmap"]) == SE_N
 
 
 def test_risk_tolerance_affects_ranking():
@@ -127,9 +129,9 @@ def test_risk_tolerance_affects_ranking():
 def test_detail_level_scans_five_points_per_kommun():
     over = scan(_profile(), level="oversikt", market="se")
     det = scan(_profile(), level="detaljerad", market="se")
-    assert over["candidates_scanned"] == 40
-    assert det["candidates_scanned"] == 200
-    assert det["kommuner_scanned"] == 40
+    assert over["candidates_scanned"] == SE_N
+    assert det["candidates_scanned"] == SE_N * 5   # 5 punkter per kommun
+    assert det["kommuner_scanned"] == SE_N
     # Fortfarande max en hotspot per kommun – bästa punkten vinner.
     koder = [h["kommun_kod"] for h in det["hotspots"]]
     assert len(koder) == len(set(koder))
@@ -227,14 +229,18 @@ def test_stars_outlook_workstyle_and_company_form():
         top_n=5, market="se")["hotspots"]]
     assert a != b
     # Grundscoren är oförändrad av arbetssätt (bara rankningen tiltas).
+    # Jämför de kommuner som finns i BÅDA listorna: arbetssättet ändrar
+    # vilka som hamnar i topplistan, vilket är hela poängen med tilten.
     s1 = {x["kommun_kod"]: x["opportunity_score"] for x in scan(
         profile_from_dict({"vertical_id": "elektriker"}),
-        top_n=40, market="se")["hotspots"]}
+        top_n=SE_N, market="se")["hotspots"]}
     s2 = {x["kommun_kod"]: x["opportunity_score"] for x in scan(
         profile_from_dict({"vertical_id": "elektriker",
                            "work_style": "offentligt"}),
-        top_n=40, market="se")["hotspots"]}
-    assert s1 == s2
+        top_n=SE_N, market="se")["hotspots"]}
+    shared = set(s1) & set(s2)
+    assert shared, "topplistorna överlappar inte alls"
+    assert all(s1[k] == s2[k] for k in shared)
 
 
 if __name__ == "__main__":

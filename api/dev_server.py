@@ -64,6 +64,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.registers import RegisterClient, register_catalog
+from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
@@ -270,6 +272,9 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
+        if parsed.path == "/v1/registers":
+            return self._send(200, {**register_catalog(),
+                                    "client": RegisterClient().status()})
         if parsed.path == "/v1/customer/journey":
             return self._send(200, customer_engine.journey())
         if parsed.path == "/v1/visitor/contract":
@@ -488,6 +493,14 @@ class Handler(BaseHTTPRequestHandler):
                     horizon_years=int(req.get("horizon_years", 1)),
                     decision=str(req.get("decision", "")),
                     currency=str(req.get("currency", "USD"))))
+            if self.path == "/v1/saturation":
+                try:
+                    return self._send(200, market_saturation(
+                        str(req["vertical"]), str(req["region"]),
+                        market=str(req.get("market", "se")), resolver=RESOLVER,
+                        peer_limit=min(max(int(req.get("peer_limit", 25)), 5), 60)))
+                except ValueError as e:
+                    return self._send(404, {"error": str(e)})
             if self.path == "/v1/customer/stage":
                 return self._send(200, customer_engine.stage(
                     req.get("payload") or {}))

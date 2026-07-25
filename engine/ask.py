@@ -248,6 +248,9 @@ _START_WORDS = ("start", "open", "establish", "launch", "opportunit",
                 "invest", "set up", "öppna", "etablera",
                 "affärsmöjlighet", "möjligheter", "driva")
 _RISK_WORDS = ("risk", "dangerous", "dare", "farligt", "vågar")
+_SATURATION_WORDS = ("saturated", "saturation", "how crowded", "crowded",
+                     "oversupplied", "market density", "mättad", "mättnad",
+                     "överetablerad", "overetablerad", "trängsel")
 _GAP_WORDS = ("imbalance", "underserved", "untapped", "unmet", "gap",
               "obalans", "outnyttjad", "underförsörjd",
               "underetablerad", "lucka", "vita fläckar", "white spot")
@@ -543,8 +546,12 @@ def parse(question: str) -> Query:
     start = any(w in q for w in _START_WORDS)
     risky = any(w in q for w in _RISK_WORDS)
     move = any(w in q for w in _MOVE_WORDS)
+    saturated = any(w in q for w in _SATURATION_WORDS)
     # Occupation in "start/open" context → the corresponding industry.
-    if occ and vert is None and (start or risky) and occ in _OCC_TO_VERTICAL:
+    # I en mättnadsfråga syftar yrkesordet på BRANSCHEN: "hur mättad är
+    # marknaden för elektriker" handlar om elfirmorna, inte om yrket.
+    if occ and vert is None and (start or risky or saturated) \
+            and occ in _OCC_TO_VERTICAL:
         vert, occ = _OCC_TO_VERTICAL[occ], None
     shortage = any(w in q for w in _SHORTAGE_WORDS)
     # Hits in both lexicons ("plumbing company"): start context →
@@ -578,6 +585,8 @@ def parse(question: str) -> Query:
 
     if kommun is None and query.unmatched_kommun:
         query.intent = "okand_kommun"
+    elif saturated and vert and kommun:
+        query.intent = "marknadsmattnad"
     elif plan and vert and kommun:
         query.intent = "etableringsplan"
     elif gap and vert:
@@ -626,6 +635,39 @@ _HELP = {
         "How risky is it to start a gym in Solna?",
     ],
 }
+
+
+def _rows_mattnad(query: Query, resolver) -> dict:
+    from .saturation_scan import market_saturation
+    mkt = query.market or query.region_market or DEFAULT_MARKET
+    res = market_saturation(query.vertical_id, query.kommun[1], market=mkt,
+                            resolver=resolver)
+    if res["status"] != "assessed":
+        return {"rader": [], "svar_en": res["verdict_en"],
+                "caveats_en": [c for c in [res.get("caveat_en")] if c]}
+    caveats = [res["caveat_en"]]
+    if not res["supply"]["measured"]:
+        # Aldrig presentera en uppskattning som en registeruppgift.
+        caveats.insert(0, "The establishment count is an ESTIMATE derived "
+                          "from local signals, not a register figure. Connect "
+                          "the business register (LANDVEX_REGISTER_URL) to "
+                          "make it real.")
+    return {
+        "rader": [{"typ": "marknadsmattnad", "id": res["region_code"],
+                   "label_en": res["region"], "score": res["percentile"],
+                   "band": res["band"],
+                   "detalj": {
+                       "establishments": res["supply"]["establishments"],
+                       "measured": res["supply"]["measured"],
+                       "density_per_10k": res["density_per_10k"],
+                       "peer_median_density": res["peer_median_density"],
+                       "peers_compared": res["peers_compared"],
+                       "to_reach_peer_median": res["to_reach_peer_median"],
+                       "industry_code": res["industry_code"],
+                       "register": res["register"],
+                       "demand_reading_en": res.get("demand_reading_en"),
+                       "basis_en": res["supply"]["basis_en"]}}],
+        "svar_en": res["verdict_en"], "caveats_en": caveats}
 
 
 def _rows_mojligheter(query: Query, resolver) -> dict[str, Any]:
@@ -1082,6 +1124,7 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
         return {**base, **_HELP, "caveats_en": []}
 
     handler = {"mojligheter_kommun": _rows_mojligheter,
+               "marknadsmattnad": _rows_mattnad,
                "bristyrken_kommun": _rows_bristyrken,
                "nationell_brist": _rows_nationell,
                "global_brist": _rows_global,

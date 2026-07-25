@@ -3,8 +3,11 @@ python3 -m tests.test_workforce"""
 from __future__ import annotations
 
 from engine.signals import CATALOG
+from engine.markets import MARKETS
 from engine.workforce import (BASE_YEAR, OCCUPATIONS, forecast,
                               national_map, occupation_catalog, simulate)
+
+SE_N = len(MARKETS["se"].regions)   # antalet kommuner är data, inte en konstant
 
 
 def test_catalog_is_valid_data():
@@ -83,7 +86,7 @@ def test_simulation_reduces_gap():
 
 def test_national_map_bands():
     res = national_map("sjukskoterska", 2035, market="se")
-    assert len(res["kommuner"]) == 40
+    assert len(res["kommuner"]) == SE_N
     assert all(k["band"] in ("balans", "okande_brist", "kritisk_brist")
                for k in res["kommuner"])
     # Sorterad: störst brist först.

@@ -7,6 +7,8 @@ from engine.segments import (SEGMENTS, segment_analysis, segment_catalog,
                              segment_map)
 from engine.signals import CATALOG
 from engine.verticals import VERTICALS
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 
 def test_segments_are_valid_data():
@@ -39,7 +41,7 @@ def test_segment_analysis_contract():
 def test_segment_map_contract():
     res = segment_map("djuragare", market="se")
     assert res["label_en"] == "Pet owners"
-    assert len(res["regioner"]) == 40 and len(res["heatmap"]) == 40
+    assert len(res["regioner"]) == SE_N and len(res["heatmap"]) == SE_N
     antal = [r["antal_uppskattat"] for r in res["regioner"]]
     assert antal == sorted(antal, reverse=True)           # flest först
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
@@ -64,7 +66,7 @@ def test_ask_segment_intents_and_answers():
 
     res = ask("Var i Sverige finns flest djurägare?")
     assert res["intent"] == "segment_karta"
-    assert len(res["karta"]["heatmap"]) == 40
+    assert len(res["karta"]["heatmap"]) == SE_N
     assert res["rader"][0]["detalj"]["index_mot_marknadssnitt"] >= \
         res["rader"][-1]["detalj"]["index_mot_marknadssnitt"] or True
 

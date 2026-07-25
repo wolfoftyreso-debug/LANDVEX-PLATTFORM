@@ -56,6 +56,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.registers import RegisterClient, register_catalog
+from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
@@ -718,6 +720,29 @@ def customer_stage(req: VisitorRequest):
         return customer_engine.stage(req.payload)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+class SaturationRequest(BaseModel):
+    vertical: str
+    region: str
+    market: str = "se"
+    peer_limit: int = 25
+
+
+@app.get("/v1/registers")
+def registers_catalog():
+    return {**register_catalog(), "client": RegisterClient().status()}
+
+
+@app.post("/v1/saturation")
+def saturation_ep(req: SaturationRequest):
+    """How saturated is the market for a trade in a place?"""
+    try:
+        return market_saturation(req.vertical, req.region, market=req.market,
+                                 resolver=RESOLVER,
+                                 peer_limit=min(max(req.peer_limit, 5), 60))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/v1/inbox")

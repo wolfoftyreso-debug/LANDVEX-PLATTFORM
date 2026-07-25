@@ -8,6 +8,8 @@ from engine.installed_base import (PRODUCT_TYPES, product_catalog,
 from engine.signals import CATALOG
 from engine.verticals import VERTICALS
 from engine.workforce import OCCUPATIONS
+from engine.markets import MARKETS
+SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 
 def test_product_types_are_valid_data():
@@ -43,7 +45,7 @@ def test_service_analysis_contract():
 
 def test_service_map_contract_and_mismatch():
     res = service_demand_map("varmepump_luft", market="se")
-    assert len(res["regioner"]) == 40 and len(res["heatmap"]) == 40
+    assert len(res["regioner"]) == SE_N and len(res["heatmap"]) == SE_N
     utbyten = [r["utbyten_till_malar"] for r in res["regioner"]]
     assert utbyten == sorted(utbyten, reverse=True)
     assert all(h["band"] in ("gron", "gul", "rod") for h in res["heatmap"])
