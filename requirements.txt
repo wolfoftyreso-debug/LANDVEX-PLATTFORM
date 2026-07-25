@@ -1,5 +1,6 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
+gunicorn>=22.0
 mangum>=0.17
 # Produktionspersistens (Aurora PostgreSQL + PostGIS) – valfri lokalt:
 # psycopg[binary]>=3.2

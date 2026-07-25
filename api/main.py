@@ -67,7 +67,18 @@ from engine.workforce import (forecast as wf_forecast, global_map,
                               national_map, occupation_catalog,
                               simulate as wf_simulate)
 
-app = FastAPI(title="LANDVEX Opportunity Engine", version="0.9.0")
+app = FastAPI(title="LANDVEX Opportunity Engine", version="1.1.0")
+
+# CORS only when the frontend is served from a different origin than the API.
+# Same-origin deploys (nginx serves both) leave LANDVEX_CORS_ORIGINS unset.
+_CORS = [o.strip() for o in os.environ.get("LANDVEX_CORS_ORIGINS", "").split(",")
+         if o.strip()]
+if _CORS:
+    from fastapi.middleware.cors import CORSMiddleware
+    app.add_middleware(CORSMiddleware, allow_origins=_CORS,
+                       allow_methods=["GET", "POST"],
+                       allow_headers=["Content-Type", "X-API-Key",
+                                      "Authorization"])
 
 _OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json",
                "/v1/plans")

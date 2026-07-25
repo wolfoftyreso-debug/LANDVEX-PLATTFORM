@@ -7,3 +7,7 @@ landvex-demo.html
 # Runtime-generated audit log (api/security.py)
 landvex-audit.log
 *.log
+
+# Deployment secrets — never commit the filled-in env
+.env
+.env.production

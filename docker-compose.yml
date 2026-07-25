@@ -1,0 +1,63 @@
+# LANDVEX Opportunity Engine — one-command run for landvex.com.
+#
+#   Local / staging (app only, http on :8000):
+#     docker compose up --build app
+#
+#   Production (app + nginx TLS on 80/443 for landvex.com):
+#     cp .env.example .env   # fill in LANDVEX_API_KEYS etc.
+#     docker compose --profile prod up -d --build
+#
+#   With managed Postgres instead of the bundled one, set LANDVEX_PG_DSN in
+#   .env and skip the `db` service (leave the `postgres` profile off).
+services:
+  app:
+    build: .
+    image: landvex/opportunity-engine:1.1.0
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      LANDVEX_PORT: "8000"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+      LANDVEX_DB: "${LANDVEX_DB:-/data/landvex.db}"
+    volumes:
+      - landvex-data:/data
+      - landvex-logs:/var/log/landvex
+    expose: ["8000"]
+    ports:
+      - "${APP_BIND:-127.0.0.1:8000}:8000"   # bound to localhost by default
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 4s
+      retries: 3
+
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["prod"]
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx-landvex.conf:/etc/nginx/conf.d/landvex.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot
+
+  db:
+    image: postgis/postgis:16-3.4
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${PGUSER:-landvex}"
+      POSTGRES_PASSWORD: "${PGPASSWORD:-changeme}"
+      POSTGRES_DB: "${PGDATABASE:-landvex}"
+    volumes:
+      - landvex-pgdata:/var/lib/postgresql/data
+    expose: ["5432"]
+
+volumes:
+  landvex-data:
+  landvex-logs:
+  landvex-pgdata:
+  certbot-www:
