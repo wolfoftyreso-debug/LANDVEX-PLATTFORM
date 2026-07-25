@@ -58,7 +58,8 @@ from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
 from engine.sensitive import sensitive_association
-from engine.wages import compare as wage_compare, wage, wage_catalog
+from engine.wages import (compare as wage_compare, compensation_context, wage,
+                          wage_catalog)
 from engine.corrections import (adapt as adapt_correction,
                                 consensus as correction_consensus,
                                 set_store as set_corrections_store,
@@ -800,6 +801,16 @@ def wages_compare(req: WageCompareRequest):
         return wage_compare(req.occupation, req.markets)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+class WageContextRequest(BaseModel):
+    occupation: str
+    region: str
+
+
+@app.post("/v1/wages/context")
+def wages_context(req: WageContextRequest):
+    return compensation_context(req.occupation, req.region)
 
 
 class CorrectionSubmitRequest(BaseModel):

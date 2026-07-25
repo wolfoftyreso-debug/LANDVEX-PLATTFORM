@@ -66,7 +66,8 @@ from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
 from engine.sensitive import sensitive_association
-from engine.wages import compare as wage_compare, wage, wage_catalog
+from engine.wages import (compare as wage_compare, compensation_context, wage,
+                          wage_catalog)
 from engine.corrections import (adapt as adapt_correction,
                                 consensus as correction_consensus,
                                 set_store as set_corrections_store,
@@ -488,6 +489,9 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/wages/compare":
                 return self._send(200, wage_compare(
                     str(req["occupation"]), req.get("markets") or []))
+            if self.path == "/v1/wages/context":
+                return self._send(200, compensation_context(
+                    str(req["occupation"]), str(req["region"])))
             if self.path == "/v1/corrections/submit":
                 return self._send(200, submit_correction(
                     str(req["region"]), str(req["target_key"]),

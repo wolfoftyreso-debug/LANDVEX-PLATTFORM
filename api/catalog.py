@@ -186,7 +186,8 @@ API_CATALOG: dict = {
                            "local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
          "endpoints": [{"method": "GET", "path": "/v1/wages"},
                        {"method": "POST", "path": "/v1/wages/lookup"},
-                       {"method": "POST", "path": "/v1/wages/compare"}]},
+                       {"method": "POST", "path": "/v1/wages/compare"},
+                       {"method": "POST", "path": "/v1/wages/context"}]},
         {"id": "corrections", "label_en": "Community Corrections",
          "beskrivning_en": "Wikipedia-style sourced corrections from regional "
                            "users; when enough independent, converging, sourced "

@@ -38,6 +38,22 @@ def test_compare_sorts_by_usd_with_ppp_caveat():
     assert "PPP" in r["note"] and r["framing"]["choices"]["ppp_adjusted"] is False
 
 
+def test_compensation_context_changes_real_position():
+    us_mech = W.compensation_context("bilmechanic", "us")
+    assert any(f["factor"] == "tools_self_provided" for f in us_mech["factors"])
+    assert us_mech["net_real_vs_nominal"] == "lower"
+    cn_fac = W.compensation_context("factory worker", "cn")
+    assert any(f["factor"] == "housing_included" for f in cn_fac["factors"])
+    assert cn_fac["net_real_vs_nominal"] == "higher"
+    do_wait = W.compensation_context("waitress", "do")
+    assert {f["factor"] for f in do_wait["factors"]} == {"pays_to_work", "tips_commission"}
+    assert "not real compensation" in do_wait["caveat"]
+
+
+def test_compensation_context_none_on_record():
+    assert W.compensation_context("astronaut", "se")["net_real_vs_nominal"] == "no context on record"
+
+
 def test_rank_by_wage():
     r = W.rank_by_wage("se")
     wages = [o["monthly_wage"] for o in r["occupations"]]

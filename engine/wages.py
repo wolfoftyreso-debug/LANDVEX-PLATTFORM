@@ -93,6 +93,56 @@ def compare(code: str, markets: list[str]) -> dict:
     }
 
 
+# --- Kompensations-kontext: nominell lön ≠ verklig position ----------------
+# In natura-förmåner och dolda kostnader som gör en rå lönejämförelse
+# vilseledande. Data (illustrativ/schablon); utökas per yrke×region. `+` höjer
+# den verkliga ersättningen, `-` sänker den.
+COMP_CONTEXT: tuple[dict, ...] = (
+    {"occupation": "factory", "region": "cn", "factor": "housing_included",
+     "direction": "+", "note": "Employer dormitory housing is common — real "
+     "compensation exceeds the cash wage."},
+    {"occupation": "factory", "region": "us", "factor": "housing_not_included",
+     "direction": "0", "note": "No employer housing (e.g. Detroit) — the cash "
+     "wage must cover rent."},
+    {"occupation": "mechanic", "region": "us", "factor": "tools_self_provided",
+     "direction": "-", "note": "Mechanics typically buy their own tools "
+     "(thousands of USD) — a real cost against the wage."},
+    {"occupation": "mechanic", "region": "se", "factor": "tools_employer_provided",
+     "direction": "+", "note": "Employer provides tools — no personal outlay."},
+    {"occupation": "wait", "region": "do", "factor": "pays_to_work",
+     "direction": "-", "note": "May pay for a shift slot at a beach bar."},
+    {"occupation": "wait", "region": "do", "factor": "tips_commission",
+     "direction": "+", "note": "Commission on everything sold — income well "
+     "beyond the base wage."},
+    {"occupation": "wait", "region": "us", "factor": "tips",
+     "direction": "+", "note": "Tips are a large share of take-home."},
+)
+
+
+def compensation_context(occupation: str, region: str) -> dict:
+    """Icke-kontanta förmåner/kostnader som gör en rå lönejämförelse
+    vilseledande (boende, egna verktyg, dricks/provision, betala-för-passet).
+
+    Matchar löst på yrkessträng + region. Returnerar tillämpliga faktorer,
+    en netto-riktning och en tydlig caveat.
+    """
+    q = (occupation or "").lower()
+    rows = [c for c in COMP_CONTEXT
+            if (c["occupation"] in q or q in c["occupation"])
+            and c["region"] == region.lower()]
+    plus = sum(1 for c in rows if c["direction"] == "+")
+    minus = sum(1 for c in rows if c["direction"] == "-")
+    net = "higher" if plus > minus else "lower" if minus > plus else "mixed/neutral"
+    return {
+        "occupation": occupation, "region": region, "factors": rows,
+        "net_real_vs_nominal": net if rows else "no context on record",
+        "caveat": ("Nominal wage is not real compensation. In-kind housing, "
+                   "self-provided tools, tips/commission and pay-to-work can "
+                   "move the real position far from the cash figure — compare "
+                   "these before comparing wages."),
+    }
+
+
 def rank_by_wage(market: str = DEFAULT_MARKET, top: int = 0) -> dict:
     """Rangordna yrkena efter standardlön i en marknad."""
     rows = sorted((wage(o.id, market) for o in OCCUPATIONS.values()),
