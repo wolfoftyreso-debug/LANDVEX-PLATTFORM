@@ -50,6 +50,10 @@ from engine.feeds import catalog as feeds_catalog, generate as generate_feed
 from engine.worthiness import select_for_wrap
 from engine.decision import (crisis_scan, evaluate as decision_evaluate,
                              templates as decision_templates)
+from engine.strim import (build_entity, cite as strim_cite, entity_types,
+                          to_jsonld)
+from engine.datasources.kolada import KoladaClient
+from engine.datasources.svk import SvkClient
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -206,6 +210,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, feeds_catalog())
         if parsed.path == "/v1/decision":
             return self._send(200, decision_templates())
+        if parsed.path == "/v1/strim":
+            return self._send(200, entity_types())
+        if parsed.path == "/v1/kolada":
+            return self._send(200, KoladaClient().status())
+        if parsed.path == "/v1/svk":
+            return self._send(200, SvkClient().status())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -369,6 +379,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/decision":
                 return self._send(200, decision_evaluate(
                     str(req["template"]), req.get("answers") or {}))
+            if self.path == "/v1/strim/entity":
+                ent = build_entity(
+                    str(req["entity_type"]), str(req["slug"]),
+                    str(req.get("name_en", "")), name_sv=req.get("name_sv", ""),
+                    definition=req.get("definition", ""),
+                    sources=req.get("sources") or [],
+                    fields=req.get("fields") or {})
+                return self._send(200, {
+                    "entity": ent, "jsonld": to_jsonld(ent),
+                    "citations": {s: strim_cite(ent, s)
+                                  for s in ("text", "apa", "bibtex")}})
             if self.path == "/v1/ask":
                 q = str(req.get("question", ""))
                 kris = crisis_scan(q, country="us")

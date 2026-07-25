@@ -136,6 +136,18 @@ API_CATALOG: dict = {
                            "queries are met with support resources.",
          "endpoints": [{"method": "GET", "path": "/v1/decision"},
                        {"method": "POST", "path": "/v1/decision"}]},
+        {"id": "strim", "label_en": "STRIM Knowledge Graph",
+         "beskrivning_en": "Citable, versioned, neutral entity graph "
+                           "(schema.org / JSON-LD) with immutable slugs and "
+                           "an editorial neutral-language gate.",
+         "endpoints": [{"method": "GET", "path": "/v1/strim"},
+                       {"method": "POST", "path": "/v1/strim/entity"}]},
+        {"id": "data_sources", "label_en": "Data-source Adapters",
+         "beskrivning_en": "Connection status for the Kolada and SVK/ENTSO-E "
+                           "adapters — honestly not-connected until their "
+                           "URL is set.",
+         "endpoints": [{"method": "GET", "path": "/v1/kolada"},
+                       {"method": "GET", "path": "/v1/svk"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

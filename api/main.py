@@ -42,6 +42,10 @@ from engine.feeds import catalog as feeds_catalog, generate as generate_feed
 from engine.worthiness import select_for_wrap
 from engine.decision import (crisis_scan, evaluate as decision_evaluate,
                              templates as decision_templates)
+from engine.strim import (build_entity, cite as strim_cite, entity_types,
+                          to_jsonld)
+from engine.datasources.kolada import KoladaClient
+from engine.datasources.svk import SvkClient
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -512,6 +516,43 @@ def decision_ep(req: DecisionRequest):
         return decision_evaluate(req.template, req.answers)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+class StrimEntityRequest(BaseModel):
+    entity_type: str
+    slug: str
+    name_en: str
+    name_sv: str = ""
+    definition: str = ""
+    sources: list = Field(default_factory=list)
+    fields: dict = Field(default_factory=dict)
+
+
+@app.get("/v1/strim")
+def strim_registry():
+    return entity_types()
+
+
+@app.post("/v1/strim/entity")
+def strim_entity(req: StrimEntityRequest):
+    try:
+        ent = build_entity(req.entity_type, req.slug, req.name_en,
+                           name_sv=req.name_sv, definition=req.definition,
+                           sources=req.sources, fields=req.fields)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"entity": ent, "jsonld": to_jsonld(ent),
+            "citations": {s: strim_cite(ent, s) for s in ("text", "apa", "bibtex")}}
+
+
+@app.get("/v1/kolada")
+def kolada_status():
+    return KoladaClient().status()
+
+
+@app.get("/v1/svk")
+def svk_status():
+    return SvkClient().status()
 
 
 class SegmentAnalyzeRequest(BaseModel):

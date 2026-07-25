@@ -54,6 +54,9 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/feeds/events": "opportunity",
     "/v1/worthiness": "opportunity",
     "/v1/decision": "opportunity",
+    "/v1/strim": "core",                      # kunskapsgraf + status öppna
+    "/v1/kolada": "core",
+    "/v1/svk": "core",
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
@@ -215,3 +218,28 @@ def plans_catalog() -> dict:
                          "capabilities": list(a["capabilities"])}
                         for aid, a in ADDONS.items()],
             "prisnot_en": PRISNOT_EN}
+
+
+# --- Query-complexity-budget + månadsfönster (dissg monetarisering) ---------
+# Per-plan komplexitetstak (0 = obegränsat). En tung fråga (många dimensioner,
+# djup historik) kostar mer; budgeten skiljer plus/pro/enterprise.
+COMPLEXITY_LIMIT: dict[str, int] = {"free": 100, "pro": 1000, "enterprise": 0}
+
+
+def complexity_limit(plan: str) -> int:
+    return COMPLEXITY_LIMIT.get(PLAN_ALIASES.get(plan, plan), 100)
+
+
+def check_complexity(plan: str, cost: int) -> bool:
+    """True om en fråga med kostnad `cost` ryms i planens budget."""
+    lim = complexity_limit(plan)
+    return lim == 0 or int(cost) <= lim
+
+
+def usage_window_key(tenant: str, feature: str, year_month: str) -> str:
+    """Nyckel för månadsvis kvoträkning: (tenant, feature, 'YYYY-MM').
+
+    year_month skickas in (aldrig härlett i lagret) → deterministiskt och
+    testbart, och överlever omstarter i det persistenta usage_meter-lagret.
+    """
+    return f"{tenant}:{feature}:{year_month}"
