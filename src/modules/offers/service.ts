@@ -339,6 +339,10 @@ export async function recordDeal(
   });
 }
 
+export async function getDealForRfq(rfqId: string): Promise<Deal | undefined> {
+  return db.query.deals.findFirst({ where: eq(deals.rfqId, rfqId) });
+}
+
 export async function listDeals(actor: Actor): Promise<Deal[]> {
   requireAnyRole(actor, ["ops", "admin"]);
   return db.select().from(deals).orderBy(desc(deals.createdAt));

@@ -11,7 +11,10 @@ import type { Actor, Role } from "@/modules/identity/rbac";
  * magic-link email flow plugs into the same EmailProvider interface
  * (modules/notifications/email.ts) as a follow-up.
  */
+import { env } from "@/lib/env";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: env.AUTH_SECRET,
   session: { strategy: "jwt" },
   trustHost: true,
   pages: { signIn: "/signin" },

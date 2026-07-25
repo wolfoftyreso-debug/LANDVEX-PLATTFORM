@@ -12,6 +12,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = routing.locales.flatMap((locale) => [
     { url: `${BASE_URL}/${locale}`, priority: 1 },
     { url: `${BASE_URL}/${locale}/suppliers`, priority: 0.8 },
+    { url: `${BASE_URL}/${locale}/request-work`, priority: 0.9 },
+    { url: `${BASE_URL}/${locale}/markets/sweden`, priority: 0.9 },
+    { url: `${BASE_URL}/${locale}/markets/norway`, priority: 0.8 },
+    { url: `${BASE_URL}/${locale}/markets/denmark`, priority: 0.8 },
     { url: `${BASE_URL}/${locale}/register`, priority: 0.5 },
   ]);
 

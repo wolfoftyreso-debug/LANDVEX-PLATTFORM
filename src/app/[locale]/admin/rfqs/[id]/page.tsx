@@ -6,7 +6,7 @@ import {
   getRfq,
   listDispatchedCompanyIds,
 } from "@/modules/rfq/service";
-import { listOffersForRfq } from "@/modules/offers/service";
+import { getDealForRfq, listOffersForRfq } from "@/modules/offers/service";
 import type { VerificationSnapshot } from "@/modules/offers/domain";
 import { getCompany, listCompanies } from "@/modules/companies/service";
 import { getCorridorBySlug } from "@/modules/catalog/service";
@@ -63,6 +63,7 @@ export default async function AdminRfqDetail({
     offerCompanies.set(offer.companyId, company?.name ?? "—");
   }
   const acceptedOffer = offers.find((o) => o.status === "accepted");
+  const existingDeal = await getDealForRfq(rfq.id);
 
   return (
     <div>
@@ -177,7 +178,18 @@ export default async function AdminRfqDetail({
       })}
 
       {/* Record deal */}
-      {acceptedOffer && (
+      {existingDeal && (
+        <div className="card" style={{ borderColor: "var(--success)" }}>
+          <h3 style={{ marginTop: 0 }}>
+            <span className="badge approved">✓ {t("dealRecorded")}</span>
+          </h3>
+          <p className="muted" style={{ margin: 0 }}>
+            {formatMinor(existingDeal.contractValueMinor, existingDeal.currency)}
+            {" · "}{existingDeal.successFeePct}%
+          </p>
+        </div>
+      )}
+      {acceptedOffer && !existingDeal && (
         <div className="card" style={{ borderColor: "var(--success)" }}>
           <h3>{t("recordDealTitle")}</h3>
           <p className="muted" style={{ fontSize: "0.85rem" }}>{t("recordDealHint")}</p>

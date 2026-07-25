@@ -55,6 +55,13 @@ export default async function SiteChrome({
         }}
         className="muted"
       >
+        <div style={{ marginBottom: "0.5rem" }}>
+          <Link href={`/${locale}/markets/sweden`}>{t("marketSweden")}</Link>
+          {" · "}
+          <Link href={`/${locale}/markets/norway`}>{t("marketNorway")}</Link>
+          {" · "}
+          <Link href={`/${locale}/markets/denmark`}>{t("marketDenmark")}</Link>
+        </div>
         Baltic Bridge — {t("footerLine")}
       </footer>
     </div>

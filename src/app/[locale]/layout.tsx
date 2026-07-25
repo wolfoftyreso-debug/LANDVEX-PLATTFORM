@@ -5,8 +5,14 @@ import { routing } from "@/i18n/routing";
 import "../globals.css";
 import type { ReactNode } from "react";
 
+const BASE_URL = process.env.PUBLIC_BASE_URL ?? "https://balticbridge.example";
+
 export const metadata = {
-  title: "Baltic Bridge",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Baltic Bridge — verified cross-border subcontracting",
+    template: "%s | Baltic Bridge",
+  },
   description:
     "Verified cross-border subcontracting — Lithuania to Sweden. Compliance proven with documents and an audit trail.",
 };

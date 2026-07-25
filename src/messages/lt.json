@@ -43,7 +43,9 @@
     "casesByState": "Patikros bylos",
     "openTasks": "Atviros ops užduotys",
     "companies": "Įmonės",
-    "expiringSoon": "Dokumentai, kurių galiojimas baigiasi per 30 dienų"
+    "expiringSoon": "Dokumentai, kurių galiojimas baigiasi per 30 dienų",
+    "openRfqs": "Atviros užklausos",
+    "timeToMatch": "Laikas iki parinkimo (vid.)"
   },
   "caseState": {
     "draft": "Juodraštis",
@@ -167,7 +169,10 @@
     "findSuppliers": "Rasti tiekėjus",
     "join": "Prisijungti",
     "footerLine": "patikrinta tarpvalstybinė subranga, Lietuva → Švedija.",
-    "requestWork": "Užsakyti darbus"
+    "requestWork": "Užsakyti darbus",
+    "marketSweden": "Samdykite Švedijoje",
+    "marketNorway": "Samdykite Norvegijoje",
+    "marketDenmark": "Samdykite Danijoje"
   },
   "suppliers": {
     "title": "Patikrinti Baltijos tiekėjai",
@@ -288,7 +293,8 @@
     "currency": "Valiuta",
     "successFee": "Sėkmės mokestis %",
     "note": "Pastaba",
-    "recordDealCta": "Užregistruoti"
+    "recordDealCta": "Užregistruoti",
+    "dealRecorded": "Sandoris užregistruotas"
   },
   "deals": {
     "title": "Sandoriai",
@@ -299,5 +305,88 @@
     "contractValue": "Sutarties vertė",
     "fee": "Sėkmės mokestis",
     "recorded": "Užregistruota"
+  },
+  "markets": {
+    "shared": {
+      "openingSoon": "Koridorius netrukus atsidarys",
+      "openingSoonBody": "Patikros variklis veikia Švedijos koridoriui. Šiai rinkai mūsų ops komanda darbų paketus tarpininkauja rankiniu būdu, kol koridorius ruošiamas — siųskite užklausą jau šiandien.",
+      "costTitle": "Kodėl Baltijos subranga?",
+      "howTitle": "Kaip tai veikia",
+      "how1": "Aprašykite darbų paketą — nemokamai ir be įsipareigojimų.",
+      "how2": "Mūsų ops komanda kvalifikuoja užklausą ir parenka patikrintus tiekėjus. Jokio automatinio parinkimo.",
+      "how3": "Palyginkite pasiūlymus, kuriuose kiekvieno tiekėjo atitikties būsena užfiksuota pateikimo metu.",
+      "how4": "Priimkite. Baltic Bridge saugo audito seką per visą sandorį.",
+      "faqTitle": "Dažniausi klausimai",
+      "ctaTitle": "Pasiruošę palyginti?",
+      "ctaBody": "Darbo aprašymas užtrunka tris minutes. Pasiūlymai ateina su įrodyta atitiktimi.",
+      "ctaRequest": "Užsakyti darbus — nemokamai",
+      "ctaBrowse": "Peržiūrėti patikrintus tiekėjus"
+    },
+    "sweden": {
+      "metaTitle": "Samdykite patikrintus Baltijos suvirintojus Švedijoje | Baltic Bridge",
+      "metaDescription": "Baltijos subrangos komandos, visiškai patikrintos darbui Švedijoje: F-skatt, A1, komandiravimo pranešimai, ID06. Fiksuota arba valandinė kaina — be užsakovo atsakomybės rizikos.",
+      "h1": "Patikrintos Baltijos suvirinimo komandos Švedijos projektams",
+      "intro": "Kvalifikuotų darbuotojų trūkumas aštrus, o vietinės valandos kainos daugelį pramonės projektų daro sunkiai pagrindžiamus. Baltijos subranga išsprendžia abu — jei atitiktis įrodyta.",
+      "costBody": "Lietuvos ir Baltijos subrangos komandos dirba už bendrą kainą, dažnai 30–40 % mažesnę nei Švedijos alternatyvos — su tais pačiais sertifikatų reikalavimais (ISO 9606-1, EN 1090).",
+      "complianceTitle": "Užsakovo atsakomybė — išspręsta",
+      "complianceIntro": "Kiekvienas patikrintas tiekėjas turi dokumentuotą ir ops peržiūrėtą:",
+      "compliance1": "Patvirtintą F-skatt su patvirtinimo data",
+      "compliance2": "A1 pažymėjimą kiekvienam komandiruotam darbuotojui su galiojimu",
+      "compliance3": "Komandiravimo pranešimą Arbetsmiljöverket kiekvienam užsakymui",
+      "compliance4": "ID06 kiekvienam darbuotojui ir civilinės atsakomybės draudimą",
+      "compliance5": "Kolektyvinės sutarties statusą ir ISO 9606-1 kvalifikacijas",
+      "faq1q": "Kiek kainuoja Baltic Bridge?",
+      "faq1a": "Užklausos ir pasiūlymų palyginimas pirkėjui nemokami. Sėkmės mokestį tiekėjas moka tik įvykus sandoriui.",
+      "faq2q": "Iš kur žinau, kad patikra tikra?",
+      "faq2a": "Kiekvienas faktas peržiūrėtas ops komandos pagal originalius dokumentus su audito seka. Ženklelis automatiškai išjungiamas, kai baigiasi kritinio dokumento galiojimas.",
+      "faq3q": "Tai įdarbinimas ar subranga?",
+      "faq3a": "Subranga. Perkate apibrėžtą darbų paketą — tiekėjas vadovauja savo komandai.",
+      "faq4q": "Kaip greitai komanda gali pradėti?",
+      "faq4a": "Patikrinti tiekėjai su A1 ir ID06 paprastai mobilizuojasi per 2–4 savaites."
+    },
+    "norway": {
+      "metaTitle": "Sertifikuoti Baltijos suvirintojai Norvegijos projektams | Baltic Bridge",
+      "metaDescription": "Patikrintos Baltijos subrangos komandos Norvegijos pramonei ir laivų statykloms: A1, HMS kortelės, OAR registracija.",
+      "h1": "Baltijos suvirinimo komandos Norvegijos pramonei ir laivų statykloms",
+      "intro": "Norvegijos pramonė konkuruoja globaliai, bet vietinės darbo sąnaudos — vienos didžiausių Europoje. Baltijos komandos su dokumentuota atitiktimi yra pagrindžiama alternatyva.",
+      "costBody": "Baltijos komandos dirba už bendrą kainą, dažnai 35–45 % mažesnę nei Norvegijos alternatyvos, su tais pačiais tarptautiniais sertifikatais.",
+      "complianceTitle": "Atitiktis Norvegijai — kontroliuojama",
+      "complianceIntro": "Darbui Norvegijoje kartu su tiekėju tvarkome:",
+      "compliance1": "A1 pažymėjimus su galiojimo datomis",
+      "compliance2": "HMS korteles statybų ir pramonės objektams",
+      "compliance3": "Registraciją OAR registre (RF-1199)",
+      "compliance4": "Visuotinai taikomus (allmenngjort) atlyginimų reikalavimus — dokumentuota",
+      "compliance5": "ISO 9606-1 kvalifikacijas ir laivų statyklų sertifikatus",
+      "faq1q": "Ar Norvegijos koridorius veikia?",
+      "faq1a": "Patikros variklis pilnai veikia Švedijos koridoriui. Norvegija ruošiama — ops komanda jau tarpininkauja rankiniu būdu.",
+      "faq2q": "Ar komandos gali dirbti jūroje/statyklose?",
+      "faq2a": "Keli tiekėjai turi statyklų ir offshore patirtį su klasifikacinės bendrovės patvirtinimais.",
+      "faq3q": "Kiek kainuoja?",
+      "faq3a": "Pirkėjui nemokama. Sėkmės mokestis imamas iš tiekėjo įvykus sandoriui.",
+      "faq4q": "Kaip sprendžiama kalba?",
+      "faq4a": "Komandų vadovai dirba angliškai; keliose komandose yra rusakalbių ir lenkakalbių vadovų."
+    },
+    "denmark": {
+      "metaTitle": "Sertifikuoti Baltijos suvirintojai Danijos projektams | Baltic Bridge",
+      "metaDescription": "Patikrintos Baltijos subrangos komandos Danijos pramonei: A1, RUT registracija, arbejdsmiljø reikalavimai.",
+      "h1": "Baltijos suvirinimo komandos Danijos projektams",
+      "intro": "Danijos pramonę spaudžia didelės algos ir sertifikuotų suvirintojų trūkumas. Baltijos komandos su įrodyta atitiktimi vėl daro skaičiavimus pagrindžiamus.",
+      "costBody": "Baltijos komandos dirba už bendrą kainą, dažnai 30–40 % mažesnę nei Danijos alternatyvos, su tais pačiais sertifikatų reikalavimais.",
+      "complianceTitle": "Atitiktis Danijai — kontroliuojama",
+      "complianceIntro": "Darbui Danijoje kartu su tiekėju tvarkome:",
+      "compliance1": "A1 pažymėjimus kiekvienam darbuotojui",
+      "compliance2": "Pranešimą RUT registrui",
+      "compliance3": "Arbejdsmiljø reikalavimus ir saugos instruktažus",
+      "compliance4": "Dokumentuotą civilinės atsakomybės draudimą",
+      "compliance5": "ISO 9606-1 kvalifikacijas, įsk. higieninį suvirinimą maisto pramonei",
+      "faq1q": "Ar Danijos koridorius veikia?",
+      "faq1a": "Švedijos koridorius pilnai veikia. Danija ruošiama — ops komanda jau tarpininkauja rankiniu būdu.",
+      "faq2q": "Ar tinka maisto pramonei?",
+      "faq2a": "Taip — keli tiekėjai turi higieninio suvirinimo kompetenciją pieninėms ir proceso įrenginiams.",
+      "faq3q": "Kiek kainuoja?",
+      "faq3a": "Pirkėjui nemokama. Sėkmės mokestis imamas iš tiekėjo įvykus sandoriui.",
+      "faq4q": "Kiek trunka mobilizacija?",
+      "faq4a": "Su A1 ir RUT pranešimu: paprastai 2–4 savaitės nuo pasiūlymo priėmimo."
+    }
   }
 }

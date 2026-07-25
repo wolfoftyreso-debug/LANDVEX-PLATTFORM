@@ -43,7 +43,9 @@
     "casesByState": "Verification cases",
     "openTasks": "Open ops tasks",
     "companies": "Companies",
-    "expiringSoon": "Documents expiring within 30 days"
+    "expiringSoon": "Documents expiring within 30 days",
+    "openRfqs": "Open RFQs",
+    "timeToMatch": "Time to match (avg)"
   },
   "caseState": {
     "draft": "Draft",
@@ -167,7 +169,10 @@
     "findSuppliers": "Find suppliers",
     "join": "Join",
     "footerLine": "verified cross-border subcontracting, Lithuania → Sweden.",
-    "requestWork": "Request work"
+    "requestWork": "Request work",
+    "marketSweden": "Hire in Sweden",
+    "marketNorway": "Hire in Norway",
+    "marketDenmark": "Hire in Denmark"
   },
   "suppliers": {
     "title": "Verified Baltic suppliers",
@@ -288,7 +293,8 @@
     "currency": "Currency",
     "successFee": "Success fee %",
     "note": "Note",
-    "recordDealCta": "Record deal"
+    "recordDealCta": "Record deal",
+    "dealRecorded": "Deal recorded"
   },
   "deals": {
     "title": "Deals",
@@ -299,5 +305,88 @@
     "contractValue": "Contract value",
     "fee": "Success fee",
     "recorded": "Recorded"
+  },
+  "markets": {
+    "shared": {
+      "openingSoon": "Corridor opening soon",
+      "openingSoonBody": "The verification engine is live for Sweden. For this market our ops team brokers work packages manually while the corridor is prepared — send your request today.",
+      "costTitle": "Why Baltic subcontracting?",
+      "howTitle": "How it works",
+      "how1": "Describe the work package — free and without obligation.",
+      "how2": "Our ops team qualifies the request and selects verified suppliers. No auto-matching, no rogue operators.",
+      "how3": "Compare offers where each supplier's compliance status is frozen and documented at submission time.",
+      "how4": "Accept. Baltic Bridge keeps the audit trail through the whole deal.",
+      "faqTitle": "Frequently asked questions",
+      "ctaTitle": "Ready to compare?",
+      "ctaBody": "Describing the job takes three minutes. The offers come with proven compliance.",
+      "ctaRequest": "Request work — free",
+      "ctaBrowse": "Browse verified suppliers"
+    },
+    "sweden": {
+      "metaTitle": "Hire verified Baltic welders & fitters in Sweden | Baltic Bridge",
+      "metaDescription": "Baltic subcontracting teams fully verified for work in Sweden: F-skatt, A1, posted-worker notification, ID06, collective-agreement status. Fixed price or hourly — without beställaransvar risk.",
+      "h1": "Verified Baltic welding & fitting teams for Swedish projects",
+      "intro": "The skills shortage is acute and domestic hourly costs make many industrial projects hard to justify. Baltic subcontracting solves both — if compliance is proven. That is exactly what Baltic Bridge does.",
+      "costBody": "Lithuanian and Baltic subcontracting teams work at a total cost often 30–40% below Swedish alternatives — with the same certificate requirements (ISO 9606-1, EN 1090). The difference is cost base, not quality. With entreprenad you buy a work package, not staffing.",
+      "complianceTitle": "Beställaransvar — solved",
+      "complianceIntro": "As a Swedish buyer you carry the risk if the subcontractor fails compliance. Every verified supplier here has documented and ops-reviewed:",
+      "compliance1": "Approved F-skatt with Skatteverket, with approval date",
+      "compliance2": "A1 certificate per posted worker (Sodra), with validity dates",
+      "compliance3": "Posted-worker notification to Arbetsmiljöverket per assignment",
+      "compliance4": "ID06 per worker plus liability insurance with amount and expiry",
+      "compliance5": "Collective-agreement status and ISO 9606-1 welder qualifications per worker",
+      "faq1q": "What does Baltic Bridge cost?",
+      "faq1a": "Requests and offer comparison are free for the buyer. We charge the supplier a success fee only when a deal closes.",
+      "faq2q": "How do I know the verification is real?",
+      "faq2a": "Every fact on a supplier profile is reviewed by our ops team against original documents with a full audit trail. The badge switches off automatically the night a critical document lapses.",
+      "faq3q": "Is this staffing or subcontracting?",
+      "faq3a": "Subcontracting (entreprenad). You buy a defined work package at fixed or hourly price — the supplier leads its own team.",
+      "faq4q": "How fast can a team be on site?",
+      "faq4a": "Verified suppliers with A1 and ID06 in place typically mobilize within 2–4 weeks. Capacity listings show each team's earliest start."
+    },
+    "norway": {
+      "metaTitle": "Certified Baltic welders for Norwegian projects | Baltic Bridge",
+      "metaDescription": "Verified Baltic subcontracting teams for Norwegian industry and yards: A1, HSE cards, OAR registration. Documented compliance at significantly lower total cost.",
+      "h1": "Baltic welding teams for Norwegian industry and shipyards",
+      "intro": "Norwegian industry and shipyards compete globally, but domestic labour costs are among Europe's highest. Baltic subcontracting teams with documented compliance are the defensible alternative.",
+      "costBody": "Baltic teams work at a total cost often 35–45% below Norwegian alternatives, holding the same international certificates (ISO 9606-1, class approvals for yards). The entreprenad model gives a predictable price per work package.",
+      "complianceTitle": "Compliance for Norway — under control",
+      "complianceIntro": "For work in Norway we handle, together with the supplier:",
+      "compliance1": "A1 certificates per posted worker with validity dates",
+      "compliance2": "HSE cards for construction and industrial sites",
+      "compliance3": "Registration in the Assignment and Employment Register (RF-1199/OAR)",
+      "compliance4": "Generally applied (allmenngjort) wage requirements where applicable — documented",
+      "compliance5": "ISO 9606-1 welder qualifications and yard certificates per worker",
+      "faq1q": "Is the Norway corridor live?",
+      "faq1a": "The verification engine is fully live for the Sweden corridor. Norway is being prepared — our ops team already brokers Norwegian assignments manually with the same document checks.",
+      "faq2q": "Can teams work offshore/at yards?",
+      "faq2a": "Several verified suppliers have yard and offshore experience with class approvals. State the requirements in your request and ops will match the right team.",
+      "faq3q": "What does it cost?",
+      "faq3a": "Free for the buyer. A success fee is charged to the supplier when the deal closes.",
+      "faq4q": "How is language handled?",
+      "faq4a": "Team leads work in English; several teams also have Polish- and Russian-speaking supervisors. State your preferred working language in the request."
+    },
+    "denmark": {
+      "metaTitle": "Certified Baltic welders for Danish projects | Baltic Bridge",
+      "metaDescription": "Verified Baltic subcontracting teams for Danish industry: A1, RUT registration, arbejdsmiljø requirements. Documented compliance at substantially lower total cost.",
+      "h1": "Baltic welding & fitting teams for Danish projects",
+      "intro": "Danish industry is squeezed by high wage costs and a shortage of certified welders. Baltic subcontracting teams with proven compliance make the numbers work again.",
+      "costBody": "Baltic teams work at a total cost often 30–40% below Danish alternatives, with the same certificate requirements (ISO 9606-1, hygiene standards for the food industry). Subcontracting — not a temp agency.",
+      "complianceTitle": "Compliance for Denmark — under control",
+      "complianceIntro": "For work in Denmark we handle, together with the supplier:",
+      "compliance1": "A1 certificates per posted worker",
+      "compliance2": "Notification to the RUT register (Registret for Udenlandske Tjenesteydere)",
+      "compliance3": "Arbejdsmiljø requirements and site-specific safety inductions",
+      "compliance4": "Liability insurance with amount and validity, documented",
+      "compliance5": "ISO 9606-1 welder qualifications per worker, incl. hygienic welding for dairy/food",
+      "faq1q": "Is the Denmark corridor live?",
+      "faq1a": "The Sweden corridor is fully live. Denmark is being prepared — the ops team already brokers Danish assignments manually with the same document checks.",
+      "faq2q": "Does it work for the food industry?",
+      "faq2a": "Yes — several suppliers have hygienic welding competence for dairy and process plants. State the standards in your request.",
+      "faq3q": "What does it cost?",
+      "faq3a": "Free for the buyer. A success fee is charged to the supplier when the deal closes.",
+      "faq4q": "How long does mobilization take?",
+      "faq4a": "With A1 and RUT notification in place: normally 2–4 weeks from accepted offer."
+    }
   }
 }

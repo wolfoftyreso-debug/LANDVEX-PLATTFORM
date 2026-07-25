@@ -43,7 +43,9 @@
     "casesByState": "Verifieringsärenden",
     "openTasks": "Öppna ops-uppgifter",
     "companies": "Företag",
-    "expiringSoon": "Dokument som löper ut inom 30 dagar"
+    "expiringSoon": "Dokument som löper ut inom 30 dagar",
+    "openRfqs": "Öppna förfrågningar",
+    "timeToMatch": "Tid till matchning (snitt)"
   },
   "caseState": {
     "draft": "Utkast",
@@ -167,7 +169,10 @@
     "findSuppliers": "Hitta leverantörer",
     "join": "Anslut",
     "footerLine": "verifierad gränsöverskridande entreprenad, Litauen → Sverige.",
-    "requestWork": "Begär arbete"
+    "requestWork": "Begär arbete",
+    "marketSweden": "Anlita i Sverige",
+    "marketNorway": "Anlita i Norge",
+    "marketDenmark": "Anlita i Danmark"
   },
   "suppliers": {
     "title": "Verifierade baltiska leverantörer",
@@ -288,7 +293,8 @@
     "currency": "Valuta",
     "successFee": "Succéavgift %",
     "note": "Notering",
-    "recordDealCta": "Registrera affär"
+    "recordDealCta": "Registrera affär",
+    "dealRecorded": "Affär registrerad"
   },
   "deals": {
     "title": "Affärer",
@@ -299,5 +305,88 @@
     "contractValue": "Kontraktsvärde",
     "fee": "Succéavgift",
     "recorded": "Registrerad"
+  },
+  "markets": {
+    "shared": {
+      "openingSoon": "Korridor öppnar snart",
+      "openingSoonBody": "Verifieringsmotorn är i drift för Sverige. För den här marknaden förmedlar vårt ops-team arbetspaket manuellt medan korridoren förbereds — skicka din förfrågan redan idag.",
+      "costTitle": "Varför baltisk entreprenad?",
+      "howTitle": "Så fungerar det",
+      "how1": "Beskriv arbetspaketet — gratis och utan förpliktelser.",
+      "how2": "Vårt ops-team kvalificerar förfrågan och väljer verifierade leverantörer. Ingen auto-matchning, inga oseriösa aktörer.",
+      "how3": "Jämför offerter där varje leverantörs compliance-status är fryst och dokumenterad vid offerttillfället.",
+      "how4": "Acceptera. Baltic Bridge håller revisionsspåret genom hela affären.",
+      "faqTitle": "Vanliga frågor",
+      "ctaTitle": "Redo att jämföra?",
+      "ctaBody": "Det tar tre minuter att beskriva jobbet. Offerterna kommer med bevisad compliance.",
+      "ctaRequest": "Begär arbete — gratis",
+      "ctaBrowse": "Se verifierade leverantörer"
+    },
+    "sweden": {
+      "metaTitle": "Anlita verifierade baltiska svetsare & montörer i Sverige | Baltic Bridge",
+      "metaDescription": "Entreprenadteam från Baltikum, fullt verifierade för arbete i Sverige: F-skatt, A1, utstationering, ID06, kollektivavtalsstatus. Fast pris eller timpris — utan beställaransvarsrisk.",
+      "h1": "Verifierade baltiska svets- och montageteam för svenska projekt",
+      "intro": "Kompetensbristen är akut och inhemska timkostnader gör många industriprojekt svåra att räkna hem. Baltisk entreprenad löser båda — om compliance är bevisad. Det är exakt vad Baltic Bridge gör.",
+      "costBody": "Litauiska och baltiska entreprenadteam arbetar till en totalkostnad som ofta ligger 30–40 % under svenska alternativ — med samma certifikatkrav (ISO 9606-1, EN 1090). Skillnaden är inte kvalitet utan kostnadsläge. Med entreprenadformen köper du ett arbetspaket, inte bemanning.",
+      "complianceTitle": "Beställaransvaret — löst",
+      "complianceIntro": "Som beställare i Sverige bär du risken om underentreprenören brister. Varje verifierad leverantör hos oss har dokumenterat och ops-granskat:",
+      "compliance1": "Godkänd F-skatt hos Skatteverket, med godkännandedatum",
+      "compliance2": "A1-intyg per utstationerad arbetare (Sodra), med giltighetstider",
+      "compliance3": "Utstationeringsanmälan till Arbetsmiljöverket per uppdrag",
+      "compliance4": "ID06 per arbetare samt ansvarsförsäkring med belopp och förfallodatum",
+      "compliance5": "Kollektivavtalsstatus och svetsarprövningar ISO 9606-1 per arbetare",
+      "faq1q": "Vad kostar det att använda Baltic Bridge?",
+      "faq1a": "Förfrågan och offertjämförelse är gratis för beställaren. Vi tar en succéavgift av leverantören först när en affär genomförs.",
+      "faq2q": "Hur vet jag att verifieringen stämmer?",
+      "faq2a": "Varje faktum på leverantörens profil är granskat av vårt ops-team mot originaldokument och försett med revisionsspår. Badgen släcks automatiskt samma natt ett kritiskt dokument går ut.",
+      "faq3q": "Är det bemanning eller entreprenad?",
+      "faq3a": "Entreprenad. Du köper ett definierat arbetspaket med fast pris eller timpris — leverantören leder sitt eget team.",
+      "faq4q": "Hur snabbt kan ett team vara på plats?",
+      "faq4a": "Verifierade leverantörer med A1 och ID06 klara kan ofta mobilisera inom 2–4 veckor. Kapacitetslistorna visar tidigaste start per team."
+    },
+    "norway": {
+      "metaTitle": "Sertifiserte baltiske sveisere til norske prosjekter | Baltic Bridge",
+      "metaDescription": "Verifierade baltiska entreprenadteam för norsk industri och verft: A1, HMS-kort, RUT-registrering. Compliance dokumenterad — betydligt lägre totalkostnad.",
+      "h1": "Baltiska svetsteam för norsk industri och varv",
+      "intro": "Norsk industri och varvsnäring konkurrerar globalt, men inhemska arbetskostnader hör till Europas högsta. Baltiska entreprenadteam med dokumenterad compliance är det försvarbara alternativet.",
+      "costBody": "Baltiska team arbetar till en totalkostnad som ofta ligger 35–45 % under norska alternativ, med samma internationella certifikat (ISO 9606-1, klassgodkännanden för varv). Entreprenadformen ger förutsägbart pris per arbetspaket.",
+      "complianceTitle": "Compliance för Norge — under kontroll",
+      "complianceIntro": "För arbete i Norge hanterar vi tillsammans med leverantören:",
+      "compliance1": "A1-intyg per utsänd arbetare med giltighetstider",
+      "compliance2": "HMS-kort för bygg- och anläggningsplatser",
+      "compliance3": "Registrering i Oppdrags- og arbeidsforholdsregisteret (RF-1199/OAR)",
+      "compliance4": "Allmenngjorte tariffkrav där de gäller — dokumenterat lönenivåunderlag",
+      "compliance5": "Svetsarprövningar ISO 9606-1 och varvscertifikat per arbetare",
+      "faq1q": "Är korridoren till Norge igång?",
+      "faq1a": "Verifieringsmotorn är i full drift för Sverige-korridoren. Norge-korridoren förbereds — vårt ops-team förmedlar redan norska uppdrag manuellt med samma dokumentkontroll.",
+      "faq2q": "Kan teamen arbeta offshore/på varv?",
+      "faq2a": "Flera av våra verifierade leverantörer har varvs- och offshore-erfarenhet med klassgodkännanden. Ange kraven i förfrågan så matchar ops rätt team.",
+      "faq3q": "Vad kostar det?",
+      "faq3a": "Gratis för beställaren. Succéavgift tas av leverantören när affären genomförs.",
+      "faq4q": "Hur hanteras språk?",
+      "faq4a": "Arbetsledningen i teamen arbetar på engelska; flera team har även polsk- och rysktalande arbetsledare. Ange önskat arbetsspråk i förfrågan."
+    },
+    "denmark": {
+      "metaTitle": "Certificerede baltiske svejsere til danske projekter | Baltic Bridge",
+      "metaDescription": "Verifierade baltiska entreprenadteam för dansk industri: A1, RUT-registrering, arbejdsmiljø-krav. Dokumenterad compliance till väsentligt lägre totalkostnad.",
+      "h1": "Baltiska svets- och montageteam för danska projekt",
+      "intro": "Dansk industri pressas av höga lönekostnader och brist på certifierade svetsare. Baltiska entreprenadteam med bevisad compliance gör kalkylen försvarbar igen.",
+      "costBody": "Baltiska team arbetar till en totalkostnad som ofta ligger 30–40 % under danska alternativ, med samma certifikatkrav (ISO 9606-1, hygienstandarder för livsmedelsindustri). Entreprenad — inte vikarbureau.",
+      "complianceTitle": "Compliance för Danmark — under kontroll",
+      "complianceIntro": "För arbete i Danmark hanterar vi tillsammans med leverantören:",
+      "compliance1": "A1-intyg per udstationeret arbejdstager",
+      "compliance2": "Anmälan till RUT-registret (Registret for Udenlandske Tjenesteydere)",
+      "compliance3": "Arbejdsmiljø-krav och platsspecifika säkerhetsintroduktioner",
+      "compliance4": "Ansvarsförsäkring med belopp och giltighet, dokumenterad",
+      "compliance5": "Svetsarprövningar ISO 9606-1 per arbetare, inkl. hygiensvets för mejeri/livsmedel",
+      "faq1q": "Är korridoren till Danmark igång?",
+      "faq1a": "Sverige-korridoren är i full drift. Danmark förbereds — ops-teamet förmedlar redan danska uppdrag manuellt med samma dokumentkontroll.",
+      "faq2q": "Fungerar det för livsmedelsindustri?",
+      "faq2a": "Ja — flera leverantörer har hygiensvetskompetens för mejeri- och processanläggningar. Ange standardkraven i förfrågan.",
+      "faq3q": "Vad kostar det?",
+      "faq3a": "Gratis för beställaren. Succéavgift tas av leverantören när affären genomförs.",
+      "faq4q": "Hur lång tid tar mobilisering?",
+      "faq4a": "Med A1 och RUT-anmälan klara: normalt 2–4 veckor från accepterad offert."
+    }
   }
 }

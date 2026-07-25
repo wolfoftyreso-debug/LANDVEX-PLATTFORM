@@ -70,8 +70,9 @@ drizzle/                   append-only SQL migrations
 - **M2 — Public layer:** verified profiles, supplier directory (Postgres FTS), SEO ✅
 - **M3 — Demand:** buyer RFQ intake, ops-driven matching, offers with frozen
   verification snapshots, per-pair messaging, deal recording + CSV export ✅
-- **M4 — Hardening:** Playwright e2e, backups + restore runbook, rate-limit
-  tuning, seed/demo data, ops dashboard — next
+- **M4 — Hardening:** Playwright e2e on the three critical flows, tested
+  backup/restore runbook (docs/RUNBOOK.md), demo data set (10 suppliers),
+  ops dashboard KPIs, SEO campaign pages for SE/NO/DK markets ✅
 
 ## Deploy
 
