@@ -248,6 +248,18 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/sources":
             from api.sources import sources_status
             return self._send(200, sources_status())
+        if parsed.path == "/v1/entrypoints":
+            from engine.entrypoints import entrypoints
+            return self._send(200, entrypoints())
+        if parsed.path == "/v1/admin":
+            from engine.admin import admin_countries, admin_units
+            country = parse_qs(parsed.query).get("country", [""])[0]
+            if country:
+                try:
+                    return self._send(200, admin_units(country))
+                except ValueError as e:
+                    return self._send(404, {"error": str(e)})
+            return self._send(200, admin_countries())
         if parsed.path == "/v1/kolada":
             return self._send(200, KoladaClient().status())
         if parsed.path == "/v1/svk":

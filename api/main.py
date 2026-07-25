@@ -593,6 +593,23 @@ def sources():
     return sources_status()
 
 
+@app.get("/v1/entrypoints")
+def entrypoints_ep():
+    from engine.entrypoints import entrypoints
+    return entrypoints()
+
+
+@app.get("/v1/admin")
+def admin_ep(country: str = ""):
+    from engine.admin import admin_countries, admin_units
+    if country:
+        try:
+            return admin_units(country)
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+    return admin_countries()
+
+
 @app.get("/v1/kolada")
 def kolada_status():
     return KoladaClient().status()

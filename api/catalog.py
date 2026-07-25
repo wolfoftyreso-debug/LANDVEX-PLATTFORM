@@ -197,6 +197,18 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "POST", "path": "/v1/corrections/submit"},
                        {"method": "POST", "path": "/v1/corrections/consensus"},
                        {"method": "POST", "path": "/v1/corrections/adapt"}]},
+        {"id": "entrypoints", "label_en": "Entry points (decision journeys)",
+         "beskrivning_en": "Role-based doors into the engine — citizen, "
+                           "business, investor, municipality, journalist, "
+                           "researcher. Each ends in a decision answer "
+                           "(answered_by), tools as the evidence layer, event "
+                           "feeds as the live overlay.",
+         "endpoints": [{"method": "GET", "path": "/v1/entrypoints"}]},
+        {"id": "admin", "label_en": "Administrative Register",
+         "beskrivning_en": "Full administrative units — 50 US states, 26 Swiss "
+                           "cantons, 16 German Länder, 21 Swedish counties; "
+                           "municipality level loads from official registers.",
+         "endpoints": [{"method": "GET", "path": "/v1/admin"}]},
         {"id": "sensitive", "label_en": "Sensitive-category Guard",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

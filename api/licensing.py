@@ -69,6 +69,8 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/wages/compare": "opportunity",
     "/v1/corrections": "core",                # wiki-rättelser (medborgarbidrag)
     "/v1/sources": "core",                    # anslutnings-cockpit (live/mock)
+    "/v1/entrypoints": "core",                # roll-baserade ingångar (overlay)
+    "/v1/admin": "core",                      # administrativt register
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",
