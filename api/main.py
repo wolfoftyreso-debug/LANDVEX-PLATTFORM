@@ -47,7 +47,8 @@ from engine.strim import (build_entity, cite as strim_cite, entity_types,
 from engine.datasources.kolada import KoladaClient
 from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
-                             expected_roi, log_outcome, record as record_outcome)
+                             expected_roi, log_outcome, record as record_outcome,
+                             set_store as set_outcome_store)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -144,6 +145,10 @@ elif _DB.lower() not in ("off", "0", ""):
     STORE = SqliteStore(_DB)
 else:
     STORE = None
+
+# Backa utfallskalibreringen med lagret (överlever omstart + delas över
+# workers). Utan store faller den ärligt tillbaka på process-minne.
+set_outcome_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)

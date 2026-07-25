@@ -125,7 +125,7 @@ Set the ones that pass in `.env`, then `make prod` (A) or restart the unit (B).
 - [ ] TLS valid (HSTS is emitted); `www` → apex redirect works.
 - [ ] AAMOS uses a real service-account token — never a forged one.
 - [ ] Postgres reachable and `PostgresStore.selftest()` passes if used.
-- [ ] **Outcome logging:** the `/v1/outcomes` registry is process-local. If you
-      use it, run `WEB_CONCURRENCY=1` (or back it with the store) so records
-      aren't split across workers or lost on restart. All other endpoints are
-      stateless and scale to any worker count.
+- [ ] **Outcome logging:** persisted to the store (SQLite/Postgres) — survives
+      restarts and is shared across workers, so any `WEB_CONCURRENCY` is fine.
+      With `LANDVEX_DB=off` it falls back to process-local memory (dev only).
+      Use Postgres in production so calibration data is durable.

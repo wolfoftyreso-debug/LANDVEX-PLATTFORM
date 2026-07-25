@@ -19,7 +19,19 @@ from .base import Store
 # ordning; aktuell version lagras i schema_meta. Ändra aldrig en
 # redan utrullad migration – lägg en ny.
 _SCHEMA_VERSION = 1
-_MIGRATIONS: list[tuple[int, str]] = []
+_MIGRATIONS: list[tuple[int, str]] = [
+    (2, """
+    CREATE TABLE IF NOT EXISTS outcomes (
+        id              TEXT PRIMARY KEY,
+        created_at      REAL NOT NULL,
+        vertical        TEXT NOT NULL DEFAULT '',
+        predicted_score REAL NOT NULL,
+        survived        INTEGER NOT NULL,
+        payload         TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_outcomes_score ON outcomes(predicted_score);
+    """),
+]
 
 _DDL = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -226,6 +238,28 @@ class SqliteStore(Store):
                 "ON CONFLICT(tenant, month) DO UPDATE SET n = n + 1",
                 (tenant, month))
             return True
+
+    # ── Utfall (kalibrering) ─────────────────────────────────────────
+
+    def save_outcome(self, record: dict[str, Any]) -> str:
+        """Append-only, idempotent på record['id'] (INSERT OR IGNORE)."""
+        import time
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO outcomes "
+                "(id, created_at, vertical, predicted_score, survived, payload) "
+                "VALUES (?,?,?,?,?,?)",
+                (record["id"], time.time(), record.get("vertical", ""),
+                 float(record.get("predicted_score", 0.0)),
+                 1 if record.get("survived") else 0,
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_outcomes(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM outcomes ORDER BY created_at, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
 
     def close(self) -> None:
         with self._lock:

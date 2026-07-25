@@ -55,7 +55,8 @@ from engine.strim import (build_entity, cite as strim_cite, entity_types,
 from engine.datasources.kolada import KoladaClient
 from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
-                             expected_roi, log_outcome, record as record_outcome)
+                             expected_roi, log_outcome, record as record_outcome,
+                             set_store as set_outcome_store)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -93,6 +94,8 @@ _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
 STORE = SqliteStore(_DB) if _DB.lower() not in ("off", "0", "") else None
+# Utfallskalibreringen backas av lagret (överlever omstart + delas över workers).
+set_outcome_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)

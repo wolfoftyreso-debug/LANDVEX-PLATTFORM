@@ -27,13 +27,25 @@ MIN_SAMPLE = 30   # under detta: ingen kalibrerad sannolikhet lovas
 _BUCKETS = ((0, 50, "weak"), (50, 70, "fair"), (70, 85, "strong"),
             (85, 101, "prime"))
 
-# OBS (produktion): detta register är PROCESS-LOKALT. Under flera gunicorn-
-# workers ser de inte varandras utfall och registret nollställs vid omstart.
-# Kör därför WEB_CONCURRENCY=1 för utfallsloggning, ELLER (uppföljning) backa
-# `record`/`all_records` med storage/-lagret. Låset skyddar mot TOCTOU-race
-# under dev-serverns trådpool.
+# Persistens: sätt ett Store (SqliteStore/PostgresStore) via `set_store` så
+# överlever utfallen omstart OCH delas över gunicorn-workers. Utan store
+# faller lagret tillbaka på ett PROCESS-LOKALT register (bra för test/dev,
+# nollställs vid omstart). Låset skyddar in-memory-fallbackens TOCTOU-race.
 _RECORDS: list[dict] = []
 _LOCK = threading.Lock()
+_STORE = None   # valfritt Store; sätts av API-lagret vid uppstart
+
+
+def set_store(store) -> None:
+    """Backa utfallslagret med ett Store (eller None för process-minne).
+
+    Stödprovet är LÄSANDE (`all_outcomes`→None = stöds ej) så inget skräp
+    skrivs. Utan stöd används process-minnet – ärlig degradering, samma
+    mönster som signalcachen.
+    """
+    global _STORE
+    _STORE = store if (store is not None
+                       and store.all_outcomes() is not None) else None
 
 
 def log_outcome(location: dict, vertical: str, predicted_score: float,
@@ -54,8 +66,11 @@ def log_outcome(location: dict, vertical: str, predicted_score: float,
 def record(rec: dict) -> str:
     """Append-only: lägg en utfallspost i registret (idempotent på id).
 
-    Låst: check-och-append är atomiskt så samtidiga anrop inte dubblerar.
+    Persisterat i storet om satt (delas över workers, överlever omstart);
+    annars process-minne, låst så check-och-append är atomiskt.
     """
+    if _STORE is not None:
+        return _STORE.save_outcome(rec)
     with _LOCK:
         if not any(r["id"] == rec["id"] for r in _RECORDS):
             _RECORDS.append(rec)
@@ -63,10 +78,13 @@ def record(rec: dict) -> str:
 
 
 def all_records() -> list[dict]:
+    if _STORE is not None:
+        return _STORE.all_outcomes()
     return list(_RECORDS)
 
 
 def reset() -> None:
+    """Nollställ process-minnet (test). Rör inte ett persistent store."""
     _RECORDS.clear()
 
 

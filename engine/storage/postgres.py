@@ -69,6 +69,16 @@ CREATE TABLE IF NOT EXISTS usage_meter (
     n      INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (tenant, month)
 );
+
+CREATE TABLE IF NOT EXISTS outcomes (
+    id              TEXT PRIMARY KEY,
+    created_at      DOUBLE PRECISION NOT NULL,
+    vertical        TEXT NOT NULL DEFAULT '',
+    predicted_score DOUBLE PRECISION NOT NULL,
+    survived        BOOLEAN NOT NULL,
+    payload         JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_outcomes_score ON outcomes(predicted_score);
 """
 
 
@@ -203,6 +213,25 @@ class PostgresStore(Store):
                 "+ 1 WHERE usage_meter.n < %s RETURNING n",
                 (tenant, month, quota))
             return cur.fetchone() is not None
+
+    def save_outcome(self, record: dict[str, Any]) -> str:
+        import json
+        import time
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO outcomes "
+                "(id, created_at, vertical, predicted_score, survived, payload) "
+                "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                (record["id"], time.time(), record.get("vertical", ""),
+                 float(record.get("predicted_score", 0.0)),
+                 bool(record.get("survived")),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_outcomes(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM outcomes ORDER BY created_at, id")
+            return [r[0] for r in cur.fetchall()]
 
     def close(self) -> None:
         self._conn.close()

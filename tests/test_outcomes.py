@@ -70,9 +70,41 @@ def test_low_bucket_survival_lower():
             > O.calibrated_survival(40)["survival_probability"])
 
 
+def test_store_backed_survives_restart():
+    """Med ett Store överlever utfallen en 'omstart' (nytt store-objekt,
+    samma fil) och process-minnet är irrelevant."""
+    import os
+    import tempfile
+    from engine.storage.sqlite import SqliteStore
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        O.reset()
+        s1 = SqliteStore(path)
+        O.set_store(s1)
+        for i in range(3):
+            O.record(O.log_outcome({"market": "us"}, "cafe", 80,
+                                   survived=True, established_at=f"s{i}"))
+        assert len(O.all_records()) == 3
+        # idempotent på id
+        O.record(O.log_outcome({"market": "us"}, "cafe", 80,
+                               survived=True, established_at="s0"))
+        assert len(O.all_records()) == 3
+        s1.close()
+        # "omstart": nytt store mot samma fil
+        s2 = SqliteStore(path)
+        O.set_store(s2)
+        assert len(O.all_records()) == 3      # överlevde
+        s2.close()
+    finally:
+        O.set_store(None)
+        O.reset()
+        os.unlink(path)
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
         fn(); print(f"  ✓ {fn.__name__}")
-    O.reset()
+    O.set_store(None); O.reset()
     print(f"\n{len(fns)} tester gröna.")

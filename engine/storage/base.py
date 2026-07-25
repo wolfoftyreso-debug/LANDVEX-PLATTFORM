@@ -72,5 +72,16 @@ class Store(ABC):
         anroparen tillbaka på in-memory-räkning. Valfritt att överskugga."""
         return None
 
+    # ── Utfall (kalibrering) ─────────────────────────────────────────
+    def save_outcome(self, record: dict[str, Any]):
+        """Persistera en utfallspost (append-only, idempotent på record['id']).
+        Returnerar id, eller None om lagret inte stöder det – då faller
+        anroparen tillbaka på process-minne. Valfritt att överskugga."""
+        return None
+
+    def all_outcomes(self) -> Optional[list[dict[str, Any]]]:
+        """Alla utfallsposter, eller None om lagret inte stöder det."""
+        return None
+
     def close(self) -> None:  # valfritt att överskugga
         pass
