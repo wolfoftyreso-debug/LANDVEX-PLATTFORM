@@ -11,7 +11,10 @@ from engine.signals import CATALOG
 def test_index_types_are_valid_data():
     assert set(INDEX_TYPES) == {"infrastructure_risk", "commercial_activity",
                                 "safety_index", "climate_risk", "urban_growth",
-                                "city_health", "sanitation", "haircut_index", "gender_balance"}
+                                "city_health", "sanitation", "haircut_index", "gender_balance",
+                                "road_safety", "healthcare_access",
+                                "housing_affordability", "air_quality",
+                                "digital_readiness", "wellbeing"}
     for ix in INDEX_TYPES.values():
         assert ix.riktning in ("risk", "styrka")
         assert ix.niva in ("free", "live")
@@ -19,13 +22,13 @@ def test_index_types_are_valid_data():
         for sid, _ in ix.signals:
             assert sid in CATALOG, (ix.id, sid)
     kat = index_catalog()
-    assert len(kat) == 10                             # 9 index + kontradiktion
+    assert len(kat) == 16                             # 15 index + kontradiktion
     assert any(k["id"] == "contradiction_index" for k in kat)
 
 
 def test_city_assessment_is_traceable():
     res = city_assessment("0180", market="se")                     # Stockholm
-    assert len(res["index"]) == 10     # 9 index + Contradiction Index
+    assert len(res["index"]) == 16     # 15 index + Contradiction Index
     for ix in res["index"]:
         assert 0 <= ix["varde"] <= 100
         assert ix["band"] in ("lag", "mattlig", "forhojd", "hog")

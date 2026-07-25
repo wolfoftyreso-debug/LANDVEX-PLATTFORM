@@ -98,6 +98,33 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "Descriptive only — balance is not a value judgement.",
              "styrka", "free",
              (("gender_ratio", 1.0),)),
+    IndexDef("road_safety", "Road Safety",
+             "How safe the roads are (fatalities, infrastructure, enforcement "
+             "proxy). Higher is safer.",
+             "styrka", "free", (("road_safety", 1.0),)),
+    IndexDef("healthcare_access", "Healthcare Access",
+             "Access to care: appointment availability, supply and coverage. "
+             "Higher is better access.",
+             "styrka", "free",
+             (("healthcare_access", 0.7), ("care_supply", 0.3))),
+    IndexDef("housing_affordability", "Housing Affordability",
+             "How affordable housing is relative to local incomes. Higher is "
+             "more affordable.",
+             "styrka", "free", (("housing_affordability", 1.0),)),
+    IndexDef("air_quality", "Air Quality",
+             "Ambient air quality (particulates, NO₂ proxy). Higher is cleaner.",
+             "styrka", "free", (("air_quality", 1.0),)),
+    IndexDef("digital_readiness", "Digital Readiness",
+             "Connectivity and the digital commercial base: broadband, digital "
+             "services and business density. Higher is more ready.",
+             "styrka", "free",
+             (("digital_connectivity", 0.7), ("business_density", 0.3))),
+    IndexDef("wellbeing", "Wellbeing",
+             "Composite quality of life: life satisfaction, safety and transit "
+             "access. Higher is better.",
+             "styrka", "free",
+             (("life_satisfaction", 0.6), ("crime_index", 0.2),
+              ("transit_score", 0.2))),
 ]}
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.

@@ -108,6 +108,14 @@ class MockSource(DataSource):
             # Kön-ratio: kvinnor per 100 män. ~parity med lokal skevhet
             # (bruks-/teknikorter skevar mot män, vård-/universitetsorter mot kvinnor).
             "gender_ratio": round(98 + (u - 0.6) * 6 + rng.uniform(-9, 11), 0),
+            # Samhällsindex-sviten (0–100, högre = bättre). Kopplas till
+            # inkomst/urbanitet där det är rimligt; alla mock, märkta.
+            "road_safety": round(max(20, min(98, 50 + income * 0.40 + rng.uniform(-10, 10))), 0),
+            "healthcare_access": round(max(20, min(98, 45 + income * 0.45 + rng.uniform(-10, 10))), 0),
+            "housing_affordability": round(max(15, min(95, 75 - u * 35 + rng.uniform(-12, 12))), 0),
+            "air_quality": round(max(20, min(99, 80 - u * 25 + rng.uniform(-12, 12))), 0),
+            "digital_connectivity": round(max(25, min(99, 40 + u * 30 + income * 0.20 + rng.uniform(-8, 8))), 0),
+            "life_satisfaction": round(max(30, min(95, 55 + income * 0.25 - u * 5 + rng.uniform(-8, 10))), 0),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)
