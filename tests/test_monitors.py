@@ -44,6 +44,10 @@ def test_threshold_triggers_and_reports_coverage():
     assert hot["framing"]["choices"]["not_causal"] is True
     cold = M.evaluate(m, [40, 42, 41])
     assert not cold["triggered"]
+    # Förklaringen får aldrig påstå en jämförelse som inte hände: 41 är
+    # INTE ≥ 60, så texten ska säga att nivån inte passerats.
+    assert "≥" not in cold["detail"] and "not crossed" in cold["detail"]
+    assert "≥" in hot["detail"]
     thin = M.evaluate(m, [])            # regeln kräver ≥1 punkt
     assert not thin["triggered"] and thin["severity"] == "insufficient"
 

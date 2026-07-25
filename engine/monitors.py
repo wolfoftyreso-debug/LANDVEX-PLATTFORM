@@ -85,11 +85,20 @@ def _rule_threshold(series: list[float], p: dict) -> dict:
     direction = p.get("direction", "above")
     breached = v >= level if direction == "above" else v <= level
     dist = abs(v - level) / abs(level) * 100.0 if level else 0.0
+    # Beskriv det som FAKTISKT hände. Att alltid skriva "62 ≥ 60" gör att ett
+    # lugnt utfall läses som "41 ≥ 60" – ett påstående som är falskt. Ett larm
+    # som ljuger i sin egen förklaring är värre än inget larm.
+    if breached:
+        detail = (f"latest {v:g} {'≥' if direction == 'above' else '≤'} "
+                  f"level {level:g} ({dist:.1f}% past)")
+    else:
+        side = "below" if direction == "above" else "above"
+        detail = (f"latest {v:g} has not crossed level {level:g} "
+                  f"({dist:.1f}% {side})")
     return {"triggered": breached,
             "severity": "high" if breached and dist >= 10 else
                         "medium" if breached else "low",
-            "detail": f"latest {v:g} {'≥' if direction=='above' else '≤'} "
-                      f"level {level:g} ({dist:.1f}% past)",
+            "detail": detail,
             "measure": round(v, 6)}
 
 
