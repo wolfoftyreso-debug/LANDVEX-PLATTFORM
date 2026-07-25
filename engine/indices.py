@@ -92,6 +92,12 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              "which tracks wages, rents and the commercial base.",
              "styrka", "free",
              (("haircut_price", 0.7), ("business_density", 0.3))),
+    IndexDef("gender_balance", "Gender Balance",
+             "The women-to-men ratio: near parity scores high; a strong skew "
+             "(a mining town, a tech hub, a university city) scores lower. "
+             "Descriptive only — balance is not a value judgement.",
+             "styrka", "free",
+             (("gender_ratio", 1.0),)),
 ]}
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.

@@ -101,4 +101,5 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("pest_pressure",     "Pest pressure",                "0–100",  "inverse", 5, 80),
     _s("drainage_index",    "Drainage adequacy",            "0–10",   "linear",  0, 10),
     _s("haircut_price",     "Standard haircut price",       "cost",   "linear",  8, 70),
+    _s("gender_ratio",      "Women per 100 men",            "ratio",  "band",    92, 108),
 ]}

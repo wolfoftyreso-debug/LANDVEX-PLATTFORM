@@ -105,6 +105,9 @@ class MockSource(DataSource):
             # Haircut index: priset följer löner + urbanitet (Big Mac-anda).
             "haircut_price": round(max(8, min(70, 12 + income * 0.35 + u * 8 +
                                               rng.uniform(-5, 5))), 0),
+            # Kön-ratio: kvinnor per 100 män. ~parity med lokal skevhet
+            # (bruks-/teknikorter skevar mot män, vård-/universitetsorter mot kvinnor).
+            "gender_ratio": round(98 + (u - 0.6) * 6 + rng.uniform(-9, 11), 0),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)
