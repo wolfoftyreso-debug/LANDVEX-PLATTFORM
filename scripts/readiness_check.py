@@ -70,11 +70,18 @@ def main() -> int:
     # 200 = ok; 422 = wired, needs params/body; 503 = wired, degraded
     # (e.g. persistence off with LANDVEX_DB=off). 404/405/500/0 = broken.
     WIRED = {200, 201, 422, 503}
-    ok, bad = [], []
+    # Endpoints that MUTATE shared state — never exercised against a live
+    # server (would pollute the outcome dataset). Their wiring is proven by
+    # the contract test instead.
+    SKIP_MUTATING = {"/v1/outcomes"}
+    ok, bad, skipped = [], [], []
     for eng in catalog["engines"]:
         for ep in eng["endpoints"]:
             p, m = ep["path"], ep["method"]
             if "{" in p:
+                continue
+            if p in SKIP_MUTATING and m != "GET":
+                skipped.append((m, p))
                 continue
             st, _ = _req(p, POSTS.get(p, {}) if m != "GET" else None)
             (ok if st in WIRED else bad).append((m, p, st))
@@ -82,6 +89,8 @@ def main() -> int:
         tag = "" if st in (200, 201) else \
             "  (needs params/body)" if st == 422 else "  (degraded — persistence off)"
         print(f"  ✓ {m:4} {p:26} {st}{tag}")
+    for m, p in skipped:
+        print(f"  – {m:4} {p:26} skipped (mutating; wiring via contract test)")
     for m, p, st in bad:
         print(f"  ✗ {m:4} {p:26} {st}")
     print(f"\n{len(ok)} wired, {len(bad)} broken.")

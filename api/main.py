@@ -301,7 +301,7 @@ class AskRequest(BaseModel):
 def ask_landvex(req: AskRequest):
     try:
         # Krisgrind går FÖRE motordata: suicid/självskada → nödresurser.
-        kris = crisis_scan(req.question, country="us")
+        kris = crisis_scan(req.question)   # autodetekterar språk/land
         if kris:
             return kris
         svar = ask(req.question, resolver=RESOLVER)

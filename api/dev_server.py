@@ -407,7 +407,7 @@ class Handler(BaseHTTPRequestHandler):
                                   for s in ("text", "apa", "bibtex")}})
             if self.path == "/v1/ask":
                 q = str(req.get("question", ""))
-                kris = crisis_scan(q, country="us")
+                kris = crisis_scan(q)   # autodetekterar språk/land
                 if kris:
                     return self._send(200, kris)
                 svar = ask(q, resolver=RESOLVER)

@@ -17,6 +17,7 @@ Rent stdlib. Modul-lokalt append-only register (`record`/`all_records`/
 """
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from .integrity import canonical_hash
@@ -26,7 +27,13 @@ MIN_SAMPLE = 30   # under detta: ingen kalibrerad sannolikhet lovas
 _BUCKETS = ((0, 50, "weak"), (50, 70, "fair"), (70, 85, "strong"),
             (85, 101, "prime"))
 
+# OBS (produktion): detta register är PROCESS-LOKALT. Under flera gunicorn-
+# workers ser de inte varandras utfall och registret nollställs vid omstart.
+# Kör därför WEB_CONCURRENCY=1 för utfallsloggning, ELLER (uppföljning) backa
+# `record`/`all_records` med storage/-lagret. Låset skyddar mot TOCTOU-race
+# under dev-serverns trådpool.
 _RECORDS: list[dict] = []
+_LOCK = threading.Lock()
 
 
 def log_outcome(location: dict, vertical: str, predicted_score: float,
@@ -45,9 +52,13 @@ def log_outcome(location: dict, vertical: str, predicted_score: float,
 
 
 def record(rec: dict) -> str:
-    """Append-only: lägg en utfallspost i registret (idempotent på id)."""
-    if not any(r["id"] == rec["id"] for r in _RECORDS):
-        _RECORDS.append(rec)
+    """Append-only: lägg en utfallspost i registret (idempotent på id).
+
+    Låst: check-och-append är atomiskt så samtidiga anrop inte dubblerar.
+    """
+    with _LOCK:
+        if not any(r["id"] == rec["id"] for r in _RECORDS):
+            _RECORDS.append(rec)
     return rec["id"]
 
 

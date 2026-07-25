@@ -19,7 +19,12 @@ import re
 # --- 1. Krisgrind --------------------------------------------------------
 _CRISIS_RE = re.compile(
     r"\b(suicid\w*|kill myself|end my life|self[-\s]?harm|"
-    r"take my (own )?life|självmord|ta mitt liv|skada mig själv)\b", re.I)
+    r"take my (own )?life|självmord|ta mitt liv|ta livet av mig|"
+    r"skada mig själv)\b", re.I)
+# Svenska formuleringar → svenska resurser (annars fick en svensk användare
+# det amerikanska 988-numret; en lokaliseringsbugg med säkerhetspåverkan).
+_SWEDISH_RE = re.compile(
+    r"självmord|ta mitt liv|ta livet av mig|skada mig själv", re.I)
 
 # Lokaliserade nödresurser (schablon; utökas per marknad).
 _RESOURCES = {
@@ -33,12 +38,18 @@ _RESOURCES = {
 }
 
 
-def crisis_scan(text: str, country: str = "us") -> dict | None:
+def crisis_scan(text: str, country: str | None = None) -> dict | None:
     """Returnerar en nödresurs-respons om texten rör suicid/självskada,
-    annars None. Ingen motordata – bara hjälp och resurser."""
+    annars None. Ingen motordata – bara hjälp och resurser.
+
+    `country=None` → autodetektera: svensk formulering ger svenska resurser,
+    annars den amerikanska linjen. Anropare som vet marknaden kan sätta den.
+    """
     if not text or not _CRISIS_RE.search(text):
         return None
-    res = _RESOURCES.get((country or "").lower(), _RESOURCES["_default"])
+    if not country:
+        country = "se" if _SWEDISH_RE.search(text) else "us"
+    res = _RESOURCES.get(country.lower(), _RESOURCES["_default"])
     return {
         "crisis": True,
         "message": ("It sounds like you may be going through something very "
