@@ -59,6 +59,10 @@ from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
 from engine.sensitive import sensitive_association
 from engine.wages import compare as wage_compare, wage, wage_catalog
+from engine.corrections import (adapt as adapt_correction,
+                                consensus as correction_consensus,
+                                set_store as set_corrections_store,
+                                submit as submit_correction)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -160,6 +164,7 @@ else:
 # delas över workers). Utan store faller de ärligt tillbaka på process-minne.
 set_outcome_store(STORE)
 set_accountability_store(STORE)
+set_corrections_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -795,6 +800,41 @@ def wages_compare(req: WageCompareRequest):
         return wage_compare(req.occupation, req.markets)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+class CorrectionSubmitRequest(BaseModel):
+    region: str
+    target_key: str
+    proposed_value: float
+    source: str
+    submitter_id: str
+    current_value: float | None = None
+    note: str = ""
+
+
+class CorrectionQueryRequest(BaseModel):
+    region: str
+    target_key: str
+
+
+@app.post("/v1/corrections/submit")
+def corrections_submit(req: CorrectionSubmitRequest):
+    try:
+        return submit_correction(req.region, req.target_key, req.proposed_value,
+                                 req.source, req.submitter_id,
+                                 current_value=req.current_value, note=req.note)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/corrections/consensus")
+def corrections_consensus(req: CorrectionQueryRequest):
+    return correction_consensus(req.target_key, req.region)
+
+
+@app.post("/v1/corrections/adapt")
+def corrections_adapt(req: CorrectionQueryRequest):
+    return adapt_correction(req.target_key, req.region)
 
 
 class SegmentAnalyzeRequest(BaseModel):

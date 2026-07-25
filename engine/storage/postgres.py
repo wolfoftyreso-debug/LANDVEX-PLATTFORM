@@ -94,6 +94,16 @@ CREATE TABLE IF NOT EXISTS resolutions (
     payload     JSONB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_resolutions_dec ON resolutions(decision_id);
+
+CREATE TABLE IF NOT EXISTS corrections (
+    id           TEXT PRIMARY KEY,
+    created_at   DOUBLE PRECISION NOT NULL,
+    region       TEXT NOT NULL,
+    target_key   TEXT NOT NULL,
+    submitter_id TEXT NOT NULL,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_corrections_tgt ON corrections(target_key, region);
 """
 
 
@@ -280,6 +290,24 @@ class PostgresStore(Store):
     def all_resolutions(self) -> list[dict[str, Any]]:
         with self._conn.cursor() as cur:
             cur.execute("SELECT payload FROM resolutions ORDER BY resolved_at, id")
+            return [r[0] for r in cur.fetchall()]
+
+    def save_correction(self, record: dict[str, Any]) -> str:
+        import json
+        import time
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO corrections (id, created_at, region, target_key, "
+                "submitter_id, payload) VALUES (%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO NOTHING",
+                (record["id"], time.time(), record["region"],
+                 record["target_key"], record["submitter_id"],
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_corrections(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM corrections ORDER BY created_at, id")
             return [r[0] for r in cur.fetchall()]
 
     def close(self) -> None:

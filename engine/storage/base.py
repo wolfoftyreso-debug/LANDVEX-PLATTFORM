@@ -99,5 +99,14 @@ class Store(ABC):
     def all_resolutions(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    # ── Wiki-rättelser ───────────────────────────────────────────────
+    def save_correction(self, record: dict[str, Any]):
+        """Persistera en rättelse (append-only, idempotent på id). None =
+        stöds ej → process-minne."""
+        return None
+
+    def all_corrections(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def close(self) -> None:  # valfritt att överskugga
         pass

@@ -187,6 +187,14 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/wages"},
                        {"method": "POST", "path": "/v1/wages/lookup"},
                        {"method": "POST", "path": "/v1/wages/compare"}]},
+        {"id": "corrections", "label_en": "Community Corrections",
+         "beskrivning_en": "Wikipedia-style sourced corrections from regional "
+                           "users; when enough independent, converging, sourced "
+                           "corrections arrive the system adapts the value "
+                           "(labelled community, reversible, traceable).",
+         "endpoints": [{"method": "POST", "path": "/v1/corrections/submit"},
+                       {"method": "POST", "path": "/v1/corrections/consensus"},
+                       {"method": "POST", "path": "/v1/corrections/adapt"}]},
         {"id": "sensitive", "label_en": "Sensitive-category Guard",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

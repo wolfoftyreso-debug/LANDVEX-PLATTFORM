@@ -67,6 +67,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/wages": "core",                      # löneregister (katalog); analys mer
     "/v1/wages/lookup": "opportunity",
     "/v1/wages/compare": "opportunity",
+    "/v1/corrections": "core",                # wiki-rättelser (medborgarbidrag)
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

@@ -47,6 +47,17 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_resolutions_dec ON resolutions(decision_id);
     """),
+    (4, """
+    CREATE TABLE IF NOT EXISTS corrections (
+        id           TEXT PRIMARY KEY,
+        created_at   REAL NOT NULL,
+        region       TEXT NOT NULL,
+        target_key   TEXT NOT NULL,
+        submitter_id TEXT NOT NULL,
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_corrections_tgt ON corrections(target_key, region);
+    """),
 ]
 
 _DDL = """
@@ -311,6 +322,25 @@ class SqliteStore(Store):
         with self._lock:
             rows = self._conn.execute(
                 "SELECT payload FROM resolutions ORDER BY resolved_at, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    # ── Wiki-rättelser ───────────────────────────────────────────────
+
+    def save_correction(self, record: dict[str, Any]) -> str:
+        import time
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO corrections (id, created_at, region, "
+                "target_key, submitter_id, payload) VALUES (?,?,?,?,?,?)",
+                (record["id"], time.time(), record["region"],
+                 record["target_key"], record["submitter_id"],
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_corrections(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM corrections ORDER BY created_at, id").fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def close(self) -> None:
