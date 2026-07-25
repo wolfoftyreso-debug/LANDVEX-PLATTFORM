@@ -106,6 +106,7 @@ from engine.datasources.programs import ProgramsClient
 PROGRAMS = ProgramsClient()   # connected only if LANDVEX_PROGRAMS_URL is set
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+_SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
@@ -138,7 +139,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/index.html", "/health", "/v1/plans", "/openapi.json")
+    _OPEN_PATHS = ("/", "/index.html", "/sandbox", "/health", "/v1/plans",
+                   "/openapi.json")
 
     def _live_locked(self) -> bool:
         p = getattr(self, "_principal", None)
@@ -204,6 +206,14 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path in ("/", "/index.html"):
             self._status = 200
             body = _FRONTEND.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            return self.wfile.write(body)
+        if parsed.path == "/sandbox":
+            self._status = 200
+            body = _SANDBOX.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

@@ -97,7 +97,7 @@ if _CORS:
                        allow_headers=["Content-Type", "X-API-Key",
                                       "Authorization"])
 
-_OPEN_PATHS = ("/", "/index.html", "/health", "/docs", "/openapi.json",
+_OPEN_PATHS = ("/", "/index.html", "/sandbox", "/health", "/docs", "/openapi.json",
                "/v1/plans")
 
 
@@ -225,11 +225,17 @@ class ScanRequest(BaseModel):
 
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+_SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 
 
 @app.get("/", include_in_schema=False)
 def frontend():
     return FileResponse(_FRONTEND, media_type="text/html")
+
+
+@app.get("/sandbox", include_in_schema=False)
+def sandbox_page():
+    return FileResponse(_SANDBOX, media_type="text/html")
 
 
 @app.get("/v1/profile-options")
