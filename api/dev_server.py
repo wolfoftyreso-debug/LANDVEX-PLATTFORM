@@ -42,6 +42,9 @@ from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.scoring import analyze
 from engine.ask import ask
+from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
+from engine.lambda_index import lambda_score
+from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import DEFAULT_MARKET, market_catalog
@@ -189,6 +192,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, openapi_spec())
         if parsed.path == "/v1/markets":
             return self._send(200, market_catalog())
+        if parsed.path == "/v1/kpi":
+            return self._send(200, kpi_catalog())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -316,8 +321,21 @@ class Handler(BaseHTTPRequestHandler):
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
                     p.to_dict(), created_at=time.time())})
+            if self.path == "/v1/kpi/evaluate":
+                return self._send(200, evaluate_kpi(
+                    str(req["code"]), float(req["value"]),
+                    None if req.get("previous") is None
+                    else float(req["previous"])))
+            if self.path == "/v1/lambda":
+                return self._send(200, lambda_score(
+                    {str(k): float(v) for k, v in
+                     (req.get("axes") or {}).items()}))
             if self.path == "/v1/ask":
-                svar = ask(str(req.get("question", "")), resolver=RESOLVER)
+                q = str(req.get("question", ""))
+                svar = ask(q, resolver=RESOLVER)
+                block = classify_query(q)
+                if block:
+                    svar["neutrality"] = block
                 if AAMOS.connected:
                     # Berikning i API-lagret – aldrig i kärnan, aldrig
                     # blockerande: kognitiv not utöver motorsvaret.

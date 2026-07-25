@@ -98,6 +98,17 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/indices"},
                        {"method": "GET", "path": "/v1/indices/map"},
                        {"method": "POST", "path": "/v1/indices/assess"}]},
+        {"id": "kpi", "label_en": "KPI Engine",
+         "beskrivning_en": "Societal KPI registry (7 categories) with "
+                           "invert-aware status/trend and threshold + "
+                           "velocity alerts. Deterministic, no ML.",
+         "endpoints": [{"method": "GET", "path": "/v1/kpi"},
+                       {"method": "POST", "path": "/v1/kpi/evaluate"}]},
+        {"id": "lambda", "label_en": "Lambda Index",
+         "beskrivning_en": "Geometric-mean balance index across 8 societal "
+                           "axes (~1.0 balanced); penalises extremes so a "
+                           "strong axis cannot mask a weak one.",
+         "endpoints": [{"method": "POST", "path": "/v1/lambda"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

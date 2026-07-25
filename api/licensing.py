@@ -44,6 +44,9 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/products": "demand_intelligence",
     "/v1/service": "demand_intelligence",
     "/v1/indices": "intelligence_map_free",   # live-lager kräver _live
+    "/v1/kpi": "core",                        # registret; evaluate kräver mer
+    "/v1/kpi/evaluate": "opportunity",
+    "/v1/lambda": "opportunity",
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

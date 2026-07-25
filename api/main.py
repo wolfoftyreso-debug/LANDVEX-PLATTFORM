@@ -33,6 +33,9 @@ from engine.profile import profile_from_dict, profile_options
 from engine.scan import SCAN_LEVEL_OPTIONS, SCAN_LEVELS, scan
 from engine.scoring import analyze
 from engine.ask import ask
+from engine.kpi import evaluate as evaluate_kpi, kpi_catalog
+from engine.lambda_index import lambda_score
+from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
 from engine.markets import DEFAULT_MARKET, market_catalog
@@ -273,7 +276,13 @@ class AskRequest(BaseModel):
 @app.post("/v1/ask")
 def ask_landvex(req: AskRequest):
     try:
-        return ask(req.question, resolver=RESOLVER)
+        svar = ask(req.question, resolver=RESOLVER)
+        # Integritetsgrind (skördat lager E): flagga icke-neutrala frågor
+        # ärligt utan att blockera motorsvaret – förklarbarhet, inte censur.
+        block = classify_query(req.question)
+        if block:
+            svar["neutrality"] = block
+        return svar
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -372,6 +381,35 @@ def plan(req: PlanRequest):
                                   resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+# --- Skördade lager: KPI-motor + Lambda-index -----------------------------
+class KpiEvalRequest(BaseModel):
+    code: str
+    value: float
+    previous: float | None = None
+
+
+class LambdaRequest(BaseModel):
+    axes: dict[str, float]
+
+
+@app.get("/v1/kpi")
+def kpi_registry():
+    return kpi_catalog()
+
+
+@app.post("/v1/kpi/evaluate")
+def kpi_evaluate(req: KpiEvalRequest):
+    try:
+        return evaluate_kpi(req.code, req.value, req.previous)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/lambda")
+def lambda_ep(req: LambdaRequest):
+    return lambda_score(req.axes)
 
 
 class SegmentAnalyzeRequest(BaseModel):

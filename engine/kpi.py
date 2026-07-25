@@ -16,7 +16,8 @@ calculate-relevance 84-319 (rank).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import dataclass
 
 from . import scorekit
 from .integrity import derive_trend
@@ -161,3 +162,22 @@ REGISTRY: tuple[KpiDefinition, ...] = (
                   "karnsystem_funktion", "index", warning=60, critical=40,
                   direction="below"),
 )
+
+_BY_CODE: dict[str, KpiDefinition] = {d.code: d for d in REGISTRY}
+
+
+def kpi_catalog() -> list[dict]:
+    """Registret som självbeskrivande data (för /v1/kpi)."""
+    return [dataclasses.asdict(d) for d in REGISTRY]
+
+
+def evaluate(code: str, value: float, previous: float | None = None) -> dict:
+    """Status + trend + alerts för en KPI-kod (för /v1/kpi/evaluate)."""
+    d = _BY_CODE.get(code)
+    if d is None:
+        raise ValueError(f"okänd KPI: {code}")
+    st = derive_status(value, previous, d.is_inverted)
+    return {"code": code, "name": d.name, "category": d.category,
+            "unit": d.unit, "is_inverted": d.is_inverted, "value": value,
+            "previous": previous, **st,
+            "alerts": evaluate_alerts(d, value, previous)}

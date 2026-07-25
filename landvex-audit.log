@@ -1,0 +1,4 @@
+{"ts": 1785001598.428, "request_id": "52d58a14f797", "tenant": "dev", "role": "admin", "key_id": "open", "method": "GET", "path": "/v1/kpi", "status": 200, "duration_ms": 0.7}
+{"ts": 1785001598.438, "request_id": "2ae4dc4d053f", "tenant": "dev", "role": "admin", "key_id": "open", "method": "POST", "path": "/v1/kpi/evaluate", "status": 200, "duration_ms": 0.4}
+{"ts": 1785001598.446, "request_id": "044f8db484ce", "tenant": "dev", "role": "admin", "key_id": "open", "method": "POST", "path": "/v1/lambda", "status": 200, "duration_ms": 0.3}
+{"ts": 1785001598.494, "request_id": "312cc3faa4d6", "tenant": "dev", "role": "admin", "key_id": "open", "method": "POST", "path": "/v1/ask", "status": 200, "duration_ms": 39.9}
