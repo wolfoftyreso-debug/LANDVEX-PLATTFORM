@@ -65,6 +65,7 @@ from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
+from engine.sensitive import sensitive_association
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -463,6 +464,16 @@ class Handler(BaseHTTPRequestHandler):
                     metric=str(req.get("metric", "ratio")),
                     higher_is_better=req.get("higher_is_better"),
                     sources=req.get("sources") or []))
+            if self.path == "/v1/sensitive-association":
+                return self._send(200, sensitive_association(
+                    req.get("a") or [], req.get("b") or [], req.get("control") or [],
+                    category=str(req.get("category", "")),
+                    group_sizes=req.get("group_sizes") or [],
+                    sources=req.get("sources") or [],
+                    confounders=req.get("confounders") or [],
+                    label_a=str(req.get("label_a", "attribute")),
+                    label_b=str(req.get("label_b", "outcome")),
+                    label_c=str(req.get("label_c", "confounder"))))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),

@@ -179,6 +179,13 @@ API_CATALOG: dict = {
                            "units (percentile, z-score, outlier band) — is a "
                            "claimed shortage/excess actually unusual, or normal?",
          "endpoints": [{"method": "POST", "path": "/v1/benchmark"}]},
+        {"id": "sensitive", "label_en": "Sensitive-category Guard",
+         "beskrivning_en": "Surfaces associations on protected categories "
+                           "(origin, victim status, health…) ONLY with "
+                           "k-anonymity, mandatory confounder control (raw vs "
+                           "controlled), official sources, and ecological-"
+                           "fallacy warnings. Truth, never ammunition.",
+         "endpoints": [{"method": "POST", "path": "/v1/sensitive-association"}]},
         {"id": "accountability", "label_en": "Accountability Loop",
          "beskrivning_en": "Commits a decision to a responsible owner + an "
                            "expected outcome, resolves it against the actual, "

@@ -63,6 +63,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/scenario": "opportunity",            # trovärdighets-grindade scenarier
     "/v1/event-study": "opportunity",         # före/efter + diff-in-diff
     "/v1/benchmark": "opportunity",           # peer-benchmark
+    "/v1/sensitive-association": "opportunity",  # känsliga kategorier (grindad)
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

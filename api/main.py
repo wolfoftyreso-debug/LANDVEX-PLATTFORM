@@ -57,6 +57,7 @@ from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
+from engine.sensitive import sensitive_association
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -740,6 +741,28 @@ def event_study_ep(req: EventStudyRequest):
 def benchmark_ep(req: BenchmarkRequest):
     return benchmark(req.value, req.peers, label=req.label, metric=req.metric,
                      higher_is_better=req.higher_is_better, sources=req.sources)
+
+
+class SensitiveRequest(BaseModel):
+    a: list[float]
+    b: list[float]
+    control: list[float]
+    category: str
+    group_sizes: list[int] = Field(default_factory=list)
+    sources: list = Field(default_factory=list)
+    confounders: list = Field(default_factory=list)
+    label_a: str = "attribute"
+    label_b: str = "outcome"
+    label_c: str = "confounder"
+
+
+@app.post("/v1/sensitive-association")
+def sensitive_ep(req: SensitiveRequest):
+    return sensitive_association(
+        req.a, req.b, req.control, category=req.category,
+        group_sizes=req.group_sizes, sources=req.sources,
+        confounders=req.confounders, label_a=req.label_a,
+        label_b=req.label_b, label_c=req.label_c)
 
 
 class SegmentAnalyzeRequest(BaseModel):
