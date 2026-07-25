@@ -277,3 +277,19 @@ def integrity_score(findings: list[dict[str, Any]]) -> dict[str, Any]:
     score = max(0, 100 - len(findings) * 20)
     return {"integrity_score": score, "passed": criticals == 0,
             "critical_count": criticals, "finding_count": len(findings)}
+
+
+# --------------------------------------------------------------------------
+# 5. INRAMNING – "statistik ljuger alltid": ett resultat är alltid ett svar
+# --------------------------------------------------------------------------
+FRAMING_NOTE = ("A statistical result is always presented as an answer, "
+                "whatever the outcome — this figure is one framing, "
+                "contingent on the choices below, not a truth.")
+
+
+def framing_disclosure(choices: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Binder en inramnings-not till ett resultat: aldrig en siffra utan de
+    val (mål, riktning, täckning, urval) som gjorde den till "ett svar".
+    Motmedlet mot siffrans falska auktoritet – redovisa ramen, inte bara talet.
+    """
+    return {"note": FRAMING_NOTE, "choices": choices or {}}

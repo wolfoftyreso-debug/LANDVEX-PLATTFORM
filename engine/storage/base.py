@@ -83,5 +83,21 @@ class Store(ABC):
         """Alla utfallsposter, eller None om lagret inte stöder det."""
         return None
 
+    # ── Ansvarsloop (beslut → utfall) ────────────────────────────────
+    def save_decision(self, record: dict[str, Any]):
+        """Persistera ett beslut (append-only, idempotent på id). None =
+        stöds ej → anroparen faller tillbaka på process-minne."""
+        return None
+
+    def all_decisions(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def save_resolution(self, record: dict[str, Any]):
+        """Persistera en utfalls-resolution (append-only, idempotent på id)."""
+        return None
+
+    def all_resolutions(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def close(self) -> None:  # valfritt att överskugga
         pass

@@ -155,6 +155,14 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "POST", "path": "/v1/outcomes"},
                        {"method": "GET", "path": "/v1/outcomes/calibration"},
                        {"method": "POST", "path": "/v1/outcomes/roi"}]},
+        {"id": "accountability", "label_en": "Accountability Loop",
+         "beskrivning_en": "Commits a decision to a responsible owner + an "
+                           "expected outcome, resolves it against the actual, "
+                           "and keeps a per-owner ledger. Every result carries "
+                           "its framing (a result is always an answer).",
+         "endpoints": [{"method": "POST", "path": "/v1/decisions/commit"},
+                       {"method": "POST", "path": "/v1/decisions/resolve"},
+                       {"method": "GET", "path": "/v1/decisions/ledger"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
          "endpoints": [{"method": "GET", "path": "/v1/markets"},

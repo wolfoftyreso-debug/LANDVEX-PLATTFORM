@@ -49,6 +49,10 @@ from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
                              expected_roi, log_outcome, record as record_outcome,
                              set_store as set_outcome_store)
+from engine.accountability import (commit as commit_decision, get_decision,
+                                   ledger as accountability_ledger,
+                                   resolve as resolve_decision,
+                                   set_store as set_accountability_store)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -146,9 +150,10 @@ elif _DB.lower() not in ("off", "0", ""):
 else:
     STORE = None
 
-# Backa utfallskalibreringen med lagret (överlever omstart + delas över
-# workers). Utan store faller den ärligt tillbaka på process-minne.
+# Backa utfallskalibreringen + ansvarsloopen med lagret (överlever omstart +
+# delas över workers). Utan store faller de ärligt tillbaka på process-minne.
 set_outcome_store(STORE)
+set_accountability_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -604,6 +609,47 @@ def outcomes_calibration():
 @app.post("/v1/outcomes/roi")
 def outcomes_roi(req: RoiRequest):
     return expected_roi(req.score)
+
+
+class DecisionCommitRequest(BaseModel):
+    decision: str
+    owners: dict = Field(default_factory=dict)
+    expected: dict = Field(default_factory=dict)
+    kpi_ids: list = Field(default_factory=list)
+    horizon_months: int = 0
+    committed_at: str = ""
+
+
+class DecisionResolveRequest(BaseModel):
+    decision_id: str
+    actual_value: float
+    baseline: float | None = None
+    resolved_at: str = ""
+
+
+@app.post("/v1/decisions/commit")
+def decisions_commit(req: DecisionCommitRequest):
+    try:
+        return commit_decision(req.decision, req.owners, req.expected,
+                               kpi_ids=req.kpi_ids,
+                               horizon_months=req.horizon_months,
+                               committed_at=req.committed_at)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/decisions/resolve")
+def decisions_resolve(req: DecisionResolveRequest):
+    dcn = get_decision(req.decision_id)
+    if dcn is None:
+        raise HTTPException(status_code=404, detail="unknown decision_id")
+    return resolve_decision(dcn, req.actual_value, baseline=req.baseline,
+                            resolved_at=req.resolved_at)
+
+
+@app.get("/v1/decisions/ledger")
+def decisions_ledger():
+    return accountability_ledger()
 
 
 class SegmentAnalyzeRequest(BaseModel):

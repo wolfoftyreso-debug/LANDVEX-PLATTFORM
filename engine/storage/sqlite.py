@@ -31,6 +31,22 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_outcomes_score ON outcomes(predicted_score);
     """),
+    (3, """
+    CREATE TABLE IF NOT EXISTS decisions (
+        id           TEXT PRIMARY KEY,
+        committed_at REAL NOT NULL,
+        owner        TEXT NOT NULL DEFAULT '',
+        payload      TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS resolutions (
+        id          TEXT PRIMARY KEY,
+        decision_id TEXT NOT NULL,
+        resolved_at REAL NOT NULL,
+        met         INTEGER NOT NULL,
+        payload     TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_resolutions_dec ON resolutions(decision_id);
+    """),
 ]
 
 _DDL = """
@@ -259,6 +275,42 @@ class SqliteStore(Store):
         with self._lock:
             rows = self._conn.execute(
                 "SELECT payload FROM outcomes ORDER BY created_at, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    # ── Ansvarsloop ──────────────────────────────────────────────────
+
+    def save_decision(self, record: dict[str, Any]) -> str:
+        import time
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO decisions (id, committed_at, owner, "
+                "payload) VALUES (?,?,?,?)",
+                (record["id"], time.time(),
+                 record.get("owners", {}).get("formellt", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_decisions(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM decisions ORDER BY committed_at, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def save_resolution(self, record: dict[str, Any]) -> str:
+        import time
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO resolutions (id, decision_id, "
+                "resolved_at, met, payload) VALUES (?,?,?,?,?)",
+                (record["id"], record["decision_id"], time.time(),
+                 1 if record.get("met") else 0,
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_resolutions(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM resolutions ORDER BY resolved_at, id").fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def close(self) -> None:

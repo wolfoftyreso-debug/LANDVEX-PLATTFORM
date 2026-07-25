@@ -57,6 +57,10 @@ from engine.datasources.svk import SvkClient
 from engine.outcomes import (calibration as outcome_calibration,
                              expected_roi, log_outcome, record as record_outcome,
                              set_store as set_outcome_store)
+from engine.accountability import (commit as commit_decision, get_decision,
+                                   ledger as accountability_ledger,
+                                   resolve as resolve_decision,
+                                   set_store as set_accountability_store)
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -94,8 +98,9 @@ _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
 STORE = SqliteStore(_DB) if _DB.lower() not in ("off", "0", "") else None
-# Utfallskalibreringen backas av lagret (överlever omstart + delas över workers).
+# Utfallskalibrering + ansvarsloop backas av lagret (överlever omstart).
 set_outcome_store(STORE)
+set_accountability_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -223,6 +228,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, SvkClient().status())
         if parsed.path == "/v1/outcomes/calibration":
             return self._send(200, outcome_calibration())
+        if parsed.path == "/v1/decisions/ledger":
+            return self._send(200, accountability_ledger())
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -397,6 +404,20 @@ class Handler(BaseHTTPRequestHandler):
                                         "calibration": outcome_calibration()})
             if self.path == "/v1/outcomes/roi":
                 return self._send(200, expected_roi(float(req["score"])))
+            if self.path == "/v1/decisions/commit":
+                return self._send(200, commit_decision(
+                    str(req["decision"]), req.get("owners") or {},
+                    req.get("expected") or {}, kpi_ids=req.get("kpi_ids") or [],
+                    horizon_months=int(req.get("horizon_months", 0)),
+                    committed_at=str(req.get("committed_at", ""))))
+            if self.path == "/v1/decisions/resolve":
+                dcn = get_decision(str(req["decision_id"]))
+                if dcn is None:
+                    return self._send(404, {"error": "unknown decision_id"})
+                return self._send(200, resolve_decision(
+                    dcn, float(req["actual_value"]),
+                    baseline=req.get("baseline"),
+                    resolved_at=str(req.get("resolved_at", ""))))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),
