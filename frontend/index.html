@@ -291,6 +291,7 @@
     <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Establish</button>
     <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Workforce</button>
     <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
+    <button class="tab" data-mode="console"><svg class="ikon"><use href="#i-puls"/></svg>Console</button>
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
     <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
@@ -342,6 +343,12 @@
       <div class="falt"><label>Index</label><select id="indexVal"></select></div>
       <div class="falt"><label>Market</label><select id="marknadIndex"></select></div>
       <button id="ritaIndex">Draw map layer</button>
+    </div>
+    <div id="vyConsole" style="display:none">
+      <h2>Intelligence Console</h2>
+      <p class="motiv" style="margin-bottom:10px">λ balance index + KPI signals per US metro. λ is computed live from <b>/v1/lambda</b>; pick a region.</p>
+      <div class="chips" id="consoleChips"></div>
+      <div id="consoleLive" class="motiv" style="margin-top:12px;font-family:var(--mono,monospace);font-size:11px"></div>
     </div>
     <div id="vyPaket" style="display:none">
       <h2>Platform tiers</h2>
@@ -403,6 +410,55 @@
       <div><i style="background:var(--gul)"></i>Moderate</div>
       <div><i style="background:var(--orange)"></i>Elevated</div>
       <div><i style="background:var(--rod)"></i>High risk</div>
+    </div>
+    <div id="consoleStage" style="display:none">
+      <style>
+        #consoleStage{position:absolute;inset:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+        #consoleStage .crow{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+        @media(max-width:820px){#consoleStage .crow{grid-template-columns:1fr}}
+        #consoleStage .cpanel{background:var(--panel,#111722);border:1px solid var(--line);border-radius:14px;padding:14px}
+        #consoleStage h3{margin:0 0 2px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#8A97A8);font-weight:600}
+        #consoleStage .csub{margin:0 0 10px;font-size:11px;color:var(--dim,#57647A)}
+        #lvxMap{width:100%;height:auto;display:block;border-radius:10px;cursor:crosshair}
+        #consoleStage .scopebox{display:flex;flex-direction:column;align-items:center}
+        #lvxScope{width:100%;max-width:300px;height:auto}
+        #lvxTrace{width:100%;height:50px;margin-top:2px}
+        #consoleStage .cband{font-family:var(--mono,monospace);font-size:12px;padding:4px 12px;border-radius:999px;margin-top:4px}
+        #consoleStage .meters{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        #consoleStage .meter .num{font-family:var(--mono,monospace);font-size:30px;font-weight:600;line-height:1}
+        #consoleStage .meter .cap{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted,#8A97A8)}
+        #consoleStage .track{height:8px;border-radius:5px;background:var(--line);margin-top:10px;overflow:hidden}
+        #consoleStage .track i{display:block;height:100%;border-radius:5px;transition:width .6s ease}
+        #consoleStage .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+        #consoleStage .kpi{background:var(--panel2,#0D131C);border:1px solid var(--line);border-left-width:3px;border-radius:10px;padding:11px 12px}
+        #consoleStage .kpi .kn{font-size:10.5px;color:var(--muted,#8A97A8);display:flex;justify-content:space-between;gap:6px;margin-bottom:6px}
+        #consoleStage .kpi .kv{font-family:var(--mono,monospace);font-size:21px;font-weight:600}
+        #consoleStage .kpi .kt{font-family:var(--mono,monospace);font-size:11px;margin-top:5px}
+        #consoleStage .cpill{font-size:9px;font-family:var(--mono,monospace);letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:5px;font-weight:600}
+      </style>
+      <div class="crow">
+        <div class="cpanel">
+          <h3>Opportunity Map</h3><p class="csub">United States · glow = opportunity score · click a node</p>
+          <canvas id="lvxMap" width="640" height="380"></canvas>
+        </div>
+        <div class="cpanel scopebox">
+          <h3 style="align-self:flex-start">λ Balance Index</h3>
+          <p class="csub" style="align-self:flex-start">Geometric mean of 8 axes — penalises extremes</p>
+          <canvas id="lvxScope" width="300" height="196"></canvas>
+          <div class="cband" id="lvxBand">—</div>
+          <canvas id="lvxTrace" width="300" height="50" aria-hidden="true"></canvas>
+        </div>
+      </div>
+      <div class="cpanel">
+        <div class="meters">
+          <div class="meter"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="cap">Opportunity</span><span class="num" id="lvxOpp" style="color:var(--gron,#34C759)">—</span></div><div class="track"><i id="lvxOppBar" style="background:var(--gron,#34C759)"></i></div></div>
+          <div class="meter"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="cap">Risk · lower safer</span><span class="num" id="lvxRisk" style="color:var(--gul,#FFCC00)">—</span></div><div class="track"><i id="lvxRiskBar" style="background:var(--gul,#FFCC00)"></i></div></div>
+        </div>
+      </div>
+      <div class="cpanel">
+        <h3>KPI Signals</h3><p class="csub">Invert-aware status + threshold &amp; velocity alerts — deterministic, no ML</p>
+        <div class="kgrid" id="lvxKpis"></div>
+      </div>
     </div>
     <div id="tooltip"></div>
   </main>
@@ -979,6 +1035,8 @@ const LAGEN = {
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
              status: "Defaults are saved locally in your browser." },
+  console: { rubrik: "Console", titel: "Landvex · Intelligence Console",
+             status: "λ computed live from /v1/lambda · KPI status is deterministic." },
 };
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
@@ -989,12 +1047,18 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyEtab").style.display = MODE === "etab" ? "" : "none";
   $("vyKomp").style.display = MODE === "komp" ? "" : "none";
   $("vyIndex").style.display = MODE === "index" ? "" : "none";
+  $("vyConsole").style.display = MODE === "console" ? "" : "none";
   $("vyPaket").style.display = MODE === "paket" ? "" : "none";
   $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendIndex").style.display = MODE === "index" ? "" : "none";
+  // Console-läget byter ut SVG-kartan mot canvas-scenen.
+  const konsol = MODE === "console";
+  $("karta").style.display = konsol ? "none" : "";
+  $("consoleStage").style.display = konsol ? "" : "none";
+  if (konsol) visaConsole(); else stoppaConsole();
   if (MODE === "paket") visaPaket();
   if (MODE === "guide") guideRita();
   if (MODE === "install") visaOmSystemet();
@@ -1005,6 +1069,135 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("status").textContent = LAGEN[MODE].status;
   if (MODE === "watch") visaWatch();
 });
+
+// ---- Intelligence Console (skördade lager: λ-index + KPI-motor) ----------
+const CAXES = ["ECON","HEALTH","LABOR","EDUC","SOCIAL","CLIMATE","GOV","DEMO"];
+const CBAND = [[1.30,"Critical overheating","#FF3B30"],[1.15,"Overheated","#FF9500"],
+  [1.10,"Running hot","#FFCC00"],[0.90,"Balanced","#34C759"],[0.85,"Running cold","#FFCC00"],
+  [0.70,"Inefficient","#FF9500"],[0,"Critical inefficiency","#FF3B30"]];
+const CK = (n,l,u,v,p,inv)=>({code:n,label:l,unit:u,value:v,prev:p,inv:!!inv});
+const CREG = [
+  {name:"Austin, TX",lon:-97.74,lat:30.27,opp:92,risk:26,ax:{ECON:88,HEALTH:70,LABOR:84,EDUC:78,SOCIAL:66,CLIMATE:52,GOV:60,DEMO:82},kpi:[CK("employment_rate_net","Employment","%",97.4,96.1,0),CK("housing","Housing cost/income","x",5.2,4.6,1),CK("permits","Building permits","k/yr",41,33,0)]},
+  {name:"Phoenix, AZ",lon:-112.07,lat:33.45,opp:88,risk:33,ax:{ECON:80,HEALTH:62,LABOR:76,EDUC:64,SOCIAL:58,CLIMATE:34,GOV:56,DEMO:78},kpi:[CK("employment_rate_net","Employment","%",95.9,95.2,0),CK("water","Water stress","idx",71,58,1),CK("permits","Building permits","k/yr",36,31,0)]},
+  {name:"Nashville, TN",lon:-86.78,lat:36.16,opp:86,risk:29,ax:{ECON:82,HEALTH:66,LABOR:80,EDUC:70,SOCIAL:68,CLIMATE:60,GOV:58,DEMO:74},kpi:[CK("employment_rate_net","Employment","%",96.6,95.8,0),CK("housing","Housing cost/income","x",4.8,4.2,1),CK("permits","Building permits","k/yr",29,25,0)]},
+  {name:"Raleigh, NC",lon:-78.64,lat:35.78,opp:84,risk:25,ax:{ECON:80,HEALTH:74,LABOR:82,EDUC:86,SOCIAL:72,CLIMATE:62,GOV:64,DEMO:70},kpi:[CK("employment_rate_net","Employment","%",96.9,96.3,0),CK("stem","STEM workforce","%",22,19,0),CK("permits","Building permits","k/yr",24,21,0)]},
+  {name:"Tampa, FL",lon:-82.46,lat:27.95,opp:83,risk:37,ax:{ECON:76,HEALTH:60,LABOR:72,EDUC:58,SOCIAL:60,CLIMATE:30,GOV:54,DEMO:80},kpi:[CK("employment_rate_net","Employment","%",95.6,95.0,0),CK("insurance","Insurance cost","idx",88,74,1),CK("permits","Building permits","k/yr",27,24,0)]},
+  {name:"Denver, CO",lon:-104.99,lat:39.74,opp:81,risk:30,ax:{ECON:78,HEALTH:76,LABOR:78,EDUC:74,SOCIAL:70,CLIMATE:56,GOV:62,DEMO:66},kpi:[CK("employment_rate_net","Employment","%",96.2,96.0,0),CK("housing","Housing cost/income","x",6.1,5.7,1),CK("permits","Building permits","k/yr",21,20,0)]},
+  {name:"Boise, ID",lon:-116.20,lat:43.62,opp:79,risk:24,ax:{ECON:72,HEALTH:70,LABOR:74,EDUC:66,SOCIAL:74,CLIMATE:58,GOV:60,DEMO:72},kpi:[CK("employment_rate_net","Employment","%",96.4,95.5,0),CK("housing","Housing cost/income","x",5.5,4.7,1),CK("permits","Building permits","k/yr",14,11,0)]},
+  {name:"Charlotte, NC",lon:-80.84,lat:35.23,opp:82,risk:28,ax:{ECON:80,HEALTH:66,LABOR:78,EDUC:68,SOCIAL:66,CLIMATE:60,GOV:58,DEMO:70},kpi:[CK("employment_rate_net","Employment","%",96.1,95.6,0),CK("finance","Finance jobs","%",11,10,0),CK("permits","Building permits","k/yr",23,20,0)]},
+  {name:"Dallas, TX",lon:-96.80,lat:32.78,opp:85,risk:32,ax:{ECON:84,HEALTH:64,LABOR:82,EDUC:66,SOCIAL:60,CLIMATE:50,GOV:56,DEMO:80},kpi:[CK("employment_rate_net","Employment","%",96.0,95.4,0),CK("housing","Housing cost/income","x",4.4,4.1,1),CK("permits","Building permits","k/yr",52,45,0)]},
+  {name:"Salt Lake City, UT",lon:-111.89,lat:40.76,opp:80,risk:27,ax:{ECON:78,HEALTH:74,LABOR:80,EDUC:70,SOCIAL:76,CLIMATE:48,GOV:64,DEMO:68},kpi:[CK("employment_rate_net","Employment","%",97.1,96.7,0),CK("air","Winter air quality","idx",63,55,1),CK("permits","Building permits","k/yr",18,16,0)]},
+  {name:"Columbus, OH",lon:-82.99,lat:39.96,opp:76,risk:29,ax:{ECON:70,HEALTH:68,LABOR:72,EDUC:70,SOCIAL:68,CLIMATE:62,GOV:60,DEMO:62},kpi:[CK("employment_rate_net","Employment","%",95.7,95.3,0),CK("chip","Semiconductor capex","$B",28,8,0),CK("permits","Building permits","k/yr",17,14,0)]},
+  {name:"Atlanta, GA",lon:-84.39,lat:33.75,opp:78,risk:34,ax:{ECON:76,HEALTH:62,LABOR:76,EDUC:66,SOCIAL:58,CLIMATE:56,GOV:54,DEMO:74},kpi:[CK("employment_rate_net","Employment","%",95.5,95.1,0),CK("commute","Avg commute","min",34,32,1),CK("permits","Building permits","k/yr",26,23,0)]}
+];
+const CUS=[[-124.7,48.4],[-95,49],[-83,46.1],[-82.5,41.7],[-79,42.8],[-76,43.5],[-70,43.7],[-70.8,41.6],[-74,40.5],[-75.5,38.5],[-75.5,35.2],[-80.9,32],[-81.5,30.7],[-80.1,25.2],[-81.7,25.9],[-82.8,27.9],[-84,30.1],[-88,30.2],[-89.2,29.1],[-93.8,29.7],[-97,27.8],[-99.2,26.4],[-101,29.8],[-103,29],[-106.5,31.8],[-108.2,31.3],[-111,31.3],[-114.8,32.5],[-117.1,32.5],[-120.5,34.5],[-122.4,37.8],[-124.2,40],[-124.1,42],[-124.7,48.4]];
+const CLON0=-125,CLON1=-66.5,CLAT0=24,CLAT1=49.5;
+const CON = { sel:0, raf:null, lam:1, target:1, nodes:[], reduce:false };
+const cNormAxis = r => 0.7 + Math.max(0,Math.min(100,r))/100*0.6;
+function cLambda(ax){
+  const ks=CAXES.filter(k=>ax[k]!=null); if(!ks.length) return {lambda:1,coverage:0,rows:[],band:CBAND[3]};
+  let prod=1; const rows=[]; ks.forEach(k=>{const n=cNormAxis(ax[k]);prod*=n;rows.push({axis:k,norm:n,dev:n-1});});
+  const lam=Math.pow(prod,1/ks.length); const band=CBAND.find(b=>lam>=b[0])||CBAND[CBAND.length-1];
+  rows.sort((a,b)=>Math.abs(b.dev)-Math.abs(a.dev)); return {lambda:lam,coverage:ks.length/8,rows,band};
+}
+function cStatus(v,p,inv){ if(p==null||p===0) return {status:"neutral",trend:"stable",pct:0};
+  const pct=(v-p)/Math.abs(p)*100; if(Math.abs(pct)<0.5) return {status:"neutral",trend:"stable",pct};
+  const dir=pct>0?"up":"down"; const imp=inv?dir==="down":dir==="up";
+  return {status:imp?"positive":(Math.abs(pct)>5?"critical":"warning"),trend:dir,pct};
+}
+const CSC={positive:"#34C759",neutral:"#57647A",warning:"#FF9500",critical:"#FF3B30"};
+const cOpp=o=>o>=85?"#34C759":o>=78?"#FF9500":"#FFCC00";
+function cFit(cv){const dpr=Math.min(window.devicePixelRatio||1,2);const r=cv.getBoundingClientRect();
+  const w=r.width||cv.width,h=w*(cv.height/cv.width);cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+  cv.style.height=h+"px";const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c,w,h};}
+function cPx(lon,lat,w,h){const p=22;return [p+(lon-CLON0)/(CLON1-CLON0)*(w-2*p),p+(CLAT1-lat)/(CLAT1-CLAT0)*(h-2*p)];}
+function cDrawMap(){const cv=$("lvxMap");if(!cv)return;const f=cFit(cv),c=f.c,w=f.w,h=f.h,t=Date.now()/1000;
+  c.clearRect(0,0,w,h);
+  c.strokeStyle="rgba(120,140,170,.06)";c.lineWidth=1;
+  for(let lo=-120;lo<=-70;lo+=10){const a=cPx(lo,CLAT0,w,h),b=cPx(lo,CLAT1,w,h);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();}
+  for(let la=25;la<=45;la+=5){const a=cPx(CLON0,la,w,h),b=cPx(CLON1,la,w,h);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();}
+  c.beginPath();CUS.forEach((p,i)=>{const q=cPx(p[0],p[1],w,h);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.closePath();
+  c.fillStyle="rgba(0,122,255,.05)";c.fill();c.strokeStyle="rgba(90,200,250,.22)";c.lineWidth=1.4;c.stroke();
+  CON.nodes=[];
+  CREG.forEach((r,i)=>{const q=cPx(r.lon,r.lat,w,h),col=cOpp(r.opp),rad=5+(r.opp-74)/26*8,sel=i===CON.sel;
+    const pulse=CON.reduce?0:(sel?(Math.sin(t*3)+1)/2*4:0);
+    const g=c.createRadialGradient(q[0],q[1],0,q[0],q[1],rad*3.2);
+    g.addColorStop(0,col+"cc");g.addColorStop(.4,col+"44");g.addColorStop(1,col+"00");
+    c.fillStyle=g;c.beginPath();c.arc(q[0],q[1],rad*3.2,0,7);c.fill();
+    c.fillStyle=col;c.beginPath();c.arc(q[0],q[1],rad,0,7);c.fill();
+    if(sel){c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=2;c.beginPath();c.arc(q[0],q[1],rad+4+pulse,0,7);c.stroke();
+      c.font="600 12px -apple-system,system-ui,sans-serif";const nm=r.name.split(",")[0],lx=q[0]+rad+8;
+      const tw=c.measureText(nm).width;c.fillStyle="rgba(10,14,20,.72)";c.fillRect(lx-4,q[1]-9,tw+8,18);
+      c.fillStyle="#E7EEF6";c.fillText(nm,lx,q[1]+4);}
+    CON.nodes.push({x:q[0],y:q[1],r:rad+6,i});});
+}
+const cA0=Math.PI*0.80,cA1=Math.PI*2.20;
+const cAng=l=>cA0+(Math.max(0.7,Math.min(1.3,l))-0.7)/0.6*(cA1-cA0);
+function cDrawScope(){const cv=$("lvxScope");if(!cv)return;const f=cFit(cv),c=f.c,w=f.w,h=f.h;c.clearRect(0,0,w,h);
+  const cx=w/2,cy=h*0.80,R=Math.min(w*0.42,h*0.60);
+  [[0.70,0.85,"#FF9500"],[0.85,0.90,"#FFCC00"],[0.90,1.10,"#34C759"],[1.10,1.15,"#FFCC00"],[1.15,1.30,"#FF9500"]].forEach(s=>{
+    c.lineWidth=10;c.strokeStyle=s[2]+"cc";c.beginPath();c.arc(cx,cy,R,cAng(s[0]),cAng(s[1]));c.stroke();});
+  c.strokeStyle="#FF3B30";c.beginPath();c.arc(cx,cy,R,cAng(0.70)-0.09,cAng(0.70));c.stroke();
+  c.beginPath();c.arc(cx,cy,R,cAng(1.30),cAng(1.30)+0.09);c.stroke();
+  const a=cAng(CON.lam);c.strokeStyle="#E7EEF6";c.lineWidth=2.4;c.lineCap="round";
+  c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(a)*(R-6),cy+Math.sin(a)*(R-6));c.stroke();
+  c.fillStyle="#E7EEF6";c.beginPath();c.arc(cx,cy,4,0,7);c.fill();
+  const res=cLambda(CREG[CON.sel].ax);c.textAlign="center";c.fillStyle=res.band[2];
+  c.font="600 30px ui-monospace,Menlo,monospace";c.fillText(CON.lam.toFixed(3),cx,cy-R*0.30);
+  c.fillStyle="#8A97A8";c.font="10px ui-monospace,monospace";
+  c.fillText("λ · coverage "+Math.round(res.coverage*100)+"%",cx,cy-R*0.30+14);
+}
+function cDrawTrace(){const cv=$("lvxTrace");if(!cv)return;const f=cFit(cv),c=f.c,w=f.w,h=f.h;c.clearRect(0,0,w,h);
+  const mid=h/2,ax=CREG[CON.sel].ax;c.strokeStyle="rgba(120,140,170,.18)";c.lineWidth=1;
+  c.beginPath();c.moveTo(0,mid);c.lineTo(w,mid);c.stroke();
+  c.strokeStyle="#5AC8FA";c.lineWidth=1.8;c.lineJoin="round";c.beginPath();
+  CAXES.forEach((k,i)=>{const n=cNormAxis(ax[k]),x=8+i*((w-16)/7),y=mid-(n-1)/0.3*(h*0.40);i?c.lineTo(x,y):c.moveTo(x,y);});
+  c.stroke();
+  CAXES.forEach((k,i)=>{const n=cNormAxis(ax[k]),x=8+i*((w-16)/7),y=mid-(n-1)/0.3*(h*0.40);
+    c.fillStyle=(n>=0.9&&n<=1.1)?"#34C759":(n>1.1?"#FF9500":"#FFCC00");c.beginPath();c.arc(x,y,2.2,0,7);c.fill();});
+}
+function cRenderMeters(){const r=CREG[CON.sel];const better=CREG.filter(x=>x.opp<r.opp).length;
+  $("lvxOpp").textContent=r.opp;$("lvxOppBar").style.width=r.opp+"%";
+  $("lvxRisk").textContent=r.risk;$("lvxRiskBar").style.width=r.risk+"%";}
+function cRenderKpis(){const host=$("lvxKpis");if(!host)return;host.innerHTML="";
+  CREG[CON.sel].kpi.forEach(k=>{const s=cStatus(k.value,k.prev,k.inv),col=CSC[s.status];
+    const arrow=s.trend==="up"?"▲":s.trend==="down"?"▼":"■";
+    const bg=s.status==="positive"?"rgba(52,199,89,.16)":s.status==="critical"?"rgba(255,59,48,.18)":s.status==="warning"?"rgba(255,149,0,.18)":"rgba(120,140,170,.15)";
+    const el=document.createElement("div");el.className="kpi";el.style.borderLeftColor=col;
+    el.innerHTML='<div class="kn"><span>'+k.label+'</span><span class="cpill" style="background:'+bg+';color:'+col+'">'+s.status+(k.inv?"·inv":"")+'</span></div>'+
+      '<div class="kv">'+k.value+' <span style="font-size:12px;color:#57647A">'+k.unit+'</span></div>'+
+      '<div class="kt" style="color:'+col+'">'+arrow+' <span style="color:#8A97A8">'+(s.pct>=0?"+":"")+s.pct.toFixed(1)+'% vs prior</span></div>';
+    host.appendChild(el);});}
+function cRenderBand(){const res=cLambda(CREG[CON.sel].ax),el=$("lvxBand");
+  el.textContent=res.band[1]+" · λ "+res.lambda.toFixed(3);el.style.color=res.band[2];
+  el.style.background=res.band[2]+"1f";el.style.border="1px solid "+res.band[2]+"55";}
+function cChips(){const host=$("consoleChips");if(!host)return;host.innerHTML="";
+  CREG.forEach((r,i)=>{const b=document.createElement("button");b.type="button";b.className="chip exempel";
+    b.textContent=r.name.split(",")[0];if(i===CON.sel)b.classList.add("on");
+    b.onclick=()=>cSelect(i);host.appendChild(b);});}
+async function cSelect(i){CON.sel=i;const r=CREG[i];
+  document.querySelectorAll("#consoleChips .chip").forEach((b,j)=>b.classList.toggle("on",j===i));
+  cRenderMeters();cRenderKpis();cRenderBand();
+  // Live: λ beräknas av servern via /v1/lambda (bevisar wiring); fall tillbaka lokalt.
+  CON.target=cLambda(r.ax).lambda;
+  if(CON.reduce)CON.lam=CON.target;
+  try{const res=await api("/v1/lambda",{axes:r.ax});
+    if(res&&res.lambda!=null){CON.target=res.lambda;
+      $("consoleLive").innerHTML="✓ /v1/lambda → λ "+res.lambda.toFixed(3)+" · "+res.interpretation.label+" · coverage "+Math.round(res.coverage*100)+"% · drivers "+res.primary_drivers.join(", ");}
+  }catch(e){$("consoleLive").textContent="offline — λ computed locally ("+e.message+")";}
+}
+function cLoop(){CON.lam+=(CON.target-CON.lam)*0.12;cDrawMap();cDrawScope();cDrawTrace();CON.raf=requestAnimationFrame(cLoop);}
+function visaConsole(){
+  CON.reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  cChips();cSelect(CON.sel);CON.lam=CON.target;
+  const cv=$("lvxMap");if(cv&&!cv._bound){cv._bound=1;cv.addEventListener("click",e=>{
+    const rc=cv.getBoundingClientRect(),x=e.clientX-rc.left,y=e.clientY-rc.top;let best=-1,bd=1e9;
+    CON.nodes.forEach(n=>{const d=(n.x-x)**2+(n.y-y)**2;if(d<n.r*n.r&&d<bd){bd=d;best=n.i;}});
+    if(best>=0)cSelect(best);});}
+  if(CON.raf)cancelAnimationFrame(CON.raf);
+  if(CON.reduce){cDrawMap();cDrawScope();cDrawTrace();}else cLoop();
+}
+function stoppaConsole(){if(CON.raf){cancelAnimationFrame(CON.raf);CON.raf=null;}}
 
 function ritaKompKarta(res) {
   tomKarta();
