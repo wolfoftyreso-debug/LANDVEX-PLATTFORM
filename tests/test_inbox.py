@@ -104,6 +104,23 @@ def test_feed_event_normalises():
     assert ev["severity"] == "critical"
 
 
+def test_brief_delivers_an_event_once_with_its_strongest_link():
+    """Två prenumerationer som båda matchar ska inte ge dubbla larm."""
+    setup()
+    owners = {"formellt": "ks", "operativt": "k", "uppfoljning": "r"}
+    d = accountability.commit("Fund places", owners,
+                              {"metric": "shortage", "direction": "decrease",
+                               "target": 40},
+                              kpi_ids=["shortage"], committed_at="2026-01")
+    I.subscribe("bo", "municipality", [I.stake("place", "se-1880")])
+    I.subscribe("bo", "municipality", [I.stake("place", "se-1880"),
+                                       I.stake("decision", d["id"])])
+    ev = _ev(scope="se-1880", metrics=["shortage"], summary="shortage widened")
+    b = I.brief("bo", [ev], decisions=[d])
+    assert b["count"] == 1                       # en gång, inte två
+    assert b["items"][0]["matched_stake"]["kind"] == "decision"   # starkast
+
+
 def test_brief_is_honest_when_nothing_is_yours():
     setup()
     I.subscribe("anna", "citizen", [I.stake("place", "se-1880")])

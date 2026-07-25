@@ -205,13 +205,16 @@ API_CATALOG: dict = {
                            "feeds as the live overlay.",
          "endpoints": [{"method": "GET", "path": "/v1/entrypoints"}]},
         {"id": "admin", "label_en": "Administrative Register",
-         "beskrivning_en": "Complete level-1 units for 10 countries (US "
+         "beskrivning_en": "Complete level-1 units for 18 countries (US "
                            "states, Canadian provinces, Swiss cantons, German "
                            "Länder, Swedish counties, French/Spanish/Italian/"
-                           "Danish/Dutch regions) and a level-2 municipal tier "
-                           "(counties/kommuner/communes) that loads live from "
-                           "official registers — a partial seed is never "
-                           "presented as complete.",
+                           "Danish/Dutch/Norwegian/Finnish/Austrian/Belgian/"
+                           "Irish/Portuguese/Polish/Czech regions), a level-2 "
+                           "municipal tier (counties/kommuner/communes) that "
+                           "loads live from official registers, and a level-3 "
+                           "postal tier (ZIP/postcode/PLZ) documented per "
+                           "country — a partial seed is never presented as "
+                           "complete.",
          "endpoints": [{"method": "GET", "path": "/v1/admin"}]},
         {"id": "flows", "label_en": "Cost/Benefit Flows",
          "beskrivning_en": "Expected value beyond the feelings: certain costs "

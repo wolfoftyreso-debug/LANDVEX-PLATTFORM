@@ -84,7 +84,20 @@ def test_admin_unknown_country_and_level_raise():
     except ValueError:
         pass
     try:
-        A.admin_units("se", level=3); assert False
+        A.admin_units("se", level=4); assert False
+    except ValueError:
+        pass
+
+
+def test_postal_tier_is_documented_not_invented():
+    se = A.admin_units("se", level=3)
+    assert se["level"] == 3 and se["register"] == "PostNord"
+    assert se["coverage"] == "register_only"      # ingen lista bärs inline
+    assert "5 digits" in se["format"]
+    us = A.admin_units("us", level=3)
+    assert us["label_en"] == "ZIP Code" and us["official_total"] > 40000
+    try:
+        A.postal_register("zz"); assert False
     except ValueError:
         pass
 

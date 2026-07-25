@@ -58,6 +58,13 @@ _REVENUE_PER_PERSON_TKR = {
     "forskola": 650, "apotek": 2200, "optiker": 1400, "bageri": 850,
     "livsmedel": 4500, "aldreomsorg": 550, "stadfirma": 550,
     "malare": 950, "laddinfra": 2000, "cykelverkstad": 900,
+    "fysioterapi": 1100, "psykolog": 1050, "vardcentral": 1800,
+    "hudvard": 950, "taklaggare": 1500, "solceller": 1900,
+    "glasmasteri": 1250, "tradgard": 800, "fastighetsservice": 900,
+    "dackverkstad": 1150, "bilhandel": 6000, "redovisning": 1200,
+    "juridik": 1900, "it_support": 1400, "rekrytering": 1600,
+    "coworking": 700, "hotell": 900, "padel": 800,
+    "djuraffar": 1600, "tvatteri": 750,
     "generisk": 1000}
 _STARTUP_TKR = {
     "frisor": (150, 600), "elektriker": (100, 500), "gym": (1500, 6000),
@@ -69,7 +76,18 @@ _STARTUP_TKR = {
     "bageri": (600, 2000), "livsmedel": (2000, 8000),
     "aldreomsorg": (200, 1000), "stadfirma": (50, 300),
     "malare": (100, 400), "laddinfra": (1000, 6000),
-    "cykelverkstad": (200, 800), "generisk": (300, 2000)}
+    "cykelverkstad": (200, 800),
+    "fysioterapi": (300, 1200), "psykolog": (100, 500),
+    "vardcentral": (2000, 8000), "hudvard": (300, 1500),
+    "taklaggare": (300, 1500), "solceller": (400, 2000),
+    "glasmasteri": (300, 1200), "tradgard": (150, 800),
+    "fastighetsservice": (150, 900), "dackverkstad": (400, 1800),
+    "bilhandel": (2000, 12000), "redovisning": (80, 400),
+    "juridik": (100, 600), "it_support": (100, 700),
+    "rekrytering": (100, 600), "coworking": (1500, 7000),
+    "hotell": (3000, 20000), "padel": (2000, 9000),
+    "djuraffar": (400, 1800), "tvatteri": (500, 2500),
+    "generisk": (300, 2000)}
 _TEAM_PERSONS = {"1": 1, "2-5": 3, "5-20": 10, "20-50": 30, "50+": 60}
 _BUDGET_TKR = {"0-500k": (0, 500), "500k-2m": (500, 2000),
                "2-5m": (2000, 5000), "5-10m": (5000, 10000),

@@ -239,7 +239,17 @@ def brief(subscriber: str, events: list[dict], *,
                 "note_en": "No stakes registered — nothing to route. "
                            "Subscribe with what you actually have at stake."}
     r = route(events, subs, decisions=decisions, now=now)
-    items = [i for row in r["routed"] for i in row["delivered"]]
+    # En besökare kan ha flera prenumerationer som matchar SAMMA händelse.
+    # Leverera den då EN gång, med den starkaste kopplingen – dubbletter är
+    # precis det brus det här lagret finns för att stoppa.
+    best: dict[str, dict] = {}
+    for row in r["routed"]:
+        for i in row["delivered"]:
+            key = i.get("checksum") or canonical_hash(
+                {"s": i.get("summary"), "o": i.get("source_id")})
+            if key not in best or i["relevance"] > best[key]["relevance"]:
+                best[key] = i
+    items = list(best.values())
     items.sort(key=lambda i: -i["relevance"])
     held = sum(row["suppressed_count"] for row in r["routed"])
     return {"subscriber": subscriber, "status": "brief",

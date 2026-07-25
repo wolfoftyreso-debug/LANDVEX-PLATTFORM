@@ -123,6 +123,63 @@ NL_PROVINCES = (
     ("UT", "Utrecht"), ("ZE", "Zeeland"), ("ZH", "Zuid-Holland"),
 )
 
+
+NO_COUNTIES = (
+    ("03", "Oslo"), ("11", "Rogaland"), ("15", "Møre og Romsdal"),
+    ("18", "Nordland"), ("31", "Østfold"), ("32", "Akershus"),
+    ("33", "Buskerud"), ("34", "Innlandet"), ("39", "Vestfold"),
+    ("40", "Telemark"), ("42", "Agder"), ("46", "Vestland"),
+    ("50", "Trøndelag"), ("55", "Troms"), ("56", "Finnmark"),
+)
+
+FI_REGIONS = (
+    ("01", "Uusimaa"), ("02", "Southwest Finland"), ("04", "Satakunta"),
+    ("05", "Kanta-Häme"), ("06", "Pirkanmaa"), ("07", "Päijät-Häme"),
+    ("08", "Kymenlaakso"), ("09", "South Karelia"), ("10", "South Savo"),
+    ("11", "North Savo"), ("12", "North Karelia"), ("13", "Central Finland"),
+    ("14", "South Ostrobothnia"), ("15", "Ostrobothnia"),
+    ("16", "Central Ostrobothnia"), ("17", "North Ostrobothnia"),
+    ("18", "Kainuu"), ("19", "Lapland"), ("21", "Åland"),
+)
+
+AT_STATES = (
+    ("1", "Burgenland"), ("2", "Carinthia"), ("3", "Lower Austria"),
+    ("4", "Upper Austria"), ("5", "Salzburg"), ("6", "Styria"),
+    ("7", "Tyrol"), ("8", "Vorarlberg"), ("9", "Vienna"),
+)
+
+BE_REGIONS = (
+    ("BRU", "Brussels-Capital"), ("VLG", "Flanders"), ("WAL", "Wallonia"),
+)
+
+IE_REGIONS = (
+    ("EM", "Eastern and Midland"), ("NW", "Northern and Western"),
+    ("SO", "Southern"),
+)
+
+PT_REGIONS = (
+    ("N", "Norte"), ("C", "Centro"), ("LX", "Área Metropolitana de Lisboa"),
+    ("ALT", "Alentejo"), ("ALG", "Algarve"), ("AC", "Açores"),
+    ("MA", "Madeira"),
+)
+
+PL_VOIVODESHIPS = (
+    ("02", "Lower Silesian"), ("04", "Kuyavian-Pomeranian"), ("06", "Lublin"),
+    ("08", "Lubusz"), ("10", "Łódź"), ("12", "Lesser Poland"),
+    ("14", "Masovian"), ("16", "Opole"), ("18", "Subcarpathian"),
+    ("20", "Podlaskie"), ("22", "Pomeranian"), ("24", "Silesian"),
+    ("26", "Świętokrzyskie"), ("28", "Warmian-Masurian"),
+    ("30", "Greater Poland"), ("32", "West Pomeranian"),
+)
+
+CZ_REGIONS = (
+    ("PHA", "Prague"), ("STC", "Central Bohemian"), ("JHC", "South Bohemian"),
+    ("PLK", "Plzeň"), ("KVK", "Karlovy Vary"), ("ULK", "Ústí nad Labem"),
+    ("LBK", "Liberec"), ("HKK", "Hradec Králové"), ("PAK", "Pardubice"),
+    ("VYS", "Vysočina"), ("JHM", "South Moravian"), ("OLK", "Olomouc"),
+    ("ZLK", "Zlín"), ("MSK", "Moravian-Silesian"),
+)
+
 # country → nivå-1-register + officiellt nivå-2-register (namn + total).
 ADMIN_LEVELS: dict[str, dict] = {
     "us": {"level_en": "state", "units": US_STATES,
@@ -155,6 +212,30 @@ ADMIN_LEVELS: dict[str, dict] = {
     "nl": {"level_en": "province", "units": NL_PROVINCES,
            "sub_level": "gemeente", "sub_register": "CBS code",
            "sub_official_total": 342},
+    "no": {"level_en": "county (fylke)", "units": NO_COUNTIES,
+           "sub_level": "municipality (kommune)", "sub_register": "SSB kommunenummer",
+           "sub_official_total": 357},
+    "fi": {"level_en": "region (maakunta)", "units": FI_REGIONS,
+           "sub_level": "municipality (kunta)", "sub_register": "Tilastokeskus",
+           "sub_official_total": 309},
+    "at": {"level_en": "federal state (Land)", "units": AT_STATES,
+           "sub_level": "Gemeinde", "sub_register": "Statistik Austria GKZ",
+           "sub_official_total": 2093},
+    "be": {"level_en": "region", "units": BE_REGIONS,
+           "sub_level": "commune/gemeente", "sub_register": "Statbel NIS",
+           "sub_official_total": 581},
+    "ie": {"level_en": "NUTS-2 region", "units": IE_REGIONS,
+           "sub_level": "local electoral area", "sub_register": "CSO",
+           "sub_official_total": 166},
+    "pt": {"level_en": "region", "units": PT_REGIONS,
+           "sub_level": "município", "sub_register": "INE Portugal DICOFRE",
+           "sub_official_total": 308},
+    "pl": {"level_en": "voivodeship", "units": PL_VOIVODESHIPS,
+           "sub_level": "gmina", "sub_register": "GUS TERYT",
+           "sub_official_total": 2477},
+    "cz": {"level_en": "region (kraj)", "units": CZ_REGIONS,
+           "sub_level": "obec", "sub_register": "ČSÚ",
+           "sub_official_total": 6254},
 }
 
 # ── Nivå 2: seed (största enheterna, MÄRKT partiell) ─────────────────────
@@ -199,6 +280,75 @@ MUNICIPAL_SEED: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("3521010", "Brampton", "ON"), ("3525005", "Hamilton", "ON"),
     ),
 }
+
+
+
+# ── Nivå 3: postnummer (zipcodes/postcodes/Postleitzahlen) ──────────────
+# Postnummer är INTE administrativa enheter – de är postens leveransområden
+# och följer sällan kommungränser. De bärs därför som en EGEN nivå med sitt
+# eget register per land, aldrig som "en mindre kommun". Formatet dokumenteras
+# så en klient kan validera indata utan att gissa.
+POSTAL_REGISTERS: dict[str, dict] = {
+    "us": {"label_en": "ZIP Code", "register": "USPS / Census ZCTA",
+           "format": "5 digits (optionally +4)", "example": "94103",
+           "official_total": 41692},
+    "ca": {"label_en": "Postal code", "register": "Canada Post",
+           "format": "A1A 1A1 (forward sortation area + local unit)",
+           "example": "M5V 3L9", "official_total": 876445},
+    "se": {"label_en": "Postnummer", "register": "PostNord",
+           "format": "5 digits (NNN NN)", "example": "702 25",
+           "official_total": 16000},
+    "de": {"label_en": "Postleitzahl", "register": "Deutsche Post",
+           "format": "5 digits", "example": "10115", "official_total": 8200},
+    "ch": {"label_en": "PLZ", "register": "Swiss Post",
+           "format": "4 digits", "example": "8001", "official_total": 4150},
+    "fr": {"label_en": "Code postal", "register": "La Poste",
+           "format": "5 digits", "example": "75001", "official_total": 6300},
+    "es": {"label_en": "Código postal", "register": "Correos",
+           "format": "5 digits (first 2 = province)", "example": "28001",
+           "official_total": 11752},
+    "it": {"label_en": "CAP", "register": "Poste Italiane",
+           "format": "5 digits", "example": "00184", "official_total": 10750},
+    "nl": {"label_en": "Postcode", "register": "PostNL",
+           "format": "1234 AB", "example": "1011 AB", "official_total": 461000},
+    "dk": {"label_en": "Postnummer", "register": "PostNord Danmark",
+           "format": "4 digits", "example": "1050", "official_total": 1200},
+    "no": {"label_en": "Postnummer", "register": "Posten Norge",
+           "format": "4 digits", "example": "0150", "official_total": 5100},
+    "fi": {"label_en": "Postinumero", "register": "Posti",
+           "format": "5 digits", "example": "00100", "official_total": 3000},
+    "at": {"label_en": "Postleitzahl", "register": "Österreichische Post",
+           "format": "4 digits", "example": "1010", "official_total": 2900},
+    "be": {"label_en": "Postcode", "register": "bpost",
+           "format": "4 digits", "example": "1000", "official_total": 1150},
+    "ie": {"label_en": "Eircode", "register": "An Post / Eircode",
+           "format": "A65 F4E2 (routing key + unique identifier)",
+           "example": "D02 X285", "official_total": 2200000},
+    "pt": {"label_en": "Código postal", "register": "CTT",
+           "format": "1234-567", "example": "1000-001",
+           "official_total": 320000},
+    "pl": {"label_en": "Kod pocztowy", "register": "Poczta Polska",
+           "format": "12-345", "example": "00-001", "official_total": 26000},
+    "cz": {"label_en": "PSČ", "register": "Česká pošta",
+           "format": "123 45", "example": "110 00", "official_total": 2700},
+}
+
+
+def postal_register(country: str) -> dict:
+    """Postnummersystemet för ett land – format, register och omfattning.
+
+    Själva listan laddas från postoperatörens register via
+    `MunicipalRegister`-mönstret (LANDVEX_GEO_URL/{country}-postal.json);
+    ingen postnummerlista bärs inline, och ingen påhittas.
+    """
+    reg = POSTAL_REGISTERS.get(country)
+    if reg is None:
+        raise ValueError(f"no postal register for country: {country}")
+    return {"country": country, "level": 3, **reg, "coverage": "register_only",
+            "note": "Postal areas are delivery zones, not administrative "
+                    "units — they do not nest cleanly inside municipalities. "
+                    "The list loads from the postal operator's register; "
+                    "none are carried inline and none are invented."}
 
 
 def _http_transport(url: str, timeout: float) -> str:
@@ -260,7 +410,8 @@ def admin_countries() -> list[dict]:
     return [{"country": c, "level_en": d["level_en"], "count": len(d["units"]),
              "sub_level": d["sub_level"], "sub_register": d["sub_register"],
              "sub_official_total": d["sub_official_total"],
-             "sub_seeded": len(MUNICIPAL_SEED.get(c, ()))}
+             "sub_seeded": len(MUNICIPAL_SEED.get(c, ())),
+             "postal_level": (POSTAL_REGISTERS.get(c) or {}).get("label_en")}
             for c, d in ADMIN_LEVELS.items()]
 
 
@@ -282,8 +433,11 @@ def admin_units(country: str, level: int = 1, parent: str = "",
                 "units": [{"code": c, "name": n} for c, n in d["units"]],
                 "sub_level": d["sub_level"],
                 "sub_register": d["sub_register"]}
+    if level == 3:
+        return postal_register(country)
     if level != 2:
-        raise ValueError("level must be 1 or 2")
+        raise ValueError("level must be 1 (regions), 2 (municipalities) "
+                         "or 3 (postal areas)")
 
     reg = register or MunicipalRegister()
     live = reg.fetch(country)
