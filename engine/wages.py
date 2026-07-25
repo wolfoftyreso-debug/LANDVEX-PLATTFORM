@@ -33,6 +33,22 @@ PPP_CAVEAT = ("Swedish wage anchor converted via documented FX — NOT real "
               "the local official register is connected.")
 
 
+# Effektiv skattekil (inkomstskatt + anställdas sociala avgifter som andel av
+# brutto) – schablon per marknad. INTE 100%+ (personlig take-home-skatt ligger
+# långt under det); riktiga progressiva tabeller ersätter detta via adapter.
+TAX_WEDGE: dict[str, float] = {
+    "se": 0.32, "no": 0.34, "dk": 0.36, "fi": 0.30, "de": 0.39, "fr": 0.30,
+    "nl": 0.34, "be": 0.40, "at": 0.33, "it": 0.31, "es": 0.24, "pt": 0.26,
+    "pl": 0.25, "cz": 0.23, "ie": 0.26, "us": 0.24, "ca": 0.25, "mx": 0.11,
+    "co": 0.10, "ma": 0.12, "ng": 0.08, "sn": 0.10,
+}
+DEFAULT_TAX = 0.20
+
+
+def tax_rate(market: str) -> float:
+    return TAX_WEDGE.get(market, DEFAULT_TAX)
+
+
 def _currency(market: str) -> str:
     m = MARKETS.get(market)
     if m is None:
@@ -56,13 +72,19 @@ def wage(code: str, market: str = DEFAULT_MARKET) -> dict:
     monthly_sek = o.salary_tkr_month * 1000.0
     fx = FX_PER_SEK.get(cur, 1.0)
     monthly = round(monthly_sek * fx)
+    rate = tax_rate(market)
+    net = round(monthly * (1 - rate))
     return {
         "occupation": code, "label_en": o.label_en, "sector_en": o.sector_en,
         "market": market, "currency": cur,
         "monthly_wage": monthly, "annual_wage": monthly * 12,
+        "tax_rate": rate, "net_monthly": net, "net_annual": net * 12,
+        "take_home_pct": round((1 - rate) * 100, 1),
         "source": "schablon", "official_source_when_connected":
             OFFICIAL_SOURCES.get(market, OFFICIAL_SOURCES["world"]),
-        "caveat": PPP_CAVEAT,
+        "caveat": PPP_CAVEAT + " Tax is an effective-wedge schablon per market "
+                  "(income tax + employee social contributions), not a "
+                  "progressive per-income calculation.",
         "framing": framing_disclosure(
             {"anchor": "SE wage statistics", "conversion": f"FX SEK→{cur}",
              "ppp_adjusted": False, "note": "schablon, not real local wages"}),

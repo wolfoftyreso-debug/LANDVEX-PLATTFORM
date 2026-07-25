@@ -17,6 +17,15 @@ def test_wage_se_anchor():
     assert w["source"] == "schablon" and "NOT real local wages" in w["caveat"]
 
 
+def test_tax_and_net_takehome():
+    se = W.wage("elektriker", "se")
+    assert se["tax_rate"] == 0.32
+    assert se["net_monthly"] == round(38000 * 0.68)
+    assert 0 < se["take_home_pct"] < 100          # aldrig 107%
+    # Låg skattekil-marknad ger högre take-home-andel än hög.
+    assert W.wage("elektriker", "ng")["take_home_pct"] > W.wage("elektriker", "no")["take_home_pct"]
+
+
 def test_wage_fx_converted_and_labelled():
     us = W.wage("elektriker", "us")
     assert us["currency"] == "USD" and 0 < us["monthly_wage"] < 38000
