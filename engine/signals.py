@@ -96,4 +96,9 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("rent_index",        "Rent level (avg=100)",         "index",  "inverse", 90, 160),
     _s("crime_index",       "Crime index (avg=100)",        "index",  "inverse", 70, 140),
     _s("climate_risk_index","Climate risk index",           "0–100",  "inverse", 10, 80),
+    _s("waste_collection",  "Waste collection",             "0–10",   "linear",  0, 10),
+    _s("street_cleanliness","Street cleanliness",           "0–100",  "linear",  0, 100),
+    _s("pest_pressure",     "Pest pressure",                "0–100",  "inverse", 5, 80),
+    _s("drainage_index",    "Drainage adequacy",            "0–10",   "linear",  0, 10),
+    _s("haircut_price",     "Standard haircut price",       "cost",   "linear",  8, 70),
 ]}

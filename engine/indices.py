@@ -78,6 +78,20 @@ INDEX_TYPES: dict[str, IndexDef] = {i.id: i for i in [
              (("crime_index", 0.25), ("transit_score", 0.25),
               ("infra_invest", 0.2), ("pop_growth_pct", 0.15),
               ("business_density", 0.15))),
+    IndexDef("sanitation", "Sanitation & Cleanliness",
+             "How clean a city keeps itself: waste collection, street "
+             "cleanliness, pest pressure and drainage — the difference between "
+             "a clinical Amsterdam street and wading through gutter-water at "
+             "night. Higher is cleaner.",
+             "styrka", "free",
+             (("street_cleanliness", 0.35), ("waste_collection", 0.25),
+              ("pest_pressure", 0.25), ("drainage_index", 0.15))),
+    IndexDef("haircut_index", "Haircut Index",
+             "A light cost-of-living / purchasing-power proxy (in the spirit "
+             "of the Big Mac index): the local price of a standard haircut, "
+             "which tracks wages, rents and the commercial base.",
+             "styrka", "free",
+             (("haircut_price", 0.7), ("business_density", 0.3))),
 ]}
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.

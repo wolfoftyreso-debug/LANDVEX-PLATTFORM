@@ -93,6 +93,18 @@ class MockSource(DataSource):
             "crime_index": round(80 + u * 35 + rng.uniform(-12, 18), 0),
             "climate_risk_index": round(max(5, min(90, 20 + (1 - u) * 15 +
                                                    rng.uniform(0, 35))), 0),
+            # Renhållning: renare med inkomst, sämre med täthet/klimat.
+            "waste_collection": round(max(0, min(10, 3 + income * 0.06 +
+                                                 rng.uniform(-1.5, 1.5))), 1),
+            "street_cleanliness": round(max(0, min(100, 40 + income * 0.4 - u * 10 +
+                                                   rng.uniform(-10, 10))), 0),
+            "pest_pressure": round(max(5, min(80, 55 - income * 0.28 + u * 22 +
+                                              rng.uniform(-8, 8))), 0),
+            "drainage_index": round(max(0, min(10, 4 + income * 0.03 +
+                                               rng.uniform(-2, 2))), 1),
+            # Haircut index: priset följer löner + urbanitet (Big Mac-anda).
+            "haircut_price": round(max(8, min(70, 12 + income * 0.35 + u * 8 +
+                                              rng.uniform(-5, 5))), 0),
         }
 
         signals = {sid: SignalValue(sid, vals[sid], source=self.name, quality=0.4)
