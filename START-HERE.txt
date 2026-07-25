@@ -1,0 +1,55 @@
+LANDVEX SANDBOX - HOW TO START
+==============================
+
+WINDOWS
+-------
+1. Unzip this whole folder somewhere (Desktop is fine).
+   Right-click the .zip -> "Extract All...". Keep all the files together.
+2. Open the unzipped folder.
+3. Double-click:  START-WINDOWS.bat
+4. Your browser opens the console automatically.
+   If it does not, open the address printed in the black window.
+
+To stop it: click the black window and press Ctrl+C, or just close it.
+
+No Python on the PC? The launcher tells you so and links the download.
+Install Python 3.11 or newer from https://python.org/downloads and tick
+"Add python.exe to PATH" in the installer, then double-click the .bat again.
+
+
+MAC / LINUX
+-----------
+Open a terminal in the unzipped folder and run:
+
+    python3 run.py
+
+
+WHAT YOU GET
+------------
+The console lists every engine, grouped, with editable example requests.
+Press "Run" on any of them - the answer is computed by the real engine on
+your own machine.
+
+Start at the top with the six role buttons (Citizen, Business, Investor,
+Municipality, Journalist, Researcher). Picking one shows that role's
+decision question and filters the list to the endpoints that answer it.
+
+Worth trying first:
+  * Control -> "Define a watch", then "Run due (cron tick)", then
+    "Escalate" - an anomaly becomes a decision with named owners.
+  * Decide -> "Expected value" with the "Protection vs gain" preset -
+    net value, break-even probability and what the answer is most
+    fragile to. The "Unsourced" preset shows the engine refusing.
+  * Geography -> Swedish kommuner or US counties under a state.
+
+
+GOOD TO KNOW
+------------
+* Nothing is installed and nothing leaves your machine. No external
+  network is used; the sandbox binds to your own computer only.
+* No database file is written (the sandbox runs with storage off), so
+  deleting the folder removes every trace.
+* Data that is simulated is always labelled source:"mock". Sweden is the
+  only market with a real source wired up (SCB), and it needs network
+  access to be enabled - so in the sandbox you are seeing labelled mock
+  values with real engine logic on top.

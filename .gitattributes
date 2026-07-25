@@ -1,0 +1,7 @@
+# Windows launchers must keep CRLF: cmd.exe mis-parses goto labels in a
+# batch file that arrives with LF-only endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Everything else stays LF in the repository.
+* text=auto eol=lf

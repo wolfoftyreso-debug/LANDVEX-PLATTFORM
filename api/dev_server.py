@@ -738,6 +738,10 @@ def _catalog_engines():
 
 def main(port: int | None = None) -> None:
     port = port or int(os.environ.get("LANDVEX_PORT", "8000"))
+    # LANDVEX_HOST styr bindningen. Default 0.0.0.0 (deploy bakom nginx).
+    # Sandlådan sätter 127.0.0.1 – på Windows slipper man då brandväggs-
+    # dialogen som annars dyker upp vid bindning mot alla gränssnitt.
+    host = os.environ.get("LANDVEX_HOST", "0.0.0.0")
     print(f"Opportunity Engine dev server: http://localhost:{port}")
     _register_with_aamos(port)
     # Flertrådad + större accept-kö: tål burst-last utan att droppa
@@ -746,7 +750,7 @@ def main(port: int | None = None) -> None:
     class _Server(ThreadingHTTPServer):
         daemon_threads = True
         request_queue_size = 256
-    _Server(("0.0.0.0", port), Handler).serve_forever()
+    _Server((host, port), Handler).serve_forever()
 
 
 if __name__ == "__main__":

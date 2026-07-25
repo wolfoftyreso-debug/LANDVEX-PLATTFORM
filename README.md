@@ -12,9 +12,15 @@ in every response. US-first; Sweden is the first fully calibrated market.
 
 ## Quickstart
 
+**Windows:** double-click `START-WINDOWS.bat` (or run `py run.py`).
+**macOS/Linux:** `python3 run.py`.
+Either way the launcher picks a free port, binds to loopback only and opens
+the console at `/sandbox`. See `START-HERE.txt`.
+
 ```bash
 # Dependency-free dev server + portal (zero install):
 python3 -m api.dev_server            # → http://localhost:8000/
+#   LANDVEX_HOST=127.0.0.1 binds loopback only (no Windows Firewall prompt)
 
 # Full test suite (no pytest, no network):
 for t in tests/test_*.py; do python3 -m "tests.$(basename "$t" .py)"; done   # → 24 green
