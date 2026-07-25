@@ -66,6 +66,7 @@ from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
 from engine.sensitive import sensitive_association
+from engine.wages import compare as wage_compare, wage, wage_catalog
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -231,6 +232,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, KoladaClient().status())
         if parsed.path == "/v1/svk":
             return self._send(200, SvkClient().status())
+        if parsed.path == "/v1/wages":
+            return self._send(200, wage_catalog())
         if parsed.path == "/v1/outcomes/calibration":
             return self._send(200, outcome_calibration())
         if parsed.path == "/v1/decisions/ledger":
@@ -474,6 +477,12 @@ class Handler(BaseHTTPRequestHandler):
                     label_a=str(req.get("label_a", "attribute")),
                     label_b=str(req.get("label_b", "outcome")),
                     label_c=str(req.get("label_c", "confounder"))))
+            if self.path == "/v1/wages/lookup":
+                return self._send(200, wage(
+                    str(req["occupation"]), str(req.get("market", DEFAULT_MARKET))))
+            if self.path == "/v1/wages/compare":
+                return self._send(200, wage_compare(
+                    str(req["occupation"]), req.get("markets") or []))
             if self.path == "/v1/strim/entity":
                 ent = build_entity(
                     str(req["entity_type"]), str(req["slug"]),

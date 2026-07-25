@@ -179,6 +179,14 @@ API_CATALOG: dict = {
                            "units (percentile, z-score, outlier band) — is a "
                            "claimed shortage/excess actually unusual, or normal?",
          "endpoints": [{"method": "POST", "path": "/v1/benchmark"}]},
+        {"id": "wages", "label_en": "Wage Registry",
+         "beskrivning_en": "Standard wage per standard occupation across "
+                           "markets. Swedish anchor (wage-statistics level) x "
+                           "documented FX — schablon, not PPP-adjusted; real "
+                           "local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
+         "endpoints": [{"method": "GET", "path": "/v1/wages"},
+                       {"method": "POST", "path": "/v1/wages/lookup"},
+                       {"method": "POST", "path": "/v1/wages/compare"}]},
         {"id": "sensitive", "label_en": "Sensitive-category Guard",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

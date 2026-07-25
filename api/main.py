@@ -58,6 +58,7 @@ from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
 from engine.sensitive import sensitive_association
+from engine.wages import compare as wage_compare, wage, wage_catalog
 from engine.integrity import classify_query
 from engine.compare import compare
 from engine.gaps import gap_analysis
@@ -763,6 +764,37 @@ def sensitive_ep(req: SensitiveRequest):
         group_sizes=req.group_sizes, sources=req.sources,
         confounders=req.confounders, label_a=req.label_a,
         label_b=req.label_b, label_c=req.label_c)
+
+
+class WageLookupRequest(BaseModel):
+    occupation: str
+    market: str = DEFAULT_MARKET
+
+
+class WageCompareRequest(BaseModel):
+    occupation: str
+    markets: list[str] = Field(default_factory=list)
+
+
+@app.get("/v1/wages")
+def wages_registry():
+    return wage_catalog()
+
+
+@app.post("/v1/wages/lookup")
+def wages_lookup(req: WageLookupRequest):
+    try:
+        return wage(req.occupation, req.market)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/v1/wages/compare")
+def wages_compare(req: WageCompareRequest):
+    try:
+        return wage_compare(req.occupation, req.markets)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 class SegmentAnalyzeRequest(BaseModel):
