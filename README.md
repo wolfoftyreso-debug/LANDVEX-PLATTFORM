@@ -19,6 +19,12 @@ TypeScript · Next.js App Router (single monolith, one container) ·
 PostgreSQL 16 (RDS) + Drizzle · Auth.js · S3 (MinIO in dev) · SES ·
 pg-boss · next-intl (sv/en/lt) · Zod · pino · Vitest.
 
+## Sandbox
+
+`npm run sandbox` — one command: containers up, migrations, catalogue seed,
+ten demo suppliers with RFQs/offers/deals, dev server. Accounts and a guided
+tour in [`docs/SANDBOX.md`](docs/SANDBOX.md).
+
 ## Getting started
 
 ```sh
