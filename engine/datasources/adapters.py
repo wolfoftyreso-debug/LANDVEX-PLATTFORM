@@ -156,8 +156,8 @@ class ScbSource(DataSource):
 
 def production_sources() -> list[DataSource]:
     """Källkedjan före MockSource i produktion (ordning = prioritet)."""
-    return [ScbSource(), PermitsSource(), PlacesSource(), MovementSource(),
-            QuixzoomSource()]
+    return [ScbSource(), LivabilitySource(), PermitsSource(), PlacesSource(),
+            MovementSource(), QuixzoomSource()]
 
 
 class MovementSource(_NotWiredSource):
@@ -348,4 +348,77 @@ class QuixzoomSource(DataSource):
             quality=0.8)}
         extras = {"quixzoom": {"missions_near": near, "radius_km": self.RADIUS_KM,
                                "via": "aamos_core"}}
+        return values, extras
+
+class LivabilitySource(DataSource):
+    """Livsvillkorssignaler ur myndighetsstatistik (Kolada SE, Eurostat EU).
+
+    Fyller förskola, skola, trygghet, sjukvård, boendekostnad och socialt
+    kapital med verkliga kommunala nyckeltal i stället för mock. Ej ansluten
+    tills LANDVEX_KOLADA_URL (resp. LANDVEX_EUROSTAT_LIVE=1) är satt →
+    Resolvern faller ärligt vidare till mock. Fel pausar källan.
+
+    Kvaliteten speglar hur säker kopplingen är: ett KPI som bekräftats i
+    skörden väger tyngre än en kandidat som proben ännu inte verifierat.
+    """
+
+    name = "livability"
+    SIGNALS = ("care_supply", "education_outcomes", "crime_index",
+               "healthcare_access", "life_satisfaction", "social_trust",
+               "housing_affordability")
+    _Q_VERIFIED = 0.8
+    _Q_CANDIDATE = 0.55
+
+    def __init__(self, client=None, locator=None, retry_after_s: float = 300.0,
+                 clock: Callable[[], float] = time.monotonic):
+        if client is None:
+            from .livability_sources import KoladaLivability
+            client = KoladaLivability()
+        self._client = client
+        self._locator = locator
+        self._retry_after_s = retry_after_s
+        self._clock = clock
+        self._down_until = 0.0
+
+    @property
+    def base_url(self) -> str:
+        return getattr(self._client, "base_url", "")
+
+    def _kommun(self, location: Location) -> str | None:
+        loc = self._locator
+        if loc is None:
+            from .scb import KommunLocator
+            loc = self._locator = KommunLocator()
+        hit = loc.locate(location.lat, location.lon)   # (kod, namn) | None
+        return hit[0] if hit else None
+
+    def fetch(self, location: Location, vertical_id: str,
+              signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
+        wanted = [s for s in signal_ids if s in self.SIGNALS]
+        if not wanted or not getattr(self._client, "connected", False):
+            return {}, {}
+        if self._clock() < self._down_until:
+            return {}, {}
+        try:
+            kommun = self._kommun(location)
+            if kommun is None:
+                return {}, {}
+            from .livability_sources import KOLADA_SIGNALS
+            values, meta = {}, {}
+            for sid in wanted:
+                got = self._client.value(sid, kommun)
+                if got is None:
+                    continue      # ingen siffra ⇒ mock tar över, märkt mock
+                q = (self._Q_VERIFIED if KOLADA_SIGNALS[sid]["verified"]
+                     else self._Q_CANDIDATE)
+                values[sid] = SignalValue(sid, float(got["value"]),
+                                          source=self.name, quality=q)
+                meta[sid] = {"kpi": got.get("kpi"), "year": got.get("year"),
+                             "raw_value": got.get("raw_value"),
+                             "transform": got.get("transform"),
+                             "label_en": got.get("label_en")}
+        except Exception:
+            self._down_until = self._clock() + self._retry_after_s
+            return {}, {}
+        extras = {"livability_kpis": meta} if meta else {}
         return values, extras
