@@ -13,8 +13,13 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_DOCUMENTS_BUCKET: z.string().default("documents"),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(false),
-  EMAIL_PROVIDER: z.enum(["console", "ses"]).default("console"),
+  EMAIL_PROVIDER: z.enum(["console", "ses", "smtp"]).default("console"),
   EMAIL_FROM: z.string().default("no-reply@balticbridge.example"),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(587),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

@@ -1,5 +1,12 @@
 # Baltic Bridge — Runbook
 
+> **Self-owned infrastructure:** the fully self-managed deployment mode
+> (own compute, self-managed Postgres 16, MinIO instead of S3, own SMTP relay
+> instead of SES) is documented in [SELF-HOSTED.md](./SELF-HOSTED.md) with its
+> own compose stack (`docker-compose.selfhost.yml`) and backup procedure.
+> Everything below describes the managed-AWS mode; the container image and
+> code are identical in both.
+
 ## Deployment (Section 3)
 
 One container behind ALB + CloudFront, images in ECR, `eu-north-1` only.

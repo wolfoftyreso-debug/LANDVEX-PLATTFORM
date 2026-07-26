@@ -50,8 +50,32 @@ class SesEmailProvider implements EmailProvider {
   }
 }
 
+class SmtpEmailProvider implements EmailProvider {
+  async send(message: EmailMessage): Promise<void> {
+    if (!env.SMTP_HOST) {
+      throw new Error("EMAIL_PROVIDER=smtp requires SMTP_HOST to be set");
+    }
+    const { sendSmtp } = await import("./smtp");
+    await sendSmtp(
+      {
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_SECURE,
+        user: env.SMTP_USER,
+        password: env.SMTP_PASSWORD,
+      },
+      { from: env.EMAIL_FROM, ...message },
+    );
+  }
+}
+
 export function emailProvider(): EmailProvider {
-  return env.EMAIL_PROVIDER === "ses"
-    ? new SesEmailProvider()
-    : new ConsoleEmailProvider();
+  switch (env.EMAIL_PROVIDER) {
+    case "ses":
+      return new SesEmailProvider();
+    case "smtp":
+      return new SmtpEmailProvider();
+    default:
+      return new ConsoleEmailProvider();
+  }
 }
