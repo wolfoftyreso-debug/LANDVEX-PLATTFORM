@@ -81,6 +81,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/livability": "opportunity",          # hushållsviktade livsvillkor
     "/v1/households": "core",                 # hushållstyper (katalog)
     "/v1/registers": "core",                  # företagsregisterkartan
+    "/v1/provenance": "core",                 # parametrarnas härkomst
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

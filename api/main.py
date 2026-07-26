@@ -56,6 +56,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -777,6 +778,15 @@ def livability_ep(req: LivabilityRequest):
             top_n=min(max(req.top_n, 1), 40),
             per_market=min(max(req.per_market, 1), 40),
             citizenship=req.citizenship, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/provenance")
+def provenance_ep(cls: str = ""):
+    """Where the platform's own numbers come from."""
+    try:
+        return {**provenance_summary(), "parameters": provenance_parameters(cls)}
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

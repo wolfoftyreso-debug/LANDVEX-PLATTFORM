@@ -64,6 +64,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -280,6 +281,13 @@ class Handler(BaseHTTPRequestHandler):
                 {"id": k, "label_en": v["label_en"],
                  "means_en": v["means_en"], "weights": v["weights"]}
                 for k, v in HOUSEHOLDS.items()]})
+        if parsed.path == "/v1/provenance":
+            cls = parse_qs(parsed.query).get("cls", [""])[0]
+            try:
+                return self._send(200, {**provenance_summary(),
+                                        "parameters": provenance_parameters(cls)})
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/registers":
             return self._send(200, {**register_catalog(),
                                     "client": RegisterClient().status()})

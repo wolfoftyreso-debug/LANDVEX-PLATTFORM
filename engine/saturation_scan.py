@@ -64,7 +64,8 @@ def _default_resolver() -> Resolver:
 def market_saturation(vertical: str, region_query: str, *,
                       market: str = "se", resolver: Resolver | None = None,
                       client: RegisterClient | None = None,
-                      peer_limit: int = 25) -> dict:
+                      peer_limit: int = 25,
+                      allow_placeholder: bool = False) -> dict:
     """Mättnad för en bransch i en region, jämförd med marknadens övriga."""
     mkt = get_market(market)
     target = None
@@ -83,7 +84,7 @@ def market_saturation(vertical: str, region_query: str, *,
     supply = supply_for(vertical, market, code,
                         population=t["population"] or 0,
                         competition_pressure=t["competition_pressure"],
-                        client=client)
+                        client=client, allow_placeholder=allow_placeholder)
 
     peers = []
     for r in mkt.regions:
@@ -95,7 +96,7 @@ def market_saturation(vertical: str, region_query: str, *,
         s = supply_for(vertical, market, r[0],
                        population=p["population"] or 0,
                        competition_pressure=p["competition_pressure"],
-                       client=client)
+                       client=client, allow_placeholder=allow_placeholder)
         if s.get("count") is not None and p["population"]:
             peers.append({"name": r[1], "count": s["count"],
                           "population": p["population"]})

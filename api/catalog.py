@@ -271,6 +271,15 @@ API_CATALOG: dict = {
                            "same refusal when coverage is thin, and no "
                            "causal claim.",
          "endpoints": [{"method": "POST", "path": "/v1/merit"}]},
+        {"id": "provenance", "label_en": "Parameter Provenance",
+         "beskrivning_en": "Where the platform's OWN numbers come from. Every "
+                           "tunable constant declares its origin: sourced to a "
+                           "named authority, an established convention, "
+                           "calibrated from outcome data here, or simply "
+                           "assumed. The thresholds that decide whether the "
+                           "system may speak at all are held to the same "
+                           "standard as the data they let through.",
+         "endpoints": [{"method": "GET", "path": "/v1/provenance"}]},
         {"id": "saturation", "label_en": "Market Saturation",
          "beskrivning_en": "How saturated a trade's market is in a place: "
                            "establishments per 10,000 residents, ranked "

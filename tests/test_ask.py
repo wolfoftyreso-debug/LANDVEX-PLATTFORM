@@ -276,13 +276,12 @@ def test_saturation_question_is_understood_in_both_languages():
         assert q.intent == "marknadsmattnad", qn
         assert q.vertical_id == "elektriker"     # yrkesordet syftar på branschen
         assert q.kommun[1] == "Tyresö"
+    # Utan anslutet företagsregister ska frågan REFUSERAS, inte besvaras
+    # med ett påhittat antal företag.
     res = ask("Hur pass mättad är marknaden för elektriker i Tyresö?")
-    assert res["rader"], "inget mättnadssvar"
-    d = res["rader"][0]["detalj"]
-    assert d["industry_code"]["code"] == "43.21"          # NACE
-    # Utan anslutet register MÅSTE svaret säga att antalet är uppskattat.
-    assert d["measured"] is False
-    assert any("ESTIMATE" in c for c in res["caveats_en"])
+    assert res["intent"] == "marknadsmattnad"
+    assert res["rader"] == []
+    assert "does not guess" in res["svar_en"]
 
 
 if __name__ == "__main__":

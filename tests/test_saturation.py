@@ -69,10 +69,15 @@ def test_saturation_refuses_without_enough_peers():
 
 def test_saturation_reports_whether_the_count_is_measured():
     est = S.saturation("elektriker", "0138", "Tyresö", population=10000,
-                       supply={"count": 5, "measured": False},
+                       supply=S.estimate_supply(6.0, 10000, "elektriker"),
                        peers=_peers([1, 2, 3, 4, 5, 6]))
     assert est["supply"]["measured"] is False
-    assert "ESTIMATE" in est["supply"]["basis_en"]
+    assert "PLACEHOLDER" in est["supply"]["basis_en"]
+    # ett antal utan angiven härkomst påstås aldrig vara "inget antal"
+    bare = S.saturation("elektriker", "0138", "Tyresö", population=10000,
+                        supply={"count": 5, "measured": False},
+                        peers=_peers([1, 2, 3, 4, 5, 6]))
+    assert "unverified" in bare["supply"]["basis_en"]
     real = S.saturation("elektriker", "0138", "Tyresö", population=10000,
                         supply={"count": 5, "measured": True,
                                 "source": "SCB", "year": 2025},
@@ -101,17 +106,29 @@ def test_density_not_treated_as_opportunity():
     assert out["framing"]["choices"]["not_a_verdict"] is True
 
 
-def test_tyreso_is_covered_and_answerable():
-    """Den faktiska frågan: hur mättad är elektrikermarknaden i Tyresö?"""
+def test_without_a_register_it_refuses_rather_than_inventing_a_count():
+    """Doktrinen: hellre inget svar än ett påhittat antal företag."""
     r = market_saturation("elektriker", "Tyresö", market="se", peer_limit=25)
+    assert r["status"] == "insufficient_basis"
+    assert "does not guess" in r["verdict_en"]
+    assert r["supply"]["establishments"] is None
+
+
+def test_tyreso_is_covered_and_answerable():
+    """Den faktiska frågan, med platshållare uttryckligen begärd."""
+    r = market_saturation("elektriker", "Tyresö", market="se", peer_limit=25,
+                          allow_placeholder=True)
     assert r["status"] == "assessed"
     assert r["region"] == "Tyresö"
     assert r["peers_compared"] >= S.MIN_PEERS
     assert r["band"] in {b for _, b, _ in S.BANDS}
     assert r["industry_code"]["code"] == "43.21"
-    # utan anslutet register MÅSTE siffran vara märkt som uppskattning
+    # utan anslutet register MÅSTE talet vara märkt som platshållare, och
+    # den gissade konstanten synas i svaret
     assert r["supply"]["measured"] is False
-    assert "ESTIMATE" in r["supply"]["basis_en"]
+    assert r["supply"]["placeholder"] is True
+    assert "PLACEHOLDER" in r["supply"]["basis_en"]
+    assert r["supply"]["assumed_constant"] == S.ASSUMED_PRESSURE_TO_DENSITY
 
 
 def test_uncovered_region_raises_rather_than_answering_for_another():

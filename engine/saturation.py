@@ -89,11 +89,19 @@ def saturation(vertical: str, region_code: str, region_name: str, *,
         "country": country,
         "supply": {"establishments": count, "measured": measured,
                    "source": supply.get("source"), "year": supply.get("year"),
-                   "basis_en": ("Official business register."
-                                if measured else
-                                "ESTIMATE derived from local signals — not a "
-                                "register count. Connect the register to make "
-                                "this figure real.")},
+                   "placeholder": bool(supply.get("placeholder")),
+                   "assumed_constant": supply.get("assumed_constant"),
+                   "basis_en": (
+                       "Official business register." if measured else
+                       f"PLACEHOLDER — competition pressure x an assumed "
+                       f"constant ({supply.get('assumed_constant')}). Not a "
+                       f"derivation and not a count. Connect the register to "
+                       f"make this figure real."
+                       if supply.get("placeholder") else
+                       "Count supplied without stated provenance — treat it "
+                       "as unverified."
+                       if count is not None else
+                       "No establishment count available and none invented.")},
         "population": population,
         "density_per_10k": density,
         "industry_code": code,
@@ -165,28 +173,55 @@ def saturation(vertical: str, region_code: str, region_name: str, *,
     return out
 
 
+# Konstanten som gör om ett konkurrenstryck (0–10) till arbetsställen per
+# 10 000 invånare. Den är GISSAD. Ingen kalibrering, ingen källa – någon
+# valde den för att kedjan skulle gå att köra. Den står namngiven här i
+# stället för att ligga inbakad som en nia mitt i en formel, och den följer
+# med ut i svaret så ingen kan läsa talet utan att se den.
+ASSUMED_PRESSURE_TO_DENSITY = 0.9
+
+
 def estimate_supply(competition_pressure: float | None,
                     population: float, vertical: str) -> dict:
-    """Uppskattat utbud när registret inte är anslutet – TYDLIGT märkt.
+    """Platshållare för utbudet när registret inte är anslutet.
 
-    Härleds ur konkurrenstryckssignalen (0–10) skalad mot befolkningen. Det
-    är en uppskattning för att kedjan ska gå att köra, aldrig ett påstående
-    om hur många företag som finns. `measured` är alltid False.
+    Tidigare hette det här "uppskattat ur lokala signaler", vilket antydde
+    en härledning. Det finns ingen. Talet är konkurrenstrycket gånger en
+    vald konstant – ett placeholder-tal som fanns för att demon skulle gå
+    att köra, och det är precis fel skäl att producera en siffra.
+
+    Det returneras därför bara på uttrycklig begäran (se `supply_for`), det
+    heter numera platshållare, och den gissade konstanten följer med ut.
     """
     if competition_pressure is None or not population:
         return {"count": None, "measured": False, "source": None}
-    per_10k = max(0.0, float(competition_pressure)) * 0.9
+    per_10k = max(0.0, float(competition_pressure)) * ASSUMED_PRESSURE_TO_DENSITY
     return {"count": int(round(per_10k * population / PER_CAPITA_BASE)),
-            "measured": False, "source": "estimated from local signals",
+            "measured": False, "placeholder": True,
+            "assumed_constant": ASSUMED_PRESSURE_TO_DENSITY,
+            "source": "placeholder — competition pressure x an assumed "
+                      "constant, not a derivation and not a count",
             "year": None}
 
 
 def supply_for(vertical: str, country: str, region_code: str, *,
                population: float, competition_pressure: float | None = None,
-               client: RegisterClient | None = None) -> dict:
-    """Registret först, uppskattning som ärlig fallback."""
+               client: RegisterClient | None = None,
+               allow_placeholder: bool = False) -> dict:
+    """Registret, annars ingenting.
+
+    Utan anslutet register är det ärliga svaret att mättnaden inte kan
+    avgöras – inte ett påhittat antal. `allow_placeholder=True` finns för
+    demo och utveckling och märker då varje tal som platshållare.
+    """
     client = client or RegisterClient()
     real = client.establishments(country, region_code, vertical)
     if real is not None:
         return real
+    if not allow_placeholder:
+        return {"count": None, "measured": False, "source": None,
+                "why_en": "No business register connected for this market, "
+                          "and the platform does not invent an establishment "
+                          "count. Connect the register (LANDVEX_REGISTER_URL) "
+                          "or ask for a labelled placeholder explicitly."}
     return estimate_supply(competition_pressure, population, vertical)
