@@ -65,6 +65,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.registers import RegisterClient, register_catalog
+from engine.merit_scan import market_merit, region_merit
 from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
@@ -493,6 +494,18 @@ class Handler(BaseHTTPRequestHandler):
                     horizon_years=int(req.get("horizon_years", 1)),
                     decision=str(req.get("decision", "")),
                     currency=str(req.get("currency", "USD"))))
+            if self.path == "/v1/merit":
+                try:
+                    if req.get("region"):
+                        return self._send(200, region_merit(
+                            str(req["region"]), market=str(req.get("market", "se")),
+                            resolver=RESOLVER))
+                    return self._send(200, market_merit(
+                        str(req.get("market", "se")),
+                        top_n=min(max(int(req.get("top_n", 10)), 1), 40),
+                        resolver=RESOLVER))
+                except ValueError as e:
+                    return self._send(404, {"error": str(e)})
             if self.path == "/v1/saturation":
                 try:
                     return self._send(200, market_saturation(

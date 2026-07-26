@@ -77,6 +77,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/customer": "core",                   # kundresan KYC→aktiv
     "/v1/flows": "opportunity",               # kostnad/nytta (förväntat värde)
     "/v1/saturation": "opportunity",          # marknadsmättnad per bransch
+    "/v1/merit": "opportunity",               # mätbar prestation (merit)
     "/v1/registers": "core",                  # företagsregisterkartan
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",

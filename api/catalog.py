@@ -245,6 +245,18 @@ API_CATALOG: dict = {
                            "that lifts it a step.",
          "endpoints": [{"method": "GET", "path": "/v1/visitor/contract"},
                        {"method": "POST", "path": "/v1/visitor"}]},
+        {"id": "merit", "label_en": "Merit Engine (measurable performance)",
+         "beskrivning_en": "Which places perform measurably well across six "
+                           "dimensions of business capability — enterprise "
+                           "base, labour engagement, economic breadth, "
+                           "investment conversion, attraction and resilience "
+                           "— with how (which dimensions they lead) and why "
+                           "(which sourced drivers differ). Credit is awarded "
+                           "on exactly the standard used to challenge a "
+                           "place: same normalisation, same peer percentiles, "
+                           "same refusal when coverage is thin, and no "
+                           "causal claim.",
+         "endpoints": [{"method": "POST", "path": "/v1/merit"}]},
         {"id": "saturation", "label_en": "Market Saturation",
          "beskrivning_en": "How saturated a trade's market is in a place: "
                            "establishments per 10,000 residents, ranked "

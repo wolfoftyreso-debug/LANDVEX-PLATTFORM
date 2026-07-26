@@ -57,6 +57,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.registers import RegisterClient, register_catalog
+from engine.merit_scan import market_merit, region_merit
 from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
@@ -727,6 +728,25 @@ class SaturationRequest(BaseModel):
     region: str
     market: str = "se"
     peer_limit: int = 25
+
+
+class MeritRequest(BaseModel):
+    market: str = "se"
+    region: str = ""
+    top_n: int = 10
+
+
+@app.post("/v1/merit")
+def merit_ep(req: MeritRequest):
+    """Which places perform measurably well — and how, and why."""
+    try:
+        if req.region:
+            return region_merit(req.region, market=req.market,
+                                resolver=RESOLVER)
+        return market_merit(req.market, top_n=min(max(req.top_n, 1), 40),
+                            resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/v1/registers")

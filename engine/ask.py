@@ -248,6 +248,9 @@ _START_WORDS = ("start", "open", "establish", "launch", "opportunit",
                 "invest", "set up", "öppna", "etablera",
                 "affärsmöjlighet", "möjligheter", "driva")
 _RISK_WORDS = ("risk", "dangerous", "dare", "farligt", "vågar")
+_MERIT_WORDS = ("business acumen", "best run", "well run", "perform best",
+                "best performing", "does best", "excel", "affärssinne",
+                "bäst skött", "presterar bäst", "framgångsrik")
 _SATURATION_WORDS = ("saturated", "saturation", "how crowded", "crowded",
                      "oversupplied", "market density", "mättad", "mättnad",
                      "överetablerad", "overetablerad", "trängsel")
@@ -547,6 +550,7 @@ def parse(question: str) -> Query:
     risky = any(w in q for w in _RISK_WORDS)
     move = any(w in q for w in _MOVE_WORDS)
     saturated = any(w in q for w in _SATURATION_WORDS)
+    meritous = any(w in q for w in _MERIT_WORDS)
     # Occupation in "start/open" context → the corresponding industry.
     # I en mättnadsfråga syftar yrkesordet på BRANSCHEN: "hur mättad är
     # marknaden för elektriker" handlar om elfirmorna, inte om yrket.
@@ -587,6 +591,8 @@ def parse(question: str) -> Query:
         query.intent = "okand_kommun"
     elif saturated and vert and kommun:
         query.intent = "marknadsmattnad"
+    elif meritous:
+        query.intent = "merit"
     elif plan and vert and kommun:
         query.intent = "etableringsplan"
     elif gap and vert:
@@ -635,6 +641,36 @@ _HELP = {
         "How risky is it to start a gym in Solna?",
     ],
 }
+
+
+def _rows_merit(query: Query, resolver) -> dict:
+    from .merit_scan import market_merit, region_merit
+    mkt = query.market or query.region_market or DEFAULT_MARKET
+    if query.kommun:
+        m = region_merit(query.kommun[1], market=mkt, resolver=resolver)
+        if m["status"] != "assessed":
+            return {"rader": [], "svar_en": m["reason_en"], "caveats_en": []}
+        return {"rader": [{"typ": "merit", "id": m["region_code"],
+                           "label_en": m["region"], "score": m["overall"],
+                           "detalj": {"how_en": m["how_en"],
+                                      "why_en": m["why_en"],
+                                      "leads_on": m["leads_on"],
+                                      "drivers": m["drivers"]}}],
+                "svar_en": f"{m['how_en']} {m['why_en']}",
+                "caveats_en": [m["same_standard_en"]]}
+    res = market_merit(mkt, top_n=query.top_n or 10, resolver=resolver)
+    rows = [{"typ": "merit", "id": m["region_code"], "label_en": m["region"],
+             "score": m["overall"],
+             "detalj": {"rank": m["rank"], "how_en": m["how_en"],
+                        "why_en": m["why_en"], "leads_on": m["leads_on"],
+                        "drivers": m["drivers"]}} for m in res["ranking"]]
+    top = res["ranking"][0] if res["ranking"] else None
+    svar = (f"Measured across {res['assessed']} places in "
+            f"{res['market_label_en']}, {top['region']} performs strongest "
+            f"({top['overall']}/100). {top['how_en']}") if top else \
+        "No place had enough coverage to be assessed."
+    return {"rader": rows, "svar_en": svar,
+            "caveats_en": [res["note_en"]]}
 
 
 def _rows_mattnad(query: Query, resolver) -> dict:
@@ -1125,6 +1161,7 @@ def ask(question: str, resolver: Resolver | None = None) -> dict[str, Any]:
 
     handler = {"mojligheter_kommun": _rows_mojligheter,
                "marknadsmattnad": _rows_mattnad,
+               "merit": _rows_merit,
                "bristyrken_kommun": _rows_bristyrken,
                "nationell_brist": _rows_nationell,
                "global_brist": _rows_global,

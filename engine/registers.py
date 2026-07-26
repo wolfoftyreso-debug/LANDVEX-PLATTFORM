@@ -188,6 +188,11 @@ def register_catalog() -> dict:
     }
 
 
+def _live_enabled() -> bool:
+    """LANDVEX_LIVE=0 stänger av utgående anrop (test, offline, CI)."""
+    return os.environ.get("LANDVEX_LIVE", "1") != "0"
+
+
 def _http_transport(url: str, timeout: float) -> str:
     req = urllib.request.Request(url, headers={"Accept": "application/json",
                                                "User-Agent": "landvex/registers"})
@@ -218,12 +223,37 @@ class RegisterClient:
     def connected(self) -> bool:
         return bool(self.base_url)
 
+    @property
+    def any_provider(self) -> bool:
+        """Sant om NÅGON väg finns: egen spegel eller en riktig myndighet."""
+        from .datasources.register_apis import PROVIDER_FOR
+        return bool(self.base_url) or bool(PROVIDER_FOR)
+
     def establishments(self, country: str, region: str,
                        vertical: str) -> dict | None:
-        """Antal arbetsställen i branschen i regionen – eller None."""
+        """Antal arbetsställen i branschen i regionen – eller None.
+
+        Egen spegel först (om konfigurerad), annars landets riktiga
+        myndighets-API via register_apis. Ingen väg fram ⇒ None; ett antal
+        hittas aldrig på.
+        """
         code = industry_code(vertical, country)
-        if not (self.connected and code):
+        if code is None:
             return None
+        if self.base_url:
+            got = self._from_mirror(country, region, code)
+            if got is not None:
+                return got
+        # Riktig myndighet: PxWeb (SE/NO/DK/FI), Census CBP (US), Eurostat.
+        if not _live_enabled():
+            return None
+        from .datasources.register_apis import provider_for
+        got = provider_for(country).count(country, region, code["code"])
+        if got is None:
+            return None
+        return {**got, "code": code["code"], "scheme": code["scheme"]}
+
+    def _from_mirror(self, country: str, region: str, code: dict) -> dict | None:
         url = (f"{self.base_url}/establishments?country={country}"
                f"&region={region}&code={code['code']}&scheme={code['scheme']}")
         try:
@@ -240,10 +270,14 @@ class RegisterClient:
                 "source": raw.get("source") or (REGISTERS.get(country) or {}
                                                 ).get("name"),
                 "code": code["code"], "scheme": code["scheme"],
-                "measured": True}
+                "provider": "mirror", "measured": True}
 
     def status(self) -> dict:
-        return {"name": "registers", "connected": self.connected,
+        from .datasources.register_apis import PROVIDER_FOR, providers_status
+        return {"name": "registers", "mirror_configured": bool(self.base_url),
                 "base_url": self.base_url or None,
+                "live_calls_enabled": _live_enabled(),
                 "countries": sorted(REGISTERS),
+                "authority_apis": {c: p for c, p in sorted(PROVIDER_FOR.items())},
+                "providers": providers_status()["providers"],
                 "industries_mapped": len(INDUSTRY_CODES)}
