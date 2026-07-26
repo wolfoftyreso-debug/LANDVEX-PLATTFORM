@@ -1,6 +1,6 @@
 # LANDVEX Opportunity Engine
 
-**Decision Intelligence for the Physical World.**
+**What the data supports — and where it runs out.**
 
 Global decision-support for future workforce and business needs. It does not
 answer *"where are the most people?"* but **"where does THIS specific business

@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LANDVEX · Opportunity Engine</title>
+<title>LANDVEX · What the data supports</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpolygon points=%2712 2 22 7 12 12 2 7%27 fill=%27%23007AFF%27/%3E%3Cpolyline points=%272 12 12 17 22 12%27 fill=%27none%27 stroke=%27%2334C759%27 stroke-width=%272%27/%3E%3C/svg%3E">
 <style>
   :root {
     /* Apple iPhone Native (iOS 18) – REXO-designstandard. */
@@ -266,7 +267,7 @@
       <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg2)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="intro-eyebrow">LANDVEX · OPPORTUNITY ENGINE</div>
+    <div class="intro-eyebrow">LANDVEX · WHERE TO ESTABLISH</div>
     <h2 class="intro-h">Where do <em>you</em> have the highest chance of success — and the money to prove it?</h2>
     <p class="intro-sub">Not “where are the most people.” Where <em>your</em> business wins: a personalized Opportunity Score, the support you’re leaving on the table, and a live risk radar.</p>
     <p class="intro-pick">Pick your trade — see your best location right now:</p>
@@ -284,7 +285,7 @@
     <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <h1>LANDVEX</h1><span id="undertitel">Decision Intelligence for the Physical World</span>
+  <h1>LANDVEX</h1><span id="undertitel">What the data supports — and where it runs out</span>
   <nav id="tabs">
     <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
     <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Ask</button>
@@ -1020,7 +1021,7 @@ let MODE = "guide", senasteKarta = null;
 const LAGEN = {
   fraga: { rubrik: "Answers", titel: "Ask Landvex · What do you want to know?",
            status: "Ask a question – the answer is built by the Landvex engines." },
-  etab: { rubrik: "Hotspots", titel: "Opportunity Engine · Analyze the market",
+  etab: { rubrik: "Hotspots", titel: "Where to establish · analyse the market",
           status: "Build your profile and click Analyze the market." },
   komp: { rubrik: "Largest shortage", titel: "Workforce Intelligence · Workforce forecast",
           status: "Choose occupation, market and target year." },
@@ -1031,7 +1032,7 @@ const LAGEN = {
            status: "List prices – configured per contract and market." },
   watch: { rubrik: "Watch", titel: "Platform watch – engines, sources, alerts, agents",
            status: "Live status of the Landvex + AAMOS platform." },
-  guide: { rubrik: "Guide", titel: "Decision Intelligence for the Physical World",
+  guide: { rubrik: "Guide", titel: "What the data supports — and where it runs out",
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
              status: "Defaults are saved locally in your browser." },
@@ -1775,7 +1776,7 @@ function watchPlattformHTML(ps) {
   const oe = ps.opportunity_engine || {};
   const aa = ps.aamos || {};
   let ut =
-    `<div class="driver"><span>${watchPrick(oe.status)}Opportunity Engine</span>` +
+    `<div class="driver"><span>${watchPrick(oe.status)}Where to establish</span>` +
     `<span>${esc(watchStatus(oe.status))}</span></div>` +
     nyckelRad("Engine version", oe.engine_version) +
     nyckelRad("Persistence", oe.persistens) +

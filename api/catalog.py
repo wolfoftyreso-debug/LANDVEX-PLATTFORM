@@ -16,7 +16,7 @@ from engine.version import ENGINE_VERSION
 API_CATALOG: dict = {
     "platform": "Landvex Opportunity Engine",
     "plattformsfamilj": "RIOS – Reality Intelligence Operating System",
-    "tagline_en": "Decision Intelligence for the Physical World",
+    "tagline_en": "What the data supports — and where it runs out",
     "engine_version": ENGINE_VERSION,
     "api_version": "v1",
     "beskrivning_en": "Decision engines for future workforce and "
@@ -32,7 +32,7 @@ API_CATALOG: dict = {
         {"id": "ask", "label_en": "Ask Landvex",
          "beskrivning_en": "Natural language in, engine data out.",
          "endpoints": [{"method": "POST", "path": "/v1/ask"}]},
-        {"id": "opportunity", "label_en": "Opportunity Engine",
+        {"id": "opportunity", "label_en": "Where to establish",
          "beskrivning_en": "Location analysis and profile-driven market "
                            "sweeps with decision cards.",
          "endpoints": [{"method": "POST", "path": "/v1/analyze"},
@@ -41,7 +41,7 @@ API_CATALOG: dict = {
                        {"method": "GET", "path": "/v1/profile-options"},
                        {"method": "POST", "path": "/v1/profiles"},
                        {"method": "GET", "path": "/v1/profiles"}]},
-        {"id": "workforce", "label_en": "Workforce Intelligence",
+        {"id": "workforce", "label_en": "What skills will be needed",
          "beskrivning_en": "Skills forecasts 1–20 years, simulation, "
                            "national and global shortage maps.",
          "endpoints": [{"method": "GET", "path": "/v1/workforce/occupations"},
@@ -49,21 +49,21 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/workforce/simulate"},
                        {"method": "GET", "path": "/v1/workforce/map"},
                        {"method": "GET", "path": "/v1/workforce/global-map"}]},
-        {"id": "risk", "label_en": "Risk Engine",
+        {"id": "risk", "label_en": "What could go wrong",
          "beskrivning_en": "Multi-dimensional risk profile with suggested "
                            "mitigations.",
          "endpoints": [{"method": "POST", "path": "/v1/risk"}]},
-        {"id": "compare", "label_en": "Comparison",
+        {"id": "compare", "label_en": "Compare places side by side",
          "beskrivning_en": "2–4 locations head-to-head with a factor "
                            "matrix.",
          "endpoints": [{"method": "POST", "path": "/v1/compare"}]},
-        {"id": "opportunity_intel", "label_en": "Opportunity Intelligence",
+        {"id": "opportunity_intel", "label_en": "Money and support you are missing",
          "beskrivning_en": "Business Navigation: support-program fit, hidden "
                            "opportunities, 'you're missing money', legal "
                            "categories, lifecycle and expansion advice for a "
                            "location + business profile.",
          "endpoints": [{"method": "POST", "path": "/v1/opportunities"}]},
-        {"id": "risk_intelligence", "label_en": "Risk Intelligence",
+        {"id": "risk_intelligence", "label_en": "Where the risk is concentrated",
          "beskrivning_en": "Business radar: a Risk Score beside the "
                            "Opportunity Score, ten risk categories, the "
                            "Business Signals framework and a cautious "
@@ -71,116 +71,116 @@ API_CATALOG: dict = {
                            "score from local signals; the rest are honest "
                            "monitoring categories awaiting live feeds.",
          "endpoints": [{"method": "POST", "path": "/v1/risk-intelligence"}]},
-        {"id": "gaps", "label_en": "Gap Analysis",
+        {"id": "gaps", "label_en": "What this place is short of",
          "beskrivning_en": "Imbalances: high demand × low supply × "
                            "positive development.",
          "endpoints": [{"method": "POST", "path": "/v1/gaps"}]},
-        {"id": "plan", "label_en": "Establishment Plan",
+        {"id": "plan", "label_en": "How to open here",
          "beskrivning_en": "From analysis to decision basis: premises, "
                            "investment, staffing, economics, risks.",
          "endpoints": [{"method": "POST", "path": "/v1/plan"}]},
-        {"id": "segments", "label_en": "Segment Engine",
+        {"id": "segments", "label_en": "Who lives here",
          "beskrivning_en": "Segment analysis (pet owners, families with "
                            "children, etc.) per region and as a map.",
          "endpoints": [{"method": "GET", "path": "/v1/segments"},
                        {"method": "POST", "path": "/v1/segments/analyze"},
                        {"method": "GET", "path": "/v1/segments/map"}]},
-        {"id": "installed_base", "label_en": "Installed Base Engine",
+        {"id": "installed_base", "label_en": "How much service this place needs",
          "beskrivning_en": "Installed base → future service needs, "
                            "technician demand and mismatch opportunities.",
          "endpoints": [{"method": "GET", "path": "/v1/products"},
                        {"method": "POST", "path": "/v1/service/analyze"},
                        {"method": "GET", "path": "/v1/service/map"}]},
-        {"id": "indices", "label_en": "Intelligence Map Indices",
+        {"id": "indices", "label_en": "What a place is actually like",
          "beskrivning_en": "City indices (infrastructure risk, commercial "
                            "activity, safety, climate risk, urban growth) "
                            "+ the contradiction index – sourced & traceable.",
          "endpoints": [{"method": "GET", "path": "/v1/indices"},
                        {"method": "GET", "path": "/v1/indices/map"},
                        {"method": "POST", "path": "/v1/indices/assess"}]},
-        {"id": "kpi", "label_en": "KPI Engine",
+        {"id": "kpi", "label_en": "Societal measures, and where they are heading",
          "beskrivning_en": "Societal KPI registry (7 categories) with "
                            "invert-aware status/trend and threshold + "
                            "velocity alerts. Deterministic, no ML.",
          "endpoints": [{"method": "GET", "path": "/v1/kpi"},
                        {"method": "POST", "path": "/v1/kpi/evaluate"}]},
-        {"id": "lambda", "label_en": "Lambda Index",
+        {"id": "lambda", "label_en": "Balance across the board",
          "beskrivning_en": "Geometric-mean balance index across 8 societal "
                            "axes (~1.0 balanced); penalises extremes so a "
                            "strong axis cannot mask a weak one.",
          "endpoints": [{"method": "POST", "path": "/v1/lambda"}]},
-        {"id": "setpoints", "label_en": "Setpoint & Tolerance",
+        {"id": "setpoints", "label_en": "Reference levels: what counts as normal",
          "beskrivning_en": "Calibrated reference thresholds per indicator "
                            "(Maastricht 60%, Gini 0.30, TFR 2.1 …) with four "
                            "nested zones and sourced derivation.",
          "endpoints": [{"method": "GET", "path": "/v1/setpoints"},
                        {"method": "POST", "path": "/v1/setpoints/assess"}]},
-        {"id": "claims", "label_en": "Claims & Citation",
+        {"id": "claims", "label_en": "Where a figure came from",
          "beskrivning_en": "Turns a figure into a verifiable, content-hashed, "
                            "versioned claim with 3-owner governance and "
                            "text/APA/BibTeX citations.",
          "endpoints": [{"method": "POST", "path": "/v1/cite"}]},
-        {"id": "feeds", "label_en": "Intelligence Feeds",
+        {"id": "feeds", "label_en": "What changed, and why it matters now",
          "beskrivning_en": "Change detection: turns KPI movements into "
                            "deduplicated why-now events (top changes, "
                            "structural decline, priority alerts, anomalies).",
          "endpoints": [{"method": "GET", "path": "/v1/feeds"},
                        {"method": "POST", "path": "/v1/feeds/events"}]},
-        {"id": "worthiness", "label_en": "Significance Selector",
+        {"id": "worthiness", "label_en": "Is this worth reacting to?",
          "beskrivning_en": "Scores which changes are worth surfacing and "
                            "ranks them hero/primary/secondary/mention.",
          "endpoints": [{"method": "POST", "path": "/v1/worthiness"}]},
-        {"id": "decision", "label_en": "Decision Graph",
+        {"id": "decision", "label_en": "What a decision needs before it is made",
          "beskrivning_en": "Structured decision basis (coverage, gaps, "
                            "assumptions) — never a recommendation. Crisis "
                            "queries are met with support resources.",
          "endpoints": [{"method": "GET", "path": "/v1/decision"},
                        {"method": "POST", "path": "/v1/decision"}]},
-        {"id": "strim", "label_en": "STRIM Knowledge Graph",
+        {"id": "strim", "label_en": "Citable facts, and how they connect",
          "beskrivning_en": "Citable, versioned, neutral entity graph "
                            "(schema.org / JSON-LD) with immutable slugs and "
                            "an editorial neutral-language gate.",
          "endpoints": [{"method": "GET", "path": "/v1/strim"},
                        {"method": "POST", "path": "/v1/strim/entity"}]},
-        {"id": "data_sources", "label_en": "Data-source Adapters",
+        {"id": "data_sources", "label_en": "Which sources are connected",
          "beskrivning_en": "Connection status for the Kolada and SVK/ENTSO-E "
                            "adapters — honestly not-connected until their "
                            "URL is set.",
          "endpoints": [{"method": "GET", "path": "/v1/sources"},
                        {"method": "GET", "path": "/v1/kolada"},
                        {"method": "GET", "path": "/v1/svk"}]},
-        {"id": "outcomes", "label_en": "Outcome Calibration",
+        {"id": "outcomes", "label_en": "Did the forecast hold?",
          "beskrivning_en": "Logs establishments and real outcomes, calibrates "
                            "the model (Brier, reliability), and unlocks a "
                            "survival-based expected_roi once data exists.",
          "endpoints": [{"method": "POST", "path": "/v1/outcomes"},
                        {"method": "GET", "path": "/v1/outcomes/calibration"},
                        {"method": "POST", "path": "/v1/outcomes/roi"}]},
-        {"id": "correlate", "label_en": "Cross-domain Correlation",
+        {"id": "correlate", "label_en": "What moves together",
          "beskrivning_en": "Surfaces associations across domains (e.g. diet x "
                            "pharma x living) as hypotheses — never causation: "
                            "spurious flag, confounder control (partial "
                            "correlation), and replication across markets.",
          "endpoints": [{"method": "POST", "path": "/v1/correlate"},
                        {"method": "POST", "path": "/v1/correlate/cross-market"}]},
-        {"id": "scenario", "label_en": "Credible Scenarios",
+        {"id": "scenario", "label_en": "What could happen next",
          "beskrivning_en": "Credibility-gated societal scenarios: only speaks "
                            "when there are enough credible sources AND a "
                            "systematic historical tendency; shows the basis, a "
                            "widening band and explicit assumptions. Never a "
                            "bare prediction.",
          "endpoints": [{"method": "POST", "path": "/v1/scenario"}]},
-        {"id": "event_study", "label_en": "Event Study",
+        {"id": "event_study", "label_en": "Did that change anything?",
          "beskrivning_en": "Before/after an intervention and difference-in-"
                            "differences vs controls (e.g. legalisation -> "
                            "accidents). Observational, parallel-trends stated.",
          "endpoints": [{"method": "POST", "path": "/v1/event-study"}]},
-        {"id": "benchmark", "label_en": "Peer Benchmark",
+        {"id": "benchmark", "label_en": "How this compares to similar places",
          "beskrivning_en": "Places a value in the distribution of comparable "
                            "units (percentile, z-score, outlier band) — is a "
                            "claimed shortage/excess actually unusual, or normal?",
          "endpoints": [{"method": "POST", "path": "/v1/benchmark"}]},
-        {"id": "wages", "label_en": "Wage Registry",
+        {"id": "wages", "label_en": "What the work pays",
          "beskrivning_en": "Standard wage per standard occupation across "
                            "markets. Swedish anchor (wage-statistics level) x "
                            "documented FX — schablon, not PPP-adjusted; real "
@@ -189,7 +189,7 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/wages/lookup"},
                        {"method": "POST", "path": "/v1/wages/compare"},
                        {"method": "POST", "path": "/v1/wages/context"}]},
-        {"id": "corrections", "label_en": "Community Corrections",
+        {"id": "corrections", "label_en": "Correct something that is wrong",
          "beskrivning_en": "Wikipedia-style sourced corrections from regional "
                            "users; when enough independent, converging, sourced "
                            "corrections arrive the system adapts the value "
@@ -197,14 +197,14 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "POST", "path": "/v1/corrections/submit"},
                        {"method": "POST", "path": "/v1/corrections/consensus"},
                        {"method": "POST", "path": "/v1/corrections/adapt"}]},
-        {"id": "entrypoints", "label_en": "Entry points (decision journeys)",
+        {"id": "entrypoints", "label_en": "Where to start",
          "beskrivning_en": "Role-based doors into the engine — citizen, "
                            "business, investor, municipality, journalist, "
                            "researcher. Each ends in a decision answer "
                            "(answered_by), tools as the evidence layer, event "
                            "feeds as the live overlay.",
          "endpoints": [{"method": "GET", "path": "/v1/entrypoints"}]},
-        {"id": "admin", "label_en": "Administrative Register",
+        {"id": "admin", "label_en": "Who governs this place",
          "beskrivning_en": "Complete level-1 units for 18 countries (US "
                            "states, Canadian provinces, Swiss cantons, German "
                            "Länder, Swedish counties, French/Spanish/Italian/"
@@ -216,14 +216,14 @@ API_CATALOG: dict = {
                            "country — a partial seed is never presented as "
                            "complete.",
          "endpoints": [{"method": "GET", "path": "/v1/admin"}]},
-        {"id": "flows", "label_en": "Cost/Benefit Flows",
+        {"id": "flows", "label_en": "Is it worth the cost?",
          "beskrivning_en": "Expected value beyond the feelings: certain costs "
                            "against probability-weighted gains — net value, "
                            "benefit/cost ratio, break-even probability and "
                            "sensitivity (where the conclusion is fragile). "
                            "Gated on credible sources; a framing, never advice.",
          "endpoints": [{"method": "POST", "path": "/v1/flows/expected-value"}]},
-        {"id": "customer", "label_en": "Customer Journey (KYC → active)",
+        {"id": "customer", "label_en": "Getting set up",
          "beskrivning_en": "Where a customer stands across KYC, onboarding, "
                            "platform setup and active operation — each stage "
                            "naming its owner. KYC and onboarding are owned "
@@ -235,7 +235,7 @@ API_CATALOG: dict = {
                            "analysis stay gated.",
          "endpoints": [{"method": "GET", "path": "/v1/customer/journey"},
                        {"method": "POST", "path": "/v1/customer/stage"}]},
-        {"id": "visitor", "label_en": "Visitor Seam (onboarding intake)",
+        {"id": "visitor", "label_en": "Onboarding intake",
          "beskrivning_en": "The documented seam a customer onboarding "
                            "delivers into. Accepts a customer record via "
                            "field names or aliases, reports what is missing "
@@ -245,7 +245,7 @@ API_CATALOG: dict = {
                            "that lifts it a step.",
          "endpoints": [{"method": "GET", "path": "/v1/visitor/contract"},
                        {"method": "POST", "path": "/v1/visitor"}]},
-        {"id": "livability", "label_en": "Livability (household-weighted)",
+        {"id": "livability", "label_en": "Where to build a life",
          "beskrivning_en": "Where a specific household can build a good "
                            "life: job demand for the occupation, pay after "
                            "tax converted to one currency, childcare, "
@@ -259,7 +259,7 @@ API_CATALOG: dict = {
                            "decide first. Best and worst are both shown.",
          "endpoints": [{"method": "GET", "path": "/v1/households"},
                        {"method": "POST", "path": "/v1/livability"}]},
-        {"id": "merit", "label_en": "Merit Engine (measurable performance)",
+        {"id": "merit", "label_en": "Which places actually perform",
          "beskrivning_en": "Which places perform measurably well across six "
                            "dimensions of business capability — enterprise "
                            "base, labour engagement, economic breadth, "
@@ -271,7 +271,7 @@ API_CATALOG: dict = {
                            "same refusal when coverage is thin, and no "
                            "causal claim.",
          "endpoints": [{"method": "POST", "path": "/v1/merit"}]},
-        {"id": "brief", "label_en": "Daily Brief (proactive detection)",
+        {"id": "brief", "label_en": "Daily Brief",
          "beskrivning_en": "What the platform found without being asked. "
                            "Each detection kind declares what it observes AND "
                            "what that observation does not establish — a "
@@ -286,7 +286,7 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief/report"}]},
-        {"id": "surface", "label_en": "Surface (four promises)",
+        {"id": "surface", "label_en": "What Landvex offers",
          "beskrivning_en": "What a person is offered, as opposed to what "
                            "was built. Forty-five engines answer four "
                            "questions a human actually asks: is that true, "
@@ -299,7 +299,7 @@ API_CATALOG: dict = {
                            "nothing was left homeless or counted twice to "
                            "make the surface look wider.",
          "endpoints": [{"method": "GET", "path": "/v1/surface"}]},
-        {"id": "offering", "label_en": "Offering (packaged by decision)",
+        {"id": "offering", "label_en": "Plans, and what each lets you decide",
          "beskrivning_en": "What each tier lets you DECIDE, not how much data "
                            "it lets you download. Every offer names the "
                            "question it settles, who asks it and the endpoint "
@@ -310,7 +310,7 @@ API_CATALOG: dict = {
                            "catalogue, so a plan cannot be sold on a feature "
                            "that does not exist.",
          "endpoints": [{"method": "GET", "path": "/v1/offering"}]},
-        {"id": "provenance", "label_en": "Parameter Provenance",
+        {"id": "provenance", "label_en": "Where our own numbers come from",
          "beskrivning_en": "Where the platform's OWN numbers come from. Every "
                            "tunable constant declares its origin: sourced to a "
                            "named authority, an established convention, "
@@ -319,7 +319,7 @@ API_CATALOG: dict = {
                            "system may speak at all are held to the same "
                            "standard as the data they let through.",
          "endpoints": [{"method": "GET", "path": "/v1/provenance"}]},
-        {"id": "saturation", "label_en": "Market Saturation",
+        {"id": "saturation", "label_en": "Is the market full?",
          "beskrivning_en": "How saturated a trade's market is in a place: "
                            "establishments per 10,000 residents, ranked "
                            "against comparable regions, with the band, the "
@@ -330,7 +330,7 @@ API_CATALOG: dict = {
                            "opportunity.",
          "endpoints": [{"method": "GET", "path": "/v1/registers"},
                        {"method": "POST", "path": "/v1/saturation"}]},
-        {"id": "inbox", "label_en": "Event Routing (who it is for)",
+        {"id": "inbox", "label_en": "What matters to you",
          "beskrivning_en": "Turns broadcast feeds into 'your decision may have "
                            "changed'. A visitor registers what they have at "
                            "stake (a place, a trade, an occupation, a decision "
@@ -341,7 +341,7 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/inbox"},
                        {"method": "POST", "path": "/v1/inbox/subscribe"},
                        {"method": "POST", "path": "/v1/inbox/route"}]},
-        {"id": "monitors", "label_en": "Control Monitors (cron)",
+        {"id": "monitors", "label_en": "Watch something and be told",
          "beskrivning_en": "Register a watch on a metric — threshold breach, "
                            "structural change-point, anomaly or sustained "
                            "decline — run it on a schedule (cron), and escalate "
@@ -353,14 +353,14 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
-        {"id": "sensitive", "label_en": "Sensitive-category Guard",
+        {"id": "sensitive", "label_en": "Sensitive questions",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "
                            "k-anonymity, mandatory confounder control (raw vs "
                            "controlled), official sources, and ecological-"
                            "fallacy warnings. Truth, never ammunition.",
          "endpoints": [{"method": "POST", "path": "/v1/sensitive-association"}]},
-        {"id": "accountability", "label_en": "Accountability Loop",
+        {"id": "accountability", "label_en": "Who owns the decision",
          "beskrivning_en": "Commits a decision to a responsible owner + an "
                            "expected outcome, resolves it against the actual, "
                            "and keeps a per-owner ledger. Every result carries "

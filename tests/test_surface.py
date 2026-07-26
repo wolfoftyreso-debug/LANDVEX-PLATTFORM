@@ -168,6 +168,70 @@ def test_the_demo_shows_a_refusal():
     assert 'sup.get("establishments") is None' in src
 
 
+
+# ── Kundytans språk ──────────────────────────────────────────────────────
+# Ord som beskriver hur något är BYGGT, inte vad det gör för någon. De hör
+# hemma i koden och i beskrivningarna — inte i det namn en kund läser.
+_INTERNAL_WORDS = (
+    "engine", "adapter", "selector", "seam", "loop", "graph", "index",
+    "registry", "layer", "pipeline", "module", "handler",
+    "wrapper", "schema", "lambda", "setpoint", "strim", "kpi",
+)
+# "service" stod här först och fällde "How much service this place needs".
+# Ordet är tvetydigt: mikrotjänst är ett byggord, servicebesök är kundens
+# eget ord och hela den motorns ämne. En regel som slår på rätt namn är
+# fel regel, så den togs bort i stället för att undantas.
+# Namn som är produktnamn eller etablerade fackord kunden själv använder.
+_ALLOWED = {"Ask Landvex", "Daily Brief", "Platform", "AAMOS Integration"}
+
+
+def test_no_engineer_speak_in_the_names_a_customer_reads():
+    """"Lambda Index". "STRIM Knowledge Graph". "Significance Selector".
+    En kund kan inte vilja ha något hon inte kan namnge, och ingen av dem
+    säger vad man får. Beskrivningarna får vara tekniska; namnen inte."""
+    offenders = []
+    for g in API_CATALOG["engines"]:
+        label = g["label_en"]
+        if label in _ALLOWED:
+            continue
+        for w in _INTERNAL_WORDS:
+            if w in label.lower():
+                offenders.append(f"{g['id']}: {label!r} innehåller {w!r}")
+    assert not offenders, (
+        "Interna ord på kundytan:\n  " + "\n  ".join(offenders))
+
+
+def test_the_id_is_the_contract_and_the_label_is_the_surface():
+    """Namnen fick bytas. Id:na är det maskiner, löften och kapabiliteter
+    hänger på — de får aldrig följa med i en omdöpning."""
+    ids = {g["id"] for g in API_CATALOG["engines"]}
+    for p in S.PROMISES:
+        for e in p["engines"]:
+            assert e in ids, f"löftet pekar på motor-id {e!r} som inte finns"
+    for g in API_CATALOG["engines"]:
+        assert g["id"] == g["id"].lower(), g["id"]
+        assert " " not in g["id"], g["id"]
+
+
+def test_the_tagline_promises_something_rather_than_naming_a_market():
+    """"Decision Intelligence for the Physical World" är vad ett analysföretag
+    kallar facket. Det är inte vad en kund säger till en kollega."""
+    t = API_CATALOG["tagline_en"]
+    assert t and len(t) < 70, t
+    for jargon in ("intelligence", "platform", "solution", "leverage",
+                   "ecosystem", "synerg"):
+        assert jargon not in t.lower(), f"taglinen säger {jargon!r}"
+
+
+def test_every_engine_still_says_what_it_does_somewhere():
+    """Ett kortare namn får inte betyda mindre information. Beskrivningen
+    bär tekniken; namnet bär nyttan."""
+    for g in API_CATALOG["engines"]:
+        assert g["label_en"].strip(), g["id"]
+        assert len(g["beskrivning_en"]) > 30, \
+            f"{g['id']} har namn men ingen förklaring"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -279,7 +279,8 @@ OIDC.
   squircle, Liquid Glass-blur; bannade färger verifierat noll);
   (3) "Commercial Vitality" (fd Commercial Activity) + nytt "City
   Health"-index (7 index totalt); (4) tagline "Decision Intelligence
-  for the Physical World" + RIOS-familj i /v1/catalog; (5) quiXzoom-
+  for the Physical World" (SENARE ERSATT, se nedan) + RIOS-familj i
+  /v1/catalog; (5) quiXzoom-
   adaptern är nu en riktig HTTP-klient mot /v1/observations
   (LANDVEX_QUIXZOOM_URL, felpaus, ärlig /health-status, fixturtest);
   (6) deployment-underlag i infra/: systemd-unit (:8087, ej pm2),

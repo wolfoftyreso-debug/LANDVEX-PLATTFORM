@@ -2,6 +2,35 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — kundytan
+
+Namnen på kundytan beskrev hur plattformen är BYGGD, inte vad någon får.
+"Lambda Index", "STRIM Knowledge Graph", "Significance Selector",
+"Setpoint & Tolerance", "Installed Base Engine" — en kund kan inte vilja
+ha något hon inte kan namnge.
+
+- **43 motoretiketter omdöpta** till frågan de besvarar. `Lambda Index` →
+  `Balance across the board`; `Significance Selector` → `Is this worth
+  reacting to?`; `Setpoint & Tolerance` → `Reference levels: what counts
+  as normal`; `Market Saturation` → `Is the market full?`. Namnen kommer
+  ur vad motorerna faktiskt gör — beskrivningarna lästes först, eftersom
+  ett felaktigt namn är sämre än ett fult.
+- **Id:na är orörda.** `label_en` är ytan, `id` är kontraktet som löften,
+  kapabiliteter och maskiner hänger på. Ett test hävdar skillnaden.
+- **Taglinen** var en marknadskategori: "Decision Intelligence for the
+  Physical World" är vad ett analysföretag kallar facket, inte vad en kund
+  säger till en kollega. Nu: **"What the data supports — and where it runs
+  out"** — ett löfte som dessutom namnger vägran, vilket är positionen.
+- **Ett test spärrar återfall**: interna ord (engine, adapter, selector,
+  seam, loop, graph, index, registry …) får inte förekomma i ett namn en
+  kund läser. Beskrivningarna får vara tekniska; namnen inte.
+
+Testet fällde direkt en av mina egna nya etiketter — "How much service
+this place needs" — på ordet `service`. Ordet är tvetydigt: mikrotjänst är
+ett byggord, servicebesök är kundens eget och hela den motorns ämne. En
+regel som slår på rätt namn är fel regel, så ordet togs bort ur listan i
+stället för att etiketten undantogs.
+
 ## [1.1.0] — 2026-07-25
 Skörd ur `dissg` (Reality Index / NOGF / STRIM) — 13 russin (A–N) portade in i
 den beroendefria kärnan och wire:ade i båda API-lagren. Kedjan mät → upptäck
