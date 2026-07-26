@@ -181,6 +181,16 @@ BRIEF_SCOPES: dict[str, dict] = {
 }
 
 
+# Det ENA beslut som säljer nivån. Resten finns kvar och levereras — de
+# ska bara inte vara det man möter. En prislista med sjutton punkter tvingar
+# kunden att göra urvalet som säljaren borde ha gjort.
+HEADLINE: dict[str, str] = {
+    "free": "check_a_claim",
+    "pro": "where_to_establish",
+    "enterprise": "detect_without_asking",
+}
+
+
 def resolve_plan(name: str) -> str:
     """Ytnamn eller id → kanoniskt plan-id."""
     key = (name or "").strip().lower()
@@ -218,8 +228,13 @@ def offering(plan: str = "") -> dict:
         ds = decisions_for(p)
         built = [d for d in ds if d["status"] == "built"]
         planned = [d for d in ds if d["status"] == "planned"]
+        # Ett beslut fram, resten kvar. Kunden ska kunna välja nivå på EN
+        # mening; den som vill se allt öppnar `also_included`.
+        head = next((d for d in built if d["id"] == HEADLINE[p]), None)
         out.append({
             "plan_id": p, **PLAN_SURFACE[p],
+            "headline": head,
+            "also_included": [d for d in built if d is not head],
             "decisions_you_can_make": built,
             "not_built_yet": planned,
             "built_count": len(built), "planned_count": len(planned),

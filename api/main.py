@@ -59,6 +59,7 @@ from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
+from engine.surface import surface
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -111,8 +112,8 @@ if _CORS:
                        allow_headers=["Content-Type", "X-API-Key",
                                       "Authorization"])
 
-_OPEN_PATHS = ("/", "/index.html", "/sandbox", "/health", "/docs", "/openapi.json",
-               "/v1/plans")
+_OPEN_PATHS = ("/", "/console", "/index.html", "/sandbox", "/health",
+               "/docs", "/openapi.json", "/v1/plans")
 
 
 @app.middleware("http")
@@ -241,9 +242,18 @@ class ScanRequest(BaseModel):
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
+# Dörren. Konsolen med nio flikar ligger kvar oförändrad på /console.
+_START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
 
 
 @app.get("/", include_in_schema=False)
+def front_door():
+    """En fråga och fyra löften. Konsolen ligger på /console."""
+    return FileResponse(_START, media_type="text/html")
+
+
+@app.get("/console", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
 def frontend():
     return FileResponse(_FRONTEND, media_type="text/html")
 
@@ -847,6 +857,12 @@ def provenance_ep(cls: str = ""):
         return {**provenance_summary(), "parameters": provenance_parameters(cls)}
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/surface")
+def surface_ep(detail: bool = False):
+    """Four promises. The full catalogue stays at /v1/catalog."""
+    return surface(detail)
 
 
 @app.get("/v1/offering")

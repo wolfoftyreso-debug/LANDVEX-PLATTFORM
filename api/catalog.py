@@ -286,6 +286,19 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief/report"}]},
+        {"id": "surface", "label_en": "Surface (four promises)",
+         "beskrivning_en": "What a person is offered, as opposed to what "
+                           "was built. Forty-five engines answer four "
+                           "questions a human actually asks: is that true, "
+                           "is there room for me, what changed, and who "
+                           "carries the decision. Each promise names what "
+                           "it REFUSES as well as what it settles. The full "
+                           "catalogue is unchanged and still served at "
+                           "/v1/catalog for machines — a test asserts every "
+                           "engine belongs to exactly one promise, so "
+                           "nothing was left homeless or counted twice to "
+                           "make the surface look wider.",
+         "endpoints": [{"method": "GET", "path": "/v1/surface"}]},
         {"id": "offering", "label_en": "Offering (packaged by decision)",
          "beskrivning_en": "What each tier lets you DECIDE, not how much data "
                            "it lets you download. Every offer names the "

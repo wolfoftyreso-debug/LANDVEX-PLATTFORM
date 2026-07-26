@@ -45,6 +45,13 @@ def _devserver_pairs() -> set[tuple[str, str]]:
         for s in re.findall(
                 r'(?:parsed\.path|self\.path)\.startswith\("([^"]+)"', part):
             pairs.add((method, _norm(s.rstrip("/") + "/*")))
+        # `parsed.path in ("/", "/console", ...)` — en route som serveras av
+        # ett medlemskapstest är lika mycket en route som en likhetsjämförelse.
+        # Utan det här läste kontraktet dem som obefintliga.
+        for grupp in re.findall(
+                r'(?:parsed\.path|self\.path)\s+in\s+\(([^)]*)\)', part):
+            for p in re.findall(r'"([^"]+)"', grupp):
+                pairs.add((method, _norm(p)))
     return pairs
 
 
@@ -56,11 +63,13 @@ def _devserver_routes() -> set[str]:
     return {p for _, p in _devserver_pairs()}
 
 
-# Statiska/HTML-vägar som bara dev-servern serverar direkt (FastAPI
-# monterar frontenden på annat sätt) – utanför kontraktet.
-_DEV_ONLY = {"/", "/index.html"}
-# FastAPI serverar "/" som frontend; dev-servern har "/" + "/index.html".
-_FASTAPI_ONLY = {"/"}
+# Sedan dörren infördes serverar BÅDA servrarna "/", "/console" och
+# "/index.html" — de HTML-vägarna är alltså inte längre undantag utan
+# kontrakt, och undantagsmängderna är tomma. De står kvar som tomma i
+# stället för att tas bort: nästa sida som bara finns i ett lager ska
+# behöva skrivas in här medvetet, inte glida in.
+_DEV_ONLY: set[str] = set()
+_FASTAPI_ONLY: set[str] = set()
 # Ramverksgenererade i FastAPI (auto, syns ej i källan) men explicita i
 # dev-servern – båda serverar dem, alltså ingen drift.
 _FRAMEWORK = {"/openapi.json", "/docs"}

@@ -67,6 +67,7 @@ from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
+from engine.surface import surface
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -121,6 +122,9 @@ PROGRAMS = ProgramsClient()   # connected only if LANDVEX_PROGRAMS_URL is set
 
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
+# Dörren: en fråga och fyra löften. Konsolen med nio flikar finns kvar
+# oförändrad på /console — den är vad man hittar EFTER sin första fråga.
+_START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
@@ -174,8 +178,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/index.html", "/sandbox", "/health", "/v1/plans",
-                   "/openapi.json")
+    _OPEN_PATHS = ("/", "/console", "/index.html", "/sandbox", "/health",
+                   "/v1/plans", "/openapi.json")
 
     def _live_locked(self) -> bool:
         p = getattr(self, "_principal", None)
@@ -238,9 +242,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/agent-manifest":
             from api.agent_manifest import AGENT_MANIFEST
             return self._send(200, AGENT_MANIFEST)
-        if parsed.path in ("/", "/index.html"):
+        if parsed.path in ("/", "/console", "/index.html"):
             self._status = 200
-            body = _FRONTEND.read_bytes()
+            body = (_START if parsed.path == "/" else _FRONTEND).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -312,6 +316,9 @@ class Handler(BaseHTTPRequestHandler):
                                         "parameters": provenance_parameters(cls)})
             except ValueError as e:
                 return self._send(422, {"error": str(e)})
+        if parsed.path == "/v1/surface":
+            detail = parse_qs(parsed.query).get("detail", [""])[0]
+            return self._send(200, surface(detail.lower() in ("1", "true")))
         if parsed.path == "/v1/offering":
             plan = parse_qs(parsed.query).get("plan", [""])[0]
             try:

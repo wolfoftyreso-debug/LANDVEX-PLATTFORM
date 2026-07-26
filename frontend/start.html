@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Landvex</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpolygon points=%2712 2 22 7 12 12 2 7%27 fill=%27%23007AFF%27/%3E%3Cpolyline points=%272 12 12 17 22 12%27 fill=%27none%27 stroke=%27%2334C759%27 stroke-width=%272%27/%3E%3C/svg%3E">
+<style>
+/* Dörren. En fråga, fyra löften, ingenting annat ovanför vikningen.
+   Konsolen med nio flikar finns kvar oförändrad på /console — den är vad
+   man hittar EFTER att ha ställt sin första fråga, inte det man möts av. */
+:root{
+  --bg:#FBFBFD; --yta:#FFFFFF; --text:#1D1D1F; --svag:#6E6E73;
+  --linje:#E5E5EA; --bla:#007AFF; --gron:#34C759; --gul:#FF9F0A;
+  --skugga:0 1px 3px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;
+        --linje:#2C2C2E;--skugga:0 1px 3px rgba(0,0,0,.5),0 8px 28px rgba(0,0,0,.4);}
+}
+:root[data-theme="dark"]{
+  --bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;
+  --linje:#2C2C2E;--skugga:0 1px 3px rgba(0,0,0,.5),0 8px 28px rgba(0,0,0,.4);
+}
+:root[data-theme="light"]{
+  --bg:#FBFBFD;--yta:#FFFFFF;--text:#1D1D1F;--svag:#6E6E73;
+  --linje:#E5E5EA;--skugga:0 1px 3px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text); min-height:100vh;
+  font:400 17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
+       "Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:760px; margin:0 auto; padding:0 22px}
+
+/* ── Vikningen: enbart frågan ───────────────────────────────────────── */
+.dorr{
+  display:flex; flex-direction:column; gap:26px;
+  /* Kontrollerad luft i stället för centrering i en 82vh-låda. Det förra
+     gav ~300 px död yta UNDER frågan, som sköt ner allt annat utan att
+     tillföra något. */
+  padding:13vh 0 11vh;
+}
+/* När ett svar finns är frågan inte längre hela sidan. Utan det här stod
+   82vh tomt kvar mellan frågan och svaret, och sidan såg trasig ut. */
+body.svarat .dorr{padding:6vh 0 4vh}
+.marke{display:flex; align-items:center; gap:11px}
+.marke svg{width:26px;height:26px;display:block}
+.marke b{font-size:15px; letter-spacing:.16em; font-weight:600}
+h1{
+  margin:0; font-size:clamp(30px,6.2vw,50px); line-height:1.1;
+  letter-spacing:-.024em; font-weight:600; text-wrap:balance; max-width:21ch;
+}
+body.svarat h1{font-size:clamp(25px,4.2vw,34px)}
+h1 em{font-style:normal; color:var(--svag)}
+.fraga{display:flex; gap:10px; flex-wrap:wrap}
+.fraga input{
+  flex:1 1 320px; min-width:0; background:var(--yta); color:var(--text);
+  border:1px solid var(--linje); border-radius:13px; padding:16px 18px;
+  font:inherit; font-size:17px; box-shadow:var(--skugga);
+}
+.fraga input:focus{outline:2px solid var(--bla); outline-offset:1px}
+.fraga button{
+  background:var(--bla); color:#fff; border:0; border-radius:13px;
+  padding:16px 26px; font:inherit; font-weight:600; cursor:pointer;
+}
+.fraga button:hover{filter:brightness(1.08)}
+.fraga button:focus-visible{outline:2px solid var(--text); outline-offset:2px}
+.exempel{color:var(--svag); font-size:14.5px; margin:0}
+.exempel button{
+  background:none;border:0;padding:0;font:inherit;color:var(--bla);
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+}
+
+/* ── Svaret ─────────────────────────────────────────────────────────── */
+#svar{display:none; margin:0 0 46px}
+#svar.pa{display:block}
+.kort{
+  background:var(--yta); border:1px solid var(--linje); border-radius:17px;
+  padding:22px; box-shadow:var(--skugga);
+}
+.kort h2{margin:0 0 10px; font-size:19px; letter-spacing:-.01em}
+.matt{
+  display:inline-flex; align-items:center; gap:7px; font-size:13.5px;
+  color:var(--svag); border:1px solid var(--linje); border-radius:999px;
+  padding:5px 12px; margin-top:14px;
+}
+.matt i{width:8px;height:8px;border-radius:50%;background:var(--gul);
+        display:block;flex:0 0 auto}
+.matt.noll i{background:var(--gul)}
+.rader{margin:14px 0 0; padding:0; list-style:none;
+       font-variant-numeric:tabular-nums}
+.rader li{display:flex; justify-content:space-between; gap:14px;
+          padding:9px 0; border-top:1px solid var(--linje)}
+.rader li span:last-child{color:var(--svag)}
+.varning{color:var(--svag); font-size:14px; margin:14px 0 0}
+
+/* ── Fyra löften ────────────────────────────────────────────────────── */
+.loften{padding:0 0 40px}
+.loften > p{color:var(--svag); font-size:14.5px; margin:0 0 16px}
+.rutnat{display:grid; gap:13px; grid-template-columns:repeat(auto-fit,minmax(285px,1fr))}
+.lofte{
+  background:var(--yta); border:1px solid var(--linje); border-radius:17px;
+  padding:20px; box-shadow:var(--skugga); display:flex; flex-direction:column; gap:9px;
+}
+.lofte .nr{font-size:12.5px; color:var(--svag); font-variant-numeric:tabular-nums}
+.lofte h3{margin:0; font-size:17.5px; letter-spacing:-.01em; text-wrap:balance}
+.lofte p{margin:0; font-size:14.5px; color:var(--svag)}
+.lofte .nej{
+  margin-top:auto; padding-top:11px; border-top:1px solid var(--linje);
+  font-size:13.5px; color:var(--text);
+}
+.lofte .nej b{color:var(--gul); font-weight:600}
+
+/* ── Vägran: den enda anledningen att titta ─────────────────────────── */
+.vagran{
+  background:var(--yta); border:1px solid var(--linje);
+  border-left:3px solid var(--gul); border-radius:17px; padding:24px;
+  box-shadow:var(--skugga); margin:0 0 40px;
+}
+.vagran h2{margin:0 0 12px; font-size:20px; letter-spacing:-.012em}
+.vagran .cit{
+  font-size:15px; color:var(--svag); margin:0 0 14px; font-style:italic;
+}
+.vagran .utfall{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px;
+  background:var(--bg); border:1px solid var(--linje); border-radius:11px;
+  padding:13px 15px; overflow-x:auto; white-space:pre;
+}
+.vagran p:last-child{margin:14px 0 0; font-size:14.5px}
+
+/* ── Foten ──────────────────────────────────────────────────────────── */
+footer{
+  border-top:1px solid var(--linje); padding:24px 0 44px;
+  display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+  font-size:14.5px;
+}
+footer a{color:var(--bla); text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer .rest{color:var(--svag); margin-left:auto;
+             font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){
+  .kort,.lofte{transition:transform .18s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="dorr">
+    <div class="marke">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#007AFF"/><stop offset="1" stop-color="#34C759"/>
+        </linearGradient></defs>
+        <polygon points="12 2 22 7 12 12 2 7" fill="url(#g)"/>
+        <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#g)"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#g)"
+                  stroke-width="2" opacity=".55" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+      </svg>
+      <b>LANDVEX</b>
+    </div>
+
+    <h1>Ask about a place.<br><em>Get an answer that shows its own basis.</em></h1>
+
+    <form class="fraga" id="form">
+      <input id="q" autocomplete="off" enterkeyhint="go"
+             placeholder="Where is the need for electricians greatest?"
+             aria-label="Your question">
+      <button type="submit">Ask</button>
+    </form>
+    <p class="exempel">Try:
+      <button type="button" class="ex">Where is the need for electricians greatest?</button> ·
+      <button type="button" class="ex">Which municipalities show the strongest business capability?</button>
+    </p>
+  </section>
+
+  <section id="svar" aria-live="polite"></section>
+
+  <section class="vagran">
+    <h2>The question it will not answer</h2>
+    <p class="cit">“How saturated is the market for electricians in Tyresö?”</p>
+    <div class="utfall" id="vagranUt">loading…</div>
+    <p>It knows the municipality, the population and the industry code. It
+       still will not put a number on it. Every comparable tool returns a
+       confident figure here — and that is the whole difference.</p>
+  </section>
+
+  <section class="loften">
+    <p>Four questions. Everything else is plumbing.</p>
+    <div class="rutnat" id="loften"></div>
+  </section>
+
+  <footer>
+    <a href="/console">Open the full console →</a>
+    <a href="/v1/catalog">Complete API catalogue</a>
+    <span class="rest" id="rest"></span>
+  </footer>
+
+</div>
+<script>
+const $ = s => document.querySelector(s);
+
+/* ── Fyra löften, hämtade live så sidan aldrig kan påstå mer än API:t ── */
+fetch("/v1/surface").then(r => r.json()).then(s => {
+  $("#loften").innerHTML = s.promises.map(p => `
+    <article class="lofte">
+      <span class="nr">${p.order} / ${s.promise_count}</span>
+      <h3>${esc(p.question_en)}</h3>
+      <p>${esc(p.settles_en)}</p>
+      <div class="nej"><b>Refuses:</b> ${esc(p.refusal_en)}</div>
+    </article>`).join("");
+  $("#rest").textContent =
+    `${s.engine_count} engines · ${s.endpoint_count} endpoints underneath`;
+}).catch(() => {
+  $("#loften").innerHTML =
+    '<article class="lofte"><h3>Could not reach the platform</h3>' +
+    '<p>The four promises are served live from /v1/surface. Nothing is ' +
+    'shown here that the API did not confirm.</p></article>';
+});
+
+/* ── Vägran, också live. Skärmdumpen får inte överleva koden ────────── */
+fetch("/v1/saturation", {
+  method: "POST", headers: {"Content-Type": "application/json"},
+  body: JSON.stringify({vertical: "elektriker", region: "0138", market: "se"})
+}).then(r => r.json()).then(d => {
+  const s = d.supply || {};
+  $("#vagranUt").textContent =
+    `establishments : ${s.establishments}\nmeasured       : ${s.measured}\n` +
+    `population     : ${d.population}\n\n${s.basis_en || ""}`;
+}).catch(() => { $("#vagranUt").textContent = "could not reach /v1/saturation"; });
+
+/* ── Frågan ─────────────────────────────────────────────────────────── */
+function esc(t) {
+  return String(t == null ? "" : t).replace(/[&<>"']/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+document.querySelectorAll(".ex").forEach(b => b.addEventListener("click", () => {
+  $("#q").value = b.textContent.trim();
+  $("#form").requestSubmit();
+}));
+
+$("#form").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const q = $("#q").value.trim();
+  if (!q) return;
+  const box = $("#svar");
+  document.body.classList.add("svarat");
+  box.className = "pa";
+  box.innerHTML = '<div class="kort"><h2>Asking…</h2></div>';
+  fetch("/v1/ask", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({question: q})
+  }).then(r => r.json()).then(a => {
+    const rows = (a.rader || []).slice(0, 5).map(r =>
+      `<li><span>${esc(r.label_en || r.id)}</span>` +
+      `<span>${r.score != null ? "score " + esc(r.score) : ""}</span></li>`
+    ).join("");
+    const cav = (a.caveats_en || [])[0];
+    box.innerHTML = `<div class="kort">
+      <h2>${esc(a.svar_en || "No answer for that question.")}</h2>
+      ${rows ? `<ul class="rader">${rows}</ul>` : ""}
+      ${cav ? `<p class="varning">${esc(cav)}</p>` : ""}
+      <span class="matt"><i></i>Every row carries its own confidence and
+        assumptions — see the console</span>
+    </div>`;
+    box.scrollIntoView({behavior: "smooth", block: "nearest"});
+  }).catch(() => {
+    box.innerHTML = '<div class="kort"><h2>Could not reach the platform.</h2>' +
+      '<p class="varning">Nothing is shown here that the API did not ' +
+      'return.</p></div>';
+  });
+});
+</script>
+</body>
+</html>

@@ -113,6 +113,36 @@ def test_repackaging_by_decision_does_not_erase_how_it_is_charged():
         assert row["billing_en"]
 
 
+
+def test_each_tier_leads_with_exactly_one_decision():
+    """Sjutton punkter tvingar kunden att göra säljarens urval. Ett
+    beslut fram per nivå; resten levereras men står inte först."""
+    o = O.offering()
+    assert len(o["plans"]) == 3
+    for row in o["plans"]:
+        head = row["headline"]
+        assert head is not None, f"{row['plan_id']} leder med ingenting"
+        assert head["status"] == "built", head["id"]
+        assert head["id"] == O.HEADLINE[row["plan_id"]]
+        # Ingenting tappas: rubriken + resten är fortfarande allt.
+        assert len(row["also_included"]) + 1 == row["built_count"]
+        assert head not in row["also_included"]
+        ids = {d["id"] for d in row["also_included"]} | {head["id"]}
+        assert ids == {d["id"] for d in row["decisions_you_can_make"]}
+
+
+def test_the_headline_of_a_tier_is_not_inherited_from_the_one_below():
+    """Varje nivå ska leda med något NYTT. Leder Professional med samma
+    beslut som Explorer har kunden inget skäl att uppgradera."""
+    heads = {p: O.HEADLINE[p] for p in ("free", "pro", "enterprise")}
+    assert len(set(heads.values())) == 3
+    by_id = {d["id"]: d for d in O.DECISIONS}
+    for plan, did in heads.items():
+        assert by_id[did]["plan"] == plan, (
+            f"{plan} leder med {did}, som hör till "
+            f"{by_id[did]['plan']} — det är ärvt, inte nytt")
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
