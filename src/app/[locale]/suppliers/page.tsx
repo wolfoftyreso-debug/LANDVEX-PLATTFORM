@@ -1,9 +1,18 @@
 import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { searchSuppliers } from "@/modules/search/service";
+import { listTrades } from "@/modules/catalog/service";
+import { localizedName } from "@/modules/catalog/i18n";
 import SiteChrome from "@/app/[locale]/site-chrome";
 
 export const dynamic = "force-dynamic";
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  LT: "🇱🇹",
+  LV: "🇱🇻",
+  EE: "🇪🇪",
+  PL: "🇵🇱",
+};
 
 /** Public supplier directory — Postgres FTS + trigram, verified first */
 export default async function Suppliers({
@@ -18,11 +27,14 @@ export default async function Suppliers({
   const t = await getTranslations("suppliers");
   const query = await searchParams;
 
-  const hits = await searchSuppliers({
-    q: query.q,
-    country: query.country || undefined,
-    verifiedOnly: query.verified === "1",
-  });
+  const [hits, trades] = await Promise.all([
+    searchSuppliers({
+      q: query.q,
+      country: query.country || undefined,
+      verifiedOnly: query.verified === "1",
+    }),
+    listTrades(),
+  ]);
 
   return (
     <SiteChrome locale={locale}>
@@ -30,27 +42,30 @@ export default async function Suppliers({
         <h1>{t("title")}</h1>
         <p className="muted">{t("subtitle")}</p>
 
-        <form method="get" className="inline card mt">
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label htmlFor="q">{t("searchLabel")}</label>
-            <input
-              id="q"
-              name="q"
-              defaultValue={query.q ?? ""}
-              placeholder={t("searchPlaceholder")}
-              style={{ width: "100%" }}
-            />
-          </div>
-          <div>
-            <label htmlFor="country">{t("country")}</label>
-            <select id="country" name="country" defaultValue={query.country ?? ""}>
-              <option value="">{t("anyCountry")}</option>
-              <option value="LT">Lietuva</option>
-              <option value="LV">Latvija</option>
-              <option value="EE">Eesti</option>
-            </select>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", paddingBottom: "0.5rem" }}>
+        <form method="get" className="search-bar mt" style={{ maxWidth: "none", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+          <input
+            id="q"
+            name="q"
+            defaultValue={query.q ?? ""}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
+          />
+          <select
+            id="country"
+            name="country"
+            defaultValue={query.country ?? ""}
+            style={{ border: "none", background: "transparent" }}
+          >
+            <option value="">{t("anyCountry")}</option>
+            <option value="LT">Lietuva</option>
+            <option value="LV">Latvija</option>
+            <option value="EE">Eesti</option>
+            <option value="PL">Polska</option>
+          </select>
+          <label
+            htmlFor="verified"
+            style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: 0, whiteSpace: "nowrap", fontSize: "0.85rem" }}
+          >
             <input
               type="checkbox"
               id="verified"
@@ -58,41 +73,48 @@ export default async function Suppliers({
               value="1"
               defaultChecked={query.verified === "1"}
             />
-            <label htmlFor="verified" style={{ margin: 0 }}>{t("verifiedOnly")}</label>
-          </div>
+            {t("verifiedOnly")}
+          </label>
           <button type="submit">{t("searchCta")}</button>
         </form>
+
+        <div className="chip-row">
+          {trades.map((trade) => {
+            const active = (query.q ?? "") === trade.nameEn;
+            return (
+              <Link
+                key={trade.id}
+                className={`chip${active ? " active" : ""}`}
+                href={`/${locale}/suppliers?q=${encodeURIComponent(trade.nameEn)}`}
+              >
+                {localizedName(trade, locale)}
+              </Link>
+            );
+          })}
+        </div>
 
         {hits.length === 0 ? (
           <p className="muted mt">{t("empty")}</p>
         ) : (
           <div className="mt">
-            {hits.map((hit) => (
-              <div key={hit.companyId} className="card">
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-                  <div>
-                    <h3 style={{ marginBottom: "0.15rem" }}>
-                      {hit.slug ? (
-                        <Link href={`/${locale}/company/${hit.slug}`}>{hit.name}</Link>
-                      ) : (
-                        hit.name
-                      )}
-                    </h3>
-                    <div className="muted" style={{ fontSize: "0.85rem" }}>
+            {hits.map((hit) => {
+              const inner = (
+                <div className="listing" key={hit.companyId}>
+                  <div className="thumb" aria-hidden>
+                    {COUNTRY_FLAGS[hit.country] ?? hit.name.slice(0, 1)}
+                  </div>
+                  <div className="body">
+                    <h3>{hit.name}</h3>
+                    <div className="meta">
                       {hit.country}
                       {hit.city ? ` · ${hit.city}` : ""}
                       {hit.category ? ` · ${hit.category}` : ""}
                       {hit.yearFounded ? ` · ${t("since")} ${hit.yearFounded}` : ""}
                       {hit.headcount ? ` · ${hit.headcount} ${t("employees")}` : ""}
                     </div>
-                    {hit.description && (
-                      <p className="muted" style={{ fontSize: "0.9rem", marginBottom: 0 }}>
-                        {hit.description.slice(0, 180)}
-                        {hit.description.length > 180 ? "…" : ""}
-                      </p>
-                    )}
+                    {hit.description && <p className="desc">{hit.description}</p>}
                   </div>
-                  <div style={{ textAlign: "right", display: "grid", gap: "0.3rem", justifyItems: "end" }}>
+                  <div className="side">
                     {hit.verified ? (
                       <span className="badge verified">✓ {t("verifiedBadge")}</span>
                     ) : (
@@ -103,8 +125,19 @@ export default async function Suppliers({
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+              return hit.slug ? (
+                <Link
+                  key={hit.companyId}
+                  href={`/${locale}/company/${hit.slug}`}
+                  style={{ color: "inherit", display: "block" }}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                inner
+              );
+            })}
           </div>
         )}
       </div>

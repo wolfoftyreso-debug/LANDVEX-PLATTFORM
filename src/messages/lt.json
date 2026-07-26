@@ -20,7 +20,16 @@
     "joinAsSupplier": "Prisijunkite kaip įmonė",
     "joinAsBuyer": "Prisijunkite kaip klientas",
     "findSuppliers": "Raskite patikrintus tiekėjus",
-    "requestWorkCta": "Užsakyti darbus — nemokamai"
+    "requestWorkCta": "Užsakyti darbus — nemokamai",
+    "categoriesTitle": "Naršyti pagal sritį",
+    "trustLine": "Visi patikrinti tiekėjai turi peržiūrėtus dokumentus — F-skatt, A1, draudimą ir sertifikatus.",
+    "howTitle": "Kaip tai veikia",
+    "how1t": "Aprašykite darbą",
+    "how1d": "Paskelbkite užklausą nemokamai — sritis, apimtis, terminai ir kalba.",
+    "how2t": "Suderiname patikrintas komandas",
+    "how2d": "Mūsų komanda įvertina užklausą ir pakviečia tinkamas patikrintas Baltijos įmones.",
+    "how3t": "Palyginkite pasiūlymus ir rinkitės",
+    "how3d": "Pasiūlymai pateikiami su užfiksuota patikros būsena — palyginkite kompetenciją, kainą ir pradžios datą."
   },
   "auth": {
     "title": "Prisijunkite prie Baltic Bridge",

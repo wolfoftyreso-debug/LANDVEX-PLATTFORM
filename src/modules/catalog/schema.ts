@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -62,4 +63,10 @@ export const requirementDefinitions = pgTable("requirement_definitions", {
   metadataSpec: jsonb("metadata_spec").notNull().default({}),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // Seeds rely on ON CONFLICT DO NOTHING being a real guard, not a no-op
+  uniqueIndex("requirement_definitions_corridor_key_unique").on(
+    table.corridorId,
+    table.key,
+  ),
+]);

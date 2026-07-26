@@ -20,7 +20,16 @@
     "joinAsSupplier": "Anslut som företag",
     "joinAsBuyer": "Anslut som kund",
     "findSuppliers": "Hitta verifierade leverantörer",
-    "requestWorkCta": "Begär arbete — gratis"
+    "requestWorkCta": "Begär arbete — gratis",
+    "categoriesTitle": "Bläddra efter yrkesområde",
+    "trustLine": "Alla verifierade leverantörer har granskade dokument — F-skatt, A1, försäkring och certifikat.",
+    "howTitle": "Så fungerar det",
+    "how1t": "Beskriv jobbet",
+    "how1d": "Lägg upp din förfrågan gratis — yrkesområde, omfattning, tidplan och språk.",
+    "how2t": "Vi matchar verifierade team",
+    "how2d": "Vårt ops-team kvalificerar förfrågan och bjuder in lämpliga verifierade baltiska företag.",
+    "how3t": "Jämför offerter och välj",
+    "how3d": "Offerterna kommer med en fryst verifieringsbild — jämför kompetens, pris och startdatum."
   },
   "auth": {
     "title": "Logga in på Baltic Bridge",

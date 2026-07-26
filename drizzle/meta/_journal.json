@@ -50,6 +50,13 @@
       "when": 1785079008816,
       "tag": "0006_baltic_languages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785080265357,
+      "tag": "0007_requirement_key_unique",
+      "breakpoints": true
     }
   ]
 }

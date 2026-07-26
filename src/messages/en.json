@@ -20,7 +20,16 @@
     "joinAsSupplier": "Join as a company",
     "joinAsBuyer": "Join as a customer",
     "findSuppliers": "Find verified suppliers",
-    "requestWorkCta": "Request work — free"
+    "requestWorkCta": "Request work — free",
+    "categoriesTitle": "Browse by trade",
+    "trustLine": "Every verified supplier has ops-reviewed documents — F-skatt, A1, insurance and certifications.",
+    "howTitle": "How it works",
+    "how1t": "Describe the job",
+    "how1d": "Post your request for free — trade, scope, timing and language.",
+    "how2t": "We match verified teams",
+    "how2d": "Our ops team qualifies your request and invites suitable verified Baltic companies.",
+    "how3t": "Compare offers and choose",
+    "how3d": "Offers arrive with a frozen verification snapshot — compare competence, price and start date."
   },
   "auth": {
     "title": "Sign in to Baltic Bridge",

@@ -20,7 +20,16 @@
     "joinAsSupplier": "Dołącz jako firma",
     "joinAsBuyer": "Dołącz jako klient",
     "findSuppliers": "Znajdź zweryfikowanych dostawców",
-    "requestWorkCta": "Zleć pracę — bezpłatnie"
+    "requestWorkCta": "Zleć pracę — bezpłatnie",
+    "categoriesTitle": "Przeglądaj według branży",
+    "trustLine": "Każdy zweryfikowany dostawca ma sprawdzone dokumenty — F-skatt, A1, ubezpieczenie i certyfikaty.",
+    "howTitle": "Jak to działa",
+    "how1t": "Opisz zlecenie",
+    "how1d": "Dodaj zapytanie bezpłatnie — branża, zakres, terminy i język.",
+    "how2t": "Dobieramy zweryfikowane zespoły",
+    "how2d": "Nasz zespół operacyjny kwalifikuje zapytanie i zaprasza odpowiednie zweryfikowane firmy.",
+    "how3t": "Porównaj oferty i wybierz",
+    "how3d": "Oferty zawierają zamrożony obraz weryfikacji — porównaj kompetencje, cenę i termin startu."
   },
   "auth": {
     "title": "Zaloguj się do Baltic Bridge",
