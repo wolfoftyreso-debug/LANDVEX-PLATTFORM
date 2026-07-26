@@ -58,6 +58,16 @@ export async function updateMyProfileAction(formData: FormData) {
       .getAll("languages")
       .map(String)
       .filter((l) => /^[a-z]{2}$/.test(l)),
+    certifications: String(formData.get("certifications") ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .slice(0, 20),
+    serviceAreas: String(formData.get("serviceAreas") ?? "")
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean)
+      .slice(0, 20),
   });
   revalidatePath("/[locale]/portal", "page");
 }

@@ -294,6 +294,29 @@ export default async function Portal({
                 </div>
               </div>
               <div>
+                <label htmlFor="p-certs">{t("certificationsLabel")}</label>
+                <input
+                  id="p-certs"
+                  name="certifications"
+                  placeholder="ISO 9606-1, EN 1090 EXC2, ID06…"
+                  defaultValue={company.certifications.join(", ")}
+                  style={{ width: "100%" }}
+                />
+                <span className="muted" style={{ fontSize: "0.75rem" }}>
+                  {t("certificationsHint")}
+                </span>
+              </div>
+              <div>
+                <label htmlFor="p-areas">{t("serviceAreasLabel")}</label>
+                <input
+                  id="p-areas"
+                  name="serviceAreas"
+                  placeholder="Stockholm, Mälardalen, hela Sverige…"
+                  defaultValue={company.serviceAreas.join(", ")}
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <div>
                 <label>{t("languagesLabel")}</label>
                 <div style={{ display: "flex", gap: "0.7rem", flexWrap: "wrap" }}>
                   {LANGUAGE_OPTIONS.map((lang) => (

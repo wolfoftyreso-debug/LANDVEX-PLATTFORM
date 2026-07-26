@@ -28,6 +28,10 @@ export const companies = pgTable("companies", {
   headcount: integer("headcount"),
   languages: text("languages").array().notNull().default([]),
   ownerUserId: uuid("owner_user_id").references(() => users.id),
+  /** Self-reported on the profile; shown separately from VERIFIED facts */
+  certifications: text("certifications").array().notNull().default([]),
+  /** Where the company takes on work (regions/countries, free text) */
+  serviceAreas: text("service_areas").array().notNull().default([]),
   /** Unclaimed = imported from an open source; claimable via verification */
   claimStatus: claimStatus("claim_status").notNull().default("claimed"),
   category: text("category"),

@@ -191,6 +191,8 @@ export async function updateCompanyProfile(
     yearFounded?: number | null;
     headcount?: number | null;
     languages?: string[];
+    certifications?: string[];
+    serviceAreas?: string[];
   },
 ): Promise<Company> {
   requireAnyRole(actor, ["ops", "admin", "supplier"]);

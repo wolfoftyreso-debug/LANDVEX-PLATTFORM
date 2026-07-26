@@ -11,12 +11,25 @@ import { users } from "@/modules/identity/schema";
 import { hashPassword } from "@/modules/identity/password";
 
 async function main() {
-  // Trades
+  // Trades — data, not code (Section 2). Broadened per the 2026-07
+  // repositioning: construction and property trades alongside the
+  // original industrial launch trades.
   const [welding] = await db
     .insert(trades)
     .values([
       { slug: "welding", nameEn: "Welding", nameSv: "Svetsning", nameLt: "Suvirinimas" },
       { slug: "industrial-fitting", nameEn: "Industrial fitting", nameSv: "Industrimontage", nameLt: "Pramoninis montavimas" },
+      { slug: "carpentry", nameEn: "Carpentry", nameSv: "Snickeri", nameLt: "Staliaus darbai" },
+      { slug: "painting", nameEn: "Painting", nameSv: "Målning", nameLt: "Dažymas" },
+      { slug: "tiling", nameEn: "Tiling", nameSv: "Plattsättning", nameLt: "Plytelių klojimas" },
+      { slug: "roofing", nameEn: "Roofing", nameSv: "Tak", nameLt: "Stogų darbai" },
+      { slug: "concrete", nameEn: "Concrete", nameSv: "Betong", nameLt: "Betonavimas" },
+      { slug: "electrical", nameEn: "Electrical", nameSv: "El", nameLt: "Elektros darbai" },
+      { slug: "plumbing-hvac", nameEn: "Plumbing & HVAC", nameSv: "VVS", nameLt: "Santechnika ir ŠVOK" },
+      { slug: "groundworks", nameEn: "Groundworks", nameSv: "Markarbeten", nameLt: "Žemės darbai" },
+      { slug: "steel-structures", nameEn: "Steel structures", nameSv: "Stål", nameLt: "Plieno konstrukcijos" },
+      { slug: "demolition", nameEn: "Demolition", nameSv: "Rivning", nameLt: "Griovimo darbai" },
+      { slug: "property-services", nameEn: "Property services", nameSv: "Fastighetsservice", nameLt: "Pastatų priežiūra" },
     ])
     .onConflictDoNothing()
     .returning();

@@ -159,17 +159,37 @@ export default async function PublicCompanyPage({
         {company.description && (
           <div className="card">
             <p style={{ margin: 0, whiteSpace: "pre-line" }}>{company.description}</p>
-            {company.category && (
+            {(company.category || company.website) && (
               <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.85rem" }}>
                 {company.category}
                 {company.website && (
                   <>
-                    {" · "}
+                    {company.category ? " · " : ""}
                     <a href={company.website} rel="nofollow noopener noreferrer" target="_blank">
                       {company.website.replace(/^https?:\/\//, "")}
                     </a>
                   </>
                 )}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Service areas + self-reported certifications (kept clearly apart
+            from the platform-VERIFIED facts panel below) */}
+        {(company.serviceAreas.length > 0 || company.certifications.length > 0) && (
+          <div className="card">
+            {company.serviceAreas.length > 0 && (
+              <p style={{ margin: 0 }}>
+                <strong>{t("serviceAreas")}:</strong>{" "}
+                {company.serviceAreas.join(" · ")}
+              </p>
+            )}
+            {company.certifications.length > 0 && (
+              <p className="muted" style={{ margin: company.serviceAreas.length ? "0.5rem 0 0" : 0, fontSize: "0.9rem" }}>
+                <strong>{t("selfReportedCerts")}:</strong>{" "}
+                {company.certifications.join(" · ")}{" "}
+                <span style={{ fontSize: "0.8rem" }}>({t("selfReportedNote")})</span>
               </p>
             )}
           </div>
