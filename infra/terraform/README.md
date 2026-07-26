@@ -24,6 +24,12 @@ First boot (cloud-init) installs Docker + compose + awscli, formats and
 mounts the data volume, and installs the nightly backup cron
 (`/usr/local/bin/bb-backup.sh` → `s3://<backup-bucket>/pg/`).
 
+**Orchestrator:** `orchestrator = "k3s"` (default) additionally installs
+single-node k3s with the data volume mounted at `/var/lib/rancher`, and the
+backup cron switches to `kubectl exec` — deploy with the manifests in
+[`infra/k8s/`](../k8s/README.md). Set `orchestrator = "compose"` for the
+plain docker-compose path documented below.
+
 ## Usage
 
 ```sh

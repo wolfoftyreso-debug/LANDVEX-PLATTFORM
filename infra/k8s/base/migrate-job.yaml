@@ -1,0 +1,21 @@
+# Append-only Drizzle migrations. Re-apply on every release:
+#   kubectl -n baltic-bridge delete job migrate --ignore-not-found && kubectl apply -k .
+# Uses the "build" image target (has drizzle-kit/tsx), not the runtime image.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: baltic-bridge
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: baltic-bridge-migrate:local
+          imagePullPolicy: IfNotPresent
+          command: ["npm", "run", "db:migrate"]
+          envFrom:
+            - secretRef:
+                name: baltic-bridge-env

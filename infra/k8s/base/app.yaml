@@ -1,0 +1,60 @@
+# The one deployable (Section 3) — same container image as compose/ECS.
+# replicas: 1 by stage discipline; pg-boss uses Postgres advisory locks, so
+# scaling out later is safe without an external scheduler.
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: baltic-bridge
+spec:
+  selector:
+    app: app
+  ports:
+    - port: 3000
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: baltic-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: baltic-bridge:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: baltic-bridge-env
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: ENABLE_JOBS
+              value: "1"
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi

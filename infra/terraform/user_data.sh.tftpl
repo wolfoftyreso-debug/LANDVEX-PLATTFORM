@@ -1,15 +1,21 @@
 #!/bin/bash
-# First-boot provisioning: Docker + compose, data volume at /var/lib/docker,
-# nightly pg_dump to S3. The app itself is deployed by the operator/CI:
-#   git clone into /opt/baltic-bridge && docker compose -f docker-compose.selfhost.yml up
+# First-boot provisioning. orchestrator = "${orchestrator}":
+#   k3s     -> single-node Kubernetes; deploy with infra/k8s (kustomize)
+#   compose -> docker compose -f docker-compose.selfhost.yml
+# Either way the operator/CI deploys the app itself from /opt/baltic-bridge.
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
 apt-get install -y docker.io docker-compose-v2 awscli
 
-# --- Data volume: all Docker state (pgdata, miniodata) on the dedicated,
-# --- DLM-snapshotted gp3 volume. Identified by EBS volume id, not device name.
+# --- Data volume: all runtime state on the dedicated, DLM-snapshotted gp3
+# --- volume. Identified by EBS volume id, not device name (Nitro-safe).
+%{ if orchestrator == "k3s" ~}
+STATE_DIR=/var/lib/rancher   # k3s: containerd images + local-path PVCs
+%{ else ~}
+STATE_DIR=/var/lib/docker    # compose: named volumes (pgdata, miniodata)
+%{ endif ~}
 VOL_LINK="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${replace(data_volume_id, "-", "")}"
 for i in $(seq 1 60); do
   [ -e "$VOL_LINK" ] && break
@@ -22,30 +28,41 @@ if ! blkid "$VOL_LINK" >/dev/null 2>&1; then
 fi
 
 systemctl stop docker || true
-mkdir -p /var/lib/docker
-if ! grep -q '/var/lib/docker' /etc/fstab; then
-  echo "LABEL=bb-data /var/lib/docker ext4 defaults,nofail 0 2" >> /etc/fstab
+mkdir -p "$STATE_DIR"
+if ! grep -q "$STATE_DIR" /etc/fstab; then
+  echo "LABEL=bb-data $STATE_DIR ext4 defaults,nofail 0 2" >> /etc/fstab
 fi
 mount -a
 systemctl enable --now docker
 
 mkdir -p /opt/baltic-bridge /var/backups/baltic-bridge
 
-# --- Nightly logical backup: pg_dump from the compose db service -> S3.
+%{ if orchestrator == "k3s" ~}
+# --- k3s: single-node Kubernetes with Traefik ingress + local-path storage.
+# Docker stays installed for building images (imported via k3s ctr).
+curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable sh -
+%{ endif ~}
+
+# --- Nightly logical backup: pg_dump -> S3 (see also DLM volume snapshots).
 cat > /usr/local/bin/bb-backup.sh <<'EOF'
 #!/bin/bash
 set -euo pipefail
-COMPOSE_DIR=/opt/baltic-bridge
-COMPOSE="docker compose -f docker-compose.selfhost.yml --env-file .env.selfhost"
 STAMP=$(date +%F)
 OUT=/var/backups/baltic-bridge/bb-$STAMP.dump
 
+%{ if orchestrator == "k3s" ~}
+kubectl -n baltic-bridge get statefulset db >/dev/null 2>&1 || exit 0
+kubectl -n baltic-bridge exec statefulset/db -- \
+  sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > "$OUT"
+%{ else ~}
+COMPOSE_DIR=/opt/baltic-bridge
+COMPOSE="docker compose -f docker-compose.selfhost.yml --env-file .env.selfhost"
 cd "$COMPOSE_DIR" || exit 0
 $COMPOSE ps db --status running --quiet | grep -q . || exit 0
-
 # shellcheck disable=SC1091
 source <(grep -E '^(POSTGRES_USER|POSTGRES_DB)=' .env.selfhost)
 $COMPOSE exec -T db pg_dump -U "$POSTGRES_USER" -Fc "$${POSTGRES_DB:-baltic_bridge}" > "$OUT"
+%{ endif ~}
 aws s3 cp "$OUT" "s3://${backup_bucket}/pg/" --region ${region}
 find /var/backups/baltic-bridge -name '*.dump' -mtime +3 -delete
 EOF

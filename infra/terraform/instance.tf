@@ -98,6 +98,7 @@ resource "aws_instance" "node" {
     data_volume_id = aws_ebs_volume.data.id
     backup_bucket  = aws_s3_bucket.backups.bucket
     region         = var.region
+    orchestrator   = var.orchestrator
   })
 
   # Replacing the instance must never destroy the data volume.

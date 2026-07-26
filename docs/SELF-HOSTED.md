@@ -35,7 +35,17 @@ Runtime npm packages that talk to the network: `pg` (your DB),
 **Conclusion: the only AWS-managed services in use (RDS, S3, SES) are all
 behind env-switchable interfaces. Self-owned mode requires zero code changes.**
 
-## 2. Single-node deployment (docker-compose.selfhost.yml)
+## 2a. Kubernetes mode (k3s — current default)
+
+The product owner chose Kubernetes as the orchestrator. The Terraform node
+(`orchestrator = "k3s"`) runs single-node k3s; the stack (app + Postgres +
+MinIO + migrate job + Traefik ingress) is expressed as Kustomize manifests
+in [`infra/k8s/`](../infra/k8s/README.md). Same container image, same env
+contract (`.env.selfhost` becomes one Kubernetes Secret), same backup
+layers. The compose mode below remains fully supported as the simpler
+fallback (`orchestrator = "compose"`).
+
+## 2b. Single-node deployment (docker-compose.selfhost.yml)
 
 Production-shaped stack on one machine (EC2 or anything with Docker):
 app container + Postgres 16 + MinIO + a one-shot migration runner.

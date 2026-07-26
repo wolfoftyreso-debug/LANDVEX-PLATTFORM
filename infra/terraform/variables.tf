@@ -34,6 +34,17 @@ variable "data_volume_gb" {
   default     = 50
 }
 
+variable "orchestrator" {
+  description = "How the node runs the stack: 'k3s' (single-node Kubernetes, manifests in infra/k8s) or 'compose' (docker-compose.selfhost.yml)."
+  type        = string
+  default     = "k3s"
+
+  validation {
+    condition     = contains(["k3s", "compose"], var.orchestrator)
+    error_message = "orchestrator must be \"k3s\" or \"compose\"."
+  }
+}
+
 variable "admin_ssh_cidr" {
   description = "CIDR allowed to SSH (port 22). Empty = no SSH at all; use SSM Session Manager instead (recommended)."
   type        = string
