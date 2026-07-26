@@ -26,3 +26,9 @@ next-env.d.ts
 coverage
 playwright-report
 test-results
+
+# terraform (infra/terraform)
+.terraform/
+*.tfstate*
+*.tfvars
+!*.tfvars.example

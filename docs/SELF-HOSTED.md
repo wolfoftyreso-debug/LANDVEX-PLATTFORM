@@ -109,8 +109,12 @@ a hope, not a backup. For true PITR later, add WAL archiving
 
 ## 5. Open decisions before committing to self-owned
 
-1. **IaC convention** — Terraform or CDK for the EC2/VPC/DNS layer (was
-   deferred pending the org's existing convention).
+1. **IaC convention** — ✅ decided: **Terraform**. The complete layer lives in
+   [`infra/terraform/`](../infra/terraform/README.md): VPC, Graviton EC2 node
+   (SSM access, no SSH), encrypted data volume + DLM snapshots, S3 backup
+   bucket + nightly `pg_dump` cron, CloudWatch alarms with auto-recovery,
+   optional Route 53. TLS termination via the optional Caddy front
+   (`docker-compose.proxy.yml` + `infra/proxy/Caddyfile`).
 2. **S3 vs MinIO in production** — S3 in your own AWS account is not a
    third-party dependency in the SaaS sense; MinIO trades that for
    self-managed durability (versioning is enabled, but replication/erasure
