@@ -112,9 +112,21 @@ def measure(base: str, runs: int, warmup: int = 2,
     return out
 
 
-def _serve(port: int):
+def _serve(port: int, live: bool = False):
+    """Starta servern att mäta mot.
+
+    `live=False` (default) mäter REN MOTORTID: inga externa källor alls.
+    Det är rätt för att jämföra kod mot kod — men det är INTE den
+    konfiguration en användare kör, och skillnaden har kostat en gång
+    redan. /v1/saturation låg på 19 000 ms mot en budget på 1 500 därför
+    att den gjorde ett blockerande HTTPS-anrop per jämförelsekommun. Den
+    här mätningen såg 16 ms, eftersom LANDVEX_LIVE=0 hoppar över hela den
+    vägen. Budgeten fanns, verktyget fanns, och ingendera kunde se felet.
+
+    `--live` mäter med källkedjan påslagen, alltså vägen produktionen tar.
+    """
     env = dict(os.environ, LANDVEX_DB="off", LANDVEX_HOST="127.0.0.1",
-               LANDVEX_PORT=str(port), LANDVEX_LIVE="0")
+               LANDVEX_PORT=str(port), LANDVEX_LIVE="1" if live else "0")
     p = subprocess.Popen([sys.executable, "-m", "api.dev_server"], env=env,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     base = f"http://127.0.0.1:{port}"
@@ -131,22 +143,29 @@ def main(argv: list[str]) -> int:
     def opt(name, default):
         return argv[argv.index(name) + 1] if name in argv else default
 
+    # --live mäter källkedjan påslagen, alltså vägen produktionen tar.
+    live = "--live" in argv
     runs = int(opt("--runs", "20"))
     out_path = opt("--out", os.path.join(tempfile.gettempdir(),
                                     "landvex-measurements.json"))
     base = opt("--base", "")
     proc = None
     if not base:
-        proc, base = _serve(int(opt("--port", "8288")))
+        proc, base = _serve(int(opt("--port", "8288")), live=live)
     bpath = opt("--budgets", os.path.join("docs", "landvex-budgets.json"))
     try:
         with open(bpath, encoding="utf-8") as fh:
             budgets = json.load(fh)
     except Exception:  # noqa: BLE001
         budgets = {}
+    läge = "live source chain" if live else "mock only — engine time"
     print(f"measuring {base} · at least {runs} runs per endpoint, more where "
-          f"the percentile demands it\n(sources: mock only, so this is "
-          f"engine time)\n")
+          f"the percentile demands it\n(sources: {läge})\n")
+    if not live:
+        print("NOTE: LANDVEX_LIVE=0, so the live-source path is NOT measured "
+              "here.\n      Endpoints that call an external register or API "
+              "are timed\n      without that call. Run with --live to cover "
+              "it. Unmeasured is\n      not the same as fast.\n")
     try:
         data = measure(base, runs, budgets=budgets)
     finally:

@@ -126,9 +126,34 @@ def test_the_demo_can_fail_itself():
 
     from scripts import demo90
     src = inspect.getsource(demo90.run)
-    assert src.count("ok.append(") == 5, \
+    assert src.count("d.holds(") == 5, \
         "varje steg måste kontrollera sitt eget påstående"
-    assert "return 1" in inspect.getsource(demo90)
+    assert "return (0 if report[\"ok\"] else 1)" in src
+
+
+def test_the_demo_does_not_invent_its_own_timings():
+    """Den första versionen skrev 0:00, 0:15, 0:35 som om det vore
+    förfluten tid. Den körde på tjugo sekunder. En demo för en plattform
+    om att inte överdriva får inte överdriva om sig själv."""
+    import inspect
+    import re
+
+    from scripts import demo90
+    src = inspect.getsource(demo90)
+    assert not re.search(r'"\d:\d\d"', src), \
+        "hårdkodade tidsstämplar tillbaka i demon"
+    assert "time.perf_counter()" in src
+    assert "self.elapsed" in inspect.getsource(demo90.Demo.beat)
+
+
+def test_ninety_seconds_is_enforced_not_just_asserted():
+    """Namnet är ett påstående. Ett påstående utan grind är en slogan."""
+    from scripts import demo90
+    assert demo90.BUDGET_S == 90.0
+    import inspect
+    src = inspect.getsource(demo90.run)
+    assert "within = total <= BUDGET_S" in src
+    assert '"within_budget": within' in src
 
 
 def test_the_demo_shows_a_refusal():

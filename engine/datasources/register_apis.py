@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.parse
 import urllib.request
 from typing import Callable
@@ -44,15 +45,56 @@ def _http(url: str, payload: bytes | None, timeout: float) -> bytes:
 
 
 class RegisterProvider:
-    """Gemensamt gränssnitt: (land, region, näringsgrenskod) → antal."""
+    """Gemensamt gränssnitt: (land, region, näringsgrenskod) → antal.
+
+    Bär samma strömbrytare som datakälls-adaptrarna (`_down_until` i
+    adapters.py). Utan den blir EN otillgänglig myndighet till ETT
+    misslyckat anrop PER REGION i samma request: en mättnadsjämförelse
+    över 60 kommuner gjorde 60 blockerande HTTPS-anrop à ~0,3 s och tog
+    19 sekunder att svara "vet inte" — 94 % av hela demons körtid, och
+    exakt den väntan plattformens egen prestandadoktrin förbjuder.
+
+    Ett misslyckande räcker som besked. Resten av regionerna degraderar
+    omedelbart och lika ärligt.
+    """
 
     id = "generic"
     verified = False
 
     def __init__(self, transport: Callable[[str, bytes | None, float], bytes] | None = None,
-                 timeout: float = 10.0):
+                 timeout: float = 10.0, retry_after_s: float = 300.0,
+                 clock: Callable[[], float] = time.monotonic):
         self._transport = transport or _http
         self.timeout = timeout
+        self._retry_after_s = retry_after_s
+        self._clock = clock
+        self._down_until = 0.0
+
+    # ── Strömbrytare ─────────────────────────────────────────────────
+    @property
+    def down(self) -> bool:
+        """Sant medan källan är pausad efter ett misslyckande."""
+        return self._clock() < self._down_until
+
+    def _trip(self) -> None:
+        self._down_until = self._clock() + self._retry_after_s
+
+    def _reset(self) -> None:
+        self._down_until = 0.0
+
+    def fetch(self, url: str, payload: bytes | None = None) -> bytes | None:
+        """Hämta genom strömbrytaren. None = källan är nere eller pausad."""
+        if self.down:
+            return None
+        try:
+            raw = self._transport(url, payload, self.timeout)
+        except OUR_BUGS:
+            raise            # vårt fel, inte omvärldens – se faults.py
+        except Exception:    # noqa: BLE001 – ärlig degradering
+            self._trip()
+            return None
+        self._reset()
+        return raw
 
     def count(self, country: str, region: str, code: str) -> dict | None:
         raise NotImplementedError
@@ -109,12 +151,14 @@ class PxWebRegister(RegisterProvider):
             ],
             "response": {"format": "json-stat2"},
         }
+        body = self.fetch(url, json.dumps(query).encode())
+        if body is None:
+            return None          # nere eller pausad – aldrig ett påhittat tal
         try:
-            raw = json.loads(self._transport(url, json.dumps(query).encode(),
-                                             self.timeout).decode("utf-8"))
+            raw = json.loads(body.decode("utf-8"))
         except OUR_BUGS:
             raise        # vårt fel, inte omvärldens – se faults.py
-        except Exception:  # noqa: BLE001 – ärlig degradering
+        except Exception:  # noqa: BLE001 – svaret gick inte att tolka
             return None
         return _parse_jsonstat(raw, spec["authority"], self.id)
 
@@ -178,9 +222,11 @@ class CensusCbpRegister(RegisterProvider):
             params["key"] = self.api_key
         url = (f"{self.base}/{self.year}/cbp?"
                + urllib.parse.urlencode(params))
+        body = self.fetch(url)
+        if body is None:
+            return None
         try:
-            raw = json.loads(self._transport(url, None, self.timeout)
-                             .decode("utf-8"))
+            raw = json.loads(body.decode("utf-8"))
         except OUR_BUGS:
             raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
@@ -216,9 +262,11 @@ class EurostatRegister(RegisterProvider):
                   "geo": region, "nace_r2": _nace_eurostat(code),
                   "indic_sb": "V11910"}      # antal lokala enheter
         url = f"{self.base}/{self.dataset}?" + urllib.parse.urlencode(params)
+        body = self.fetch(url)
+        if body is None:
+            return None
         try:
-            raw = json.loads(self._transport(url, None, self.timeout)
-                             .decode("utf-8"))
+            raw = json.loads(body.decode("utf-8"))
         except OUR_BUGS:
             raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
@@ -248,9 +296,11 @@ class GenericRegister(RegisterProvider):
             return None
         url = (f"{self.base}/establishments?country={country}&region={region}"
                f"&code={urllib.parse.quote(code)}")
+        body = self.fetch(url)
+        if body is None:
+            return None
         try:
-            raw = json.loads(self._transport(url, None, self.timeout)
-                             .decode("utf-8"))
+            raw = json.loads(body.decode("utf-8"))
         except OUR_BUGS:
             raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
@@ -280,10 +330,35 @@ _CLASSES = {"pxweb": PxWebRegister, "census_cbp": CensusCbpRegister,
             "eurostat": EurostatRegister, "generic": GenericRegister}
 
 
+# Delade instanser per land. En strömbrytare som återskapas vid varje
+# anrop är ingen strömbrytare: den glömmer att myndigheten var nere innan
+# nästa region hinner fråga, och en jämförelse över 60 kommuner gör då 60
+# misslyckade anrop i rad. Instanserna är statelösa utöver brytaren, och
+# `fetch` tar samma lås-fria väg som datakälls-adaptrarna.
+_SHARED: dict[str, RegisterProvider] = {}
+
+
 def provider_for(country: str, **kw) -> RegisterProvider:
-    """Rätt klient för landet; generisk spegel om landet saknar adapter."""
-    cls = _CLASSES.get(PROVIDER_FOR.get(country, "generic"), GenericRegister)
-    return cls(**kw)
+    """Rätt klient för landet; generisk spegel om landet saknar adapter.
+
+    Utan `kw` returneras den DELADE instansen, så att en nere myndighet
+    bara kostar ett misslyckat anrop per paus — inte ett per region.
+    Anropare som skickar in egen transport eller klocka (tester, prober)
+    får en egen instans och stör därmed ingen annan.
+    """
+    name = PROVIDER_FOR.get(country, "generic")
+    cls = _CLASSES.get(name, GenericRegister)
+    if kw:
+        return cls(**kw)
+    if name not in _SHARED:
+        _SHARED[name] = cls()
+    return _SHARED[name]
+
+
+def reset_breakers() -> None:
+    """Nollställ pausade leverantörer (tester och långkörande processer)."""
+    for p in _SHARED.values():
+        p._reset()
 
 
 def providers_status() -> dict:

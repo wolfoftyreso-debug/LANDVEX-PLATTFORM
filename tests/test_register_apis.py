@@ -150,6 +150,112 @@ def test_generic_mirror_still_works():
     assert RA.GenericRegister(base_url="").count("se", "0138", "43.21") is None
 
 
+
+# ── Strömbrytaren ────────────────────────────────────────────────────────
+class _Clock:
+    def __init__(self): self.t = 1000.0
+    def __call__(self): return self.t
+    def tick(self, s): self.t += s
+
+
+def _counting_transport(fail=True):
+    calls = []
+    def t(url, payload, timeout):
+        calls.append(url)
+        if fail:
+            raise OSError("connection refused")
+        return b'{"count": 7, "year": 2024, "source": "test"}'
+    return t, calls
+
+
+def test_one_dead_authority_costs_one_call_not_one_per_region():
+    """Kärnfyndet. En mättnadsjämförelse över 60 kommuner gjorde 60
+    blockerande HTTPS-anrop à ~0,3 s och tog 19 sekunder att svara
+    "vet inte" — 94 % av demons körtid, för noll information."""
+    tr, calls = _counting_transport(fail=True)
+    clock = _Clock()
+    p = RA.PxWebRegister(transport=tr, clock=clock, retry_after_s=300.0)
+    for _ in range(60):
+        assert p.count("se", "0138", "43.21") is None
+    assert len(calls) == 1, (
+        f"{len(calls)} anrop mot en källa som redan sagt ifrån en gång")
+    assert p.down
+
+
+def test_the_pause_expires_so_a_source_can_come_back():
+    """En källa som är nere för alltid vore lika fel som ingen paus."""
+    tr, calls = _counting_transport(fail=True)
+    clock = _Clock()
+    p = RA.PxWebRegister(transport=tr, clock=clock, retry_after_s=300.0)
+    p.count("se", "0138", "43.21")
+    assert len(calls) == 1
+    clock.tick(299)
+    p.count("se", "0138", "43.21")
+    assert len(calls) == 1, "försökte igen innan pausen gått ut"
+    clock.tick(2)
+    p.count("se", "0138", "43.21")
+    assert len(calls) == 2, "kom aldrig tillbaka efter pausen"
+
+
+def test_a_working_source_is_never_paused():
+    tr, calls = _counting_transport(fail=False)
+    p = RA.GenericRegister(transport=tr, clock=_Clock(),
+                           base_url="https://register.example")
+    for _ in range(5):
+        p.count("se", "0138", "43.21")
+    assert len(calls) == 5 and not p.down
+
+
+def test_a_success_clears_an_earlier_pause():
+    state = {"fail": True}
+    calls = []
+    def tr(url, payload, timeout):
+        calls.append(url)
+        if state["fail"]:
+            raise OSError("down")
+        return b'{"count": 7, "year": 2024, "source": "test"}'
+    clock = _Clock()
+    p = RA.GenericRegister(transport=tr, clock=clock, retry_after_s=10.0,
+                           base_url="https://register.example")
+    p.count("se", "0138", "43.21")
+    assert p.down
+    clock.tick(11); state["fail"] = False
+    p.count("se", "0138", "43.21")
+    assert not p.down, "en lyckad hämtning nollställde inte pausen"
+
+
+def test_the_breaker_never_turns_into_an_invented_number():
+    """Snabbhet får aldrig köpas med ett påhittat antal."""
+    tr, _ = _counting_transport(fail=True)
+    p = RA.PxWebRegister(transport=tr, clock=_Clock())
+    for _ in range(10):
+        assert p.count("se", "0138", "43.21") is None
+
+
+def test_providers_are_shared_so_the_breaker_survives_between_regions():
+    """En brytare som återskapas vid varje anrop är ingen brytare."""
+    RA.reset_breakers()
+    a = RA.provider_for("se")
+    b = RA.provider_for("se")
+    assert a is b, "varje anrop fick en egen instans — brytaren glöms bort"
+    # Egen transport/klocka ⇒ egen instans, så tester inte stör varandra.
+    own = RA.provider_for("se", transport=_counting_transport()[0])
+    assert own is not a
+
+
+def test_an_our_bug_still_crashes_instead_of_tripping_the_breaker():
+    """Strömbrytaren får inte bli ett nytt ställe där våra buggar göms."""
+    def broken(url, payload, timeout):
+        raise AttributeError("'PxWebRegister' object has no attribute 'nope'")
+    p = RA.PxWebRegister(transport=broken, clock=_Clock())
+    try:
+        p.count("se", "0138", "43.21")
+    except AttributeError:
+        assert not p.down, "vårt fel pausade källan i stället för att braka"
+    else:
+        raise AssertionError("AttributeError svaldes av strömbrytaren")
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
