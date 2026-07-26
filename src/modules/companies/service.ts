@@ -385,6 +385,88 @@ export async function setCapacityStatus(
     .where(eq(capacityListings.id, listingId));
 }
 
+// ---------------------------------------------------------------------------
+// Catalog claims: imported (unclaimed) profiles are taken over by the real
+// company through ops-reviewed verification — never automatically.
+// ---------------------------------------------------------------------------
+
+/** A signed-in supplier without a company requests to take over an
+ * unclaimed catalog profile. Ops reviews before ownership is assigned. */
+export async function requestClaim(
+  actor: Actor,
+  companyId: string,
+): Promise<void> {
+  requireAnyRole(actor, ["supplier"]);
+  const company = await getCompany(companyId);
+  if (!company) throw new Error("Company not found");
+  if (company.claimStatus !== "unclaimed") {
+    throw new Error("This profile is not open for claims");
+  }
+  const owned = await getCompanyByOwner(actor.userId);
+  if (owned) throw new Error("Your account already has a company profile");
+
+  await db.transaction(async (tx) => {
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "company",
+      entityId: companyId,
+      action: "company.claim_requested",
+      after: { claimantUserId: actor.userId },
+    });
+    await appendOutbox(tx, "companies.claim_requested", {
+      companyId,
+      claimantUserId: actor.userId,
+      companyName: company.name,
+    });
+  });
+}
+
+/** Ops approves a claim: assigns ownership and marks the profile claimed.
+ * The verification case (badge) remains a separate, ops-driven process. */
+export async function assignOwnership(
+  actor: Actor,
+  companyId: string,
+  ownerEmail: string,
+): Promise<void> {
+  requireAnyRole(actor, ["ops", "admin"]);
+  const { getUserByEmail } = await import("@/modules/identity/service");
+  const owner = await getUserByEmail(ownerEmail);
+  if (!owner) throw new Error("No account with that email");
+  if (owner.role !== "supplier") {
+    throw new Error("Ownership can only be assigned to a supplier account");
+  }
+  const alreadyOwned = await getCompanyByOwner(owner.id);
+  if (alreadyOwned && alreadyOwned.id !== companyId) {
+    throw new Error("That account already owns another company");
+  }
+
+  await db.transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId));
+    if (!before) throw new Error("Company not found");
+
+    await tx
+      .update(companies)
+      .set({ ownerUserId: owner.id, claimStatus: "claimed", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "company",
+      entityId: companyId,
+      action: "company.claim_approved",
+      before: { ownerUserId: before.ownerUserId, claimStatus: before.claimStatus },
+      after: { ownerUserId: owner.id, claimStatus: "claimed" },
+    });
+    await appendOutbox(tx, "companies.claim_approved", {
+      companyId,
+      ownerUserId: owner.id,
+    });
+  });
+}
+
 export async function listContacts(companyId: string): Promise<Contact[]> {
   return db
     .select()

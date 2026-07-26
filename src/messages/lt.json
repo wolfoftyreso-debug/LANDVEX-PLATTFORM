@@ -106,7 +106,11 @@
     "tradeRole": "Specialybė",
     "verificationCase": "Patikros byla",
     "noCase": "Patikros bylos dar nėra.",
-    "empty": "Įmonių dar nėra. Priregistruokite pirmą tiekėją."
+    "empty": "Įmonių dar nėra. Priregistruokite pirmą tiekėją.",
+    "unclaimedTitle": "Neperimtas katalogo profilis",
+    "unclaimedHint": "Importuota iš atviro šaltinio. Priskirkite nuosavybę tik įsitikinę, kad prašantis asmuo atstovauja įmonei (el. pašto domenas, registro patikra, skambutis).",
+    "ownerEmail": "Savininko el. paštas (tiekėjo paskyra)",
+    "assignOwner": "Priskirti nuosavybę"
   },
   "tasks": {
     "title": "Ops užduotys",
@@ -187,7 +191,8 @@
     "since": "nuo",
     "employees": "darbuotojai",
     "verifiedBadge": "Patikrinta darbui Švedijoje",
-    "notVerified": "Nepatikrinta"
+    "notVerified": "Nepatikrinta",
+    "unclaimedBadge": "Galima perimti"
   },
   "publicProfile": {
     "founded": "įkurta",
@@ -206,7 +211,12 @@
     "weeks": "savaitės",
     "ctaTitle": "Reikia šios komandos jūsų objekte?",
     "ctaBody": "Baltic Bridge tarpininkauja dėl darbų paketo, tikrina atitiktį ir saugo audito seką. Papasakokite, ko jums reikia.",
-    "ctaButton": "Užklausti šio tiekėjo"
+    "ctaButton": "Užklausti šio tiekėjo",
+    "unclaimedBadge": "Neperimtas profilis",
+    "unclaimedBody": "Šį profilį Baltic Bridge sukūrė iš atvirų viešų šaltinių ir įmonė jo dar neperėmė. Informacija nėra patikrinta Baltic Bridge. Atstovaujate šiai įmonei? Perimkite profilį — prašymus peržiūri mūsų ops komanda, po to vyksta pilna patikra.",
+    "sourceLabel": "Šaltinis",
+    "claimCta": "Prašyti perimti šį profilį",
+    "claimRegisterCta": "Perimti profilį — sukurti tiekėjo paskyrą"
   },
   "rfqStatus": {
     "new": "Nauja",

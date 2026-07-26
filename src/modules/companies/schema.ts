@@ -8,6 +8,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "@/modules/identity/schema";
 
+/**
+ * Catalog provenance: profiles imported from open public sources start as
+ * 'unclaimed' and can be taken over by the company via verification.
+ */
+export const claimStatus = pgEnum("claim_status", ["claimed", "unclaimed"]);
+
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -22,6 +28,12 @@ export const companies = pgTable("companies", {
   headcount: integer("headcount"),
   languages: text("languages").array().notNull().default([]),
   ownerUserId: uuid("owner_user_id").references(() => users.id),
+  /** Unclaimed = imported from an open source; claimable via verification */
+  claimStatus: claimStatus("claim_status").notNull().default("claimed"),
+  category: text("category"),
+  /** Original public source for imported profiles (attribution + audit) */
+  sourceUrl: text("source_url"),
+  sourceName: text("source_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

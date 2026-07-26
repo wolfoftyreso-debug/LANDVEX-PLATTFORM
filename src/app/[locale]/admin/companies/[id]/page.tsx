@@ -15,6 +15,7 @@ import { badgeVisible, type CaseState } from "@/modules/verification/domain";
 import {
   addContactAction,
   addWorkerAction,
+  assignOwnershipAction,
   openCaseAction,
 } from "@/app/[locale]/admin/actions";
 
@@ -55,6 +56,32 @@ export default async function CompanyDetail({
         {company.registrationNumber ? ` · ${t("registrationNumber")}: ${company.registrationNumber}` : ""}
         {company.vatNumber ? ` · ${t("vatNumber")}: ${company.vatNumber}` : ""}
       </p>
+
+      {/* Catalog claim handling */}
+      {company.claimStatus === "unclaimed" && (
+        <div className="card" style={{ borderColor: "var(--warning)" }}>
+          <h3>{t("unclaimedTitle")}</h3>
+          <p className="muted" style={{ fontSize: "0.85rem" }}>
+            {t("unclaimedHint")}
+            {company.sourceUrl && (
+              <>
+                {" "}
+                <a href={company.sourceUrl} rel="noopener noreferrer" target="_blank">
+                  {company.sourceName ?? company.sourceUrl}
+                </a>
+              </>
+            )}
+          </p>
+          <form action={assignOwnershipAction} className="inline">
+            <input type="hidden" name="companyId" value={company.id} />
+            <div>
+              <label htmlFor="owner-email">{t("ownerEmail")}</label>
+              <input id="owner-email" name="ownerEmail" type="email" required />
+            </div>
+            <button type="submit">{t("assignOwner")}</button>
+          </form>
+        </div>
+      )}
 
       {/* Verification */}
       <div className="card">

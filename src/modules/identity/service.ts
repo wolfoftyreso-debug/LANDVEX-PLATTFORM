@@ -74,3 +74,9 @@ export async function registerUser(input: RegisterInput): Promise<User> {
 export async function getUserById(id: string): Promise<User | undefined> {
   return db.query.users.findFirst({ where: eq(users.id, id) });
 }
+
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+  return db.query.users.findFirst({
+    where: eq(users.email, email.toLowerCase()),
+  });
+}

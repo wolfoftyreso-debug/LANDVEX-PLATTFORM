@@ -106,7 +106,11 @@
     "tradeRole": "Trade role",
     "verificationCase": "Verification case",
     "noCase": "No verification case yet.",
-    "empty": "No companies yet. Onboard the first supplier."
+    "empty": "No companies yet. Onboard the first supplier.",
+    "unclaimedTitle": "Unclaimed catalog profile",
+    "unclaimedHint": "Imported from an open source. Assign ownership only after verifying that the claimant represents the company (email domain, registry check, phone call).",
+    "ownerEmail": "Owner email (supplier account)",
+    "assignOwner": "Assign ownership"
   },
   "tasks": {
     "title": "Ops tasks",
@@ -187,7 +191,8 @@
     "since": "since",
     "employees": "employees",
     "verifiedBadge": "Verified for work in Sweden",
-    "notVerified": "Not verified"
+    "notVerified": "Not verified",
+    "unclaimedBadge": "Claimable"
   },
   "publicProfile": {
     "founded": "founded",
@@ -206,7 +211,12 @@
     "weeks": "weeks",
     "ctaTitle": "Need this team on your site?",
     "ctaBody": "Baltic Bridge brokers the work package, checks compliance and keeps the audit trail. Tell us what you need.",
-    "ctaButton": "Request this supplier"
+    "ctaButton": "Request this supplier",
+    "unclaimedBadge": "Unclaimed profile",
+    "unclaimedBody": "This profile was created by Baltic Bridge from open public sources and has not been claimed by the company. The information is not verified by Baltic Bridge. Do you represent this company? Claim the profile — claims are reviewed by our ops team, followed by full verification.",
+    "sourceLabel": "Source",
+    "claimCta": "Request to claim this profile",
+    "claimRegisterCta": "Claim this profile — create a supplier account"
   },
   "rfqStatus": {
     "new": "New",

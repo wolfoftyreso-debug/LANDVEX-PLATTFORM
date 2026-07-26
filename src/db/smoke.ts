@@ -11,11 +11,13 @@ import { users } from "@/modules/identity/schema";
 import { getCorridorBySlug } from "@/modules/catalog/service";
 import {
   addWorker,
+  assignOwnership,
   createCapacityListing,
   createCompany,
   getCompanyByOwner,
   getPrimarySlug,
   listCompanyCapacity,
+  requestClaim,
   resolveCompanySlug,
 } from "@/modules/companies/service";
 import { listTrades } from "@/modules/catalog/service";
@@ -219,8 +221,11 @@ async function main() {
   assert(buyerCompanyRejected, "buyer blocked from creating a company");
 
   // 15. Self-registration fans out an ops task via the outbox dispatcher
-  const dispatched = await dispatchOutbox();
-  assert(dispatched >= 0, "outbox dispatched");
+  let dispatched = 0;
+  for (let batch = await dispatchOutbox(); batch > 0; batch = await dispatchOutbox()) {
+    dispatched += batch;
+  }
+  assert(dispatched >= 0, "outbox drained");
   const opsTaskRows = await db
     .select()
     .from(opsTasks)
@@ -427,7 +432,51 @@ async function main() {
     "offer submission and acceptance audited",
   );
 
-  logger.info("Smoke test passed ✔ (M1 + M2 + M3 demand flow)");
+  // -------------------------------------------------------------------------
+  // Catalog: unclaimed profiles are claimable via ops-reviewed flow
+  // -------------------------------------------------------------------------
+  const unclaimed = await db.query.companies.findFirst({
+    where: eq(companiesTable.claimStatus, "unclaimed"),
+  });
+  if (unclaimed) {
+    // 29. Unclaimed profiles are searchable but never verified
+    const catalogHits = await searchSuppliers({ q: unclaimed.name.split(" ")[0]! });
+    const hit = catalogHits.find((h) => h.companyId === unclaimed.id);
+    assert(!!hit && hit.unclaimed && !hit.verified,
+      "catalog profile searchable, marked unclaimed, never verified");
+
+    // 30. A supplier without a company can request a claim; ops assigns
+    const claimant = await registerUser({
+      email: `claimant-${stamp}@example.com`,
+      password: "claimant-password-1",
+      name: "Claimant",
+      role: "supplier",
+    });
+    await requestClaim({ userId: claimant.id, role: "supplier" }, unclaimed.id);
+    while ((await dispatchOutbox()) > 0) { /* drain */ }
+    const claimTasks = await db
+      .select()
+      .from(opsTasks)
+      .where(eq(opsTasks.companyId, unclaimed.id));
+    assert(claimTasks.length >= 1, "claim request creates an ops review task");
+
+    await assignOwnership(actor, unclaimed.id, `claimant-${stamp}@example.com`);
+    const claimed = await db.query.companies.findFirst({
+      where: eq(companiesTable.id, unclaimed.id),
+    });
+    assert(
+      claimed?.claimStatus === "claimed" && claimed.ownerUserId === claimant.id,
+      "ops-approved claim assigns ownership and marks the profile claimed",
+    );
+
+    // 31. Claimed-by-takeover profiles still are NOT verified (badge separate)
+    assert(
+      !(await isCompanyVerified(unclaimed.id, corridor.id)),
+      "takeover never grants verification — the badge stays a separate process",
+    );
+  }
+
+  logger.info("Smoke test passed ✔ (M1 + M2 + M3 + catalog claims)");
   await pool.end();
 }
 

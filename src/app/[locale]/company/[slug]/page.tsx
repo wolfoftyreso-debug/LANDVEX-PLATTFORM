@@ -7,8 +7,12 @@ import {
 } from "@/modules/companies/service";
 import { getCorridorBySlug, listTrades } from "@/modules/catalog/service";
 import { getVerifiedFacts } from "@/modules/verification/service";
+import { getCompanyByOwner } from "@/modules/companies/service";
+import { currentActor } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
 import SiteChrome from "@/app/[locale]/site-chrome";
+import Link from "next/link";
+import { requestClaimAction } from "./claim-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +76,13 @@ export default async function PublicCompanyPage({
     listCompanyCapacity(company.id, true),
     listTrades(),
   ]);
+
+  // Claim eligibility: signed-in supplier without a company of their own
+  const actor = await currentActor();
+  const canClaim =
+    company.claimStatus === "unclaimed" &&
+    actor?.role === "supplier" &&
+    !(await getCompanyByOwner(actor.userId));
   const tradeById = new Map(trades.map((tr) => [tr.id, tr]));
   const tradeNameKey =
     locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
@@ -111,9 +122,56 @@ export default async function PublicCompanyPage({
             : ""}
         </p>
 
+        {/* Unclaimed catalog profile: provenance + takeover via verification */}
+        {company.claimStatus === "unclaimed" && (
+          <div className="card" style={{ borderColor: "var(--warning)" }}>
+            <h3 style={{ marginTop: 0 }}>
+              <span className="badge in_review">{t("unclaimedBadge")}</span>
+            </h3>
+            <p className="muted" style={{ fontSize: "0.9rem" }}>
+              {t("unclaimedBody")}
+              {company.sourceUrl && (
+                <>
+                  {" "}
+                  {t("sourceLabel")}:{" "}
+                  <a href={company.sourceUrl} rel="nofollow noopener noreferrer" target="_blank">
+                    {company.sourceName ?? company.sourceUrl}
+                  </a>
+                  .
+                </>
+              )}
+            </p>
+            {canClaim ? (
+              <form action={requestClaimAction}>
+                <input type="hidden" name="companyId" value={company.id} />
+                <button type="submit" className="button" style={{ font: "inherit", fontWeight: 600, cursor: "pointer" }}>
+                  {t("claimCta")}
+                </button>
+              </form>
+            ) : (
+              <Link className="button" href={`/${locale}/register`}>
+                {t("claimRegisterCta")}
+              </Link>
+            )}
+          </div>
+        )}
+
         {company.description && (
           <div className="card">
             <p style={{ margin: 0, whiteSpace: "pre-line" }}>{company.description}</p>
+            {company.category && (
+              <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.85rem" }}>
+                {company.category}
+                {company.website && (
+                  <>
+                    {" · "}
+                    <a href={company.website} rel="nofollow noopener noreferrer" target="_blank">
+                      {company.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
           </div>
         )}
 

@@ -18,6 +18,8 @@ export interface SupplierSearchHit {
   yearFounded: number | null;
   headcount: number | null;
   verified: boolean;
+  unclaimed: boolean;
+  category: string | null;
   rank: number;
 }
 
@@ -45,6 +47,8 @@ export async function searchSuppliers(
       c.languages,
       c.year_founded,
       c.headcount,
+      c.claim_status,
+      c.category,
       (SELECT s.slug FROM company_slugs s
         WHERE s.company_id = c.id AND s.is_primary = 1
         ORDER BY s.created_at DESC LIMIT 1) AS slug,
@@ -88,6 +92,8 @@ export async function searchSuppliers(
     yearFounded: row.year_founded == null ? null : Number(row.year_founded),
     headcount: row.headcount == null ? null : Number(row.headcount),
     verified: row.verified === true,
+    unclaimed: row.claim_status === "unclaimed",
+    category: row.category ? String(row.category) : null,
     rank: Number(row.rank ?? 0),
   }));
 }

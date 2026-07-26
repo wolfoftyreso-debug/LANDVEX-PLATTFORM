@@ -101,6 +101,24 @@ async function handleEvent(
       logger.info(payload, "user registered");
       break;
     }
+    case "companies.claim_requested": {
+      const { createOpsTask } = await import("@/modules/verification/service");
+      await createOpsTask({
+        title: "Claim request — verify ownership and assign the profile",
+        detail: `${payload.companyName} · claimant user ${payload.claimantUserId}`,
+        companyId: String(payload.companyId),
+        dueAt: new Date(),
+      });
+      break;
+    }
+    case "companies.claim_approved": {
+      await notifyCompanyOwner(
+        String(payload.companyId),
+        "Your Baltic Bridge profile is now yours",
+        "Ownership assigned. Sign in to your portal to complete verification and manage your profile: /portal",
+      );
+      break;
+    }
     case "rfq.created": {
       const { createOpsTask } = await import("@/modules/verification/service");
       await createOpsTask({

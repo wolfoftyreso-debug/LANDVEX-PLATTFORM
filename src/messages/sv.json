@@ -106,7 +106,11 @@
     "tradeRole": "Yrkesroll",
     "verificationCase": "Verifieringsärende",
     "noCase": "Inget verifieringsärende ännu.",
-    "empty": "Inga företag ännu. Onboarda den första leverantören."
+    "empty": "Inga företag ännu. Onboarda den första leverantören.",
+    "unclaimedTitle": "Ej övertagen katalogprofil",
+    "unclaimedHint": "Importerad från öppen källa. Tilldela ägarskap först när du har verifierat att den som begär övertagande företräder företaget (e-postdomän, registerkontroll, telefonsamtal).",
+    "ownerEmail": "Ägarens e-post (leverantörskonto)",
+    "assignOwner": "Tilldela ägarskap"
   },
   "tasks": {
     "title": "Ops-uppgifter",
@@ -187,7 +191,8 @@
     "since": "sedan",
     "employees": "anställda",
     "verifiedBadge": "Verifierad för arbete i Sverige",
-    "notVerified": "Ej verifierad"
+    "notVerified": "Ej verifierad",
+    "unclaimedBadge": "Kan tas över"
   },
   "publicProfile": {
     "founded": "grundat",
@@ -206,7 +211,12 @@
     "weeks": "veckor",
     "ctaTitle": "Behöver du det här teamet på din site?",
     "ctaBody": "Baltic Bridge förmedlar arbetspaketet, kontrollerar compliance och håller revisionsspåret. Berätta vad du behöver.",
-    "ctaButton": "Begär denna leverantör"
+    "ctaButton": "Begär denna leverantör",
+    "unclaimedBadge": "Ej övertagen profil",
+    "unclaimedBody": "Den här profilen har skapats av Baltic Bridge från öppna, offentliga källor och har inte tagits över av företaget. Uppgifterna är inte verifierade av Baltic Bridge. Representerar du företaget? Ta över profilen — övertagandet granskas av vårt ops-team och full verifiering sker därefter.",
+    "sourceLabel": "Källa",
+    "claimCta": "Begär övertagande av profilen",
+    "claimRegisterCta": "Ta över profilen — skapa leverantörskonto"
   },
   "rfqStatus": {
     "new": "Ny",

@@ -81,6 +81,7 @@ export default async function Suppliers({
                     <div className="muted" style={{ fontSize: "0.85rem" }}>
                       {hit.country}
                       {hit.city ? ` · ${hit.city}` : ""}
+                      {hit.category ? ` · ${hit.category}` : ""}
                       {hit.yearFounded ? ` · ${t("since")} ${hit.yearFounded}` : ""}
                       {hit.headcount ? ` · ${hit.headcount} ${t("employees")}` : ""}
                     </div>
@@ -91,11 +92,14 @@ export default async function Suppliers({
                       </p>
                     )}
                   </div>
-                  <div>
+                  <div style={{ textAlign: "right", display: "grid", gap: "0.3rem", justifyItems: "end" }}>
                     {hit.verified ? (
                       <span className="badge verified">✓ {t("verifiedBadge")}</span>
                     ) : (
                       <span className="badge">{t("notVerified")}</span>
+                    )}
+                    {hit.unclaimed && (
+                      <span className="badge in_review">{t("unclaimedBadge")}</span>
                     )}
                   </div>
                 </div>

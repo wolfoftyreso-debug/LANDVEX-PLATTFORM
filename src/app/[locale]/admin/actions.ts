@@ -6,7 +6,12 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentActor } from "@/lib/auth";
 import { requireAnyRole } from "@/modules/identity/rbac";
-import { addContact, addWorker, createCompany } from "@/modules/companies/service";
+import {
+  addContact,
+  addWorker,
+  assignOwnership,
+  createCompany,
+} from "@/modules/companies/service";
 import {
   openCase,
   transitionCase,
@@ -60,6 +65,16 @@ export async function addContactAction(formData: FormData) {
     phone: String(formData.get("phone") ?? "") || undefined,
     roleTitle: String(formData.get("roleTitle") ?? "") || undefined,
   });
+  revalidatePath("/[locale]/admin/companies/[id]", "page");
+}
+
+export async function assignOwnershipAction(formData: FormData) {
+  const a = await actor();
+  await assignOwnership(
+    a,
+    z.string().uuid().parse(formData.get("companyId")),
+    z.string().email().parse(formData.get("ownerEmail")),
+  );
   revalidatePath("/[locale]/admin/companies/[id]", "page");
 }
 
