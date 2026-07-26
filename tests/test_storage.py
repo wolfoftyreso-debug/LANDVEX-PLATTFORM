@@ -46,20 +46,21 @@ class CountingSource(DataSource):
 
 def test_report_roundtrip():
     store = SqliteStore(":memory:")
-    rid = store.save_report(_report_dict(), created_at=1000.0)
-    doc = store.get_report(rid)
+    rid = store.save_report(_report_dict(), created_at=1000.0, tenant='t1')
+    doc = store.get_report(rid, tenant='t1')
     assert doc["report_id"] == rid
     assert doc["created_at"] == 1000.0
     assert doc["vertical_id"] == "frisor"
     assert doc["location"]["address"] == "Hornsgatan 52"
-    assert store.get_report("finnsinte") is None
+    assert store.get_report('finnsinte', tenant='t1') is None
 
 
 def test_report_listing_order_and_limit():
     store = SqliteStore(":memory:")
     for i in range(5):
-        store.save_report(_report_dict(score=50.0 + i), created_at=1000.0 + i)
-    rows = store.list_reports(limit=3)
+        store.save_report(_report_dict(score=50.0 + i), created_at=1000.0 + i,
+                          tenant='t1')
+    rows = store.list_reports(limit=3, tenant='t1')
     assert len(rows) == 3
     assert [r["created_at"] for r in rows] == [1004.0, 1003.0, 1002.0]
     assert rows[0]["opportunity_score"] == 54.0
@@ -196,6 +197,81 @@ def test_quota_bump_is_atomic_under_threads():
         t.join()
     assert ok["n"] <= 50, f"kvotöverskott: {ok['n']} (tak 50)"
     store.close()
+
+
+
+
+# ── Tenant-isolering ─────────────────────────────────────────────────────
+def test_two_tenants_never_see_each_others_data():
+    """Bevisat läckage före rättelsen: två API-nycklar mot en körande
+    server, och Konkurrent AB kunde lista OCH läsa Tyresö kommuns profil.
+    Bara usage_meter hade en tenant-kolumn; auth läste tenant ur nyckeln,
+    loggade den och kastade den innan lagret rördes."""
+    store = SqliteStore(":memory:")
+    a = store.save_profile({"name": "HEMLIG plan", "vertical_id": "frisor"},
+                           created_at=1000.0, tenant="kommunen")
+    b = store.save_profile({"name": "konkurrentens", "vertical_id": "frisor"},
+                           created_at=1001.0, tenant="konkurrent")
+
+    mina = store.list_profiles(tenant="kommunen")
+    assert [r["profile_id"] for r in mina] == [a]
+    andras = store.list_profiles(tenant="konkurrent")
+    assert [r["profile_id"] for r in andras] == [b]
+
+    # Även med rätt id i handen: fel tenant ⇒ inget dokument.
+    assert store.get_profile(a, tenant="konkurrent") is None
+    assert store.get_profile(a, tenant="kommunen") is not None
+
+
+def test_reports_are_isolated_too():
+    store = SqliteStore(":memory:")
+    rid = store.save_report(_report_dict(), created_at=1000.0,
+                            tenant="kommunen")
+    assert store.get_report(rid, tenant="konkurrent") is None
+    assert store.list_reports(tenant="konkurrent") == []
+    assert store.get_report(rid, tenant="kommunen") is not None
+
+
+def test_tenant_is_required_not_optional():
+    """Ett argument man KAN glömma är en läcka som väntar. Det här testet
+    faller om någon ger tenant ett default-värde."""
+    import inspect
+    for name in ("save_report", "get_report", "list_reports",
+                 "save_profile", "get_profile", "list_profiles"):
+        sig = inspect.signature(getattr(SqliteStore, name))
+        p = sig.parameters.get("tenant")
+        assert p is not None, f"{name} tog aldrig emot tenant"
+        assert p.kind is inspect.Parameter.KEYWORD_ONLY, name
+        assert p.default is inspect.Parameter.empty, \
+            f"{name} har default på tenant — då kan den glömmas"
+
+
+def test_the_postgres_store_isolates_on_the_same_contract():
+    """Ett lager som isolerar i SQLite men inte i produktion vore värre
+    än inget: det ser säkert ut precis där ingen kund finns."""
+    import inspect
+
+    from engine.storage.postgres import PostgresStore
+    for name in ("save_report", "get_report", "list_reports",
+                 "save_profile", "get_profile", "list_profiles"):
+        p = inspect.signature(getattr(PostgresStore, name)).parameters
+        assert "tenant" in p, f"PostgresStore.{name} saknar tenant"
+        assert p["tenant"].default is inspect.Parameter.empty, name
+    src = inspect.getsource(PostgresStore)
+    for frag in ("WHERE id = %s AND tenant = %s", "WHERE tenant = %s"):
+        assert frag in src, f"postgres filtrerar inte: {frag!r} saknas"
+
+
+def test_legacy_rows_are_invisible_rather_than_guessed():
+    """Rader från före migrationen får tenant ''. Att gissa vem de tillhör
+    vore att gissa fel för någon. Fail closed."""
+    store = SqliteStore(":memory:")
+    store._conn.execute(
+        "INSERT INTO profiles (id, created_at, name, vertical_id, payload, "
+        "tenant) VALUES ('gammal', 1.0, 'förmigrering', 'frisor', '{}', '')")
+    store._conn.commit()
+    assert store.list_profiles(tenant="kommunen") == []
+    assert store.get_profile("gammal", tenant="kommunen") is None
 
 
 if __name__ == "__main__":

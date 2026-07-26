@@ -18,30 +18,36 @@ class Store(ABC):
     # ── Rapporter ────────────────────────────────────────────────────
 
     @abstractmethod
-    def save_report(self, report: dict[str, Any], created_at: float) -> str:
+    def save_report(self, report: dict[str, Any], created_at: float, *,
+                    tenant: str) -> str:
         """Sparar en rapport (dict från OpportunityReport.to_dict()).
         Returnerar genererat rapport-id."""
 
     @abstractmethod
-    def get_report(self, report_id: str) -> Optional[dict[str, Any]]:
+    def get_report(self, report_id: str, *,
+                   tenant: str) -> Optional[dict[str, Any]]:
         """Full rapport + metadata, eller None."""
 
     @abstractmethod
-    def list_reports(self, limit: int = 20) -> list[dict[str, Any]]:
+    def list_reports(self, limit: int = 20, *,
+                     tenant: str) -> list[dict[str, Any]]:
         """Sammanfattningar, nyast först."""
 
     # ── Sparade affärsprofiler ───────────────────────────────────────
 
     @abstractmethod
-    def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
+    def save_profile(self, profile: dict[str, Any], created_at: float, *,
+                     tenant: str) -> str:
         """Sparar en affärsprofil (dict från BusinessProfile.to_dict()).
         Returnerar genererat profil-id."""
 
     @abstractmethod
-    def get_profile(self, profile_id: str) -> Optional[dict[str, Any]]: ...
+    def get_profile(self, profile_id: str, *,
+                    tenant: str) -> Optional[dict[str, Any]]: ...
 
     @abstractmethod
-    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_profiles(self, limit: int = 50, *,
+                      tenant: str) -> list[dict[str, Any]]:
         """Sammanfattningar (id, namn, vertikal), nyast först."""
 
     # ── Signalcache (per källa, plats-nyckel) ────────────────────────

@@ -181,6 +181,12 @@ class Handler(BaseHTTPRequestHandler):
     _OPEN_PATHS = ("/", "/console", "/index.html", "/sandbox", "/health",
                    "/v1/plans", "/openapi.json")
 
+    def _tenant(self) -> str:
+        """Vilken kund frågan kommer från. Lagret KRÄVER den — ett argument
+        man kan glömma är en läcka som väntar på att hända."""
+        p = getattr(self, "_principal", None)
+        return p.tenant if p is not None else "dev"
+
     def _live_locked(self) -> bool:
         p = getattr(self, "_principal", None)
         return p is not None and "intelligence_map_live" not in p.capabilities
@@ -348,7 +354,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/outcomes/calibration":
             return self._send(200, outcome_calibration())
         if parsed.path == "/v1/decisions/ledger":
-            return self._send(200, accountability_ledger())
+            return self._send(200,
+                              accountability_ledger(tenant=self._tenant()))
         if parsed.path == "/v1/segments":
             return self._send(200, segment_catalog())
         if parsed.path == "/v1/products":
@@ -437,11 +444,13 @@ class Handler(BaseHTTPRequestHandler):
                 limit = int(parse_qs(parsed.query).get("limit", ["50"])[0])
             except ValueError:
                 return self._send(422, {"error": "limit must be an integer"})
-            return self._send(200, STORE.list_profiles(min(max(limit, 1), 200)))
+            return self._send(200, STORE.list_profiles(
+                min(max(limit, 1), 200), tenant=self._tenant()))
         if parsed.path.startswith("/v1/profiles/"):
             if STORE is None:
                 return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
-            doc = STORE.get_profile(parsed.path.rsplit("/", 1)[1])
+            doc = STORE.get_profile(parsed.path.rsplit("/", 1)[1],
+                                    tenant=self._tenant())
             return self._send(200, doc) if doc is not None else \
                 self._send(404, {"error": "Unknown profile."})
         if parsed.path == "/v1/reports":
@@ -451,11 +460,13 @@ class Handler(BaseHTTPRequestHandler):
                 limit = int(parse_qs(parsed.query).get("limit", ["20"])[0])
             except ValueError:
                 return self._send(422, {"error": "limit must be an integer"})
-            return self._send(200, STORE.list_reports(min(max(limit, 1), 200)))
+            return self._send(200, STORE.list_reports(
+                min(max(limit, 1), 200), tenant=self._tenant()))
         if parsed.path.startswith("/v1/reports/"):
             if STORE is None:
                 return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
-            doc = STORE.get_report(parsed.path.rsplit("/", 1)[1])
+            doc = STORE.get_report(parsed.path.rsplit("/", 1)[1],
+                                   tenant=self._tenant())
             return self._send(200, doc) if doc is not None else \
                 self._send(404, {"error": "Unknown report id."})
         self._send(404, {"error": "not found"})
@@ -469,14 +480,17 @@ class Handler(BaseHTTPRequestHandler):
                                radius_minutes=int(req.get("radius_minutes", 10)))
                 report = analyze(loc, req["vertical"], resolver=RESOLVER).to_dict()
                 if STORE is not None:
-                    report["report_id"] = STORE.save_report(report, created_at=time.time())
+                    report["report_id"] = STORE.save_report(
+                        report, created_at=time.time(),
+                        tenant=self._tenant())
                 return self._send(200, report)
             if self.path == "/v1/profiles":
                 if STORE is None:
                     return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
                 p = profile_from_dict(req)
                 return self._send(200, {"profile_id": STORE.save_profile(
-                    p.to_dict(), created_at=time.time())})
+                    p.to_dict(), created_at=time.time(),
+                    tenant=self._tenant())})
             if self.path == "/v1/kpi/evaluate":
                 return self._send(200, evaluate_kpi(
                     str(req["code"]), float(req["value"]),
@@ -529,7 +543,8 @@ class Handler(BaseHTTPRequestHandler):
                     str(req["decision"]), req.get("owners") or {},
                     req.get("expected") or {}, kpi_ids=req.get("kpi_ids") or [],
                     horizon_months=int(req.get("horizon_months", 0)),
-                    committed_at=str(req.get("committed_at", ""))))
+                    committed_at=str(req.get("committed_at", "")),
+                    tenant=self._tenant()))
             if self.path == "/v1/decisions/resolve":
                 dcn = get_decision(str(req["decision_id"]))
                 if dcn is None:
@@ -616,7 +631,7 @@ class Handler(BaseHTTPRequestHandler):
                         for e in (req.get("feed_events") or [])]
                 evs += [inbox_engine.from_finding(f)
                         for f in (req.get("findings") or [])]
-                decisions = accountability_all_decisions()
+                decisions = accountability_all_decisions(self._tenant())
                 who = str(req.get("subscriber", ""))
                 if who:
                     return self._send(200, inbox_engine.brief(
@@ -846,7 +861,8 @@ class Handler(BaseHTTPRequestHandler):
                 if raw is None and req.get("profile_id"):
                     if STORE is None:
                         return self._send(503, {"error": "Persistence disabled (LANDVEX_DB=off)."})
-                    raw = STORE.get_profile(req["profile_id"])
+                    raw = STORE.get_profile(req["profile_id"],
+                                            tenant=self._tenant())
                     if raw is None:
                         return self._send(404, {"error": "Unknown profile."})
                 if raw is None:

@@ -41,12 +41,18 @@ def set_store(store) -> None:
 
 def commit(decision: str, owners: dict, expected: dict, *,
            kpi_ids: list | None = None, horizon_months: int = 0,
-           committed_at: str = "") -> dict:
+           committed_at: str = "", tenant: str = "") -> dict:
     """Registrera ett beslut. Kräver tre ansvarsroller (formellt/operativt/
     uppfoljning) och ett förväntat utfall {metric, direction, target}.
 
     direction ∈ {increase, decrease, reach}. Höjer ValueError vid brott –
     ett beslut utan ägare får inte finnas (NOGF).
+
+    `tenant` stämplas i posten och filtrerar läsningen. Innan dess kunde
+    en kund läsa en annans ansvarskort via /v1/decisions/ledger: namnen på
+    beslutsfattarna, hur många beslut de bär och deras infriandegrad.
+    Lagret har ännu ingen tenant-KOLUMN för beslut, så filtreringen sker
+    på fältet i posten — samma skydd, mindre ingrepp i schemat.
     """
     ok, missing = validate_governance({"owners": owners})
     if not ok:
@@ -59,7 +65,8 @@ def commit(decision: str, owners: dict, expected: dict, *,
     rec = {"decision": decision, "owners": dict(owners),
            "expected": dict(expected), "kpi_ids": list(kpi_ids or []),
            "horizon_months": int(horizon_months),
-           "committed_at": committed_at, "status": "open", "version": 1}
+           "committed_at": committed_at, "status": "open", "version": 1,
+           "tenant": tenant}
     rec["id"] = canonical_hash({k: rec[k] for k in
                                 ("decision", "owners", "expected",
                                  "committed_at")})
@@ -107,13 +114,13 @@ def resolve(commitment: dict, actual_value: float, *,
     return res
 
 
-def ledger(owner: str | None = None) -> dict:
+def ledger(owner: str | None = None, *, tenant: str | None = None) -> dict:
     """Ansvarskort. Utan `owner`: per formellt ansvarig. Med `owner`: den enes.
 
     För varje ägare: antal beslut, öppna, infriade, infriandegrad och
     snitt-effektivitet – "vem bär utfallet" summerat.
     """
-    decisions = _all_decisions()
+    decisions = _all_decisions(tenant)
     resolutions = _all_resolutions()
     res_by_dec = {r["decision_id"]: r for r in resolutions}
     rows: dict[str, dict] = {}
@@ -164,18 +171,25 @@ def _save_resolution(rec: dict) -> str:
     return rec["id"]
 
 
-def _all_decisions() -> list[dict]:
-    return _STORE.all_decisions() if _STORE is not None else list(_DECISIONS)
+def _all_decisions(tenant: str | None = None) -> list[dict]:
+    rows = (_STORE.all_decisions() if _STORE is not None
+            else list(_DECISIONS))
+    if tenant is None:
+        return rows
+    return [r for r in rows if r.get("tenant", "") == tenant]
 
 
 def _all_resolutions() -> list[dict]:
     return _STORE.all_resolutions() if _STORE is not None else list(_RESOLUTIONS)
 
 
-def all_decisions() -> list[dict]:
+def all_decisions(tenant: str | None = None) -> list[dict]:
     """Alla åtagna beslut (store eller process-minne). Publik läsning så
-    andra lager – t.ex. händelseroutningen – slipper nå interna funktioner."""
-    return _all_decisions()
+    andra lager – t.ex. händelseroutningen – slipper nå interna funktioner.
+
+    Utan `tenant` returneras allt: motorn är inte affärslogikens ägare,
+    API-lagret är. API-lagret SKA skicka med tenant."""
+    return _all_decisions(tenant)
 
 
 def get_decision(decision_id: str) -> dict | None:

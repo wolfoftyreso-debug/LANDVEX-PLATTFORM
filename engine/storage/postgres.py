@@ -31,8 +31,11 @@ CREATE TABLE IF NOT EXISTS reports (
     address           TEXT NOT NULL DEFAULT '',
     opportunity_score DOUBLE PRECISION NOT NULL,
     data_coverage     DOUBLE PRECISION NOT NULL,
-    payload           JSONB NOT NULL
+    payload           JSONB NOT NULL,
+    tenant            TEXT NOT NULL DEFAULT ''
 );
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS tenant TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_reports_tenant ON reports(tenant);
 CREATE INDEX IF NOT EXISTS idx_reports_created ON reports(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_geom ON reports USING GIST(geom);
 
@@ -41,8 +44,11 @@ CREATE TABLE IF NOT EXISTS profiles (
     created_at  DOUBLE PRECISION NOT NULL,
     name        TEXT NOT NULL DEFAULT '',
     vertical_id TEXT NOT NULL,
-    payload     JSONB NOT NULL
+    payload     JSONB NOT NULL,
+    tenant      TEXT NOT NULL DEFAULT ''
 );
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tenant TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_profiles_tenant ON profiles(tenant);
 CREATE INDEX IF NOT EXISTS idx_profiles_created ON profiles(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS signal_cache (
@@ -132,25 +138,29 @@ class PostgresStore(Store):
         with self._conn.cursor() as cur:
             cur.execute(_DDL)
 
-    def save_report(self, report: dict[str, Any], created_at: float) -> str:
+    def save_report(self, report: dict[str, Any], created_at: float, *,
+                    tenant: str) -> str:
         report_id = uuid.uuid4().hex[:16]
         loc = report.get("location", {})
         with self._conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO reports (id, created_at, vertical_id, geom, "
-                "address, opportunity_score, data_coverage, payload) VALUES "
-                "(%s,%s,%s, ST_SetSRID(ST_MakePoint(%s,%s),4326), %s,%s,%s,%s)",
+                "address, opportunity_score, data_coverage, payload, tenant) "
+                "VALUES (%s,%s,%s, ST_SetSRID(ST_MakePoint(%s,%s),4326), "
+                "%s,%s,%s,%s,%s)",
                 (report_id, created_at, report["vertical_id"],
                  loc.get("lon", 0.0), loc.get("lat", 0.0),
                  loc.get("address", ""), report["opportunity_score"],
                  report["data_coverage"],
-                 json.dumps(report, ensure_ascii=False)))
+                 json.dumps(report, ensure_ascii=False), tenant))
         return report_id
 
-    def get_report(self, report_id: str) -> Optional[dict[str, Any]]:
+    def get_report(self, report_id: str, *,
+                   tenant: str) -> Optional[dict[str, Any]]:
         with self._conn.cursor() as cur:
-            cur.execute("SELECT payload, created_at FROM reports WHERE id = %s",
-                        (report_id,))
+            cur.execute("SELECT payload, created_at FROM reports "
+                        "WHERE id = %s AND tenant = %s",
+                        (report_id, tenant))
             row = cur.fetchone()
         if row is None:
             return None
@@ -159,31 +169,37 @@ class PostgresStore(Store):
         doc["created_at"] = row[1]
         return doc
 
-    def list_reports(self, limit: int = 20) -> list[dict[str, Any]]:
+    def list_reports(self, limit: int = 20, *,
+                     tenant: str) -> list[dict[str, Any]]:
         with self._conn.cursor() as cur:
             cur.execute(
                 "SELECT id, created_at, vertical_id, ST_Y(geom), ST_X(geom), "
                 "address, opportunity_score, data_coverage FROM reports "
-                "ORDER BY created_at DESC, id LIMIT %s", (limit,))
+                "WHERE tenant = %s "
+                "ORDER BY created_at DESC, id LIMIT %s", (tenant, limit))
             rows = cur.fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
-    def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
+    def save_profile(self, profile: dict[str, Any], created_at: float, *,
+                     tenant: str) -> str:
         profile_id = uuid.uuid4().hex[:16]
         with self._conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO profiles VALUES (%s,%s,%s,%s,%s)",
+                "INSERT INTO profiles (id, created_at, name, vertical_id, "
+                "payload, tenant) VALUES (%s,%s,%s,%s,%s,%s)",
                 (profile_id, created_at, profile.get("name", ""),
                  profile["vertical_id"],
-                 json.dumps(profile, ensure_ascii=False)))
+                 json.dumps(profile, ensure_ascii=False), tenant))
         return profile_id
 
-    def get_profile(self, profile_id: str) -> Optional[dict[str, Any]]:
+    def get_profile(self, profile_id: str, *,
+                    tenant: str) -> Optional[dict[str, Any]]:
         with self._conn.cursor() as cur:
-            cur.execute("SELECT payload, created_at FROM profiles WHERE id = %s",
-                        (profile_id,))
+            cur.execute("SELECT payload, created_at FROM profiles "
+                        "WHERE id = %s AND tenant = %s",
+                        (profile_id, tenant))
             row = cur.fetchone()
         if row is None:
             return None
@@ -192,11 +208,13 @@ class PostgresStore(Store):
         doc["created_at"] = row[1]
         return doc
 
-    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_profiles(self, limit: int = 50, *,
+                      tenant: str) -> list[dict[str, Any]]:
         with self._conn.cursor() as cur:
             cur.execute(
                 "SELECT id, created_at, name, vertical_id FROM profiles "
-                "ORDER BY created_at DESC, id LIMIT %s", (limit,))
+                "WHERE tenant = %s "
+                "ORDER BY created_at DESC, id LIMIT %s", (tenant, limit))
             rows = cur.fetchall()
         keys = ("profile_id", "created_at", "name", "vertical_id")
         return [dict(zip(keys, r, strict=True)) for r in rows]

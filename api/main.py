@@ -142,6 +142,13 @@ async def security_middleware(request: Request, call_next):
                   status, (time.monotonic() - t0) * 1000)
 
 
+def _tenant(request: Request) -> str:
+    """Vilken kund frågan kommer från. Lagret KRÄVER den — ett argument
+    man kan glömma är en läcka som väntar på att hända."""
+    p = getattr(request.state, "principal", None)
+    return p.tenant if p is not None else "dev"
+
+
 @app.get("/metrics")
 def metrics(format: str = "json"):
     kallor = source_status(RESOLVER)
@@ -220,7 +227,7 @@ def verticals():
 
 
 @app.post("/v1/analyze")
-def analyze_location(req: AnalyzeRequest):
+def analyze_location(req: AnalyzeRequest, request: Request):
     if req.vertical not in VERTICALS:
         raise HTTPException(status_code=422,
                             detail=f"Unknown vertical: {req.vertical}")
@@ -228,7 +235,8 @@ def analyze_location(req: AnalyzeRequest):
                    radius_minutes=req.radius_minutes)
     report = analyze(loc, req.vertical, resolver=RESOLVER).to_dict()
     if STORE is not None:
-        report["report_id"] = STORE.save_report(report, created_at=time.time())
+        report["report_id"] = STORE.save_report(
+            report, created_at=time.time(), tenant=_tenant(request))
     return report
 
 
@@ -269,35 +277,37 @@ def get_profile_options():
 
 
 @app.post("/v1/profiles")
-def save_profile(profile: dict):
+def save_profile(profile: dict, request: Request):
     if STORE is None:
         raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
     try:
         p = profile_from_dict(profile)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
-    return {"profile_id": STORE.save_profile(p.to_dict(), created_at=time.time())}
+    return {"profile_id": STORE.save_profile(
+        p.to_dict(), created_at=time.time(), tenant=_tenant(request))}
 
 
 @app.get("/v1/profiles")
-def list_profiles(limit: int = 50):
+def list_profiles(request: Request, limit: int = 50):
     if STORE is None:
         raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
-    return STORE.list_profiles(min(max(limit, 1), 200))
+    return STORE.list_profiles(min(max(limit, 1), 200),
+                               tenant=_tenant(request))
 
 
 @app.get("/v1/profiles/{profile_id}")
-def get_profile(profile_id: str):
+def get_profile(profile_id: str, request: Request):
     if STORE is None:
         raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
-    doc = STORE.get_profile(profile_id)
+    doc = STORE.get_profile(profile_id, tenant=_tenant(request))
     if doc is None:
         raise HTTPException(status_code=404, detail="Unknown profile.")
     return doc
 
 
 @app.post("/v1/scan")
-def scan_sweden(req: ScanRequest):
+def scan_sweden(req: ScanRequest, request: Request):
     if req.profile is None and req.profile_id is None:
         raise HTTPException(status_code=422,
                             detail="Provide profile (inline) or profile_id (saved).")
@@ -305,7 +315,7 @@ def scan_sweden(req: ScanRequest):
     if raw is None:
         if STORE is None:
             raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
-        raw = STORE.get_profile(req.profile_id)
+        raw = STORE.get_profile(req.profile_id, tenant=_tenant(request))
         if raw is None:
             raise HTTPException(status_code=404, detail="Unknown profile.")
     if req.level not in SCAN_LEVELS:
@@ -907,8 +917,8 @@ def inbox_subscribe(req: SubscribeRequest):
 
 
 @app.post("/v1/inbox/route")
-def inbox_route(req: RouteRequest):
-    decisions = accountability_all_decisions()
+def inbox_route(req: RouteRequest, request: Request):
+    decisions = accountability_all_decisions(_tenant(request))
     evs = _collect_events(req)
     if req.subscriber:
         return inbox_engine.brief(req.subscriber, evs, decisions=decisions,
@@ -1015,12 +1025,13 @@ class DecisionResolveRequest(BaseModel):
 
 
 @app.post("/v1/decisions/commit")
-def decisions_commit(req: DecisionCommitRequest):
+def decisions_commit(req: DecisionCommitRequest, request: Request):
     try:
         return commit_decision(req.decision, req.owners, req.expected,
                                kpi_ids=req.kpi_ids,
                                horizon_months=req.horizon_months,
-                               committed_at=req.committed_at)
+                               committed_at=req.committed_at,
+                               tenant=_tenant(request))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
@@ -1035,8 +1046,8 @@ def decisions_resolve(req: DecisionResolveRequest):
 
 
 @app.get("/v1/decisions/ledger")
-def decisions_ledger():
-    return accountability_ledger()
+def decisions_ledger(request: Request):
+    return accountability_ledger(tenant=_tenant(request))
 
 
 class CorrelateRequest(BaseModel):
@@ -1463,17 +1474,18 @@ def workforce_global_map(occupation_id: str, target_year: int = 2035,
 
 
 @app.get("/v1/reports")
-def list_reports(limit: int = 20):
+def list_reports(request: Request, limit: int = 20):
     if STORE is None:
         raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
-    return STORE.list_reports(min(max(limit, 1), 200))
+    return STORE.list_reports(min(max(limit, 1), 200),
+                              tenant=_tenant(request))
 
 
 @app.get("/v1/reports/{report_id}")
-def get_report(report_id: str):
+def get_report(report_id: str, request: Request):
     if STORE is None:
         raise HTTPException(status_code=503, detail="Persistence disabled (LANDVEX_DB=off).")
-    doc = STORE.get_report(report_id)
+    doc = STORE.get_report(report_id, tenant=_tenant(request))
     if doc is None:
         raise HTTPException(status_code=404, detail="Unknown report id.")
     return doc

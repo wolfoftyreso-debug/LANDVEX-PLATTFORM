@@ -2,6 +2,43 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — tenant-isolering
+
+**Säkerhetsfel.** Plattformen autentiserade tenant, loggade tenant i varje
+revisionsrad — och kastade den innan lagret rördes. Bara `usage_meter` bar
+en tenant-kolumn.
+
+Bevisat mot en körande server med två API-nycklar: "Konkurrent AB" kunde
+lista OCH läsa "Tyresö kommuns" affärsprofil i klartext, se kommunens
+rapporter, och läsa dess ansvarskort med beslutsfattarnas namn, antal
+beslut och infriandegrad.
+
+- **`tenant` är nu obligatoriskt** på de sex lagermetoder som rör
+  kunddata. Nyckelordsargument utan default: ett argument man KAN glömma
+  är en läcka som väntar. Alla anropsställen bröt vid ändringen — vilket
+  var meningen.
+- **Migration 6** lägger tenant-kolumn och index på `reports` och
+  `profiles`. Befintliga rader får `''` och blir därmed osynliga för alla
+  riktiga tenants: att gissa vem gamla rader tillhör vore att gissa fel
+  för någon. Fail closed.
+- **PostgresStore speglar SQLite.** Ett lager som isolerar i utveckling
+  men inte i produktion vore värre än inget — det ser säkert ut precis
+  där ingen kund finns. Ett test jämför båda kontrakten.
+- **Ansvarskortet** (`/v1/decisions/ledger`) filtreras på tenant stämplad
+  i posten. Beslutstabellen har ännu ingen tenant-KOLUMN; filtrering på
+  fältet ger samma skydd med mindre ingrepp i schemat.
+- **Ett statiskt test** läser båda API-lagren och faller om ett nytt
+  anrop till en kundddata-metod saknar `tenant`.
+
+**Vad som ÄNNU INTE är isolerat** står i klartext i
+`tests/test_tenancy.NOT_YET_ISOLATED`, med ett test som faller om en
+tabell isoleras utan att listan uppdateras: `monitors` och `outcomes`
+(kvarstående luckor), `corrections` och `signal_cache` (avsiktligt
+gemensamma — allmänning respektive delad cache av offentlig data).
+
+En halvt isolerad plattform som tros vara helt isolerad är farligare än
+en ingen litar på.
+
 ## [Ej släppt] — kundytan
 
 Namnen på kundytan beskrev hur plattformen är BYGGD, inte vad någon får.

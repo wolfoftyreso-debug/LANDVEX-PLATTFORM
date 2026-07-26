@@ -75,6 +75,21 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_findings_mon ON findings(monitor_id);
     """),
+    # Tenant-isolering. Innan den här migrationen bar BARA usage_meter en
+    # tenant-kolumn: auth-lagret läste tenant ur nyckeln, loggade den, och
+    # kastade den innan lagret rördes. Två kunder i samma databas såg
+    # därför varandras rapporter och profiler — bevisat med två API-nycklar
+    # mot en körande server.
+    #
+    # Befintliga rader får tenant '' och blir därmed OSYNLIGA för alla
+    # riktiga tenants. Det är med flit: att gissa vem gamla rader tillhör
+    # vore att gissa fel för någon. Fail closed.
+    (6, """
+    ALTER TABLE reports  ADD COLUMN tenant TEXT NOT NULL DEFAULT '';
+    ALTER TABLE profiles ADD COLUMN tenant TEXT NOT NULL DEFAULT '';
+    CREATE INDEX IF NOT EXISTS idx_reports_tenant  ON reports(tenant);
+    CREATE INDEX IF NOT EXISTS idx_profiles_tenant ON profiles(tenant);
+    """),
 ]
 
 _DDL = """
@@ -164,24 +179,29 @@ class SqliteStore(Store):
 
     # ── Rapporter ────────────────────────────────────────────────────
 
-    def save_report(self, report: dict[str, Any], created_at: float) -> str:
+    def save_report(self, report: dict[str, Any], created_at: float, *,
+                    tenant: str) -> str:
         report_id = uuid.uuid4().hex[:16]
         loc = report.get("location", {})
         with self._lock, self._conn:
             self._conn.execute(
-                "INSERT INTO reports VALUES (?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO reports (id, created_at, vertical_id, lat, lon, "
+                "address, opportunity_score, data_coverage, payload, tenant) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (report_id, created_at, report["vertical_id"],
                  loc.get("lat", 0.0), loc.get("lon", 0.0),
                  loc.get("address", ""), report["opportunity_score"],
                  report["data_coverage"],
-                 json.dumps(report, ensure_ascii=False)))
+                 json.dumps(report, ensure_ascii=False), tenant))
         return report_id
 
-    def get_report(self, report_id: str) -> Optional[dict[str, Any]]:
+    def get_report(self, report_id: str, *,
+                   tenant: str) -> Optional[dict[str, Any]]:
         with self._lock:
             row = self._conn.execute(
-                "SELECT payload, created_at FROM reports WHERE id = ?",
-                (report_id,)).fetchone()
+                "SELECT payload, created_at FROM reports "
+                "WHERE id = ? AND tenant = ?",
+                (report_id, tenant)).fetchone()
         if row is None:
             return None
         doc = json.loads(row[0])
@@ -189,33 +209,40 @@ class SqliteStore(Store):
         doc["created_at"] = row[1]
         return doc
 
-    def list_reports(self, limit: int = 20) -> list[dict[str, Any]]:
+    def list_reports(self, limit: int = 20, *,
+                     tenant: str) -> list[dict[str, Any]]:
         with self._lock:
             rows = self._conn.execute(
                 "SELECT id, created_at, vertical_id, lat, lon, address, "
                 "opportunity_score, data_coverage FROM reports "
-                "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
+                "WHERE tenant = ? "
+                "ORDER BY created_at DESC, id LIMIT ?",
+                (tenant, limit)).fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
     # ── Affärsprofiler ───────────────────────────────────────────────
 
-    def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
+    def save_profile(self, profile: dict[str, Any], created_at: float, *,
+                     tenant: str) -> str:
         profile_id = uuid.uuid4().hex[:16]
         with self._lock, self._conn:
             self._conn.execute(
-                "INSERT INTO profiles VALUES (?,?,?,?,?)",
+                "INSERT INTO profiles (id, created_at, name, vertical_id, "
+                "payload, tenant) VALUES (?,?,?,?,?,?)",
                 (profile_id, created_at, profile.get("name", ""),
                  profile["vertical_id"],
-                 json.dumps(profile, ensure_ascii=False)))
+                 json.dumps(profile, ensure_ascii=False), tenant))
         return profile_id
 
-    def get_profile(self, profile_id: str) -> Optional[dict[str, Any]]:
+    def get_profile(self, profile_id: str, *,
+                    tenant: str) -> Optional[dict[str, Any]]:
         with self._lock:
             row = self._conn.execute(
-                "SELECT payload, created_at FROM profiles WHERE id = ?",
-                (profile_id,)).fetchone()
+                "SELECT payload, created_at FROM profiles "
+                "WHERE id = ? AND tenant = ?",
+                (profile_id, tenant)).fetchone()
         if row is None:
             return None
         doc = json.loads(row[0])
@@ -223,11 +250,14 @@ class SqliteStore(Store):
         doc["created_at"] = row[1]
         return doc
 
-    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_profiles(self, limit: int = 50, *,
+                      tenant: str) -> list[dict[str, Any]]:
         with self._lock:
             rows = self._conn.execute(
                 "SELECT id, created_at, name, vertical_id FROM profiles "
-                "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
+                "WHERE tenant = ? "
+                "ORDER BY created_at DESC, id LIMIT ?",
+                (tenant, limit)).fetchall()
         keys = ("profile_id", "created_at", "name", "vertical_id")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
