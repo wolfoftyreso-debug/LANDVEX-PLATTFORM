@@ -1,0 +1,112 @@
+{
+  "doctrine": "The user never waits for the system.",
+  "note_en": "Landvex is server-compute heavy where QUIXZOOM is device-bound, so the budgets sit on the API surface: the time from request accepted to response written, measured on the engine itself with sources in their normal state. Same rules as the QUIXZOOM file — every budget names its measurement point and percentile, an unmeasured budget is never a pass.",
+  "enforced_by": "scripts/perf_budget.py --budgets docs/landvex-budgets.json",
+  "measure_with": "scripts/measure_api.py",
+  "budgets": [
+    {
+      "id": "catalog",
+      "label_en": "Self-description",
+      "budget_ms": 50,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "Pure data. If a client cannot discover the platform instantly, nothing downstream feels fast."
+    },
+    {
+      "id": "ask",
+      "label_en": "Ask a question",
+      "budget_ms": 400,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "The front door. Interpretation is deterministic and must not feel like thinking."
+    },
+    {
+      "id": "assess_city",
+      "label_en": "Assess one city",
+      "budget_ms": 300,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "One place, all indices — the unit a person looks at."
+    },
+    {
+      "id": "report",
+      "label_en": "Decision report",
+      "budget_ms": 700,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "The composing answer a whole role journey ends in."
+    },
+    {
+      "id": "forecast",
+      "label_en": "Workforce forecast",
+      "budget_ms": 500,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "One municipality, every occupation."
+    },
+    {
+      "id": "saturation",
+      "label_en": "Market saturation",
+      "budget_ms": 1500,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "Sweeps a peer group. Higher budget, but a person is still waiting on it."
+    },
+    {
+      "id": "merit",
+      "label_en": "Merit ranking",
+      "budget_ms": 2000,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "Ranks a whole market against itself."
+    },
+    {
+      "id": "livability",
+      "label_en": "Livability ranking",
+      "budget_ms": 2500,
+      "percentile": 95,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "Several markets at once — the heaviest question the platform accepts."
+    },
+    {
+      "id": "monitors_evaluate",
+      "label_en": "Evaluate a watch",
+      "budget_ms": 50,
+      "percentile": 99,
+      "from": "request accepted",
+      "to": "response written",
+      "why_en": "p99, not p95: a cron tick evaluates many watches in sequence, so the tail sets the whole run."
+    }
+  ],
+  "state_rules": [
+    {
+      "event": "a source is slow or failing",
+      "engine_knows": "the source did not answer",
+      "api_may_claim": "answer with the remaining sources and a lower data_coverage",
+      "immediate": true,
+      "why_en": "Never block a whole answer on one feed. Degrade visibly, never silently."
+    },
+    {
+      "event": "coverage is thin",
+      "engine_knows": "how much of the basis is real",
+      "api_may_claim": "the figure plus its measured share",
+      "immediate": true,
+      "why_en": "A fast wrong number is worse than a slightly slower honest one."
+    },
+    {
+      "event": "the basis is too thin to answer",
+      "engine_knows": "the reasons",
+      "api_may_claim": "insufficient_basis with the reasons",
+      "immediate": true,
+      "why_en": "Refusing is an answer and must be as fast as answering."
+    }
+  ]
+}

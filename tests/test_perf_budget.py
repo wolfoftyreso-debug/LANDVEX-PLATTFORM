@@ -6,7 +6,7 @@ import json
 import os
 
 from scripts.perf_budget import (DEFAULT_BUDGETS, evaluate, min_samples_for,
-                                 percentile)
+                                 percentile, report)
 
 BUDGETS = json.load(open(DEFAULT_BUDGETS, encoding="utf-8"))
 
@@ -90,6 +90,64 @@ def test_a_failing_budget_is_an_error_not_a_warning():
     # och en omätt budget fäller under --strict
     assert report(evaluate({}, BUDGETS), strict=True) == 2
     assert report(evaluate({}, BUDGETS), strict=False) == 0
+
+
+# ── Landvex-budgetarna (samma grind, annan yta) ─────────────────────────
+LANDVEX = json.load(open(os.path.join(
+    os.path.dirname(DEFAULT_BUDGETS), "landvex-budgets.json"),
+    encoding="utf-8"))
+
+
+def test_landvex_budgets_are_well_formed_too():
+    ids = {b["id"] for b in LANDVEX["budgets"]}
+    assert {"catalog", "ask", "report", "merit", "livability"} <= ids
+    for b in LANDVEX["budgets"]:
+        assert b["from"] and b["to"] and b["why_en"], b["id"]
+        assert b["budget_ms"] > 0 and 50 <= b["percentile"] <= 100
+    # cron-ticken mäts på svansen: den sätter hela körningen
+    ev = [b for b in LANDVEX["budgets"] if b["id"] == "monitors_evaluate"][0]
+    assert ev["percentile"] == 99
+
+
+def test_a_ceiling_alone_cannot_catch_a_regression():
+    """Kärnfyndet: allt kan passera taket och ändå ha tappat farten."""
+    fast = {"livability": [12.0] * 30}
+    res = evaluate(fast, LANDVEX)
+    row = [r for r in res["results"] if r["id"] == "livability"][0]
+    assert row["status"] == "pass"
+    assert row["headroom_x"] > 100          # taket skyddar ingenting här
+
+    slow = {"livability": [60.0] * 30}      # 5x, fortfarande långt under taket
+    res2 = evaluate(slow, LANDVEX, baseline={"p95": {"livability": 12.0}})
+    row2 = [r for r in res2["results"] if r["id"] == "livability"][0]
+    assert row2["status"] == "regressed"
+    assert row2["factor"] == 5.0
+    assert res2["regressed"] == 1
+    assert report(res2, strict=False) == 1   # fäller bygget
+
+
+def test_small_drift_is_not_called_a_regression():
+    res = evaluate({"livability": [15.0] * 30}, LANDVEX,
+                   baseline={"p95": {"livability": 12.0}})
+    row = [r for r in res["results"] if r["id"] == "livability"][0]
+    assert row["status"] == "pass" and row["factor"] == 1.25
+
+
+def test_missing_baseline_entry_does_not_invent_a_comparison():
+    res = evaluate({"livability": [12.0] * 30}, LANDVEX,
+                   baseline={"p95": {"something_else": 5.0}})
+    row = [r for r in res["results"] if r["id"] == "livability"][0]
+    assert "factor" not in row and row["status"] == "pass"
+
+
+def test_landvex_degrades_rather_than_blocks():
+    rules = {r["event"]: r for r in LANDVEX["state_rules"]}
+    slow = rules["a source is slow or failing"]
+    assert slow["immediate"] is True
+    assert "lower data_coverage" in slow["api_may_claim"]
+    assert "never silently" in slow["why_en"]
+    # att vägra svara måste vara lika snabbt som att svara
+    assert rules["the basis is too thin to answer"]["immediate"] is True
 
 
 if __name__ == "__main__":

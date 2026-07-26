@@ -1,0 +1,14 @@
+{
+  "note_en": "Recorded baseline. Absolute timings are machine-dependent; what travels is the RATIO \u2014 record a baseline per environment.",
+  "p95": {
+    "ask": 34.17,
+    "assess_city": 1.87,
+    "catalog": 1.34,
+    "forecast": 2.62,
+    "livability": 12.32,
+    "merit": 12.5,
+    "monitors_evaluate": 1.66,
+    "report": 12.98,
+    "saturation": 5.88
+  }
+}
