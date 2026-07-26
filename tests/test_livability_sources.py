@@ -122,6 +122,40 @@ def test_the_source_uses_the_locator_api_that_actually_exists():
     assert src._kommun(Location(59.24, 18.23)) == "0138"    # Tyresö
 
 
+def test_unreachable_host_is_not_the_same_as_a_missing_kpi():
+    """Blockerat nät får ALDRIG registreras som att ett KPI saknas.
+
+    Första skarpa körningen gjorde precis det: proxyn svarade 403 på
+    CONNECT, proben tolkade tystnaden som "KPI:t svarar inte" och skrev
+    ned tre KPI:n som var bekräftade i skörden. Nätverksfel raderade
+    verklig kunskap.
+    """
+    import socket
+    import urllib.error
+
+    blocked = urllib.error.URLError("Tunnel connection failed: 403 Forbidden")
+    assert LS._classify(blocked) is True                 # onåbar
+    assert LS._classify(socket.timeout("slow")) is True
+    assert LS._classify(urllib.error.HTTPError(
+        "u", 403, "Forbidden", None, None)) is True
+    # men ett riktigt svar från servern är ett svar, även 404
+    assert LS._classify(urllib.error.HTTPError(
+        "u", 404, "Not Found", None, None)) is False
+    assert LS._classify(ValueError("bad json")) is False
+
+    def boom(url, timeout):
+        raise blocked
+    c = LS.KoladaLivability(base_url="http://k.example", transport=boom)
+    ok, why = c.reachable()
+    assert ok is False and "403" in why
+
+    def fine(url, timeout):
+        return json.dumps(KOLADA_REAL)
+    ok, _ = LS.KoladaLivability(base_url="http://k.example",
+                                transport=fine).reachable()
+    assert ok is True
+
+
 def test_defaults_stay_candidate_without_a_probe_result():
     """Verifiering ska aldrig följa med i repot.
 

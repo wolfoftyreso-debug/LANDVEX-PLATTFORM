@@ -61,6 +61,25 @@ def main(argv: list[str]) -> int:
         ok = probe(argv[1], argv[2], argv[3])
         return 0 if ok else 1
     if len(argv) == 2 and argv[1] == "all":
+        import socket
+        import urllib.error
+        import urllib.request
+
+        def _reach(host: str) -> bool:
+            try:
+                urllib.request.urlopen(host, timeout=8)
+                return True
+            except urllib.error.HTTPError:
+                return True          # servern svarade – den är nåbar
+            except (urllib.error.URLError, socket.timeout, OSError):
+                return False
+
+        if not any(_reach(h) for h in ("https://api.scb.se",
+                                       "https://api.census.gov")):
+            print("Hosts unreachable from here (network/policy). A probe "
+                  "that cannot connect proves nothing about a table path — "
+                  "reporting that instead of implying the paths are wrong.")
+            return 3
         st = providers_status()
         print("Providers built:")
         for pr in st["providers"]:

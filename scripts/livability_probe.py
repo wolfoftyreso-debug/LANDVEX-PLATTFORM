@@ -27,8 +27,15 @@ def main(argv: list[str]) -> int:
     print(f"Kolada: {cat['kolada']['verified_count']} confirmed, "
           f"{cat['kolada']['candidate_count']} candidates")
     k = KoladaLivability()
+    reach_ok = True
     if not k.connected:
         print("  ! LANDVEX_KOLADA_URL not set — nothing to probe.")
+    elif not k.reachable()[0]:
+        reach_ok = False
+        print(f"  ! Host unreachable ({k.reachable()[1][:80]}).")
+        print("    NOT recording anything: an unreachable host says nothing "
+              "about whether a KPI exists. Recording it would erase what is "
+              "already known.")
     else:
         for sid, spec in KOLADA_SIGNALS.items():
             got = k.value(sid, kommun)
@@ -44,7 +51,12 @@ def main(argv: list[str]) -> int:
     e = EurostatLivability()
     if not e.connected:
         print("Eurostat: LANDVEX_EUROSTAT_LIVE=1 not set — nothing to probe.")
-        return _finish(results, apply)
+        return _finish(results, apply and reach_ok, reach_ok)
+    ok, why = e.reachable()
+    if not ok:
+        print(f"Eurostat: host unreachable ({why[:70]}) — recording nothing.")
+        return _finish({"kolada": results["kolada"]}, apply and reach_ok,
+                       reach_ok)
     for sid, spec in EUROSTAT_SIGNALS.items():
         got = e.value(sid, geo)
         results["eurostat"][sid] = got is not None
@@ -53,10 +65,15 @@ def main(argv: list[str]) -> int:
         else:
             print(f"  ✓ {sid:24s} {spec['dataset']:16s} "
                   f"raw={got['raw_value']} → {got['value']} {got['year']}")
-    return _finish(results, apply)
+    return _finish(results, apply and reach_ok, reach_ok)
 
 
-def _finish(results: dict, apply: bool) -> int:
+def _finish(results: dict, apply: bool, reachable: bool = True) -> int:
+    if not reachable:
+        print("\nNothing recorded — the hosts could not be reached, so this "
+              "run proves nothing about the KPIs. Existing knowledge is left "
+              "untouched.")
+        return 3
     if not apply:
         print("\n(dry run — pass --apply to record which KPIs answered)")
         return 0

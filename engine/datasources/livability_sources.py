@@ -107,6 +107,21 @@ EUROSTAT_SIGNALS: dict[str, dict] = {
 }
 
 
+class Unreachable(Exception):
+    """Värden gick inte att nå alls – skilt från 'KPI:t saknas'."""
+
+
+def _classify(exc: Exception) -> bool:
+    """True om felet betyder ONÅBAR värd (nät/policy), inte tomt svar."""
+    import socket
+    import urllib.error
+    if isinstance(exc, urllib.error.HTTPError):
+        # Servern svarade – 404 på ett KPI är ett riktigt svar, 5xx/407 inte.
+        return exc.code in (403, 407, 502, 503, 504)
+    return isinstance(exc, (urllib.error.URLError, socket.timeout, OSError,
+                            ConnectionError))
+
+
 # ── Verifieringsläge på disk ────────────────────────────────────────────
 # Proben skriver hit när den körts mot de riktiga API:erna. Filen är
 # systemets minne av VAD SOM FAKTISKT SVARADE – utan den står kandidaterna
@@ -183,6 +198,19 @@ class KoladaLivability:
     def connected(self) -> bool:
         return bool(self.base_url)
 
+    def reachable(self) -> tuple[bool, str]:
+        """Nås värden överhuvudtaget? Avgör om ett uteblivet svar betyder
+        'KPI:t finns inte' eller 'jag kom aldrig fram'."""
+        if not self.connected:
+            return False, "not configured"
+        try:
+            self._transport(f"{self.base_url}/kpi", self.timeout)
+            return True, "ok"
+        except Exception as e:  # noqa: BLE001
+            if _classify(e):
+                return False, f"{type(e).__name__}: {e}"
+            return True, "reachable (endpoint responded)"
+
     def value(self, signal_id: str, kommun: str) -> dict | None:
         spec = KOLADA_SIGNALS.get(signal_id)
         if not (self.connected and spec):
@@ -234,6 +262,18 @@ class EurostatLivability:
     @property
     def connected(self) -> bool:
         return bool(self.base_url) and self.enabled
+
+    def reachable(self) -> tuple[bool, str]:
+        if not self.connected:
+            return False, "not enabled"
+        try:
+            self._transport(f"{self.base_url}/ilc_lvho05a?format=JSON&geo=SE",
+                            self.timeout)
+            return True, "ok"
+        except Exception as e:  # noqa: BLE001
+            if _classify(e):
+                return False, f"{type(e).__name__}: {e}"
+            return True, "reachable (endpoint responded)"
 
     def value(self, signal_id: str, geo: str) -> dict | None:
         spec = EUROSTAT_SIGNALS.get(signal_id)
