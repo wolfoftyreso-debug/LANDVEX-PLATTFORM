@@ -18,8 +18,11 @@ from engine.datasources.livability_sources import (EUROSTAT_SIGNALS,
 
 
 def main(argv: list[str]) -> int:
-    kommun = argv[1] if len(argv) > 1 else "0180"
-    geo = argv[2] if len(argv) > 2 else "SE"
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    apply = "--apply" in argv
+    kommun = args[0] if args else "0180"
+    geo = args[1] if len(args) > 1 else "SE"
+    results = {"kolada": {}, "eurostat": {}}
     cat = catalog()
     print(f"Kolada: {cat['kolada']['verified_count']} confirmed, "
           f"{cat['kolada']['candidate_count']} candidates")
@@ -30,6 +33,7 @@ def main(argv: list[str]) -> int:
         for sid, spec in KOLADA_SIGNALS.items():
             got = k.value(sid, kommun)
             mark = "confirmed" if spec["verified"] else "candidate"
+            results["kolada"][sid] = got is not None
             if got is None:
                 print(f"  ✗ {sid:24s} {spec['kpi']:8s} ({mark}) no answer")
             else:
@@ -40,14 +44,32 @@ def main(argv: list[str]) -> int:
     e = EurostatLivability()
     if not e.connected:
         print("Eurostat: LANDVEX_EUROSTAT_LIVE=1 not set — nothing to probe.")
-        return 0
+        return _finish(results, apply)
     for sid, spec in EUROSTAT_SIGNALS.items():
         got = e.value(sid, geo)
+        results["eurostat"][sid] = got is not None
         if got is None:
             print(f"  ✗ {sid:24s} {spec['dataset']:16s} no answer")
         else:
             print(f"  ✓ {sid:24s} {spec['dataset']:16s} "
                   f"raw={got['raw_value']} → {got['value']} {got['year']}")
+    return _finish(results, apply)
+
+
+def _finish(results: dict, apply: bool) -> int:
+    if not apply:
+        print("\n(dry run — pass --apply to record which KPIs answered)")
+        return 0
+    from datetime import datetime, timezone
+    from engine.datasources.livability_sources import save_verification
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    path = save_verification(results, stamp)
+    ok = sum(1 for f in results.values() for v in f.values() if v)
+    bad = sum(1 for f in results.values() for v in f.values() if not v)
+    print(f"\nRecorded to {path}: {ok} answered, {bad} did not.")
+    if bad:
+        print("The ones that did not answer stay unverified and keep the "
+              "lower quality weight — replace or remove them.")
     return 0
 
 

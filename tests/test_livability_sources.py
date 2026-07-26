@@ -122,6 +122,41 @@ def test_the_source_uses_the_locator_api_that_actually_exists():
     assert src._kommun(Location(59.24, 18.23)) == "0138"    # Tyresö
 
 
+def test_defaults_stay_candidate_without_a_probe_result():
+    """Verifiering ska aldrig följa med i repot.
+
+    verified.json speglar vad som svarade på EN maskin. Committas den ser
+    projektet ut att ha verifierade källor överallt. Utan filen ska
+    kandidaterna förbli kandidater – den säkra defaulten.
+    """
+    import os
+    assert not os.path.exists(LS.VERIFIED_PATH), (
+        "verified.json ligger i trädet — den är miljöspecifik och ska "
+        "vara ignorerad, annars påstås verifiering som inte gjorts")
+    assert LS.load_verification("/nonexistent/probe.json") == {}
+    for sid in ("social_trust", "housing_affordability", "care_supply"):
+        assert LS.KOLADA_SIGNALS[sid]["verified"] is False, sid
+
+
+def test_probe_result_overlays_and_can_downgrade(tmpdir="/tmp"):
+    """Ett svar som uteblir ska sänka en signal, inte bara höja."""
+    import copy
+    saved = copy.deepcopy(LS.KOLADA_SIGNALS)
+    try:
+        n = LS.apply_verification({"kolada": {
+            "care_supply": {"verified": True, "checked_at": "2026-01-01"},
+            "education_outcomes": {"verified": False, "answered": False,
+                                   "checked_at": "2026-01-01"}}})
+        assert n == 2
+        assert LS.KOLADA_SIGNALS["care_supply"]["verified"] is True
+        # även ett tidigare bekräftat KPI kan falla om det slutar svara
+        assert LS.KOLADA_SIGNALS["education_outcomes"]["verified"] is False
+        assert LS.KOLADA_SIGNALS["education_outcomes"]["answered"] is False
+    finally:
+        LS.KOLADA_SIGNALS.clear()
+        LS.KOLADA_SIGNALS.update(saved)
+
+
 def test_catalog_separates_confirmed_from_candidate():
     c = LS.catalog()
     assert c["kolada"]["verified_count"] >= 3

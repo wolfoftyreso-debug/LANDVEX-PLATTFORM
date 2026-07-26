@@ -107,6 +107,53 @@ EUROSTAT_SIGNALS: dict[str, dict] = {
 }
 
 
+# ── Verifieringsläge på disk ────────────────────────────────────────────
+# Proben skriver hit när den körts mot de riktiga API:erna. Filen är
+# systemets minne av VAD SOM FAKTISKT SVARADE – utan den står kandidaterna
+# kvar som kandidater, vilket är den säkra defaulten.
+VERIFIED_PATH = os.path.join(os.path.dirname(__file__), "verified.json")
+
+
+def load_verification(path: str | None = None) -> dict:
+    try:
+        with open(path or VERIFIED_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001 – ingen fil = inget verifierat
+        return {}
+
+
+def apply_verification(state: dict | None = None) -> int:
+    """Lägg probens resultat ovanpå tabellerna. Returnerar antal ändrade."""
+    state = state if state is not None else load_verification()
+    n = 0
+    for family, table in (("kolada", KOLADA_SIGNALS),
+                          ("eurostat", EUROSTAT_SIGNALS)):
+        for sid, row in (state.get(family) or {}).items():
+            if sid in table and "verified" in row:
+                if table[sid]["verified"] != bool(row["verified"]):
+                    n += 1
+                table[sid]["verified"] = bool(row["verified"])
+                table[sid]["checked_at"] = row.get("checked_at")
+                if row.get("answered") is False:
+                    table[sid]["answered"] = False
+    return n
+
+
+def save_verification(results: dict, checked_at: str,
+                      path: str | None = None) -> str:
+    """Skriv probens utfall. results: {family: {signal: bool_answered}}."""
+    state = load_verification(path)
+    for family, sigs in results.items():
+        fam = state.setdefault(family, {})
+        for sid, answered in sigs.items():
+            fam[sid] = {"verified": bool(answered), "answered": bool(answered),
+                        "checked_at": checked_at}
+    target = path or VERIFIED_PATH
+    with open(target, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    return target
+
+
 def apply_transform(value: float, transform: str) -> float:
     """För in myndighetens tal på signalens skala – explicit, aldrig gissat."""
     if transform == "pct_invert":
@@ -231,7 +278,17 @@ def _jsonstat_latest(raw: dict) -> dict | None:
 
 def catalog() -> dict:
     """Vad som är kopplat, vad som är kandidat, och hur det slås på."""
+    state = load_verification()
     return {
+        "verification": {
+            "file": VERIFIED_PATH,
+            "present": bool(state),
+            "checked_at": (next(iter((state.get("kolada") or {}).values()), {})
+                           .get("checked_at") if state else None),
+            "how_en": "Run scripts/livability_probe.py --apply where the "
+                      "network is open; it records which KPIs actually "
+                      "answered. Without that file every candidate stays a "
+                      "candidate — the safe default."},
         "kolada": {
             "activate_with": "LANDVEX_KOLADA_URL",
             "granularity": "municipality (kommunkod)",
@@ -256,3 +313,8 @@ def catalog() -> dict:
                    "invented to fill a gap.",
         "probe": "python3 -m scripts.livability_probe <kommun>",
     }
+
+
+# Probens utfall gäller över tabellernas defaultvärden – finns ingen fil
+# ändras ingenting och allt förblir kandidat.
+apply_verification()

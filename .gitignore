@@ -11,3 +11,8 @@ landvex-audit.log
 # Deployment secrets — never commit the filled-in env
 .env
 .env.production
+
+# Probens verifieringsutfall är MILJÖSPECIFIKT: det speglar vad som svarade
+# från just den maskin proben kördes på. Committas det ser hela projektet
+# ut att ha verifierade källor som aldrig prövats där. Kör proben lokalt.
+engine/datasources/verified.json
