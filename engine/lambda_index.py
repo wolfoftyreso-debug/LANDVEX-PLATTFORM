@@ -16,7 +16,6 @@ lambda-calculator.ts:60-67,350-407 (band).
 """
 from __future__ import annotations
 
-import math
 
 # 8 axlar (LambdaAxis). Etiketter för oscilloskop-vyn.
 AXES: tuple[tuple[str, str], ...] = (

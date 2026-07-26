@@ -28,6 +28,7 @@ import json
 import os
 import urllib.request
 from typing import Any, Callable
+from .faults import OUR_BUGS
 
 _UA = "landvex-opportunity-engine/programs"
 
@@ -41,9 +42,11 @@ def _http_transport(url: str, timeout: float) -> str:
 
 def _rss_items(text: str) -> list[dict]:
     """Best-effort RSS/Atom → list of {title, link, summary, published}."""
-    import xml.etree.ElementTree as ET
+    from ..safexml import parse as _parse_xml
     try:
-        root = ET.fromstring(text)
+        root = _parse_xml(text)
+    except OUR_BUGS:
+        raise        # vårt fel, inte omvärldens – se faults.py
     except Exception:
         return []
     items: list[dict] = []
@@ -118,6 +121,8 @@ class ProgramsClient:
             raws = data.get("programs", data) if isinstance(data, dict) else data
             if not isinstance(raws, list):
                 raws = []
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:
             raws = _rss_items(text) if text[:1] == "<" else []
         # Filter to the vertical when the record declares trades.

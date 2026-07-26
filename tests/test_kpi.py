@@ -22,7 +22,7 @@ def test_registry_categories_valid():
 def test_bad_category_rejected():
     try:
         _defn(category="nonsense")
-        assert False, "borde ha kastat"
+        raise AssertionError("borde ha kastat")
     except ValueError:
         pass
 

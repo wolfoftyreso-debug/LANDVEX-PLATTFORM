@@ -10,7 +10,7 @@ Identifierare utan å/ä/ö enligt projektprincip; etiketter på svenska.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from .verticals import VERTICALS

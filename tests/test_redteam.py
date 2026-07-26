@@ -2,7 +2,6 @@
 determinism, ärlighetsinvarianter, samtidighet). Utan nätverk/pytest:
 python3 -m tests.test_redteam"""
 import concurrent.futures as cf
-import sys
 
 _fails = []
 
@@ -14,7 +13,7 @@ def check(namn, ok, extra=""):
 
 # ── 1. AUTH / RBAC / JWT red-team ────────────────────────────────────
 from api.security import (ApiAuth, AuthError, MonthlyQuota, RateLimiter,
-                          jwt_encode, jwt_decode)
+                          jwt_encode)
 
 auth = ApiAuth(keys_env="k1:acme:analyst:pro,adm:acme:admin",
                jwt_secret="s3cret")
@@ -93,7 +92,7 @@ try:
     for _ in range(1000):
         rl.check("hammer", 60)
         n_ok += 1
-except AuthError as e:
+except AuthError:
     pass
 check("rate limit caps at plan limit", n_ok == 60, f"{n_ok} tilläts")
 
@@ -266,4 +265,4 @@ def test_redteam_all_green():
 
 if __name__ == "__main__":
     test_redteam_all_green()
-    print(f"\nRed-team: alla kontroller gröna.")
+    print("\nRed-team: alla kontroller gröna.")

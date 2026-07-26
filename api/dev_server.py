@@ -142,6 +142,26 @@ if STORE is not None:
 RESOLVER = Resolver(_sources + [MockSource()])
 
 
+def _field_error(e: Exception) -> str:
+    """Ett fältfel som går att åtgärda utan att läsa källkoden.
+
+    `str(KeyError("lat"))` är `"'lat'"` — vilket för klienten bara är ett
+    ord inom apostrofer. Vilket fält, och att det SAKNAS, sägs inte.
+    """
+    if isinstance(e, KeyError):
+        return (f"Missing required field: {e.args[0]!r}."
+                if e.args else "Missing a required field.")
+    return str(e)
+
+
+class _BadRequest(Exception):
+    """Klientens kropp går inte att tolka — 400, aldrig 500."""
+
+
+class _TooLarge(Exception):
+    """Kroppen är större än taket — 413."""
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, payload: dict | list) -> None:
         self._status = code
@@ -435,8 +455,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _route_post(self):
         try:
-            length = int(self.headers.get("Content-Length", 0))
-            req = json.loads(self.rfile.read(length) or b"{}")
+            req = self._read_body()
             if self.path == "/v1/analyze":
                 loc = Location(lat=float(req["lat"]), lon=float(req["lon"]),
                                address=req.get("address", ""),
@@ -831,8 +850,54 @@ class Handler(BaseHTTPRequestHandler):
                                             level=req.get("level", "oversikt"),
                                             market=req.get("market", DEFAULT_MARKET)))
             self._send(404, {"error": "not found"})
+        except _BadRequest as e:
+            self._send(400, {"error": str(e)})
+        except _TooLarge as e:
+            self._send(413, {"error": str(e)})
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
-            self._send(422, {"error": str(e)})
+            self._send(422, {"error": _field_error(e)})
+
+    # Största POST-kropp som läses. En Content-Length utan tak låter en
+    # klient hålla en tråd (och godtyckligt mycket minne) genom att lova
+    # byte den aldrig skickar — ThreadingHTTPServer ger en tråd per
+    # anslutning, så några få sådana räcker för att tömma servern.
+    MAX_BODY_BYTES = 1 << 20        # 1 MiB; största riktiga kroppen är ~50 kB
+
+    def _read_body(self) -> dict:
+        """Läs och tolka JSON-kroppen med tak, timeout och ärliga koder.
+
+        Tre fel som tidigare blev 500 eller en hängd tråd:
+          * Content-Length som inte är ett tal      → 400
+          * Content-Length över taket               → 413
+          * färre byte än utlovat (klienten ljuger) → 400, aldrig en hängning
+        """
+        raw_len = self.headers.get("Content-Length")
+        if raw_len is None:
+            return {}
+        try:
+            length = int(raw_len)
+        except (TypeError, ValueError):
+            raise _BadRequest("Content-Length must be an integer.") from None
+        if length < 0:
+            raise _BadRequest("Content-Length must not be negative.")
+        if length > self.MAX_BODY_BYTES:
+            raise _TooLarge(f"Request body exceeds "
+                            f"{self.MAX_BODY_BYTES} bytes.")
+        if length == 0:
+            return {}
+        body = self.rfile.read(length)
+        if len(body) < length:
+            # Utlovade fler byte än den skickade. Att vänta vidare är att
+            # låta en klient hålla tråden hur länge den vill.
+            raise _BadRequest(f"Incomplete request body: declared {length} "
+                              f"bytes, received {len(body)}.")
+        try:
+            parsed = json.loads(body or b"{}")
+        except json.JSONDecodeError as e:
+            raise _BadRequest(f"Body is not valid JSON: {e}") from e
+        if not isinstance(parsed, dict):
+            raise _BadRequest("Body must be a JSON object.")
+        return parsed
 
     def log_message(self, fmt, *args):  # tystare logg
         pass

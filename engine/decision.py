@@ -125,7 +125,6 @@ def evaluate(template: str, answers: dict[str, dict]) -> dict:
                          "answer_type": n["answer_type"], "status": status,
                          "confidence": (a or {}).get("confidence"),
                          "summary": (a or {}).get("summary", "")})
-    required = [n for n in nodes if n["required"]]
     completeness = round(resolved / len(nodes), 4) if nodes else 0.0
     overall = round(sum(confs) / len(confs), 4) if confs else 0.0
     return {

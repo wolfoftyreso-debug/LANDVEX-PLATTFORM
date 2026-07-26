@@ -43,18 +43,10 @@ DEFAULT_BUDGETS = os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "docs", "quixzoom-budgets.json")
 
 
-def percentile(values: list[float], p: float) -> float:
-    """Percentil med linjär interpolation (samma metod varje gång)."""
-    if not values:
-        raise ValueError("no values")
-    xs = sorted(values)
-    if len(xs) == 1:
-        return xs[0]
-    k = (len(xs) - 1) * (p / 100.0)
-    lo, hi = math.floor(k), math.ceil(k)
-    if lo == hi:
-        return xs[int(k)]
-    return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)
+# Percentilen definieras EN gång, i engine/stats.py, och återexporteras
+# här så befintliga importer fortsätter fungera. Grinden som godkänner
+# bygget och /metrics som beskriver driften måste räkna likadant.
+from engine.stats import percentile          # noqa: F401  (återexport)
 
 
 def min_samples_for(p: float) -> int:
@@ -64,6 +56,14 @@ def min_samples_for(p: float) -> int:
     percentilen bara den värsta mätningen och låtsas vara statistik.
     """
     return max(5, int(math.ceil(100.0 / max(1e-9, 100.0 - p))))
+
+
+def _read_json(path: str) -> dict:
+    """Läs JSON och STÄNG filen. `json.load(open(...))` lämnar handtaget
+    till sophämtaren — vilket CPython råkar göra direkt, och andra
+    körtider inte gör alls."""
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 DEFAULT_MAX_REGRESSION = 2.0     # dubbelt så långsamt = regression
@@ -193,15 +193,15 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 64
     try:
-        measurements = json.load(open(args[0], encoding="utf-8"))
-        budgets = json.load(open(bpath, encoding="utf-8"))
+        measurements = _read_json(args[0])
+        budgets = _read_json(bpath)
     except Exception as e:  # noqa: BLE001
         print(f"could not read input: {e}")
         return 66
     baseline = None
     if basepath:
         try:
-            baseline = json.load(open(basepath, encoding="utf-8"))
+            baseline = _read_json(basepath)
         except Exception as e:  # noqa: BLE001
             print(f"could not read baseline: {e}")
             return 66

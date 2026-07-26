@@ -20,7 +20,7 @@ from __future__ import annotations
 import math
 
 from .integrity import framing_disclosure
-from .stats import lag_correlation, mean, pearson, spearman
+from .stats import lag_correlation, pearson, spearman
 
 CAVEAT = ("Observed association only. This is NOT causation: confounders are "
           "unaccounted unless controlled for, and a correlation can arise from "

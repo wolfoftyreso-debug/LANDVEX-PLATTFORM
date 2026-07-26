@@ -124,5 +124,7 @@ class Store(ABC):
     def all_findings(self) -> Optional[list[dict[str, Any]]]:
         return None
 
-    def close(self) -> None:  # valfritt att överskugga
-        pass
+    def close(self) -> None:   # noqa: B027 – avsiktlig no-op, ej abstrakt
+        """Stäng lagret. Medvetet INTE abstrakt: ett lager utan
+        resurser att frigöra ska slippa implementera en tom metod,
+        och anroparen ska slippa veta vilket sorts lager den har."""

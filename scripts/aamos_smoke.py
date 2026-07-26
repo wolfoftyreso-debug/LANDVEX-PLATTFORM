@@ -20,7 +20,6 @@ Exit code is 0 if AAMOS Core answered at all, 1 if it was unreachable.
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
 import urllib.error

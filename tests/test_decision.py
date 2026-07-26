@@ -51,7 +51,7 @@ def test_decision_never_recommends():
 def test_unknown_template_raises():
     try:
         D.evaluate("nope", {})
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

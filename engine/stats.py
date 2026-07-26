@@ -38,7 +38,7 @@ def trend_strength(values: list[float]) -> dict:
         return {"direction": "stable", "strength": 0.0, "max_run": 0}
     best, best_dir = 0, "stable"
     cur, cur_dir = 1, "stable"
-    for a, b in zip(values, values[1:]):
+    for a, b in zip(values, values[1:], strict=False):
         d = "up" if b > a else ("down" if b < a else "stable")
         if d == cur_dir and d != "stable":
             cur += 1
@@ -84,7 +84,7 @@ def pearson(x: list[float], y: list[float]) -> float:
         return 0.0
     x, y = x[:n], y[:n]
     mx, my = mean(x), mean(y)
-    num = sum((a - mx) * (b - my) for a, b in zip(x, y))
+    num = sum((a - mx) * (b - my) for a, b in zip(x, y, strict=True))
     den = math.sqrt(sum((a - mx) ** 2 for a in x)
                     * sum((b - my) ** 2 for b in y))
     return round(num / den, 6) if den else 0.0
@@ -171,10 +171,12 @@ def linreg_trend(values: list[float], significance_pct: float = 2.0) -> dict:
     if sxx == 0:
         return {"slope": 0.0, "r2": 0.0, "direction": "stable",
                 "significant": False}
-    slope = sum((x - mx) * (y - my) for x, y in zip(xs, values)) / sxx
+    slope = sum((x - mx) * (y - my)
+                for x, y in zip(xs, values, strict=True)) / sxx
     intercept = my - slope * mx
     ss_tot = sum((y - my) ** 2 for y in values)
-    ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(xs, values))
+    ss_res = sum((y - (slope * x + intercept)) ** 2
+                 for x, y in zip(xs, values, strict=True))
     r2 = (1.0 - ss_res / ss_tot) if ss_tot else 0.0
     thresh = abs(my) * significance_pct / 100.0
     direction = "stable"
@@ -182,6 +184,32 @@ def linreg_trend(values: list[float], significance_pct: float = 2.0) -> dict:
         direction = "up" if slope > 0 else "down"
     return {"slope": round(slope, 6), "r2": round(r2, 4),
             "direction": direction, "significant": direction != "stable"}
+
+
+def percentile(values: list[float], p: float) -> float:
+    """Percentil 0–100 med linjär interpolation.
+
+    Plattformens ENDA percentildefinition. Den bodde tidigare i
+    scripts/perf_budget.py, medan api/security.py hade en egen
+    indexberäkning — samma mätdata gav p95 = 95.05 respektive 96.0.
+    Två metoder betyder att svaret beror på vem som råkade fråga, och
+    den ena av dem avgör om ett bygge godkänns.
+
+    Metoden är den vanliga "linear interpolation between closest ranks"
+    (samma som numpy.percentile med default-interpolation).
+    """
+    if not values:
+        raise ValueError("percentile of an empty sequence is undefined")
+    if not 0.0 <= p <= 100.0:
+        raise ValueError(f"percentile must be within 0–100, got {p}")
+    xs = sorted(values)
+    if len(xs) == 1:
+        return xs[0]
+    k = (len(xs) - 1) * (p / 100.0)
+    lo, hi = math.floor(k), math.ceil(k)
+    if lo == hi:
+        return xs[int(k)]
+    return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)
 
 
 def percentile_rank(value: float, population: list[float]) -> float:

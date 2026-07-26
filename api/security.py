@@ -35,6 +35,7 @@ Delas av dev-servern och FastAPI-appen så att beteendet är identiskt:
 from __future__ import annotations
 
 import base64
+import collections
 import hashlib
 import hmac
 import json
@@ -44,6 +45,8 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
+
+from engine.stats import percentile
 
 _ROLE_RANK = {"partner": 0, "analyst": 1, "admin": 2}
 
@@ -100,7 +103,7 @@ def jwt_decode(token: str, secret: str, now: float | None = None) -> dict:
         header = json.loads(_b64url_decode(h_b64))
     except Exception:
         raise ValueError("Malformed JWT: header is not valid "
-                         "base64url-encoded JSON.")
+                         "base64url-encoded JSON.") from None
     if not isinstance(header, dict) or header.get("alg") != "HS256":
         raise ValueError("Unsupported JWT algorithm: only HS256 is "
                          "accepted.")
@@ -110,14 +113,14 @@ def jwt_decode(token: str, secret: str, now: float | None = None) -> dict:
         actual = _b64url_decode(s_b64)
     except Exception:
         raise ValueError("Malformed JWT: signature is not valid "
-                         "base64url.")
+                         "base64url.") from None
     if not hmac.compare_digest(expected, actual):
         raise ValueError("Invalid JWT signature.")
     try:
         claims = json.loads(_b64url_decode(p_b64))
     except Exception:
         raise ValueError("Malformed JWT: payload is not valid "
-                         "base64url-encoded JSON.")
+                         "base64url-encoded JSON.") from None
     if not isinstance(claims, dict):
         raise ValueError("Malformed JWT: payload must be a JSON object.")
     exp = claims.get("exp")
@@ -126,7 +129,7 @@ def jwt_decode(token: str, secret: str, now: float | None = None) -> dict:
             exp_s = float(exp)
         except (TypeError, ValueError):
             raise ValueError("Malformed JWT: 'exp' must be a number "
-                             "(epoch seconds).")
+                             "(epoch seconds).") from None
         current = now if now is not None else time.time()
         if current >= exp_s:
             raise ValueError("JWT has expired.")
@@ -204,13 +207,18 @@ class ApiAuth:
                                      "(header X-API-Key) or JWT bearer "
                                      "token (header Authorization).")
             raise AuthError(401, "API key required (header X-API-Key).")
-        token = _extract_jwt(credential)
-        if token is not None:
-            p = self._principal_from_jwt(token)
-        else:
-            p = self.keys.get(credential)
-            if p is None:
+        # Konfigurerad nyckel först, JWT-gissning sedan. Omvänd ordning
+        # gjorde att en giltig API-nyckel som råkar innehålla två punkter
+        # (t.ex. "ab.cd.ef") aldrig ens slogs upp: _extract_jwt känner igen
+        # formen, och nyckeln avvisades med "JWT authentication is not
+        # configured". Ett exakt uppslag kan aldrig ge fel svar, så det ska
+        # gå först — heuristiken får bara avgöra det den måste.
+        p = self.keys.get(credential)
+        if p is None:
+            token = _extract_jwt(credential)
+            if token is None:
                 raise AuthError(401, "Invalid API key.")
+            p = self._principal_from_jwt(token)
         return self._enforce(p, method, path)
 
     def _principal_from_jwt(self, token: str) -> Principal:
@@ -220,7 +228,7 @@ class ApiAuth:
         try:
             claims = jwt_decode(token, self.jwt_secret)
         except ValueError as e:
-            raise AuthError(401, str(e))
+            raise AuthError(401, str(e)) from None
         tenant = claims.get("tenant")
         if not tenant or not isinstance(tenant, str):
             raise AuthError(401, "JWT is missing the required 'tenant' "
@@ -238,7 +246,7 @@ class ApiAuth:
         try:
             caps = licensing.resolve_capabilities(plan, addons)
         except ValueError as e:
-            raise AuthError(401, str(e))
+            raise AuthError(401, str(e)) from None
         key_id = str(claims.get("sub") or "jwt")
         return Principal(tenant, role, key_id, plan, addons, caps)
 
@@ -272,7 +280,15 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def check(self, key_id: str, per_minute: float | None = None) -> None:
-        cap = float(per_minute) if per_minute else self.capacity
+        # `if per_minute` gjorde 0 falsy: en plan med taket 0 ("inga anrop")
+        # föll tillbaka på det globala taket och släppte igenom 300/min.
+        # Ett tak som tyst blir det motsatta är värre än inget tak.
+        cap = self.capacity if per_minute is None else float(per_minute)
+        if cap < 0:
+            raise ValueError(f"rate limit must not be negative: {cap}")
+        if cap == 0:
+            raise AuthError(429, "This plan tier permits no requests to "
+                                 "this API – see /v1/plans.")
         now = self._clock()
         with self._lock:
             tokens, ts = self._buckets.get(key_id, (cap, now))
@@ -285,12 +301,21 @@ class RateLimiter:
 
 
 class Metrics:
+    # Fönstret latenspercentilerna beräknas över.
+    WINDOW = 1000
+
     def __init__(self):
         self._lock = threading.Lock()
         self.requests = 0
         self.errors = 0
         self.by_path: dict[str, int] = {}
-        self._latencies: list[float] = []      # senaste 1000
+        # deque med maxlen kastar det äldsta värdet i O(1). Föregående
+        # `self._latencies = self._latencies[-1000:]` kopierade i stället
+        # 1000 element vid VARJE anrop efter det tusende — en kostnad som
+        # växte med trafiken, i ett lager vars egen doktrin säger att
+        # prestanda är en funktion.
+        self._latencies: collections.deque[float] = collections.deque(
+            maxlen=self.WINDOW)
         self.started = time.time()
 
     def observe(self, path: str, status: int, ms: float) -> None:
@@ -301,14 +326,16 @@ class Metrics:
             base = path.split("?")[0]
             self.by_path[base] = self.by_path.get(base, 0) + 1
             self._latencies.append(ms)
-            if len(self._latencies) > 1000:
-                self._latencies = self._latencies[-1000:]
 
     def snapshot(self) -> dict:
         with self._lock:
             lat = sorted(self._latencies)
-            pct = (lambda p: round(lat[min(len(lat) - 1,
-                                           int(p * len(lat)))], 1)) if lat else (lambda p: None)
+            # EN percentildefinition i hela kodbasen. Den här klassen hade
+            # en egen indexberäkning som gav p95 = 96.0 där mätgrinden gav
+            # 95.05 på samma data. Två svar på samma fråga är ett svar för
+            # mycket, särskilt när det ena används för att godkänna bygget.
+            pct = ((lambda p: round(percentile(lat, p * 100.0), 1)) if lat
+                   else (lambda p: None))
             return {"uptime_s": round(time.time() - self.started, 1),
                     "requests_total": self.requests,
                     "errors_5xx_total": self.errors,

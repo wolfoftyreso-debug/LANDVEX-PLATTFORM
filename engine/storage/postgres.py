@@ -168,7 +168,7 @@ class PostgresStore(Store):
             rows = cur.fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
-        return [dict(zip(keys, r)) for r in rows]
+        return [dict(zip(keys, r, strict=True)) for r in rows]
 
     def save_profile(self, profile: dict[str, Any], created_at: float) -> str:
         profile_id = uuid.uuid4().hex[:16]
@@ -199,7 +199,7 @@ class PostgresStore(Store):
                 "ORDER BY created_at DESC, id LIMIT %s", (limit,))
             rows = cur.fetchall()
         keys = ("profile_id", "created_at", "name", "vertical_id")
-        return [dict(zip(keys, r)) for r in rows]
+        return [dict(zip(keys, r, strict=True)) for r in rows]
 
     def get_cached_signals(self, source: str, loc_key: str
                            ) -> dict[str, tuple[float, float, float]]:
@@ -376,7 +376,13 @@ class PostgresStore(Store):
              "data_coverage": 0.0,
              "location": {"lat": 59.33, "lon": 18.06, "address": "selftest"}},
             created_at=time.time())
-        assert self.get_report(rid) is not None
+        # assert stryks av `python -O`: självtestet hade då "passerat"
+        # utan att kontrollera någonting. En kontroll som kan optimeras
+        # bort är ingen kontroll.
+        if self.get_report(rid) is None:
+            raise RuntimeError("selftest: saved report could not be read back")
         self.put_cached_signals("scb", "selftest", {"income_index": (100.0, 0.7)}, time.time())
-        assert "income_index" in self.get_cached_signals("scb", "selftest")
-        print("PostgresStore selftest OK")
+        if "income_index" not in self.get_cached_signals("scb", "selftest"):
+            raise RuntimeError("selftest: cached signal did not survive a "
+                               "write/read round trip")
+        print("PostgresStore selftest OK")   # noqa: T201 – CLI-självtest

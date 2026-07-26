@@ -4,8 +4,14 @@ __pycache__/
 *.db
 landvex-demo.html
 
-# Runtime-generated audit log (api/security.py)
+# Runtime-generated audit log (api/security.py). Mönstret matchar i alla
+# kataloger, inte bara roten — en kopia checkades in som
+# landvex-opportunity-engine/landvex-audit.log och låg kvar i historiken
+# med riktig trafik i sig (tenant, roll, nyckel-id, vägar, tider).
+# .gitignore gäller aldrig redan spårade filer, så regeln SÅG ut att
+# skydda utan att göra det.
 landvex-audit.log
+**/landvex-audit.log
 *.log
 
 # Deployment secrets — never commit the filled-in env

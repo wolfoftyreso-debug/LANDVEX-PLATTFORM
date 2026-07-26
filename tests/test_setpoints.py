@@ -48,7 +48,7 @@ def test_zone_score_monotone():
 def test_unknown_code_raises():
     try:
         S.assess_zone("nope", 1)
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

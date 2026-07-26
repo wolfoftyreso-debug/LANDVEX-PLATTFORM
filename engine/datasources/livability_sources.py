@@ -29,6 +29,7 @@ import os
 import urllib.parse
 import urllib.request
 from typing import Callable
+from .faults import OUR_BUGS
 
 _UA = "landvex-opportunity-engine/livability"
 
@@ -133,6 +134,8 @@ def load_verification(path: str | None = None) -> dict:
     try:
         with open(path or VERIFIED_PATH, encoding="utf-8") as f:
             return json.load(f)
+    except OUR_BUGS:
+        raise        # vårt fel, inte omvärldens – se faults.py
     except Exception:  # noqa: BLE001 – ingen fil = inget verifierat
         return {}
 
@@ -206,6 +209,8 @@ class KoladaLivability:
         try:
             self._transport(f"{self.base_url}/kpi", self.timeout)
             return True, "ok"
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception as e:  # noqa: BLE001
             if _classify(e):
                 return False, f"{type(e).__name__}: {e}"
@@ -218,6 +223,8 @@ class KoladaLivability:
         url = f"{self.base_url}/data/kpi/{spec['kpi']}/municipality/{kommun}"
         try:
             raw = json.loads(self._transport(url, self.timeout))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001 – ärlig degradering
             return None
         pick = _kolada_total(raw)
@@ -270,6 +277,8 @@ class EurostatLivability:
             self._transport(f"{self.base_url}/ilc_lvho05a?format=JSON&geo=SE",
                             self.timeout)
             return True, "ok"
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception as e:  # noqa: BLE001
             if _classify(e):
                 return False, f"{type(e).__name__}: {e}"
@@ -285,6 +294,8 @@ class EurostatLivability:
                + urllib.parse.urlencode(params))
         try:
             raw = json.loads(self._transport(url, self.timeout))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
             return None
         got = _jsonstat_latest(raw)

@@ -18,7 +18,7 @@ def test_commit_requires_all_three_owners():
     _fresh()
     try:
         A.commit("Bygg", {"formellt": "X"}, _EXP)
-        assert False
+        raise AssertionError()
     except ValueError as e:
         assert "operativt" in str(e) or "no owner" in str(e)
 
@@ -27,7 +27,7 @@ def test_commit_requires_expected_fields():
     _fresh()
     try:
         A.commit("Bygg", _OWNERS, {"metric": "x"})   # saknar direction/target
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

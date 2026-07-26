@@ -21,7 +21,7 @@ def test_submit_requires_source():
     _fresh()
     try:
         C.submit("r", "k", 1.0, source="", submitter_id="u1")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

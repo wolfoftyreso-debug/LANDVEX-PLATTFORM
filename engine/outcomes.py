@@ -18,7 +18,6 @@ Rent stdlib. Modul-lokalt append-only register (`record`/`all_records`/
 from __future__ import annotations
 
 import threading
-from typing import Any
 
 from .integrity import canonical_hash
 from .stats import mean

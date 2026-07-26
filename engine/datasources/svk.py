@@ -18,6 +18,7 @@ import json
 import os
 import urllib.request
 from typing import Any, Callable
+from .faults import OUR_BUGS
 
 _UA = "landvex-opportunity-engine/svk"
 SWEDEN_EIC = "10YSE-1--------K"
@@ -63,6 +64,8 @@ class SvkClient:
         try:
             raw = json.loads(self._transport(
                 f"{self.base_url}/productionmix", self.timeout))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
             return None
         return self.normalize(raw)

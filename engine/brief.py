@@ -41,7 +41,7 @@ from __future__ import annotations
 
 from .integrity import canonical_hash, framing_disclosure
 from .offering import brief_scope as offering_brief_scope
-from .worthiness import PRIORITY, select_for_wrap, worthiness
+from .worthiness import PRIORITY, worthiness
 
 # ── Vad systemet får påstå att det sett ─────────────────────────────────
 # observation = det sensorn/registret faktiskt visar

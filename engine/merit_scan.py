@@ -62,7 +62,7 @@ def region_merit(region_query: str, market: str = "se", *,
 
     from .merit import dimension_scores
     peer_scores: dict[str, list[float]] = {d: [] for d in DIMENSIONS}
-    for code, name, lat, lon in mkt.regions:
+    for code, _name, lat, lon in mkt.regions:
         if code == target[0]:
             continue
         for did, d in dimension_scores(_signals(lat, lon, resolver)).items():

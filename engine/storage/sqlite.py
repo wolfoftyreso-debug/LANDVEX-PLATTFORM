@@ -197,7 +197,7 @@ class SqliteStore(Store):
                 "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
         keys = ("report_id", "created_at", "vertical_id", "lat", "lon",
                 "address", "opportunity_score", "data_coverage")
-        return [dict(zip(keys, r)) for r in rows]
+        return [dict(zip(keys, r, strict=True)) for r in rows]
 
     # ── Affärsprofiler ───────────────────────────────────────────────
 
@@ -229,7 +229,7 @@ class SqliteStore(Store):
                 "SELECT id, created_at, name, vertical_id FROM profiles "
                 "ORDER BY created_at DESC, id LIMIT ?", (limit,)).fetchall()
         keys = ("profile_id", "created_at", "name", "vertical_id")
-        return [dict(zip(keys, r)) for r in rows]
+        return [dict(zip(keys, r, strict=True)) for r in rows]
 
     # ── Signalcache ──────────────────────────────────────────────────
 

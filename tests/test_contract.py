@@ -20,22 +20,40 @@ def _norm(path: str) -> str:
     return path.split("?")[0].rstrip("/") or "/"
 
 
-def _fastapi_routes() -> set[str]:
+def _fastapi_pairs() -> set[tuple[str, str]]:
+    """(METOD, väg) ur dekoratorerna i main.py."""
     src = (_ROOT / "main.py").read_text(encoding="utf-8")
-    return {_norm(p) for _, p in
+    return {(m.upper(), _norm(p)) for m, p in
             re.findall(r'@app\.(get|post|put|delete)\("([^"]+)"', src)}
 
 
-def _devserver_routes() -> set[str]:
+def _devserver_pairs() -> set[tuple[str, str]]:
+    """(METOD, väg) ur dev-servern.
+
+    Metoden avgörs av vilken router vägen står i: `_route_get` respektive
+    `_route_post`. Att bara jämföra vägar dolde riktig drift — en endpoint
+    som finns som POST i den ena servern och GET i den andra har samma väg
+    och gick därför igenom kontraktstestet.
+    """
     src = (_ROOT / "dev_server.py").read_text(encoding="utf-8")
-    routes = set()
-    for p in re.findall(r'(?:parsed\.path|self\.path)\s*==\s*"([^"]+)"', src):
-        routes.add(_norm(p))
-    # startswith-prefix (t.ex. /v1/reports/<id>) → normaliserad *-form
-    for s in re.findall(r'(?:parsed\.path|self\.path)\.startswith\("([^"]+)"',
-                        src):
-        routes.add(_norm(s.rstrip("/") + "/*"))
-    return routes
+    cut = src.index("def _route_post")
+    pairs = set()
+    for method, part in (("GET", src[:cut]), ("POST", src[cut:])):
+        for p in re.findall(r'(?:parsed\.path|self\.path)\s*==\s*"([^"]+)"',
+                            part):
+            pairs.add((method, _norm(p)))
+        for s in re.findall(
+                r'(?:parsed\.path|self\.path)\.startswith\("([^"]+)"', part):
+            pairs.add((method, _norm(s.rstrip("/") + "/*")))
+    return pairs
+
+
+def _fastapi_routes() -> set[str]:
+    return {p for _, p in _fastapi_pairs()}
+
+
+def _devserver_routes() -> set[str]:
+    return {p for _, p in _devserver_pairs()}
 
 
 # Statiska/HTML-vägar som bara dev-servern serverar direkt (FastAPI
@@ -84,6 +102,37 @@ def test_new_aamos_and_report_endpoints_are_present():
     for p in ("/v1/report", "/v1/platform/status", "/v1/watch",
               "/v1/agents", "/v1/agents/chat", "/v1/cognition/brief"):
         assert p in both, f"{p} finns inte i BÅDA servrarna"
+
+
+def test_the_same_path_answers_the_same_methods_in_both_servers():
+    """Samma väg måste svara på samma verb i båda lagren.
+
+    Ett kontrakt som bara jämför vägar godkänner att /v1/x är POST i den
+    ena servern och GET i den andra. Klienten som byter miljö får då 404
+    eller 405 på en endpoint katalogen påstår finns.
+    """
+    fapi = _fastapi_pairs() - {("GET", p) for p in _FASTAPI_ONLY}
+    dev = _devserver_pairs() - {("GET", p) for p in _DEV_ONLY | _FRAMEWORK}
+    only_fapi = fapi - dev
+    only_dev = dev - fapi
+    assert not only_fapi, \
+        f"Metod/väg i FastAPI men inte dev_server: {sorted(only_fapi)}"
+    assert not only_dev, \
+        f"Metod/väg i dev_server men inte FastAPI: {sorted(only_dev)}"
+
+
+def test_catalog_declares_the_method_each_endpoint_actually_answers():
+    """Katalogen är det agenter och kunder läser. Står fel verb där är
+    den en instruktion som inte fungerar."""
+    both = _fastapi_pairs() & _devserver_pairs()
+    for eng in API_CATALOG["engines"]:
+        for ep in eng["endpoints"]:
+            pair = (ep["method"].upper(), _norm(ep["path"]))
+            if pair[1] in _FRAMEWORK or pair[1] == "/health":
+                continue
+            assert pair in both, \
+                f"Katalogen säger {pair[0]} {pair[1]} – det svarar inte " \
+                f"båda servrarna på"
 
 
 if __name__ == "__main__":

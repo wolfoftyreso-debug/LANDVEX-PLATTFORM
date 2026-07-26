@@ -37,6 +37,7 @@ from typing import Any, Callable
 
 from ..models import Location, SignalValue
 from .base import DataSource
+from .faults import OUR_BUGS
 from . import scb
 from .scb import _haversine_km
 
@@ -123,16 +124,22 @@ class ScbSource(DataSource):
                 raw.update(sig)
                 raw["population_total"] = float(extra["folkmangd_kommun"])
                 extras.update(extra)
+            except OUR_BUGS:
+                raise
             except Exception:
                 failures += 1
         if "income_index" in wanted:
             try:
                 raw["income_index"] = scb.income_index_signal(self.client, kommun)
+            except OUR_BUGS:
+                raise
             except Exception:
                 failures += 1
         if "residential_density" in wanted:
             try:
                 raw["residential_density"] = scb.density_signal(self.client, kommun)
+            except OUR_BUGS:
+                raise
             except Exception:
                 failures += 1
 
@@ -202,6 +209,10 @@ class PermitsSource(DataSource):
             return {}, {}
         try:
             raw = self._client.fetch_permits(location.lat, location.lon)
+        except OUR_BUGS:
+            # Ett attribut/namn/import som inte finns kan inte komma från en
+            # server. Det är vårt fel och ska braka, inte tyst bli "mock".
+            raise
         except Exception:
             self._down_until = self._clock() + self._retry_after_s
             return {}, {}
@@ -250,6 +261,10 @@ class PlacesSource(DataSource):
         try:
             raw, competitors = self._client.fetch_places(
                 location.lat, location.lon, vertical_id)
+        except OUR_BUGS:
+            # Ett attribut/namn/import som inte finns kan inte komma från en
+            # server. Det är vårt fel och ska braka, inte tyst bli "mock".
+            raise
         except Exception:
             self._down_until = self._clock() + self._retry_after_s
             return {}, {}
@@ -322,6 +337,10 @@ class QuixzoomSource(DataSource):
         try:
             data = self._client.quixzoom_missions(
                 location.lat, location.lon, radius_km=self.RADIUS_KM)
+        except OUR_BUGS:
+            # Ett attribut/namn/import som inte finns kan inte komma från en
+            # server. Det är vårt fel och ska braka, inte tyst bli "mock".
+            raise
         except Exception:
             self._down_until = self._clock() + self._retry_after_s
             return {}, {}
@@ -417,6 +436,10 @@ class LivabilitySource(DataSource):
                              "raw_value": got.get("raw_value"),
                              "transform": got.get("transform"),
                              "label_en": got.get("label_en")}
+        except OUR_BUGS:
+            # Ett attribut/namn/import som inte finns kan inte komma från en
+            # server. Det är vårt fel och ska braka, inte tyst bli "mock".
+            raise
         except Exception:
             self._down_until = self._clock() + self._retry_after_s
             return {}, {}

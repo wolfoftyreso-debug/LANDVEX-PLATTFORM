@@ -22,7 +22,7 @@ def test_build_and_schema_org_mapping():
 def test_slug_must_be_canonical():
     try:
         _ent(slug="Not Valid")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 
@@ -30,7 +30,7 @@ def test_slug_must_be_canonical():
 def test_requires_source():
     try:
         _ent(sources=[])
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 
@@ -38,7 +38,7 @@ def test_requires_source():
 def test_neutral_language_enforced():
     try:
         _ent(definition="This is the best score and you should use it")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 
@@ -49,7 +49,7 @@ def test_revise_versions_and_slug_immutable():
     assert v2["version"] == 2 and v2["previous_version"] == v1["checksum"]
     try:
         S.revise(v1, canonical_slug="new-slug")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 
@@ -60,7 +60,7 @@ def test_relations_typed():
     assert e["relations"][0]["target"] == "risk-score"
     try:
         S.add_relation(e, "bogus", "x")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

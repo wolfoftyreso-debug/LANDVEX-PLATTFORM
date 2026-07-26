@@ -59,7 +59,7 @@ def test_relation_typed_and_bounded():
     assert a["relations"][0]["strength"] == 1.0
     try:
         C.add_relation(a, "nonsense", "x")
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

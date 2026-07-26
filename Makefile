@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test run dev build up prod down logs check readiness smoke deploy
+.PHONY: help test lint run dev build up prod down logs check readiness smoke deploy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -14,6 +14,9 @@ test: ## Run all test suites (no pytest, no network)
 	  if $(PY) -m "tests.$$(basename $$t .py)" >/dev/null 2>&1; then ok=$$((ok+1)); \
 	  else fail=$$((fail+1)); echo "FAIL: $$t"; fi; done; \
 	  echo "$$ok green, $$fail failed"; [ $$fail -eq 0 ]
+
+lint: ## Static gate (ruff; rules and rationale in ruff.toml)
+	@ruff check . && echo "lint OK"
 
 check: ## Compile-check engine + api
 	@$(PY) -c "import compileall,sys; sys.exit(0 if compileall.compile_dir('engine',quiet=1) and compileall.compile_dir('api',quiet=1) else 1)" && echo "compile OK"

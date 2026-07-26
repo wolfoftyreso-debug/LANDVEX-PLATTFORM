@@ -35,7 +35,7 @@ def test_wage_fx_converted_and_labelled():
 def test_unknown_inputs_raise():
     for bad in (lambda: W.wage("nope", "se"), lambda: W.wage("elektriker", "zz")):
         try:
-            bad(); assert False
+            bad(); raise AssertionError()
         except ValueError:
             pass
 

@@ -120,7 +120,7 @@ def build_query(meta: dict, region: list[str], time_top: int,
         elif var.get("time") or code == "Tid":
             query.append({"code": code, "selection": {"filter": "top", "values": [str(time_top)]}})
         elif code == "ContentsCode":
-            picked = [v for v, t in zip(values, texts)
+            picked = [v for v, t in zip(values, texts, strict=False)
                       if any(w in t.lower() for w in contents_like)]
             if not picked:
                 raise ScbError(f"No contents series matches {contents_like} "
@@ -131,7 +131,7 @@ def build_query(meta: dict, region: list[str], time_top: int,
         elif var.get("elimination"):
             continue
         else:
-            total = [v for v, t in zip(values, texts)
+            total = [v for v, t in zip(values, texts, strict=False)
                      if t.lower().strip() in _TOTAL_WORDS or
                      any(t.lower().startswith(w) for w in _TOTAL_WORDS)]
             query.append({"code": code, "selection": {
@@ -164,9 +164,9 @@ class JsonStat:
         """Genererar (koordinater, värde) för alla celler som matchar fixed."""
         free = [d for d in self.dims if d not in fixed]
         for combo in itertools.product(*(self.codes(d) for d in free)):
-            coords = dict(fixed, **dict(zip(free, combo)))
+            coords = dict(fixed, **dict(zip(free, combo, strict=False)))
             lin = 0
-            for d, n in zip(self.dims, self.size):
+            for d, n in zip(self.dims, self.size, strict=False):
                 lin = lin * n + self._index(d)[coords[d]]
             v = self.values[lin]
             if v is not None:
@@ -362,9 +362,9 @@ if __name__ == "__main__":
         sys.exit("No municipality within the threshold – extend KOMMUNER "
                  "or provide another point.")
     code, name = hit
-    print(f"Municipality: {name} ({code})")
+    print(f"Municipality: {name} ({code})")   # noqa: T201 – CLI-demoblock
     client = ScbClient()
     sig, extra = population_signals(client, code)
-    print(f"Population: {extra}  →  {sig}")
-    print(f"income_index: {income_index_signal(client, code)}")
-    print(f"residential_density (hh/km²): {density_signal(client, code)}")
+    print(f"Population: {extra}  →  {sig}")   # noqa: T201 – CLI-demoblock
+    print(f"income_index: {income_index_signal(client, code)}")   # noqa: T201 – CLI-demoblock
+    print(f"residential_density (hh/km²): {density_signal(client, code)}")   # noqa: T201 – CLI-demoblock

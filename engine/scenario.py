@@ -40,9 +40,9 @@ def _fit(series: list[float]):
     xs = list(range(n))
     mx, my = mean(xs), mean(series)
     sxx = sum((x - mx) ** 2 for x in xs)
-    slope = sum((x - mx) * (y - my) for x, y in zip(xs, series)) / sxx if sxx else 0.0
+    slope = sum((x - mx) * (y - my) for x, y in zip(xs, series, strict=False)) / sxx if sxx else 0.0
     intercept = my - slope * mx
-    resid = [y - (slope * x + intercept) for x, y in zip(xs, series)]
+    resid = [y - (slope * x + intercept) for x, y in zip(xs, series, strict=False)]
     rmse = math.sqrt(mean([e * e for e in resid])) if n else 0.0
     ss_tot = sum((y - my) ** 2 for y in series)
     ss_res = sum(e * e for e in resid)

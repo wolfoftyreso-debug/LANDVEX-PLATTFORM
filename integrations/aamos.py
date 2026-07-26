@@ -24,15 +24,19 @@ import os
 import urllib.request
 from typing import Any, Callable
 from urllib.parse import quote
+from engine.datasources.faults import OUR_BUGS
 
 
 def _xml_to_obj(text: str):
     """Best-effort XML/RSS → dict (AAMOS Core often returns RSS/XML in a
     `contents` field). Never raises; returns {"raw": text} on failure."""
-    import xml.etree.ElementTree as ET
+    from engine.safexml import parse as _parse_xml
     try:
-        root = ET.fromstring(text)
+        root = _parse_xml(text)
+    except OUR_BUGS:
+        raise        # vårt fel, inte omvärldens – se faults.py
     except Exception:
+        # Trasig, för stor eller DTD-bärande XML → ingen tolkning alls.
         return {"raw": text}
 
     def node(el):
@@ -60,6 +64,8 @@ def _decode_body(text: str) -> dict:
     text = text.strip()
     try:
         data = json.loads(text)
+    except OUR_BUGS:
+        raise        # vårt fel, inte omvärldens – se faults.py
     except Exception:
         # Inte JSON – kanske rå XML/RSS.
         return _xml_to_obj(text) if text[:1] == "<" else {"raw": text}
@@ -141,6 +147,10 @@ class AamosClient:
         try:
             return self._transport(method, url, body)
         except AamosUnavailable:
+            raise
+        except OUR_BUGS:
+            # Ett fel i VÅR transportkod ska inte rapporteras som att
+            # AAMOS är otillgängligt — då letar man på fel sida nätet.
             raise
         except Exception as e:
             raise AamosUnavailable(

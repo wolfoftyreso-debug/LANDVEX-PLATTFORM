@@ -15,6 +15,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Compile (syntax + imports)
         run: python -m compileall -q engine api integrations tests scripts
+      - name: Lint (ruff — se ruff.toml för varför varje regel är på)
+        run: |
+          pip install --quiet ruff
+          ruff check .
       - name: Test suite (auto-discovered, no deps, no network)
         run: |
           for t in tests/test_*.py; do

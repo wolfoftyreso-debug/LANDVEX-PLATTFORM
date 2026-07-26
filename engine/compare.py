@@ -31,9 +31,9 @@ def compare(locations: list[dict[str, Any]], vertical_id: str,
             loc = Location(lat=float(d["lat"]), lon=float(d["lon"]),
                            address=str(d.get("address", f"Location {i + 1}")),
                            radius_minutes=int(d.get("radius_minutes", 10)))
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError) as e:
             raise ValueError(f"Location {i + 1}: lat and lon are required "
-                             f"as numbers.")
+                             f"as numbers.") from e
         locs.append(loc)
         reports.append(analyze(loc, vertical_id, resolver=resolver))
         risks.append(assess(loc, vertical_id, resolver=resolver))

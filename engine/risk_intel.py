@@ -28,7 +28,7 @@ en påhittad pil. Determinism: samma plats + vertikal → samma Risk Score.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
@@ -330,7 +330,7 @@ def risk_intelligence(location: Location, vertical_id: str,
                                     normalize(CATALOG[sid], sv.value), 3)}
 
     categories = [_category_risk(signals, c) for c in RISK_CATEGORIES]
-    computed = [(c, cat) for c, cat in zip(categories, RISK_CATEGORIES)
+    computed = [(c, cat) for c, cat in zip(categories, RISK_CATEGORIES, strict=False)
                 if c.get("status") == "computed"]
     # Sammanvägd Risk Score – endast beräknade kategorier (ärlig täckning).
     num = sum(c["risk"] * cat.weight for c, cat in computed)

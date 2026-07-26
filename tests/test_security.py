@@ -242,6 +242,71 @@ def test_jwt_gate_audit_never_logs_token():
     assert tok not in dumped and tok.split(".")[2] not in dumped
 
 
+
+# ── Revisionsfynd: grindar som såg ut att gälla ──────────────────────────
+def test_a_valid_api_key_containing_dots_still_authenticates():
+    """En nyckel som råkar se ut som en JWT är fortfarande en nyckel.
+
+    _extract_jwt kände igen formen "två punkter" och skickade credentialen
+    till JWT-vägen, som avvisade den med "JWT authentication is not
+    configured". En korrekt konfigurerad nyckel kunde alltså aldrig logga
+    in. Exakt uppslag går före heuristik.
+    """
+    from api.security import ApiAuth
+    a = ApiAuth(keys_env="ab.cd.ef:acme:admin:pro", jwt_secret="")
+    p = a.authorize("ab.cd.ef", "GET", "/v1/markets")
+    assert p.tenant == "acme" and p.plan == "pro"
+    # och en okänd credential med samma form ger fortfarande 401
+    try:
+        a.authorize("xx.yy.zz", "GET", "/v1/markets")
+    except AuthError as e:
+        assert e.status == 401
+    else:
+        raise AssertionError("okänd nyckel släpptes igenom")
+
+
+def test_a_rate_limit_of_zero_means_zero():
+    """`if per_minute` gjorde 0 falsy → taket blev det globala (300/min).
+    Ett tak som tyst blir sin motsats är värre än inget tak."""
+    from api.security import RateLimiter
+    rl = RateLimiter(per_minute=300)
+    try:
+        rl.check("blocked", 0)
+    except AuthError as e:
+        assert e.status == 429
+    else:
+        raise AssertionError("ett tak på 0 släppte igenom ett anrop")
+    # None betyder fortfarande "använd det globala taket"
+    rl.check("normal", None)
+    try:
+        rl.check("negative", -1)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("negativt tak accepterades")
+
+
+def test_one_percentile_definition_in_the_whole_codebase():
+    """Mätgrinden godkänner bygget, /metrics beskriver driften. Räknar de
+    olika beror svaret på vem som frågade."""
+    from api import security
+    from engine.stats import percentile
+    from scripts.perf_budget import percentile as gate_percentile
+    assert percentile is gate_percentile is security.percentile
+
+
+def test_the_latency_window_is_bounded_without_copying_every_call():
+    from api.security import Metrics
+    import collections
+    m = Metrics()
+    for i in range(Metrics.WINDOW + 500):
+        m.observe("/x", 200, float(i))
+    assert isinstance(m._latencies, collections.deque)
+    assert m._latencies.maxlen == Metrics.WINDOW
+    assert len(m._latencies) == Metrics.WINDOW
+    assert m.requests == Metrics.WINDOW + 500     # räknaren tappar inget
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -8,7 +8,8 @@ import os
 from scripts.perf_budget import (DEFAULT_BUDGETS, evaluate, min_samples_for,
                                  percentile, report)
 
-BUDGETS = json.load(open(DEFAULT_BUDGETS, encoding="utf-8"))
+with open(DEFAULT_BUDGETS, encoding="utf-8") as _fh:
+    BUDGETS = json.load(_fh)
 
 
 def test_every_budget_states_where_it_is_measured():
@@ -93,9 +94,9 @@ def test_a_failing_budget_is_an_error_not_a_warning():
 
 
 # ── Landvex-budgetarna (samma grind, annan yta) ─────────────────────────
-LANDVEX = json.load(open(os.path.join(
-    os.path.dirname(DEFAULT_BUDGETS), "landvex-budgets.json"),
-    encoding="utf-8"))
+with open(os.path.join(os.path.dirname(DEFAULT_BUDGETS),
+                       "landvex-budgets.json"), encoding="utf-8") as _fh:
+    LANDVEX = json.load(_fh)
 
 
 def test_landvex_budgets_are_well_formed_too():

@@ -38,11 +38,10 @@ from .models import Location
 from .profile import BusinessProfile
 from .risk import assess
 from .scan import economy_scenario, scan
-from .segments import SEGMENTS, segment_analysis, segment_map
+from .segments import segment_analysis, segment_map
 from .scoring import analyze
 from .verticals import VERTICALS
-from .workforce import (BASE_YEAR, MAX_HORIZON_YEARS, OCCUPATIONS,
-                        forecast, global_map, national_map)
+from .workforce import (BASE_YEAR, MAX_HORIZON_YEARS, forecast, global_map, national_map)
 
 # ── Entity lexicons (English + Swedish synonyms → id) ────────────────
 

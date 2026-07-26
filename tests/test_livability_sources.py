@@ -7,6 +7,7 @@ import json
 from engine.datasources import livability_sources as LS
 from engine.datasources.adapters import LivabilitySource
 from engine.models import Location
+import tempfile
 
 # Kolada v2 svarar så här på /data/kpi/{kpi}/municipality/{kommun}
 KOLADA_REAL = {"count": 1, "values": [
@@ -172,7 +173,8 @@ def test_defaults_stay_candidate_without_a_probe_result():
         assert LS.KOLADA_SIGNALS[sid]["verified"] is False, sid
 
 
-def test_probe_result_overlays_and_can_downgrade(tmpdir="/tmp"):
+def test_probe_result_overlays_and_can_downgrade(
+        tmpdir=tempfile.gettempdir()):
     """Ett svar som uteblir ska sänka en signal, inte bara höja."""
     import copy
     saved = copy.deepcopy(LS.KOLADA_SIGNALS)

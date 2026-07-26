@@ -6,7 +6,6 @@ PostgresStore.selftest() vid driftsättning.
 """
 from __future__ import annotations
 
-from typing import Any
 
 from engine.datasources.adapters import ScbSource
 from engine.datasources.base import DataSource, Resolver

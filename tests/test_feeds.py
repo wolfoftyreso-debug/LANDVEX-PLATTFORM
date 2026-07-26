@@ -51,7 +51,7 @@ def test_regional_anomalies_needs_two():
 def test_unknown_feed_raises():
     try:
         F.generate("nope", [])
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

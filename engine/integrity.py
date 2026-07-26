@@ -261,7 +261,7 @@ def audit(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _has_flat_run(series: list[Any], n: int) -> bool:
     run = 1
-    for a, b in zip(series, series[1:]):
+    for a, b in zip(series, series[1:], strict=False):
         if a == b:
             run += 1
             if run >= n:

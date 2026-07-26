@@ -29,7 +29,7 @@ data_coverage; ärlig degradering till process-minne när Store saknas.
 from __future__ import annotations
 
 import threading
-from typing import Any, Callable
+from typing import Any
 
 from . import stats
 from .integrity import canonical_hash, framing_disclosure

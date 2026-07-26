@@ -25,7 +25,7 @@ def test_entrypoints_have_tools_and_event_feeds():
 def test_entrypoint_lookup_and_unknown():
     assert E.entrypoint("investor")["lens"] == "risk & return"
     try:
-        E.entrypoint("nope"); assert False
+        E.entrypoint("nope"); raise AssertionError()
     except ValueError:
         pass
 
@@ -80,11 +80,11 @@ def test_admin_municipal_live_register_wins():
 
 def test_admin_unknown_country_and_level_raise():
     try:
-        A.admin_units("zz"); assert False
+        A.admin_units("zz"); raise AssertionError()
     except ValueError:
         pass
     try:
-        A.admin_units("se", level=4); assert False
+        A.admin_units("se", level=4); raise AssertionError()
     except ValueError:
         pass
 
@@ -97,7 +97,7 @@ def test_postal_tier_is_documented_not_invented():
     us = A.admin_units("us", level=3)
     assert us["label_en"] == "ZIP Code" and us["official_total"] > 40000
     try:
-        A.postal_register("zz"); assert False
+        A.postal_register("zz"); raise AssertionError()
     except ValueError:
         pass
 

@@ -20,7 +20,6 @@ integrity-hash.
 from __future__ import annotations
 
 import threading
-from typing import Any
 
 from .claims import validate_governance
 from .integrity import canonical_hash, framing_disclosure

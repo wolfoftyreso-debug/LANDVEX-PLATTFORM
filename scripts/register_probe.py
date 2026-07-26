@@ -101,7 +101,7 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main(sys.argv))
     except KeyboardInterrupt:
-        raise SystemExit(130)
+        raise SystemExit(130) from None
     except Exception:  # noqa: BLE001
-        traceback.print_exc()
-        raise SystemExit(1)
+        traceback.print_exc()      # orsaken är redan utskriven
+        raise SystemExit(1) from None

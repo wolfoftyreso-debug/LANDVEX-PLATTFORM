@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import subprocess
 import sys
 import time
@@ -131,14 +132,16 @@ def main(argv: list[str]) -> int:
         return argv[argv.index(name) + 1] if name in argv else default
 
     runs = int(opt("--runs", "20"))
-    out_path = opt("--out", "/tmp/landvex-measurements.json")
+    out_path = opt("--out", os.path.join(tempfile.gettempdir(),
+                                    "landvex-measurements.json"))
     base = opt("--base", "")
     proc = None
     if not base:
         proc, base = _serve(int(opt("--port", "8288")))
     bpath = opt("--budgets", os.path.join("docs", "landvex-budgets.json"))
     try:
-        budgets = json.load(open(bpath, encoding="utf-8"))
+        with open(bpath, encoding="utf-8") as fh:
+            budgets = json.load(fh)
     except Exception:  # noqa: BLE001
         budgets = {}
     print(f"measuring {base} · at least {runs} runs per endpoint, more where "

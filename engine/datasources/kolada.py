@@ -20,6 +20,7 @@ import json
 import os
 import urllib.request
 from typing import Any, Callable
+from .faults import OUR_BUGS
 
 _UA = "landvex-opportunity-engine/kolada"
 
@@ -66,6 +67,8 @@ class KoladaClient:
                + (f"/year/{y}" if y else ""))
         try:
             raw = json.loads(self._transport(url, self.timeout))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001 - ärlig degradering
             return None
         val = self._pick_total(raw)

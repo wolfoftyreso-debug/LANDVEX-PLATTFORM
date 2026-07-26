@@ -6,7 +6,6 @@ from engine.indices import (CONTRADICTION_THRESHOLD, INDEX_TYPES,
                             city_assessment, index_catalog, index_map)
 from engine.markets import MARKETS
 from engine.signals import CATALOG
-from engine.markets import MARKETS
 SE_N = len(MARKETS["se"].regions)   # antalet svenska kommuner är data, inte en konstant
 
 

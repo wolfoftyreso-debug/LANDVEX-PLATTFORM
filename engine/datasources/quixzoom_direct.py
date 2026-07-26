@@ -28,6 +28,7 @@ import json
 import os
 import urllib.request
 from typing import Any, Callable
+from .faults import OUR_BUGS
 
 
 class DirectQuixzoomClient:
@@ -71,11 +72,15 @@ class DirectQuixzoomClient:
                f"lat={lat}&lon={lon}&radius_km={radius_km}")
         try:
             text = self._transport(url, self.timeout, self.auth_headers())
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception as e:
             from integrations.aamos import AamosUnavailable
             raise AamosUnavailable(f"Direct quiXzoom request failed: {e}") from e
         text = text.strip()
         try:
             return json.loads(text)
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:
             return {"raw": text}

@@ -29,6 +29,7 @@ import os
 import urllib.parse
 import urllib.request
 from typing import Callable
+from .faults import OUR_BUGS
 
 _UA = "landvex-opportunity-engine/registers"
 
@@ -111,6 +112,8 @@ class PxWebRegister(RegisterProvider):
         try:
             raw = json.loads(self._transport(url, json.dumps(query).encode(),
                                              self.timeout).decode("utf-8"))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001 – ärlig degradering
             return None
         return _parse_jsonstat(raw, spec["authority"], self.id)
@@ -178,6 +181,8 @@ class CensusCbpRegister(RegisterProvider):
         try:
             raw = json.loads(self._transport(url, None, self.timeout)
                              .decode("utf-8"))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
             return None
         if not (isinstance(raw, list) and len(raw) > 1):
@@ -214,6 +219,8 @@ class EurostatRegister(RegisterProvider):
         try:
             raw = json.loads(self._transport(url, None, self.timeout)
                              .decode("utf-8"))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
             return None
         return _parse_jsonstat(raw, "Eurostat", self.id)
@@ -244,6 +251,8 @@ class GenericRegister(RegisterProvider):
         try:
             raw = json.loads(self._transport(url, None, self.timeout)
                              .decode("utf-8"))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001
             return None
         if not isinstance(raw, dict) or raw.get("count") is None:

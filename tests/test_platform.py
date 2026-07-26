@@ -8,7 +8,7 @@ import tempfile
 
 from api.agent_manifest import AGENT_MANIFEST
 from api.catalog import API_CATALOG
-from api.health import build_health, source_status
+from api.health import build_health
 from api.security import AuditLog, Metrics
 from engine.datasources.adapters import ScbSource, production_sources
 from engine.datasources.base import Resolver

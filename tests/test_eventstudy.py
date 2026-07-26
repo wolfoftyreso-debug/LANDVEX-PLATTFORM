@@ -18,7 +18,7 @@ def test_before_after_level_and_trend():
 def test_before_after_bad_split():
     try:
         E.before_after([1, 2, 3], 0)
-        assert False
+        raise AssertionError()
     except ValueError:
         pass
 

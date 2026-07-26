@@ -30,7 +30,6 @@ from __future__ import annotations
 
 from .integrity import framing_disclosure
 from .signals import CATALOG, normalize
-from .stats import mean
 
 # ── Hushållstyper: vikter som data ──────────────────────────────────────
 HOUSEHOLDS: dict[str, dict] = {
@@ -190,7 +189,7 @@ def mobility(occupation: str, market: str, *,
                  "residence required — this is the binding constraint, not "
                  "the job market."]
         if regulated:
-            steps += [f"Credential evaluation of the foreign qualification.",
+            steps += ["Credential evaluation of the foreign qualification.",
                       f"Examination: {prof['us_exam']}.",
                       f"Licensure: granted per state by the "
                       f"{prof['us_body']} — it does not transfer between "

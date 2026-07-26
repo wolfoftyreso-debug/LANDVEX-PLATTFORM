@@ -2,7 +2,6 @@
 python3 -m tests.test_ask"""
 from __future__ import annotations
 
-import json
 
 from engine.ask import ask, parse
 from engine.markets import MARKETS

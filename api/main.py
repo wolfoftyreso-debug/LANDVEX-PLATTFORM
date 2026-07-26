@@ -265,7 +265,7 @@ def save_profile(profile: dict):
     try:
         p = profile_from_dict(profile)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return {"profile_id": STORE.save_profile(p.to_dict(), created_at=time.time())}
 
 
@@ -306,7 +306,7 @@ def scan_sweden(req: ScanRequest):
         return scan(p, resolver=RESOLVER, top_n=req.top_n, level=req.level,
                     market=req.market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class ForecastRequest(BaseModel):
@@ -356,7 +356,7 @@ def ask_landvex(req: AskRequest):
             svar["neutrality"] = block
         return svar
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/risk")
@@ -366,7 +366,7 @@ def risk_profile(req: RiskRequest):
                                radius_minutes=req.radius_minutes),
                       req.vertical, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/compare")
@@ -374,7 +374,7 @@ def compare_locations(req: CompareRequest):
     try:
         return compare(req.locations, req.vertical, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class OpportunitiesRequest(BaseModel):
@@ -398,7 +398,7 @@ def opportunities(req: OpportunitiesRequest):
             company_form=req.company_form, market=req.market,
             programs_client=PROGRAMS)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class RiskIntelRequest(BaseModel):
@@ -418,7 +418,7 @@ def risk_intel_ep(req: RiskIntelRequest):
             req.vertical, resolver=RESOLVER,
             specialization=req.specialization, market=req.market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class GapRequest(BaseModel):
@@ -441,7 +441,7 @@ def gaps(req: GapRequest):
         return gap_analysis(req.vertical, market=req.market,
                             resolver=RESOLVER, top_n=req.top_n)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/plan")
@@ -452,7 +452,7 @@ def plan(req: PlanRequest):
                                   budget_band=req.budget_band,
                                   resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 # --- Skördade lager: KPI-motor + Lambda-index -----------------------------
@@ -476,7 +476,7 @@ def kpi_evaluate(req: KpiEvalRequest):
     try:
         return evaluate_kpi(req.code, req.value, req.previous)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/lambda")
@@ -499,7 +499,7 @@ def setpoints_assess(req: SetpointRequest):
     try:
         return assess_zone(req.code, req.value)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class CiteRequest(BaseModel):
@@ -554,7 +554,7 @@ def feeds_events(req: FeedEventsRequest):
     try:
         return {"events": generate_feed(req.feed, req.rows)}
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/worthiness")
@@ -572,7 +572,7 @@ def decision_ep(req: DecisionRequest):
     try:
         return decision_evaluate(req.template, req.answers)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class StrimEntityRequest(BaseModel):
@@ -597,7 +597,7 @@ def strim_entity(req: StrimEntityRequest):
                            name_sv=req.name_sv, definition=req.definition,
                            sources=req.sources, fields=req.fields)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return {"entity": ent, "jsonld": to_jsonld(ent),
             "citations": {s: strim_cite(ent, s) for s in ("text", "apa", "bibtex")}}
 
@@ -621,7 +621,7 @@ def admin_ep(country: str = "", level: int = 1, parent: str = ""):
         try:
             return admin_units(country, level=level, parent=parent)
         except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from e
     return admin_countries()
 
 
@@ -710,7 +710,7 @@ def visitor_ingest(req: VisitorRequest):
     try:
         prof = visitor_engine.from_onboarding(req.payload)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return {"profile": prof, "guide": visitor_engine.guide(prof)}
 
 
@@ -725,7 +725,7 @@ def customer_stage(req: VisitorRequest):
     try:
         return customer_engine.stage(req.payload)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class SaturationRequest(BaseModel):
@@ -751,7 +751,7 @@ def merit_ep(req: MeritRequest):
         return market_merit(req.market, top_n=min(max(req.top_n, 1), 40),
                             resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 class LivabilityRequest(BaseModel):
@@ -781,7 +781,7 @@ def livability_ep(req: LivabilityRequest):
             per_market=min(max(req.per_market, 1), 40),
             citizenship=req.citizenship, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class BriefRequest(BaseModel):
@@ -821,7 +821,7 @@ def brief_ep(req: BriefRequest):
                            limit=min(max(req.limit, 1), 100), date=req.date,
                            plan=req.plan, own_assets=req.own_assets)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/brief/report")
@@ -837,7 +837,7 @@ def brief_report_ep(req: BriefReportRequest):
                             options=req.options or None,
                             observed_at=req.observed_at)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/provenance")
@@ -846,7 +846,7 @@ def provenance_ep(cls: str = ""):
     try:
         return {**provenance_summary(), "parameters": provenance_parameters(cls)}
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/offering")
@@ -855,7 +855,7 @@ def offering_ep(plan: str = ""):
     try:
         return offering(plan)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/registers")
@@ -871,7 +871,7 @@ def saturation_ep(req: SaturationRequest):
                                  resolver=RESOLVER,
                                  peer_limit=min(max(req.peer_limit, 5), 60))
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @app.get("/v1/inbox")
@@ -887,7 +887,7 @@ def inbox_subscribe(req: SubscribeRequest):
                                       min_severity=req.min_severity,
                                       threshold=req.threshold)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/inbox/route")
@@ -912,7 +912,7 @@ def monitors_define(req: MonitorDefineRequest):
             req.metric, req.scope, req.rule, req.owner,
             params=req.params, cadence=req.cadence or None, label=req.label)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/monitors/evaluate")
@@ -936,7 +936,7 @@ def monitors_escalate(req: MonitorEscalateRequest):
             req.finding, req.owners, req.expected,
             committed_at=req.committed_at, horizon_months=req.horizon_months)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/kolada")
@@ -1006,7 +1006,7 @@ def decisions_commit(req: DecisionCommitRequest):
                                horizon_months=req.horizon_months,
                                committed_at=req.committed_at)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/decisions/resolve")
@@ -1100,7 +1100,7 @@ def event_study_ep(req: EventStudyRequest):
         raise HTTPException(status_code=422,
                             detail="provide series+split_index or the four DiD arrays")
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/benchmark")
@@ -1151,7 +1151,7 @@ def wages_lookup(req: WageLookupRequest):
     try:
         return wage(req.occupation, req.market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/wages/compare")
@@ -1159,7 +1159,7 @@ def wages_compare(req: WageCompareRequest):
     try:
         return wage_compare(req.occupation, req.markets)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class WageContextRequest(BaseModel):
@@ -1194,7 +1194,7 @@ def corrections_submit(req: CorrectionSubmitRequest):
                                  req.source, req.submitter_id,
                                  current_value=req.current_value, note=req.note)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/corrections/consensus")
@@ -1230,7 +1230,7 @@ def service_analyze(req: ServiceAnalyzeRequest):
                                 target_year=req.target_year,
                                 resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/service/map")
@@ -1240,7 +1240,7 @@ def service_map(product_id: str, market: str = DEFAULT_MARKET,
         return service_demand_map(product_id, market=market,
                                   target_year=target_year, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/segments")
@@ -1254,7 +1254,7 @@ def segments_analyze(req: SegmentAnalyzeRequest):
         return segment_analysis(req.kommun_kod, market=req.market,
                                 resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/segments/map")
@@ -1262,7 +1262,7 @@ def segments_map(segment_id: str, market: str = DEFAULT_MARKET):
     try:
         return segment_map(segment_id, market=market, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 class AssessRequest(BaseModel):
@@ -1370,7 +1370,7 @@ def indices_map(request: Request, index_id: str, market: str = DEFAULT_MARKET):
     try:
         return index_map(index_id, market=market, resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/indices/assess")
@@ -1379,7 +1379,7 @@ def indices_assess(request: Request, req: AssessRequest):
         res = city_assessment(req.kommun_kod, market=req.market,
                               resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     if _live_locked(request):
         for row in res["index"]:
             if row["niva"] == "live":
@@ -1413,7 +1413,7 @@ def workforce_forecast(req: ForecastRequest):
                            req.occupation_ids, resolver=RESOLVER,
                            market=req.market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/workforce/simulate")
@@ -1423,7 +1423,7 @@ def workforce_simulate(req: SimulateRequest):
                            req.extra_places_per_year, req.target_year,
                            resolver=RESOLVER, market=req.market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/workforce/map")
@@ -1433,7 +1433,7 @@ def workforce_map(occupation_id: str, target_year: int = 2035,
         return national_map(occupation_id, target_year, resolver=RESOLVER,
                             market=market)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/workforce/global-map")
@@ -1443,7 +1443,7 @@ def workforce_global_map(occupation_id: str, target_year: int = 2035,
         return global_map(occupation_id, target_year, group=group,
                           resolver=RESOLVER)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/reports")

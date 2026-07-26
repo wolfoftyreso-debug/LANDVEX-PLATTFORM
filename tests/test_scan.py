@@ -24,7 +24,7 @@ def test_profile_options_cover_all_fields():
     for key in ("vertical_id", "budget_band", "team_size", "business_model",
                 "risk_tolerance", "commute_km", "environments",
                 "horizon_years", "goal"):
-        assert key in opts and opts[key], key
+        assert opts.get(key), key
         assert all("label_en" in o for o in opts[key]), key
     assert {o["id"] for o in opts["vertical_id"]} == set(VERTICALS)
 

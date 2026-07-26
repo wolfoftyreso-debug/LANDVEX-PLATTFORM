@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from engine.ask import ask, parse
 from engine.markets import (MARKET_GROUPS, MARKETS, find_region_by_name,
-                            get_market, get_region, market_catalog)
+                            get_region, market_catalog)
 from engine.profile import profile_from_dict
 from engine.scan import scan
 from engine.workforce import forecast, global_map

@@ -26,6 +26,7 @@ import json
 import os
 import urllib.request
 from typing import Callable
+from .datasources.faults import OUR_BUGS
 
 # ── Officiella register per land ────────────────────────────────────────
 # granularity = finaste geografiska nivå registret publicerar på.
@@ -258,6 +259,8 @@ class RegisterClient:
                f"&region={region}&code={code['code']}&scheme={code['scheme']}")
         try:
             raw = json.loads(self._transport(url, self.timeout))
+        except OUR_BUGS:
+            raise        # vårt fel, inte omvärldens – se faults.py
         except Exception:  # noqa: BLE001 – ärlig degradering
             return None
         if not isinstance(raw, dict) or raw.get("count") is None:

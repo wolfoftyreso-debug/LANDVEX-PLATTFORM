@@ -225,7 +225,7 @@ def segment_map(segment_id: str, market: str = DEFAULT_MARKET,
         "sammanfattning_en": (
             f"Most {seg.label_en.lower()} in {mkt.label_en}: "
             + ", ".join(r["kommun"] for r in rows[:min(3, len(rows))])
-            + f". Primarily served by "
+            + ". Primarily served by "
             + ", ".join(VERTICALS[v].label_en.lower() for v in seg.verticals)
             + "."),
         "betjanas_av": [{"vertical_id": v, "label_en": VERTICALS[v].label_en}

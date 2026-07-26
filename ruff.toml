@@ -1,0 +1,50 @@
+# Statisk grind för LANDVEX. Kör: make lint  (eller: ruff check .)
+#
+# Regeluppsättningen är vald, inte ärvd. Varje familj står här för att den
+# fångar ett fel som FAKTISKT uppstått i den här kodbasen, och inget är
+# påslaget bara för att det är påslagbart — en grind som larmar om smak
+# lär folk att ignorera larmen, och då fångar den inte buggarna heller.
+#
+# Bakgrund till att grinden alls finns: en mekanisk sökning-och-ersättning
+# lade `from e` på fyra `raise` som låg i en ANNAN funktion än sitt except.
+# Alla fyra hade kastat NameError i produktion. Testsviten var grön —
+# ingen av raderna nås av ett test. F821 hittade dem på en sekund.
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "F",    # pyflakes: odefinierade namn, oanvända importer, omdefinitioner.
+            #   F821 fångade fyra NameError som testsviten missade.
+    "E9",   # syntax-/körfel.
+    "B",    # bugbear: muterbara defaultargument, tyst trunkerande zip,
+            #   `assert False` som försvinner under python -O, tappade
+            #   orsakskedjor.
+    "S",    # bandit: osäkra anrop. Se per-file-ignores för testerna.
+    "T20",  # print() i biblioteks- och motorkod. Motorn returnerar data;
+            #   den skriver inte till stdout bakom ryggen på anroparen.
+]
+
+ignore = [
+    "E501",    # radlängd sköts av line-length ovan, inte som fel.
+    "S310",    # urllib-anrop mot konfigurerade URL:er ÄR uppdraget här.
+    "S311",    # random används för demodata, aldrig för nycklar.
+    "S104",    # 0.0.0.0-bindning är avsiktlig (bakom nginx), dokumenterad
+               #   i api/dev_server.main och styrbar med LANDVEX_HOST.
+    "S324",    # icke-kryptografiska hashar används för cache-nycklar.
+    "B008",    # anrop i defaultargument är FastAPI:s eget Depends-mönster.
+]
+
+[lint.per-file-ignores]
+# Testerna körs utan pytest, med rena assert-satser. S101 skulle förbjuda
+# just det som är hela testformen här.
+"tests/*" = ["S101", "S105", "S106", "S107", "T20", "B011"]
+# Skript ÄR kommandoradsverktyg: att skriva till stdout är deras uppgift.
+"scripts/*" = ["T20", "S101"]
+"demo.py" = ["T20"]
+"run.py" = ["T20"]
+# Serverlagren loggar strukturerat till stdout med flit (se AuditLog).
+"api/dev_server.py" = ["T20"]
+"api/security.py" = ["T20"]
+"integrations/aamos.py" = ["T20"]
