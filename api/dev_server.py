@@ -64,6 +64,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
@@ -281,6 +282,8 @@ class Handler(BaseHTTPRequestHandler):
                 {"id": k, "label_en": v["label_en"],
                  "means_en": v["means_en"], "weights": v["weights"]}
                 for k, v in HOUSEHOLDS.items()]})
+        if parsed.path == "/v1/brief":
+            return self._send(200, brief_catalog())
         if parsed.path == "/v1/provenance":
             cls = parse_qs(parsed.query).get("cls", [""])[0]
             try:
@@ -530,6 +533,24 @@ class Handler(BaseHTTPRequestHandler):
                         resolver=RESOLVER))
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
+            if self.path == "/v1/brief":
+                return self._send(200, daily_brief(
+                    req.get("reports") or [], areas=req.get("areas") or [],
+                    sectors=req.get("sectors") or [],
+                    limit=min(max(int(req.get("limit", 20)), 1), 100),
+                    date=str(req.get("date", ""))))
+            if self.path == "/v1/brief/report":
+                return self._send(200, brief_report(
+                    str(req["kind"]), title=str(req.get("title", "")),
+                    summary_en=str(req.get("summary_en", "")),
+                    areas=req.get("areas") or [],
+                    sectors=req.get("sectors") or None,
+                    evidence=req.get("evidence") or [],
+                    confidence_inputs=req.get("confidence_inputs") or {},
+                    snapshot=req.get("snapshot") or {},
+                    discrepancy_en=str(req.get("discrepancy_en", "")),
+                    options=req.get("options") or None,
+                    observed_at=str(req.get("observed_at", ""))))
             if self.path == "/v1/saturation":
                 try:
                     return self._send(200, market_saturation(

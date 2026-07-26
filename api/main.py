@@ -56,6 +56,7 @@ from engine.accountability import (all_decisions as accountability_all_decisions
                                    set_store as set_accountability_store)
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
+from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
@@ -778,6 +779,56 @@ def livability_ep(req: LivabilityRequest):
             top_n=min(max(req.top_n, 1), 40),
             per_market=min(max(req.per_market, 1), 40),
             citizenship=req.citizenship, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+class BriefRequest(BaseModel):
+    reports: list[dict] = Field(default_factory=list)
+    areas: list[str] = Field(default_factory=list)
+    sectors: list[str] = Field(default_factory=list)
+    limit: int = 20
+    date: str = ""
+
+
+class BriefReportRequest(BaseModel):
+    kind: str
+    title: str
+    summary_en: str
+    areas: list[str] = Field(default_factory=list)
+    sectors: list[str] = Field(default_factory=list)
+    evidence: list[dict] = Field(default_factory=list)
+    confidence_inputs: dict = Field(default_factory=dict)
+    snapshot: dict = Field(default_factory=dict)
+    discrepancy_en: str = ""
+    options: list[str] = Field(default_factory=list)
+    observed_at: str = ""
+
+
+@app.get("/v1/brief")
+def brief_kinds():
+    return brief_catalog()
+
+
+@app.post("/v1/brief")
+def brief_ep(req: BriefRequest):
+    """Today's brief, scoped and sorted by decision value."""
+    return daily_brief(req.reports, areas=req.areas, sectors=req.sectors,
+                       limit=min(max(req.limit, 1), 100), date=req.date)
+
+
+@app.post("/v1/brief/report")
+def brief_report_ep(req: BriefReportRequest):
+    """Build one report — rejects a detection kind that has no declared limits."""
+    try:
+        return brief_report(req.kind, title=req.title,
+                            summary_en=req.summary_en, areas=req.areas,
+                            sectors=req.sectors or None, evidence=req.evidence,
+                            confidence_inputs=req.confidence_inputs,
+                            snapshot=req.snapshot,
+                            discrepancy_en=req.discrepancy_en,
+                            options=req.options or None,
+                            observed_at=req.observed_at)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

@@ -271,6 +271,21 @@ API_CATALOG: dict = {
                            "same refusal when coverage is thin, and no "
                            "causal claim.",
          "endpoints": [{"method": "POST", "path": "/v1/merit"}]},
+        {"id": "brief", "label_en": "Daily Brief (proactive detection)",
+         "beskrivning_en": "What the platform found without being asked. "
+                           "Each detection kind declares what it observes AND "
+                           "what that observation does not establish — a "
+                           "changed surface with no matching permit is a "
+                           "discrepancy to check, never a finding of "
+                           "illegality. Confidence is a band with its "
+                           "components shown rather than a fabricated "
+                           "percentage, actions are options stating what each "
+                           "would resolve rather than instructions, and a "
+                           "quiet day is reported as a quiet day. Sorted by "
+                           "decision value, never by recency.",
+         "endpoints": [{"method": "GET", "path": "/v1/brief"},
+                       {"method": "POST", "path": "/v1/brief"},
+                       {"method": "POST", "path": "/v1/brief/report"}]},
         {"id": "provenance", "label_en": "Parameter Provenance",
          "beskrivning_en": "Where the platform's OWN numbers come from. Every "
                            "tunable constant declares its origin: sourced to a "

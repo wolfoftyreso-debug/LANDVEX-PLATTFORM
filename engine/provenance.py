@@ -179,6 +179,28 @@ PARAMETERS: dict[str, dict] = {
                     "judgement.",
         "affects_en": "Which events reach a person first."},
 
+    # ── Daily Brief ──────────────────────────────────────────────────
+    "brief.confidence_weights": {
+        "value": "5 components, 0.10–0.30", "class": "assumed",
+        "basis_en": "How much source count, connected-source share, "
+                    "corroboration, history and resolution each contribute "
+                    "to the confidence band. Reasoned but not calibrated "
+                    "against whether high-band findings actually held up — "
+                    "which is why it is reported as a band with its parts "
+                    "shown, never as a probability.",
+        "affects_en": "Which confidence band a finding is published with."},
+    "brief.CONFIDENCE_BANDS": {
+        "value": "0.75 / 0.5 / 0.25", "class": "assumed",
+        "basis_en": "Cut points between high, moderate and low. Picked so "
+                    "high requires most components to be strong at once.",
+        "affects_en": "Which confidence band a finding is published with."},
+    "worthiness.WORTHINESS_THRESHOLD": {
+        "value": 50.0, "class": "assumed",
+        "basis_en": "The significance floor a change must clear to be "
+                    "published at all. Set so a quiet day stays quiet rather "
+                    "than being filled with noise.",
+        "affects_en": "Whether a finding appears in the Daily Brief."},
+
     # ── Prestandabudgetar ────────────────────────────────────────────
     "perf.percentiles": {
         "value": "p95 / p99", "class": "convention",
