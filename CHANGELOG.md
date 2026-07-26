@@ -30,11 +30,26 @@ beslut och infriandegrad.
 - **Ett statiskt test** läser båda API-lagren och faller om ett nytt
   anrop till en kundddata-metod saknar `tenant`.
 
-**Vad som ÄNNU INTE är isolerat** står i klartext i
+- **Bevakningar** (`monitors`) bar samma fel och stängdes på samma sätt.
+  `all_monitors()` gav alla kunders regler och `/v1/monitors/run` matade
+  exakt den listan till evalueringen: en kund körde cron och fick svar på
+  en annans bevakningar — vilken mätare de vakar på, vilken tröskel de
+  satt, vem hos dem som är ansvarig. `get_monitor()` tar nu också tenant,
+  eftersom det annars räckte att KÄNNA id:t.
+
+**Vad som delas, och varför** står i klartext i
 `tests/test_tenancy.NOT_YET_ISOLATED`, med ett test som faller om en
-tabell isoleras utan att listan uppdateras: `monitors` och `outcomes`
-(kvarstående luckor), `corrections` och `signal_cache` (avsiktligt
-gemensamma — allmänning respektive delad cache av offentlig data).
+tabell isoleras utan att listan uppdateras:
+
+  * `outcomes` delas **med flit**. Kalibreringen blir bättre ju fler
+    utfall den sett, och det enda som lämnar motorn är aggregat (Brier,
+    hinkar, n). Mätt: kalibreringsrapporten innehåller ingen råpost, och
+    varken `all_records` eller `all_outcomes` refereras av någon endpoint.
+    Ett test håller fast vid båda halvorna — delad inlärning, inga läckta
+    poster — och faller om någon börjar servera råposterna.
+  * `corrections` är en medborgarallmänning; `signal_cache` är offentlig
+    källdata där en delad cache är hela poängen. Båda avsiktliga, båda
+    utskrivna så att valet är uttalat och inte antaget.
 
 En halvt isolerad plattform som tros vara helt isolerad är farligare än
 en ingen litar på.

@@ -932,26 +932,28 @@ def monitors_catalog():
 
 
 @app.post("/v1/monitors")
-def monitors_define(req: MonitorDefineRequest):
+def monitors_define(req: MonitorDefineRequest, request: Request):
     try:
         return monitors_engine.define(
             req.metric, req.scope, req.rule, req.owner,
-            params=req.params, cadence=req.cadence or None, label=req.label)
+            params=req.params, cadence=req.cadence or None,
+            label=req.label, tenant=_tenant(request))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/v1/monitors/evaluate")
-def monitors_evaluate(req: MonitorEvaluateRequest):
-    mon = req.monitor or monitors_engine.get_monitor(req.monitor_id)
+def monitors_evaluate(req: MonitorEvaluateRequest, request: Request):
+    mon = req.monitor or monitors_engine.get_monitor(
+        req.monitor_id, _tenant(request))
     if mon is None:
         raise HTTPException(status_code=404, detail="unknown monitor")
     return monitors_engine.evaluate(mon, req.series, evaluated_at=req.evaluated_at)
 
 
 @app.post("/v1/monitors/run")
-def monitors_run(req: MonitorRunRequest):
-    mons = monitors_engine.all_monitors()
+def monitors_run(req: MonitorRunRequest, request: Request):
+    mons = monitors_engine.all_monitors(_tenant(request))
     return monitors_engine.run_due(mons, req.now, req.series_by_id)
 
 

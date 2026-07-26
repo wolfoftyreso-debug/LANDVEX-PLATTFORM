@@ -113,11 +113,11 @@ def test_both_api_layers_pass_a_tenant_to_every_scoped_call():
 # Varje rad är en känd lucka, inte en glömd. Stänger någon en av dem ska
 # raden tas bort här — testet nedan säger till.
 NOT_YET_ISOLATED: dict[str, str] = {
-    "monitors": "Bevakningsregler och deras fynd delas mellan kunder. "
-                "En kund kan se att en annan bevakar en viss mätare.",
-    "outcomes": "Utfallsloggen som kalibrerar överlevnadssannolikheter är "
-                "gemensam. Den innehåller inga kundnamn, men väl vilka "
-                "etableringar som prövats och hur det gick.",
+    "outcomes": "Utfallsloggen delas MED FLIT. Kalibreringen blir bättre "
+                "ju fler utfall den sett, och det enda som lämnar motorn "
+                "är aggregat (Brier, hinkar, n) — råposterna nås inte av "
+                "någon endpoint. Se testet nedan som håller fast vid "
+                "båda halvorna av det påståendet.",
     "corrections": "Medborgarrättelser är AVSIKTLIGT gemensamma — de är "
                    "en allmänning. Står här för att valet ska vara "
                    "uttalat, inte antaget.",
@@ -144,11 +144,64 @@ def test_the_store_still_lacks_a_tenant_column_where_we_say_it_does():
                       "corrections", "signal_cache")}
     for t in ("reports", "profiles"):
         assert "tenant" in cols[t], f"{t} skulle vara isolerad"
-    for t in ("monitors", "outcomes", "corrections", "signal_cache"):
+    for t in ("outcomes", "corrections", "signal_cache"):
         assert "tenant" not in cols[t], (
             f"{t} HAR nu en tenant-kolumn — bra, men ta då bort den ur "
             f"NOT_YET_ISOLATED så dokumentationen inte ljuger åt andra "
             f"hållet")
+
+
+
+
+def test_monitors_are_scoped_to_the_tenant_that_defined_them():
+    """`all_monitors()` gav alla kunders regler, och /v1/monitors/run
+    matade exakt den listan till evalueringen: en kund körde cron och fick
+    svar på en annans bevakningar — vilken mätare de vakar på, vilken
+    tröskel de satt och vem hos dem som är ansvarig."""
+    from engine import monitors
+    monitors.set_store(None)
+    monitors.reset()
+    a = monitors.define("kostnad", "tyreso", "threshold", "Kommundirektören",
+                        params={"level": 10, "direction": "above"},
+                        label="HEMLIG kommunbevakning", tenant=_A)
+    b = monitors.define("intakt", "sthlm", "threshold", "VD",
+                        params={"level": 5, "direction": "above"},
+                        label="konkurrentens", tenant=_B)
+    assert [m["label"] for m in monitors.all_monitors(_A)] == \
+        ["HEMLIG kommunbevakning"]
+    assert [m["label"] for m in monitors.all_monitors(_B)] == ["konkurrentens"]
+    # Att KÄNNA id:t ska inte räcka.
+    assert monitors.get_monitor(a["id"], _B) is None
+    assert monitors.get_monitor(a["id"], _A) is not None
+    assert monitors.get_monitor(b["id"], _A) is None
+
+
+def test_the_outcome_log_shares_learning_but_never_a_record():
+    """Utfallsloggen delas med flit — kalibreringen blir bättre av fler
+    utfall. Men det som LÄMNAR motorn måste vara aggregat. Det här testet
+    håller fast vid båda halvorna: delad inlärning, inga läckta poster."""
+    import json
+
+    from engine import outcomes
+    outcomes.set_store(None)
+    outcomes.reset()
+    rec = outcomes.log_outcome(
+        {"lat": 59.31, "lon": 18.07, "address": "HEMLIG adress 12"},
+        "frisor", 70.0, True)
+    outcomes.record(rec)
+    rapport = json.dumps(outcomes.calibration(), ensure_ascii=False)
+    assert "HEMLIG" not in rapport, "kalibreringen läckte en råpost"
+    assert "adress" not in rapport
+
+    # Och ingen endpoint får börja servera råposterna.
+    import pathlib
+    import re
+    api = pathlib.Path(__file__).resolve().parent.parent / "api"
+    for f in ("main.py", "dev_server.py"):
+        src = (api / f).read_text(encoding="utf-8")
+        assert not re.search(r"\ball_records\b|\ball_outcomes\b", src), (
+            f"{f} exponerar utfallens råposter — då är det inte längre "
+            f"ett delat aggregat utan en läcka")
 
 
 if __name__ == "__main__":

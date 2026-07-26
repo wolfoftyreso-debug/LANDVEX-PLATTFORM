@@ -643,10 +643,11 @@ class Handler(BaseHTTPRequestHandler):
                     str(req["metric"]), str(req["scope"]), str(req["rule"]),
                     str(req.get("owner", "")), params=req.get("params") or {},
                     cadence=req.get("cadence") or None,
-                    label=str(req.get("label", ""))))
+                    label=str(req.get("label", "")),
+                    tenant=self._tenant()))
             if self.path == "/v1/monitors/evaluate":
                 mon = req.get("monitor") or monitors_engine.get_monitor(
-                    str(req.get("monitor_id", "")))
+                    str(req.get("monitor_id", "")), self._tenant())
                 if mon is None:
                     return self._send(404, {"error": "unknown monitor"})
                 return self._send(200, monitors_engine.evaluate(
@@ -654,7 +655,7 @@ class Handler(BaseHTTPRequestHandler):
                     evaluated_at=req.get("evaluated_at", "")))
             if self.path == "/v1/monitors/run":
                 return self._send(200, monitors_engine.run_due(
-                    monitors_engine.all_monitors(), req["now"],
+                    monitors_engine.all_monitors(self._tenant()), req["now"],
                     req.get("series_by_id") or {}))
             if self.path == "/v1/monitors/escalate":
                 return self._send(200, monitors_engine.escalate(

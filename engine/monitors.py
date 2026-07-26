@@ -184,9 +184,16 @@ def set_store(store) -> None:
 
 def define(metric: str, scope: str, rule: str, owner: str, *,
            params: dict | None = None, cadence: dict | None = None,
-           label: str = "") -> dict:
+           label: str = "", tenant: str = "") -> dict:
     """Registrera en bevakning. Kräver en ägare (ingen avvikelse utan någon
-    satt att agera). rule ∈ RULES. Innehållshashat id; idempotent."""
+    satt att agera). rule ∈ RULES. Innehållshashat id; idempotent.
+
+    `tenant` stämplas i posten och filtrerar läsningen. Utan den gav
+    `all_monitors()` alla kunders regler, och /v1/monitors/run matade
+    exakt den listan till evalueringen: en kund körde cron och fick svar
+    på en annans bevakningar — vilken mätare de vakar på, vilken tröskel
+    de satt och vem hos dem som är ansvarig.
+    """
     if rule not in RULES:
         raise ValueError(f"okänd regel: {rule} "
                          f"(välj {', '.join(RULES)})")
@@ -198,7 +205,7 @@ def define(metric: str, scope: str, rule: str, owner: str, *,
     rec = {"metric": metric, "scope": scope, "rule": rule,
            "params": dict(params or {}), "cadence": dict(cadence),
            "owner": owner, "label": label or f"{metric} · {rule}",
-           "enabled": True, "last_run": None}
+           "enabled": True, "last_run": None, "tenant": tenant}
     rec["id"] = canonical_hash({"metric": metric, "scope": scope,
                                 "rule": rule, "params": rec["params"],
                                 "owner": owner})
@@ -324,20 +331,34 @@ def _save_finding(rec: dict) -> str:
     return rec["checksum"]
 
 
-def all_monitors() -> list[dict]:
-    return _STORE.all_monitors() if _STORE is not None else list(_MONITORS)
+def all_monitors(tenant: str | None = None) -> list[dict]:
+    """Bevakningar. Utan `tenant` returneras alla: motorn äger inte
+    affärslogiken, API-lagret gör det — och API-lagret SKA skicka med
+    tenant."""
+    rows = _STORE.all_monitors() if _STORE is not None else list(_MONITORS)
+    if tenant is None:
+        return rows
+    return [r for r in rows if r.get("tenant", "") == tenant]
 
 
-def all_findings() -> list[dict]:
+def all_findings(tenant: str | None = None) -> list[dict]:
+    """Fynd. Filtreras via bevakningen de kom från — ett fynd bär inte
+    tenant själv, men dess monitor gör det."""
+    out = None
     if _STORE is not None and getattr(_STORE, "all_findings", None):
         out = _STORE.all_findings()
-        if out is not None:
-            return out
-    return list(_FINDINGS)
+    rows = list(_FINDINGS) if out is None else out
+    if tenant is None:
+        return rows
+    mine = {m["id"] for m in all_monitors(tenant)}
+    return [r for r in rows if r.get("monitor_id") in mine]
 
 
-def get_monitor(monitor_id: str) -> dict | None:
-    for m in all_monitors():
+def get_monitor(monitor_id: str, tenant: str | None = None) -> dict | None:
+    """En bevakning via id. Med `tenant` returneras den bara till sin
+    ägare — annars räcker det att KÄNNA id:t för att köra en annan kunds
+    regel."""
+    for m in all_monitors(tenant):
         if m["id"] == monitor_id:
             return m
     return None
