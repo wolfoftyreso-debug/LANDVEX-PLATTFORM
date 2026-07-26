@@ -1,0 +1,102 @@
+{
+  "doctrine": "The user never waits for the system.",
+  "note_en": "A number without a measurement point is an opinion. Every budget states where it is measured from and to, and at which percentile, so two people measuring cannot both be right and disagree.",
+  "enforced_by": "scripts/perf_budget.py",
+  "budgets": [
+    {
+      "id": "app_start",
+      "label_en": "App start",
+      "budget_ms": 1000,
+      "percentile": 95,
+      "from": "process start",
+      "to": "first interactive frame",
+      "why_en": "Field work starts at the tap on the icon, not when the framework is ready."
+    },
+    {
+      "id": "tap_response",
+      "label_en": "Response to a tap",
+      "budget_ms": 50,
+      "percentile": 95,
+      "from": "touchstart",
+      "to": "first painted change",
+      "why_en": "Below the threshold where a person perceives cause and effect as separate."
+    },
+    {
+      "id": "view_change",
+      "label_en": "Change of view",
+      "budget_ms": 100,
+      "percentile": 95,
+      "from": "navigation triggered",
+      "to": "new view painted",
+      "why_en": "A skeleton counts as painted; a spinner does not."
+    },
+    {
+      "id": "camera_start",
+      "label_en": "Camera start",
+      "budget_ms": 300,
+      "percentile": 95,
+      "from": "camera button",
+      "to": "first preview frame",
+      "why_en": "Camera-first means the camera is never the slow part."
+    },
+    {
+      "id": "map_visible",
+      "label_en": "Map visible",
+      "budget_ms": 500,
+      "percentile": 95,
+      "from": "view opened",
+      "to": "first tiles painted",
+      "why_en": "Cached tiles must carry this even with no connection."
+    },
+    {
+      "id": "capture_queued",
+      "label_en": "Capture queued locally",
+      "budget_ms": 100,
+      "percentile": 99,
+      "from": "shutter",
+      "to": "record committed to the local queue",
+      "why_en": "p99, not p95: losing an observation is losing fieldwork. This is the one that may never fail."
+    },
+    {
+      "id": "scroll_frame",
+      "label_en": "Scroll frame",
+      "budget_ms": 16.7,
+      "percentile": 99,
+      "from": "frame start",
+      "to": "frame presented",
+      "why_en": "60 FPS floor. Measured as the share of frames inside budget, at p99."
+    }
+  ],
+  "state_rules": [
+    {
+      "event": "photo captured",
+      "device_knows": "the file exists in local storage",
+      "ui_may_claim": "Saved",
+      "immediate": true
+    },
+    {
+      "event": "form completed",
+      "device_knows": "the record is written locally",
+      "ui_may_claim": "Saved",
+      "immediate": true
+    },
+    {
+      "event": "upload started",
+      "device_knows": "nothing yet",
+      "ui_may_claim": "Sending",
+      "immediate": true
+    },
+    {
+      "event": "server acknowledged",
+      "device_knows": "the receipt arrived",
+      "ui_may_claim": "Delivered",
+      "immediate": false
+    },
+    {
+      "event": "upload failed",
+      "device_knows": "the failure is known",
+      "ui_may_claim": "Still queued",
+      "immediate": false
+    }
+  ]
+}
