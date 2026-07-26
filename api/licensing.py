@@ -82,6 +82,9 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/households": "core",                 # hushållstyper (katalog)
     "/v1/registers": "core",                  # företagsregisterkartan
     "/v1/provenance": "core",                 # parametrarnas härkomst
+    "/v1/offering": "core",                   # vad varje nivå låter dig BESLUTA
+                                              # — måste vara läsbar utan att
+                                              # först ha köpt något
     "/v1/brief": "monitoring",                # proaktiv upptäckt (daily brief)
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
@@ -95,7 +98,11 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
 
 # Plannamn enligt AAMOS-konventionen: "growth" är alias för plan-id:t
 # "pro" (id:t är ett kontrakt i nyckelformatet och ändras inte).
-PLAN_ALIASES: dict[str, str] = {"growth": "pro"}
+# Ytnamn → plan-id. Id:t sitter i nyckelformatet och ändras aldrig;
+# "growth" behålls eftersom befintliga nycklar använder det.
+PLAN_ALIASES: dict[str, str] = {"growth": "pro", "professional": "pro",
+                                "explorer": "free",
+                                "enterprise intelligence": "enterprise"}
 
 
 class _PlanMap(dict):
@@ -118,9 +125,10 @@ class _PlanMap(dict):
 
 PLANS: dict[str, dict] = _PlanMap({
     "free": {
-        "label_en": "Landvex Free",
-        "beskrivning_en": "Ask the platform and view the free map layers. "
-                          "Historical base – live requires a subscription.",
+        "label_en": "Landvex Explorer",
+        "beskrivning_en": "Settle whether a claim about a place holds up, on "
+                          "public findings. For exploring what the platform "
+                          "can decide — not for commercial use.",
         "pris_manad": {"USD": 0, "EUR": 0},
         "rate_limit_per_min": 60,
         "quota_per_month": 100,
@@ -130,10 +138,12 @@ PLANS: dict[str, dict] = _PlanMap({
                      "Market and product catalogs"],
     },
     "pro": {
-        "label_en": "Landvex Growth",
-        "beskrivning_en": "All decision engines and live map layers, "
-                          "billed as quiXzoom commission per delivered "
-                          "lead – no monthly fee.",
+        "label_en": "Landvex Professional",
+        "beskrivning_en": "Decide where to establish, whether a market has room, "
+                          "what a place will be short of, and whether a "
+                          "spend is worth it — in your region and trade. "
+                          "Billed as quiXzoom commission per delivered lead, "
+                          "no monthly fee.",
         # Bekräftat av AAMOS-dev: Growth har INGEN månadsavgift. Priset är
         # en per-lead-kommission (QZ TOKEN), graderad av opportunity-score.
         # Se engine/commission.py för nivåtabellen.
@@ -158,9 +168,11 @@ PLANS: dict[str, dict] = _PlanMap({
                      "lead (by opportunity score) – no monthly fee"],
     },
     "enterprise": {
-        "label_en": "Landvex Enterprise",
-        "beskrivning_en": "Partner API, agent integration, operations/"
-                          "audit visibility, tenant isolation and SLA.",
+        "label_en": "Landvex Enterprise Intelligence",
+        "beskrivning_en": "A standing intelligence capability: detection without "
+                          "being asked, your own watch rules, decisions bound "
+                          "to named owners, and machine access for your own "
+                          "systems.",
         "pris_manad": None,          # offert
         "rate_limit_per_min": 3000,
         "quota_per_month": None,   # obegränsat
@@ -168,7 +180,7 @@ PLANS: dict[str, dict] = _PlanMap({
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "monitoring", "partner_api",
                          "platform_ops"),
-        "ingar_en": ["Everything in Growth",
+        "ingar_en": ["Everything in Professional",
                      "Partner API + agent manifest",
                      "AAMOS agents, watchlist and cognition endpoints "
                      "(requires AAMOS_CORE_URL)",

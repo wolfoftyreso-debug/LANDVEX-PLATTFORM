@@ -95,8 +95,18 @@ def test_rate_limit_per_plan():
 
 
 def test_upgrade_hint_mentions_unlocking_products():
+    """Ledtråden ska namnge de paket som FAKTISKT bär kapabiliteten.
+
+    Namnen på ytan får bytas (Growth → Professional); det som aldrig får
+    glida isär är hintens namn och paketens egna etiketter.
+    """
     hint = upgrade_hint_en("workforce")
-    assert "Growth" in hint and "Workforce" in hint
+    carriers = [p["label_en"] for p in PLANS.values()
+                if "workforce" in p["capabilities"]]
+    assert carriers, "ingen plan bär workforce – då är hinten meningslös"
+    for label in carriers:
+        assert label in hint, f"{label} saknas i '{hint}'"
+    assert "Workforce" in hint          # tillägget namnges också
 
 
 def test_monthly_quota_per_plan():

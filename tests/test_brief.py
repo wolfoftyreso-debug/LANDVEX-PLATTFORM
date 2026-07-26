@@ -145,6 +145,62 @@ def test_catalog_exposes_the_limits_of_each_kind():
     assert "never reports a legal finding" in c["note_en"]
 
 
+
+# ── Briefen anpassad efter abonnemang ───────────────────────────────────
+def test_explorer_cannot_scope_and_is_told_so():
+    """Att tyst ignorera en begärd avgränsning är samma fel som tyst
+    degradering: kunden får ett annat svar än det beställda, utan att veta."""
+    reps = [_rep(areas=("se", "se-14")), _rep(areas=("se", "se-01"),
+                                              title="Something in Stockholm")]
+    res = B.daily_brief(reps, areas=["se-14"], sectors=["construction"],
+                        plan="explorer")
+    ps = res["plan_scope"]
+    assert ps["plan"] == "free" and ps["scope"] == "public"
+    asked = {d["asked_for"] for d in ps["not_applied"]}
+    assert asked == {"areas", "sectors"}
+    assert "was not applied" in ps["not_applied_en"]
+    # avgränsningen togs bort — inte tillämpad i tysthet
+    assert res["scope_en"] == "everywhere covered"
+
+
+def test_professional_may_scope_by_region_and_sector_but_not_own_assets():
+    reps = [_rep(areas=("se", "se-14")), _rep(areas=("se", "se-01"),
+                                              title="Elsewhere")]
+    res = B.daily_brief(reps, areas=["se-14"], plan="professional",
+                        own_assets=True)
+    ps = res["plan_scope"]
+    assert ps["plan"] == "pro"
+    assert [d["asked_for"] for d in ps["not_applied"]] == ["own_assets"]
+    assert res["scope_en"] == "se-14"
+    for r in res["reports"]:
+        assert any(a.lower().startswith("se-14") for a in r["areas"])
+
+
+def test_enterprise_keeps_every_scoping_it_asked_for():
+    res = B.daily_brief([_rep()], areas=["se-14"], sectors=["construction"],
+                        plan="enterprise intelligence", own_assets=True)
+    ps = res["plan_scope"]
+    assert ps["plan"] == "enterprise" and "not_applied" not in ps
+    assert ps["scope"] == "own_assets"
+
+
+def test_no_plan_means_the_engine_imposes_nothing():
+    """Affärslogiken ägs av API-lagret, inte av motorn."""
+    res = B.daily_brief([_rep()], areas=["se-14"])
+    assert res["plan_scope"] == {}
+    assert res["scope_en"] == "se-14"
+
+
+def test_an_unknown_plan_is_refused_rather_than_defaulted():
+    """Att falla tillbaka på den snällaste nivån vid stavfel är hur en
+    betalspärr tyst upphör att gälla."""
+    try:
+        B.daily_brief([_rep()], plan="platinum")
+        raise AssertionError("okänd plan tilläts")
+    except ValueError:
+        pass
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

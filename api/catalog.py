@@ -286,6 +286,17 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief/report"}]},
+        {"id": "offering", "label_en": "Offering (packaged by decision)",
+         "beskrivning_en": "What each tier lets you DECIDE, not how much data "
+                           "it lets you download. Every offer names the "
+                           "question it settles, who asks it and the endpoint "
+                           "that answers. Anything not written yet is listed "
+                           "under not_built_yet rather than omitted or "
+                           "implied: a test asserts that every offer marked "
+                           "'built' points at an endpoint present in this "
+                           "catalogue, so a plan cannot be sold on a feature "
+                           "that does not exist.",
+         "endpoints": [{"method": "GET", "path": "/v1/offering"}]},
         {"id": "provenance", "label_en": "Parameter Provenance",
          "beskrivning_en": "Where the platform's OWN numbers come from. Every "
                            "tunable constant declares its origin: sourced to a "
@@ -346,7 +357,10 @@ API_CATALOG: dict = {
                        {"method": "GET", "path": "/v1/decisions/ledger"}]},
         {"id": "platform", "label_en": "Platform",
          "beskrivning_en": "Markets, reports, health and metrics.",
-         "endpoints": [{"method": "GET", "path": "/v1/markets"},
+         "endpoints": [{"method": "GET", "path": "/v1/catalog"},
+                       {"method": "GET", "path": "/v1/agent-manifest"},
+                       {"method": "GET", "path": "/v1/audit"},
+                       {"method": "GET", "path": "/v1/markets"},
                        {"method": "GET", "path": "/v1/reports"},
                        {"method": "GET", "path": "/health"},
                        {"method": "GET", "path": "/metrics"}]},

@@ -58,6 +58,7 @@ from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
+from engine.offering import offering
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -789,6 +790,8 @@ class BriefRequest(BaseModel):
     sectors: list[str] = Field(default_factory=list)
     limit: int = 20
     date: str = ""
+    plan: str = ""            # Explorer/Professional/Enterprise – styr scope
+    own_assets: bool = False  # endast Enterprise Intelligence
 
 
 class BriefReportRequest(BaseModel):
@@ -813,8 +816,12 @@ def brief_kinds():
 @app.post("/v1/brief")
 def brief_ep(req: BriefRequest):
     """Today's brief, scoped and sorted by decision value."""
-    return daily_brief(req.reports, areas=req.areas, sectors=req.sectors,
-                       limit=min(max(req.limit, 1), 100), date=req.date)
+    try:
+        return daily_brief(req.reports, areas=req.areas, sectors=req.sectors,
+                           limit=min(max(req.limit, 1), 100), date=req.date,
+                           plan=req.plan, own_assets=req.own_assets)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.post("/v1/brief/report")
@@ -838,6 +845,15 @@ def provenance_ep(cls: str = ""):
     """Where the platform's own numbers come from."""
     try:
         return {**provenance_summary(), "parameters": provenance_parameters(cls)}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/v1/offering")
+def offering_ep(plan: str = ""):
+    """What each tier lets you decide. Built and planned kept apart."""
+    try:
+        return offering(plan)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

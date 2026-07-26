@@ -66,6 +66,7 @@ from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
+from engine.offering import offering
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -289,6 +290,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 return self._send(200, {**provenance_summary(),
                                         "parameters": provenance_parameters(cls)})
+            except ValueError as e:
+                return self._send(422, {"error": str(e)})
+        if parsed.path == "/v1/offering":
+            plan = parse_qs(parsed.query).get("plan", [""])[0]
+            try:
+                return self._send(200, offering(plan))
             except ValueError as e:
                 return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/registers":
@@ -534,11 +541,16 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             if self.path == "/v1/brief":
-                return self._send(200, daily_brief(
-                    req.get("reports") or [], areas=req.get("areas") or [],
-                    sectors=req.get("sectors") or [],
-                    limit=min(max(int(req.get("limit", 20)), 1), 100),
-                    date=str(req.get("date", ""))))
+                try:
+                    return self._send(200, daily_brief(
+                        req.get("reports") or [], areas=req.get("areas") or [],
+                        sectors=req.get("sectors") or [],
+                        limit=min(max(int(req.get("limit", 20)), 1), 100),
+                        date=str(req.get("date", "")),
+                        plan=str(req.get("plan", "")),
+                        own_assets=bool(req.get("own_assets", False))))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
             if self.path == "/v1/brief/report":
                 return self._send(200, brief_report(
                     str(req["kind"]), title=str(req.get("title", "")),

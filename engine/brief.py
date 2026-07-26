@@ -40,6 +40,7 @@ Rent stdlib.
 from __future__ import annotations
 
 from .integrity import canonical_hash, framing_disclosure
+from .offering import brief_scope as offering_brief_scope
 from .worthiness import PRIORITY, select_for_wrap, worthiness
 
 # ── Vad systemet får påstå att det sett ─────────────────────────────────
@@ -228,16 +229,58 @@ def _matches(rec: dict, areas: list[str], sectors: list[str]) -> bool:
     return True
 
 
+def _apply_plan_scope(plan: str, areas: list[str], sectors: list[str],
+                      own_assets: bool) -> tuple[list[str], list[str], bool, dict]:
+    """Vad abonnemanget tillåter briefen att avgränsas på.
+
+    Att tyst ignorera en avgränsning kunden bad om är samma fel som att tyst
+    degradera en källa: svaret blir ett annat än det beställda, och ingen får
+    veta det. Därför tas avgränsningen bort OCH redovisas, med vilken nivå som
+    bär den.
+    """
+    if not plan:
+        return areas, sectors, own_assets, {}
+    scope = offering_brief_scope(plan)
+    dropped = []
+    if areas and not scope["may_scope_by_area"]:
+        dropped.append({"asked_for": "areas", "values": list(areas)})
+        areas = []
+    if sectors and not scope["may_scope_by_sector"]:
+        dropped.append({"asked_for": "sectors", "values": list(sectors)})
+        sectors = []
+    if own_assets and not scope["may_use_own_assets"]:
+        dropped.append({"asked_for": "own_assets", "values": []})
+        own_assets = False
+    note = {"plan": scope["plan"], "scope": scope["scope"],
+            "label_en": scope["label_en"], "why_en": scope["why_en"]}
+    if dropped:
+        note["not_applied"] = dropped
+        note["not_applied_en"] = (
+            f"This brief is scoped as '{scope['label_en']}' on the "
+            f"{scope['plan']} plan, so "
+            + ", ".join(d["asked_for"] for d in dropped)
+            + " was not applied. The result below is the wider brief, not "
+              "the narrower one that was asked for — see /v1/offering.")
+    return areas, sectors, own_assets, note
+
+
 def daily_brief(reports: list[dict], *, areas: list[str] | None = None,
                 sectors: list[str] | None = None, limit: int = 20,
-                date: str = "") -> dict:
+                date: str = "", plan: str = "",
+                own_assets: bool = False) -> dict:
     """Dagens brief: filtrerad på område/bransch, sorterad på beslutsvärde.
 
     Sorteras ALDRIG på tidpunkt. Det som mest sannolikt kräver uppmärksamhet
     ligger överst, oavsett när det upptäcktes.
+
+    `plan` avgör hur fint briefen får avgränsas (Explorer publikt, Professional
+    region+bransch, Enterprise även egna tillgångar). Utan `plan` gäller ingen
+    begränsning – motorn är inte affärslogikens ägare, API-lagret är.
     """
     areas = areas or []
     sectors = sectors or []
+    areas, sectors, own_assets, plan_note = _apply_plan_scope(
+        plan, areas, sectors, own_assets)
     scoped = [r for r in reports if _matches(r, areas, sectors)]
     worthy = [r for r in scoped if r.get("worthy")]
     worthy.sort(key=lambda r: -r["priority"]["score"])
@@ -262,6 +305,7 @@ def daily_brief(reports: list[dict], *, areas: list[str] | None = None,
             "quiet_day_en": "A quiet brief is a real result. A brief that "
                             "always has something in it will eventually be "
                             "filled with noise to keep it full.",
+            "plan_scope": plan_note,
             "framing": framing_disclosure({"scope": scope_en,
                                            "sorted_by": "decision value",
                                            "empty_is_valid": True}),
@@ -283,6 +327,7 @@ def daily_brief(reports: list[dict], *, areas: list[str] | None = None,
                         "needs attention is first, whenever it was found.",
         "suppressed_en": (f"{len(scoped) - len(worthy)} change(s) were "
                           f"examined and held below the significance floor."),
+        "plan_scope": plan_note,
         "framing": framing_disclosure({"scope": scope_en,
                                        "sorted_by": "decision value",
                                        "not_causal": True}),
