@@ -66,7 +66,7 @@ class ScbClient:
 
     def __init__(self, base: str = PXWEB_BASE,
                  transport: Callable[[str, bytes | None, float], bytes] | None = None,
-                 timeout: float = 6.0, ttl_s: float = 24 * 3600.0,
+                 timeout: float = 2.5, ttl_s: float = 24 * 3600.0,
                  clock: Callable[[], float] = time.monotonic):
         self.base = base.rstrip("/")
         self._transport = transport or _http_transport

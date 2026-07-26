@@ -295,6 +295,35 @@ def test_one_percentile_definition_in_the_whole_codebase():
     assert percentile is gate_percentile is security.percentile
 
 
+def test_nobody_hand_rolls_a_percentile_next_to_the_shared_one():
+    """Första versionen av testet ovan kollade de tre jag råkade känna
+    till. En fjärde satt kvar i scripts/measure_api och skrev p95
+    12982 ms där grinden räknade 830,7 på samma tal — och det var
+    mätningens siffra som stod i CI-loggen.
+
+    Det här testet letar efter MÖNSTRET i stället för efter namnen.
+    """
+    import pathlib
+    import re
+    root = pathlib.Path(__file__).resolve().parent.parent
+    suspects = []
+    pattern = re.compile(
+        r"sorted\([^)]*\)\s*\[[^\]]*(0\.9|0\.5|95|99|50)[^\]]*\]"
+        r"|\[\s*int\([^)]*len\([^)]*\)\s*\*\s*0\.\d+")
+    for path in list((root / "engine").rglob("*.py")) \
+            + list((root / "api").rglob("*.py")) \
+            + list((root / "scripts").rglob("*.py")):
+        if path.name in ("stats.py",):
+            continue                  # den kanoniska definitionen bor här
+        for i, line in enumerate(
+                path.read_text(encoding="utf-8").split("\n"), 1):
+            if pattern.search(line):
+                suspects.append(f"{path.relative_to(root)}:{i}: {line.strip()}")
+    assert not suspects, (
+        "Egenhändiga percentilberäkningar vid sidan av engine.stats."
+        "percentile:\n  " + "\n  ".join(suspects))
+
+
 def test_the_latency_window_is_bounded_without_copying_every_call():
     from api.security import Metrics
     import collections

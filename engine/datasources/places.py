@@ -45,7 +45,7 @@ class PlacesClient:
 
     def __init__(self, base_url: str | None = None,
                  transport: Callable[[str, float], str] | None = None,
-                 timeout: float = 6.0):
+                 timeout: float = 2.5):
         self.base_url = (base_url if base_url is not None
                          else os.environ.get("LANDVEX_PLACES_URL", ""))
         self._transport = transport or _http_transport

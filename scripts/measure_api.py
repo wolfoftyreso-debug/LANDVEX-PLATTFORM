@@ -26,6 +26,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from engine.stats import percentile
 
 _OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -105,10 +106,15 @@ def measure(base: str, runs: int, warmup: int = 2,
             vals.append(round(ms, 3))
         if vals:
             out[cid] = vals
-            vals_sorted = sorted(vals)
-            p95 = vals_sorted[min(len(vals) - 1, int(len(vals) * 0.95))]
+            # Samma percentildefinition som grinden och /metrics. Den här
+            # raden hade en EGEN: `sorted[int(n*0.95)]` är max för n=20, så
+            # mätningen skrev p95 12982 ms där grinden räknade 830,7 på
+            # exakt samma tal. Två svar på samma fråga, och det ena stod i
+            # loggen som om det vore sanningen.
             print(f"  {cid:20s} n={len(vals):3d}  median "
-                  f"{vals_sorted[len(vals)//2]:8.1f} ms   p95 {p95:8.1f} ms")
+                  f"{percentile(vals, 50):8.1f} ms   "
+                  f"p95 {percentile(vals, 95):8.1f} ms   "
+                  f"max {max(vals):8.1f} ms")
     return out
 
 

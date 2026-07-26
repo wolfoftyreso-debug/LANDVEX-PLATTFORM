@@ -86,9 +86,13 @@ def _call(base: str, path: str, body: dict | None = None) -> Call:
 
 
 def _serve(port: int) -> tuple[subprocess.Popen, str]:
+    # LANDVEX_LIVE=0 med flit: en demo ska visa plattformens BETEENDE,
+    # och den ska inte ringa riktiga myndighets-API:er varje gång någon
+    # kör den. Att källorna är mock döljs inte — beat 3 skriver ut
+    # data_coverage 0.0 och säger rakt ut vad det betyder.
     env = {**os.environ, "LANDVEX_DB": "off", "LANDVEX_PORT": str(port),
            "LANDVEX_HOST": "127.0.0.1", "LANDVEX_AUDIT_LOG": "off",
-           "PYTHONPATH": _ROOT}
+           "LANDVEX_LIVE": "0", "PYTHONPATH": _ROOT}
     proc = subprocess.Popen([sys.executable, "-m", "api.dev_server"],
                             cwd=_ROOT, env=env, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL)

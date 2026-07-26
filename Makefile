@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure run dev build up prod down logs check readiness smoke deploy
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -15,9 +15,13 @@ test: ## Run all test suites (no pytest, no network)
 	  else fail=$$((fail+1)); echo "FAIL: $$t"; fi; done; \
 	  echo "$$ok green, $$fail failed"; [ $$fail -eq 0 ]
 
-measure: ## Measure API latency against docs/landvex-budgets.json (both modes)
+measure: ## Measure engine time against the budgets (deterministic, no network)
 	@$(PY) -m scripts.measure_api --runs 20 --out /tmp/lv-mock.json
 	@$(PY) -m scripts.perf_budget /tmp/lv-mock.json --budgets docs/landvex-budgets.json
+
+measure-live: ## Same, WITH the live source chain — calls real public APIs
+	@echo "This contacts real third-party APIs (api.scb.se and others)."
+	@echo "Run it deliberately, not on every build."
 	@$(PY) -m scripts.measure_api --runs 20 --live --out /tmp/lv-live.json
 	@$(PY) -m scripts.perf_budget /tmp/lv-live.json --budgets docs/landvex-budgets.json
 

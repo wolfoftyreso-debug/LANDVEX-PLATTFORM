@@ -19,17 +19,21 @@ jobs:
         run: |
           pip install --quiet ruff
           ruff check .
-      - name: Performance budget (BÅDA lägena)
-        # Budgeten fanns och verktyget fanns, men ingenting körde dem:
-        # /v1/saturation låg 12,6x över sin egen budget utan att någon
-        # grind sa ifrån. --live krävs eftersom LANDVEX_LIVE=0 hoppar
-        # över just den väg som var långsam.
+      - name: Performance budget (motortid)
+        # MEDVETET utan --live. LANDVEX_LIVE=1 pekar på riktiga
+        # myndighets-API:er (api.scb.se m.fl.), och ett bygge ska varken
+        # bero på en tredje parts drifttid eller belasta ett offentligt
+        # API vid varje push. Siffran här är motortid: deterministisk,
+        # jämförbar mellan körningar, och det enda ett bygge rimligen
+        # kan uttala sig om.
+        #
+        # Den levande vägen mäts med `make measure-live` mot en miljö där
+        # någon medvetet valt att ringa ut. Att den inte mäts HÄR står
+        # utskrivet i verktygets egen utdata — omätt är inte detsamma
+        # som snabbt.
         run: |
           python -m scripts.measure_api --runs 20 --out /tmp/lv-mock.json
           python -m scripts.perf_budget /tmp/lv-mock.json \
-            --budgets docs/landvex-budgets.json
-          python -m scripts.measure_api --runs 20 --live --out /tmp/lv-live.json
-          python -m scripts.perf_budget /tmp/lv-live.json \
             --budgets docs/landvex-budgets.json
       - name: Demo (fäller sig själv om ett steg inte stämmer)
         run: python -m scripts.demo90
