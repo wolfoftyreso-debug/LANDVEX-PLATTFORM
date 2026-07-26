@@ -43,6 +43,13 @@
       "when": 1785074769602,
       "tag": "0005_flimsy_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785079008816,
+      "tag": "0006_baltic_languages",
+      "breakpoints": true
     }
   ]
 }

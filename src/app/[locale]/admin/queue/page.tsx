@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { inArray } from "drizzle-orm";
@@ -54,8 +55,6 @@ export default async function ReviewQueue({
         .where(inArray(requirementDefinitions.id, reqIds))
     : [];
   const reqById = new Map(reqs.map((r) => [r.id, r]));
-  const reqNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   return (
     <div>
@@ -78,7 +77,7 @@ export default async function ReviewQueue({
               const req = reqById.get(item.requirementDefinitionId);
               return (
                 <tr key={item.id}>
-                  <td>{req ? req[reqNameKey as never] : item.requirementDefinitionId}</td>
+                  <td>{req ? localizedName(req, locale) : item.requirementDefinitionId}</td>
                   <td>{kase ? (companyById.get(kase.companyId) ?? "—") : "—"}</td>
                   <td>
                     <span className={`badge ${item.status}`}>{tItem(item.status)}</span>

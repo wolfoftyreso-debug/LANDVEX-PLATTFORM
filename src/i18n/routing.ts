@@ -1,6 +1,7 @@
 import { defineRouting } from "next-intl/routing";
 
 export const routing = defineRouting({
-  locales: ["sv", "en", "lt"],
+  // sv/en + every supplier-side language: Lithuanian, Latvian, Estonian, Polish
+  locales: ["sv", "en", "lt", "lv", "et", "pl"],
   defaultLocale: "sv",
 });

@@ -19,6 +19,9 @@ export const trades = pgTable("trades", {
   nameEn: text("name_en").notNull(),
   nameSv: text("name_sv").notNull(),
   nameLt: text("name_lt").notNull(),
+  nameLv: text("name_lv"),
+  nameEt: text("name_et"),
+  namePl: text("name_pl"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -48,6 +51,9 @@ export const requirementDefinitions = pgTable("requirement_definitions", {
   nameEn: text("name_en").notNull(),
   nameSv: text("name_sv").notNull(),
   nameLt: text("name_lt").notNull(),
+  nameLv: text("name_lv"),
+  nameEt: text("name_et"),
+  namePl: text("name_pl"),
   descriptionEn: text("description_en"),
   scope: requirementScope("scope").notNull(),
   /** Critical requirements auto-expire the whole case when lapsed */

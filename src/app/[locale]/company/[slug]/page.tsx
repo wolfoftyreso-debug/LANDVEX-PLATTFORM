@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
@@ -96,10 +97,6 @@ export default async function PublicCompanyPage({
     actor?.role === "supplier" &&
     !(await getCompanyByOwner(actor.userId));
   const tradeById = new Map(trades.map((tr) => [tr.id, tr]));
-  const tradeNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
-  const factNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -240,7 +237,7 @@ export default async function PublicCompanyPage({
                   )}
                   {verifiedFacts.facts.map((fact) => (
                     <tr key={fact.key}>
-                      <td>{fact[factNameKey as "nameEn"]}</td>
+                      <td>{localizedName(fact, locale)}</td>
                       <td>
                         <strong>✓</strong>
                         {fact.workerCount ? ` × ${fact.workerCount}` : ""}
@@ -336,7 +333,7 @@ export default async function PublicCompanyPage({
                     <tr key={listing.id}>
                       <td>
                         <strong>
-                          {trade ? trade[tradeNameKey as "nameEn"] : "—"}
+                          {trade ? localizedName(trade, locale) : "—"}
                         </strong>
                         {listing.certificationsSummary && (
                           <div className="muted" style={{ fontSize: "0.8rem" }}>

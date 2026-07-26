@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { inArray } from "drizzle-orm";
@@ -57,8 +58,6 @@ export default async function CaseDetail({
   const workerById = new Map(workerRows.map((w) => [w.id, w.name]));
 
   const state = kase.state as CaseState;
-  const reqNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   return (
     <div>
@@ -99,7 +98,7 @@ export default async function CaseDetail({
           <div key={item.id} className="card">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
               <div>
-                <strong>{req ? req[reqNameKey as never] : item.requirementDefinitionId}</strong>
+                <strong>{req ? localizedName(req, locale) : item.requirementDefinitionId}</strong>
                 <div className="muted" style={{ fontSize: "0.8rem" }}>
                   {t("scope")}:{" "}
                   {req?.scope === "worker"

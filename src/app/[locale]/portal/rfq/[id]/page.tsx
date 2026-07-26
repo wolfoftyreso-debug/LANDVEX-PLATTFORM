@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import Link from "next/link";
@@ -99,8 +100,6 @@ export default async function RfqRoom({
     listTrades(),
   ]);
   const trade = trades.find((tr) => tr.id === rfq.tradeId);
-  const tradeNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   const visibleOffers = isDispatchedSupplier && myCompany
     ? offers.filter((o) => o.companyId === myCompany.id)
@@ -157,7 +156,7 @@ export default async function RfqRoom({
         <span className={`badge ${rfq.status === "accepted" ? "verified" : rfq.status === "offers_in" ? "in_review" : ""}`}>
           {tStatus(rfq.status)}
         </span>
-        {trade && <> · {trade[tradeNameKey as "nameEn"]}</>}
+        {trade && <> · {localizedName(trade, locale)}</>}
         {rfq.headcountNeeded && <> · {rfq.headcountNeeded} {t("workers")}</>}
         {rfq.siteCity && <> · {rfq.siteCity}</>}
         {rfq.startDate && <> · {t("start")} {new Date(rfq.startDate).toISOString().slice(0, 10)}</>}

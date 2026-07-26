@@ -255,6 +255,9 @@ export interface VerifiedFacts {
     nameEn: string;
     nameSv: string;
     nameLt: string;
+    nameLv?: string | null;
+    nameEt?: string | null;
+    namePl?: string | null;
     scope: string;
     validUntil: Date | null;
     metadata: Record<string, unknown>;
@@ -322,6 +325,9 @@ export async function getVerifiedFacts(
         nameEn: req.nameEn,
         nameSv: req.nameSv,
         nameLt: req.nameLt,
+        nameLv: req.nameLv,
+        nameEt: req.nameEt,
+        namePl: req.namePl,
         scope: req.scope,
         validUntil: entry.item.validUntil,
         metadata: (entry.item.metadata ?? {}) as Record<string, unknown>,

@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -83,8 +84,6 @@ export default async function Portal({
         .where(inArray(requirementDefinitions.id, reqIds))
     : [];
   const reqById = new Map(reqs.map((r) => [r.id, r]));
-  const reqNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   const workers = company ? await listWorkers(company.id) : [];
   const state = kase?.state as CaseState | undefined;
@@ -94,8 +93,6 @@ export default async function Portal({
     : [];
   const trades = company ? await listTrades() : [];
   const primarySlug = company ? await getPrimarySlug(company.id) : null;
-  const tradeNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   return (
     <div className="main" style={{ margin: "0 auto" }}>
@@ -223,7 +220,7 @@ export default async function Portal({
                     );
                     return (
                       <tr key={item.id}>
-                        <td>{req ? req[reqNameKey as never] : "—"}</td>
+                        <td>{req ? localizedName(req, locale) : "—"}</td>
                         <td>
                           <span className={`badge ${item.status}`}>
                             {tItem(item.status)}
@@ -396,7 +393,7 @@ export default async function Portal({
                     return (
                       <tr key={listing.id}>
                         <td>
-                          <strong>{trade ? trade[tradeNameKey as "nameEn"] : "—"}</strong>
+                          <strong>{trade ? localizedName(trade, locale) : "—"}</strong>
                           {" · "}
                           {listing.headcount} {t("capacityWorkers")}
                         </td>
@@ -433,7 +430,7 @@ export default async function Portal({
                 <select id="c-trade" name="tradeId" required>
                   {trades.map((trade) => (
                     <option key={trade.id} value={trade.id}>
-                      {trade[tradeNameKey as "nameEn"]}
+                      {localizedName(trade, locale)}
                     </option>
                   ))}
                 </select>

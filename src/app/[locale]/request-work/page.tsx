@@ -1,3 +1,4 @@
+import { localizedName } from "@/modules/catalog/i18n";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { currentActor } from "@/lib/auth";
 import { listTrades } from "@/modules/catalog/service";
@@ -17,8 +18,6 @@ export default async function RequestWork({
   const t = await getTranslations("requestWork");
   const actor = await currentActor();
   const trades = await listTrades();
-  const tradeNameKey =
-    locale === "sv" ? "nameSv" : locale === "lt" ? "nameLt" : "nameEn";
 
   return (
     <SiteChrome locale={locale}>
@@ -73,7 +72,7 @@ export default async function RequestWork({
                 <option value="">—</option>
                 {trades.map((trade) => (
                   <option key={trade.id} value={trade.id}>
-                    {trade[tradeNameKey as "nameEn"]}
+                    {localizedName(trade, locale)}
                   </option>
                 ))}
               </select>
@@ -105,6 +104,9 @@ export default async function RequestWork({
                 <option value="en">English</option>
                 <option value="sv">Svenska</option>
                 <option value="lt">Lietuvių</option>
+                <option value="lv">Latviešu</option>
+                <option value="et">Eesti</option>
+                <option value="pl">Polski</option>
                 <option value="ru">Русский</option>
                 <option value="pl">Polski</option>
               </select>

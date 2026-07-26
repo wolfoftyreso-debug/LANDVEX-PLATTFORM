@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { routing } from "@/i18n/routing";
+
+const LOCALE_LABELS: Record<string, string> = {
+  sv: "Svenska",
+  en: "English",
+  lt: "Lietuvių",
+  lv: "Latviešu",
+  et: "Eesti",
+  pl: "Polski",
+};
 
 /** Public site header/footer (marketing + directory pages) */
 export default async function SiteChrome({
@@ -61,6 +71,20 @@ export default async function SiteChrome({
           <Link href={`/${locale}/markets/norway`}>{t("marketNorway")}</Link>
           {" · "}
           <Link href={`/${locale}/markets/denmark`}>{t("marketDenmark")}</Link>
+        </div>
+        <div style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+          {routing.locales.map((l, i) => (
+            <span key={l}>
+              {i > 0 && " · "}
+              {l === locale ? (
+                <strong>{LOCALE_LABELS[l] ?? l}</strong>
+              ) : (
+                <Link href={`/${l}`} lang={l} hrefLang={l}>
+                  {LOCALE_LABELS[l] ?? l}
+                </Link>
+              )}
+            </span>
+          ))}
         </div>
         Baltic Bridge — {t("footerLine")}
       </footer>
