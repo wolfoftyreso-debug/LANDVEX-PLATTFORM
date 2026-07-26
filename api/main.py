@@ -57,6 +57,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.registers import RegisterClient, register_catalog
+from engine.livability import HOUSEHOLDS
+from engine.livability_scan import livability_ranking
 from engine.merit_scan import market_merit, region_merit
 from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
@@ -747,6 +749,36 @@ def merit_ep(req: MeritRequest):
                             resolver=RESOLVER)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+class LivabilityRequest(BaseModel):
+    occupation: str
+    household: str = "single"
+    markets: list[str] = Field(default_factory=lambda: ["se"])
+    top_n: int = 10
+    per_market: int = 12
+    citizenship: str = "eu"
+
+
+@app.get("/v1/households")
+def households_catalog():
+    return {"households": [{"id": k, **{x: v[x] for x in
+                                        ("label_en", "means_en")},
+                            "weights": v["weights"]}
+                           for k, v in HOUSEHOLDS.items()]}
+
+
+@app.post("/v1/livability")
+def livability_ep(req: LivabilityRequest):
+    """Where can THIS household build a good life — barrier stated first."""
+    try:
+        return livability_ranking(
+            req.occupation, req.household, markets=req.markets,
+            top_n=min(max(req.top_n, 1), 40),
+            per_market=min(max(req.per_market, 1), 40),
+            citizenship=req.citizenship, resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/registers")

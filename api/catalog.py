@@ -245,6 +245,20 @@ API_CATALOG: dict = {
                            "that lifts it a step.",
          "endpoints": [{"method": "GET", "path": "/v1/visitor/contract"},
                        {"method": "POST", "path": "/v1/visitor"}]},
+        {"id": "livability", "label_en": "Livability (household-weighted)",
+         "beskrivning_en": "Where a specific household can build a good "
+                           "life: job demand for the occupation, pay after "
+                           "tax converted to one currency, childcare, "
+                           "schools, safety, housing, cost of living, "
+                           "healthcare, support services, communications and "
+                           "social fabric — weighted by household type, "
+                           "including a single parent with a child needing "
+                           "additional support. For regulated professions "
+                           "the right to work and qualification recognition "
+                           "are reported BEFORE any ranking, because they "
+                           "decide first. Best and worst are both shown.",
+         "endpoints": [{"method": "GET", "path": "/v1/households"},
+                       {"method": "POST", "path": "/v1/livability"}]},
         {"id": "merit", "label_en": "Merit Engine (measurable performance)",
          "beskrivning_en": "Which places perform measurably well across six "
                            "dimensions of business capability — enterprise "

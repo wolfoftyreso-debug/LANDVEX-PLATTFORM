@@ -65,6 +65,8 @@ from engine.accountability import (all_decisions as accountability_all_decisions
 from engine.correlate import cross_domain, cross_market, partial_correlation
 from engine import inbox as inbox_engine
 from engine.registers import RegisterClient, register_catalog
+from engine.livability import HOUSEHOLDS
+from engine.livability_scan import livability_ranking
 from engine.merit_scan import market_merit, region_merit
 from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
@@ -273,6 +275,11 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(404, {"error": str(e)})
             return self._send(200, admin_countries())
+        if parsed.path == "/v1/households":
+            return self._send(200, {"households": [
+                {"id": k, "label_en": v["label_en"],
+                 "means_en": v["means_en"], "weights": v["weights"]}
+                for k, v in HOUSEHOLDS.items()]})
         if parsed.path == "/v1/registers":
             return self._send(200, {**register_catalog(),
                                     "client": RegisterClient().status()})
@@ -494,6 +501,15 @@ class Handler(BaseHTTPRequestHandler):
                     horizon_years=int(req.get("horizon_years", 1)),
                     decision=str(req.get("decision", "")),
                     currency=str(req.get("currency", "USD"))))
+            if self.path == "/v1/livability":
+                return self._send(200, livability_ranking(
+                    str(req["occupation"]),
+                    str(req.get("household", "single")),
+                    markets=req.get("markets") or ["se"],
+                    top_n=min(max(int(req.get("top_n", 10)), 1), 40),
+                    per_market=min(max(int(req.get("per_market", 12)), 1), 40),
+                    citizenship=str(req.get("citizenship", "eu")),
+                    resolver=RESOLVER))
             if self.path == "/v1/merit":
                 try:
                     if req.get("region"):
