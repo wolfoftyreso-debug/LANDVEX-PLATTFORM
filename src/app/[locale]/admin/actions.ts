@@ -8,9 +8,11 @@ import { currentActor } from "@/lib/auth";
 import { requireAnyRole } from "@/modules/identity/rbac";
 import {
   addContact,
+  addReference,
   addWorker,
   assignOwnership,
   createCompany,
+  moderatePortfolioItem,
 } from "@/modules/companies/service";
 import {
   openCase,
@@ -75,6 +77,31 @@ export async function assignOwnershipAction(formData: FormData) {
     z.string().uuid().parse(formData.get("companyId")),
     z.string().email().parse(formData.get("ownerEmail")),
   );
+  revalidatePath("/[locale]/admin/companies/[id]", "page");
+}
+
+export async function moderatePortfolioAction(formData: FormData) {
+  const a = await actor();
+  await moderatePortfolioItem(
+    a,
+    z.string().uuid().parse(formData.get("itemId")),
+    z.enum(["approved", "rejected"]).parse(formData.get("decision")),
+    String(formData.get("note") ?? "") || undefined,
+  );
+  revalidatePath("/[locale]/admin/companies/[id]", "page");
+}
+
+export async function addReferenceAction(formData: FormData) {
+  const a = await actor();
+  const year = String(formData.get("year") ?? "");
+  await addReference(a, {
+    companyId: z.string().uuid().parse(formData.get("companyId")),
+    projectTitle: z.string().min(2).parse(formData.get("projectTitle")),
+    clientName: z.string().min(2).parse(formData.get("clientName")),
+    country: z.string().length(2).parse(String(formData.get("country") ?? "").toUpperCase()),
+    year: year ? Number(year) : undefined,
+    scopeSummary: String(formData.get("scopeSummary") ?? "") || undefined,
+  });
   revalidatePath("/[locale]/admin/companies/[id]", "page");
 }
 

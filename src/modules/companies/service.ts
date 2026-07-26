@@ -5,8 +5,10 @@ import { appendOutbox, writeAudit } from "@/modules/audit/service";
 import {
   capacityListings,
   companies,
+  companyReferences,
   companySlugs,
   contacts,
+  portfolioItems,
   workers,
 } from "./schema";
 
@@ -385,6 +387,160 @@ export async function setCapacityStatus(
     .update(capacityListings)
     .set({ status, updatedAt: new Date() })
     .where(eq(capacityListings.id, listingId));
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio (project images) — moderated: pending until ops approves
+// ---------------------------------------------------------------------------
+export type PortfolioItem = typeof portfolioItems.$inferSelect;
+
+export async function addPortfolioItem(
+  actor: Actor,
+  input: {
+    companyId: string;
+    title: string;
+    description?: string;
+    objectKey: string;
+    contentType: string;
+  },
+): Promise<PortfolioItem> {
+  requireAnyRole(actor, ["supplier", "ops", "admin"]);
+  if (actor.role === "supplier") {
+    const owned = await getCompanyByOwner(actor.userId);
+    if (owned?.id !== input.companyId) {
+      throw new Error("Suppliers can only manage their own company");
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const [item] = await tx
+      .insert(portfolioItems)
+      .values({ ...input, uploadedBy: actor.userId })
+      .returning();
+    if (!item) throw new Error("Portfolio insert failed");
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "portfolio_item",
+      entityId: item.id,
+      action: "portfolio.submitted",
+      after: { companyId: input.companyId, title: input.title },
+    });
+    await appendOutbox(tx, "companies.portfolio_submitted", {
+      itemId: item.id,
+      companyId: input.companyId,
+    });
+    return item;
+  });
+}
+
+export async function listPortfolio(
+  companyId: string,
+  opts: { onlyApproved?: boolean } = { onlyApproved: true },
+): Promise<PortfolioItem[]> {
+  const where = opts.onlyApproved
+    ? and(
+        eq(portfolioItems.companyId, companyId),
+        eq(portfolioItems.status, "approved"),
+      )
+    : eq(portfolioItems.companyId, companyId);
+  return db
+    .select()
+    .from(portfolioItems)
+    .where(where)
+    .orderBy(asc(portfolioItems.createdAt));
+}
+
+export async function listPendingPortfolio(): Promise<PortfolioItem[]> {
+  return db
+    .select()
+    .from(portfolioItems)
+    .where(eq(portfolioItems.status, "pending"))
+    .orderBy(asc(portfolioItems.createdAt));
+}
+
+export async function moderatePortfolioItem(
+  actor: Actor,
+  itemId: string,
+  decision: "approved" | "rejected",
+  note?: string,
+): Promise<void> {
+  requireAnyRole(actor, ["ops", "admin"]);
+
+  await db.transaction(async (tx) => {
+    const [item] = await tx
+      .select()
+      .from(portfolioItems)
+      .where(eq(portfolioItems.id, itemId))
+      .for("update");
+    if (!item) throw new Error("Portfolio item not found");
+    if (item.status !== "pending") throw new Error("Item already moderated");
+
+    await tx
+      .update(portfolioItems)
+      .set({
+        status: decision,
+        moderationNote: note ?? null,
+        moderatedBy: actor.userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(portfolioItems.id, itemId));
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "portfolio_item",
+      entityId: itemId,
+      action: `portfolio.${decision}`,
+      before: { status: item.status },
+      after: { status: decision, note },
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// References — collected and checked by ops (never a self-serve review flow)
+// ---------------------------------------------------------------------------
+export type CompanyReference = typeof companyReferences.$inferSelect;
+
+export async function addReference(
+  actor: Actor,
+  input: {
+    companyId: string;
+    projectTitle: string;
+    clientName: string;
+    country: string;
+    year?: number;
+    scopeSummary?: string;
+  },
+): Promise<CompanyReference> {
+  requireAnyRole(actor, ["ops", "admin"]);
+
+  return db.transaction(async (tx) => {
+    const [reference] = await tx
+      .insert(companyReferences)
+      .values({ ...input, collectedBy: actor.userId })
+      .returning();
+    if (!reference) throw new Error("Reference insert failed");
+
+    await writeAudit(tx, {
+      actorId: actor.userId,
+      entityType: "company_reference",
+      entityId: reference.id,
+      action: "reference.collected",
+      after: { companyId: input.companyId, clientName: input.clientName },
+    });
+    return reference;
+  });
+}
+
+export async function listReferences(
+  companyId: string,
+): Promise<CompanyReference[]> {
+  return db
+    .select()
+    .from(companyReferences)
+    .where(eq(companyReferences.companyId, companyId))
+    .orderBy(asc(companyReferences.createdAt));
 }
 
 // ---------------------------------------------------------------------------

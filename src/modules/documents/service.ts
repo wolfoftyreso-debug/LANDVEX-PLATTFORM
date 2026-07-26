@@ -104,6 +104,36 @@ export async function getDownloadUrl(
 }
 
 /**
+ * Generic presign helpers for other modules' media (e.g. portfolio images).
+ * Same bucket, same ≤15 min expiry; callers own their metadata rows.
+ */
+export async function presignPut(
+  keyPrefix: string,
+  fileName: string,
+  contentType: string,
+): Promise<{ objectKey: string; uploadUrl: string }> {
+  const objectKey = `${keyPrefix}/${randomUUID()}/${fileName}`;
+  const uploadUrl = await getSignedUrl(
+    s3(),
+    new PutObjectCommand({
+      Bucket: env.S3_DOCUMENTS_BUCKET,
+      Key: objectKey,
+      ContentType: contentType,
+    }),
+    { expiresIn: PRESIGN_TTL_SECONDS },
+  );
+  return { objectKey, uploadUrl };
+}
+
+export async function presignGet(objectKey: string): Promise<string> {
+  return getSignedUrl(
+    s3(),
+    new GetObjectCommand({ Bucket: env.S3_DOCUMENTS_BUCKET, Key: objectKey }),
+    { expiresIn: PRESIGN_TTL_SECONDS },
+  );
+}
+
+/**
  * Malware scan hook (Section 4.7). GuardDuty Malware Protection for S3 will
  * publish scan results; until enabled this stub marks uploads clean in dev.
  */

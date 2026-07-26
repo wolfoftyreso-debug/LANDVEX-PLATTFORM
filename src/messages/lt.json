@@ -110,7 +110,17 @@
     "unclaimedTitle": "Neperimtas katalogo profilis",
     "unclaimedHint": "Importuota iš atviro šaltinio. Priskirkite nuosavybę tik įsitikinę, kad prašantis asmuo atstovauja įmonei (el. pašto domenas, registro patikra, skambutis).",
     "ownerEmail": "Savininko el. paštas (tiekėjo paskyra)",
-    "assignOwner": "Priskirti nuosavybę"
+    "assignOwner": "Priskirti nuosavybę",
+    "portfolioModTitle": "Projektų nuotraukos — moderavimas",
+    "portfolioApprove": "Patvirtinti",
+    "portfolioReject": "Atmesti",
+    "referencesTitle": "Rekomendacijos (surinko ops)",
+    "refProject": "Projektas",
+    "refClient": "Užsakovas",
+    "refCountry": "Šalis",
+    "refYear": "Metai",
+    "refScope": "Apimtis",
+    "refAdd": "Pridėti rekomendaciją"
   },
   "tasks": {
     "title": "Ops užduotys",
@@ -170,7 +180,18 @@
     "dispatchedHint": "Išsiuntė Baltic Bridge ops. Pateikite pasiūlymą iki galiojimo datos.",
     "certificationsLabel": "Sertifikatai (atskirti kableliais)",
     "certificationsHint": "Rodomi kaip jūsų nurodyti — patikrinti faktai rodomi atskirai po ops peržiūros.",
-    "serviceAreasLabel": "Darbo regionai (atskirti kableliais)"
+    "serviceAreasLabel": "Darbo regionai (atskirti kableliais)",
+    "portfolioSection": "Projektų nuotraukos",
+    "portfolioSubmitted": "Pateikta moderavimui",
+    "portfolioAddAnother": "Pridėti daugiau",
+    "portfolioTitle": "Projekto pavadinimas",
+    "portfolioTitlePlaceholder": "pvz., Nerūdijančio plieno linija, pieninė 2026",
+    "portfolioDesc": "Trumpas aprašymas (neprivaloma)",
+    "portfolioCta": "Įkelti nuotrauką",
+    "portfolioModerationNote": "Nuotraukos skelbiamos tik po Baltic Bridge ops peržiūros. Įkelkite tik nuotraukas, kurias turite teisę naudoti.",
+    "portfolioStatus_pending": "Laukia peržiūros",
+    "portfolioStatus_approved": "Paskelbta",
+    "portfolioStatus_rejected": "Atmesta"
   },
   "chrome": {
     "findSuppliers": "Rasti tiekėjus",
@@ -222,7 +243,11 @@
     "claimRegisterCta": "Perimti profilį — sukurti tiekėjo paskyrą",
     "serviceAreas": "Darbo regionai",
     "selfReportedCerts": "Nurodyti sertifikatai",
-    "selfReportedNote": "nurodyti įmonės, nepatikrinti Baltic Bridge"
+    "selfReportedNote": "nurodyti įmonės, nepatikrinti Baltic Bridge",
+    "portfolioTitle": "Projektų nuotraukos",
+    "referencesTitle": "Rekomendacijos",
+    "referencesNote": "Surinkta ir patikrinta Baltic Bridge ops komandos. Kontaktai pateikiami paprašius lyginant pasiūlymus.",
+    "referenceContact": "Kontaktas per Baltic Bridge"
   },
   "rfqStatus": {
     "new": "Nauja",

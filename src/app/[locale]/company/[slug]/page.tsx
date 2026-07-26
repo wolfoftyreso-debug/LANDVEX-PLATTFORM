@@ -3,8 +3,11 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import {
   listCompanyCapacity,
+  listPortfolio,
+  listReferences,
   resolveCompanySlug,
 } from "@/modules/companies/service";
+import { presignGet } from "@/modules/documents/service";
 import { getCorridorBySlug, listTrades } from "@/modules/catalog/service";
 import { getVerifiedFacts } from "@/modules/verification/service";
 import { getCompanyByOwner } from "@/modules/companies/service";
@@ -72,10 +75,19 @@ export default async function PublicCompanyPage({
     ? await getVerifiedFacts(company.id, corridor.id)
     : { verified: false, verifiedSince: null, facts: [] };
 
-  const [capacity, trades] = await Promise.all([
+  const [capacity, trades, approvedPortfolio, references] = await Promise.all([
     listCompanyCapacity(company.id, true),
     listTrades(),
+    listPortfolio(company.id, { onlyApproved: true }),
+    listReferences(company.id),
   ]);
+  // Signed URLs ≤ 15 min (Section 4.7); generated per request, best effort
+  const portfolioImages = await Promise.all(
+    approvedPortfolio.map(async (item) => ({
+      ...item,
+      url: await presignGet(item.objectKey).catch(() => null),
+    })),
+  );
 
   // Claim eligibility: signed-in supplier without a company of their own
   const actor = await currentActor();
@@ -250,6 +262,67 @@ export default async function PublicCompanyPage({
             <p className="muted" style={{ margin: 0 }}>{t("notVerifiedExplainer")}</p>
           )}
         </div>
+
+        {/* Project images — only ops-approved items are shown */}
+        {portfolioImages.length > 0 && (
+          <div className="card">
+            <h2 style={{ marginTop: 0 }}>{t("portfolioTitle")}</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "0.75rem" }}>
+              {portfolioImages.map((item) => (
+                <figure key={item.id} style={{ margin: 0 }}>
+                  {item.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.url}
+                      alt={item.title}
+                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }}
+                    />
+                  ) : (
+                    <div style={{ height: 150, borderRadius: 8, border: "1px dashed var(--border)", display: "grid", placeItems: "center" }} className="muted">
+                      {item.title}
+                    </div>
+                  )}
+                  <figcaption className="muted" style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                    {item.title}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* References — collected and checked by Baltic Bridge ops */}
+        {references.length > 0 && (
+          <div className="card">
+            <h2 style={{ marginTop: 0 }}>{t("referencesTitle")}</h2>
+            <p className="muted" style={{ fontSize: "0.85rem" }}>{t("referencesNote")}</p>
+            <div className="scroll">
+              <table>
+                <tbody>
+                  {references.map((reference) => (
+                    <tr key={reference.id}>
+                      <td>
+                        <strong>{reference.projectTitle}</strong>
+                        {reference.scopeSummary && (
+                          <div className="muted" style={{ fontSize: "0.85rem" }}>
+                            {reference.scopeSummary}
+                          </div>
+                        )}
+                      </td>
+                      <td className="muted">
+                        {reference.clientName} · {reference.country}
+                        {reference.year ? ` · ${reference.year}` : ""}
+                      </td>
+                      <td className="muted" style={{ fontSize: "0.8rem" }}>
+                        {t("referenceContact")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Capacity listings */}
         {capacity.length > 0 && (

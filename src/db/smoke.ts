@@ -10,6 +10,8 @@ import { logger } from "@/lib/logger";
 import { users } from "@/modules/identity/schema";
 import { getCorridorBySlug } from "@/modules/catalog/service";
 import {
+  addPortfolioItem,
+  addReference,
   addWorker,
   assignOwnership,
   createCapacityListing,
@@ -17,6 +19,9 @@ import {
   getCompanyByOwner,
   getPrimarySlug,
   listCompanyCapacity,
+  listPortfolio,
+  listReferences,
+  moderatePortfolioItem,
   requestClaim,
   resolveCompanySlug,
 } from "@/modules/companies/service";
@@ -476,7 +481,71 @@ async function main() {
     );
   }
 
-  logger.info("Smoke test passed ✔ (M1 + M2 + M3 + catalog claims)");
+  // -------------------------------------------------------------------------
+  // Profiles v2: moderated portfolio + ops-collected references
+  // -------------------------------------------------------------------------
+
+  // 32. Supplier submits a project image — pending, not public
+  const pfItem = await addPortfolioItem(
+    { userId: supplierUser.id, role: "supplier" },
+    {
+      companyId: ownCompany.id,
+      title: "Stainless process line",
+      objectKey: `portfolio/${ownCompany.id}/smoke-${stamp}.jpg`,
+      contentType: "image/jpeg",
+    },
+  );
+  assert(pfItem.status === "pending", "portfolio item starts pending");
+  assert(
+    (await listPortfolio(ownCompany.id, { onlyApproved: true })).length === 0,
+    "pending images are NOT public",
+  );
+
+  // 33. Suppliers cannot moderate; ops approves -> public
+  let modBlocked = false;
+  try {
+    await moderatePortfolioItem(
+      { userId: supplierUser.id, role: "supplier" },
+      pfItem.id,
+      "approved",
+    );
+  } catch {
+    modBlocked = true;
+  }
+  assert(modBlocked, "suppliers cannot moderate their own images");
+
+  await moderatePortfolioItem(actor, pfItem.id, "approved");
+  assert(
+    (await listPortfolio(ownCompany.id, { onlyApproved: true })).length === 1,
+    "ops approval publishes the image",
+  );
+
+  // 34. References are ops-only and listed on the profile
+  let refBlocked = false;
+  try {
+    await addReference(
+      { userId: supplierUser.id, role: "supplier" },
+      { companyId: ownCompany.id, projectTitle: "X", clientName: "Y", country: "SE" },
+    );
+  } catch {
+    refBlocked = true;
+  }
+  assert(refBlocked, "suppliers cannot add their own references");
+
+  await addReference(actor, {
+    companyId: ownCompany.id,
+    projectTitle: "Pipe bridge renovation",
+    clientName: "Nordic Industrial AB",
+    country: "SE",
+    year: 2026,
+    scopeSummary: "6 welders, 8 weeks, EN 1090 EXC2",
+  });
+  assert(
+    (await listReferences(ownCompany.id)).length === 1,
+    "ops-collected reference listed on the profile",
+  );
+
+  logger.info("Smoke test passed ✔ (M1 + M2 + M3 + catalog + profiles v2)");
   await pool.end();
 }
 

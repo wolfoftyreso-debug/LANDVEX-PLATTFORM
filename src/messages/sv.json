@@ -110,7 +110,17 @@
     "unclaimedTitle": "Ej övertagen katalogprofil",
     "unclaimedHint": "Importerad från öppen källa. Tilldela ägarskap först när du har verifierat att den som begär övertagande företräder företaget (e-postdomän, registerkontroll, telefonsamtal).",
     "ownerEmail": "Ägarens e-post (leverantörskonto)",
-    "assignOwner": "Tilldela ägarskap"
+    "assignOwner": "Tilldela ägarskap",
+    "portfolioModTitle": "Projektbilder — moderering",
+    "portfolioApprove": "Godkänn",
+    "portfolioReject": "Avvisa",
+    "referencesTitle": "Referenser (insamlade av ops)",
+    "refProject": "Projekt",
+    "refClient": "Beställare",
+    "refCountry": "Land",
+    "refYear": "År",
+    "refScope": "Omfattning",
+    "refAdd": "Lägg till referens"
   },
   "tasks": {
     "title": "Ops-uppgifter",
@@ -170,7 +180,18 @@
     "dispatchedHint": "Utskickade till er av Baltic Bridge ops. Lämna offert före giltighetsdatumet.",
     "certificationsLabel": "Certifieringar (kommaseparerade)",
     "certificationsHint": "Visas som uppgivna av er — verifierade fakta visas separat efter ops-granskning.",
-    "serviceAreasLabel": "Arbetsområden (kommaseparerade)"
+    "serviceAreasLabel": "Arbetsområden (kommaseparerade)",
+    "portfolioSection": "Projektbilder",
+    "portfolioSubmitted": "Inskickad för moderering",
+    "portfolioAddAnother": "Lägg till fler",
+    "portfolioTitle": "Projekttitel",
+    "portfolioTitlePlaceholder": "t.ex. Rostfri processlinje, mejeri 2026",
+    "portfolioDesc": "Kort beskrivning (frivillig)",
+    "portfolioCta": "Ladda upp bild",
+    "portfolioModerationNote": "Bilder publiceras först efter granskning av Baltic Bridge ops. Ladda bara upp bilder ni har rätt att använda.",
+    "portfolioStatus_pending": "Väntar på granskning",
+    "portfolioStatus_approved": "Publicerad",
+    "portfolioStatus_rejected": "Avvisad"
   },
   "chrome": {
     "findSuppliers": "Hitta leverantörer",
@@ -222,7 +243,11 @@
     "claimRegisterCta": "Ta över profilen — skapa leverantörskonto",
     "serviceAreas": "Arbetsområden",
     "selfReportedCerts": "Uppgivna certifieringar",
-    "selfReportedNote": "uppgivna av företaget, ej verifierade av Baltic Bridge"
+    "selfReportedNote": "uppgivna av företaget, ej verifierade av Baltic Bridge",
+    "portfolioTitle": "Projektbilder",
+    "referencesTitle": "Referenser",
+    "referencesNote": "Insamlade och kontrollerade av Baltic Bridge ops. Kontaktuppgifter till referenser lämnas ut på begäran vid offertjämförelse.",
+    "referenceContact": "Kontakt via Baltic Bridge"
   },
   "rfqStatus": {
     "new": "Ny",

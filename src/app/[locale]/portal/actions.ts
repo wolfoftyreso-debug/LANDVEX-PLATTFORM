@@ -12,7 +12,8 @@ import {
   setCapacityStatus,
   updateCompanyProfile,
 } from "@/modules/companies/service";
-import { createUpload } from "@/modules/documents/service";
+import { createUpload, presignPut } from "@/modules/documents/service";
+import { addPortfolioItem } from "@/modules/companies/service";
 import { transitionItem } from "@/modules/verification/service";
 
 export async function createMyCompanyAction(formData: FormData) {
@@ -100,6 +101,46 @@ export async function archiveMyCapacityAction(formData: FormData) {
     z.string().uuid().parse(formData.get("listingId")),
     "archived",
   );
+  revalidatePath("/[locale]/portal", "page");
+}
+
+/** Portfolio step 1: presigned PUT for a project image */
+export async function requestPortfolioUploadAction(input: {
+  fileName: string;
+  contentType: string;
+}): Promise<{ objectKey: string; uploadUrl: string }> {
+  const actor = requireRole(await currentActor(), "supplier");
+  const company = await getCompanyByOwner(actor.userId);
+  if (!company) throw new Error("No company for this account");
+  if (!/^image\//.test(input.contentType)) {
+    throw new Error("Only images can be added to the portfolio");
+  }
+  return presignPut(
+    `portfolio/${company.id}`,
+    z.string().min(1).max(200).parse(input.fileName),
+    z.string().min(3).max(100).parse(input.contentType),
+  );
+}
+
+/** Portfolio step 2: register the item — stays pending until ops approves */
+export async function createPortfolioItemAction(input: {
+  title: string;
+  description?: string;
+  objectKey: string;
+  contentType: string;
+}): Promise<void> {
+  const actor = requireRole(await currentActor(), "supplier");
+  const company = await getCompanyByOwner(actor.userId);
+  if (!company) throw new Error("No company for this account");
+  await addPortfolioItem(actor, {
+    companyId: company.id,
+    title: z.string().min(2).max(140).parse(input.title),
+    description: input.description
+      ? z.string().max(1000).parse(input.description)
+      : undefined,
+    objectKey: z.string().min(5).parse(input.objectKey),
+    contentType: z.string().parse(input.contentType),
+  });
   revalidatePath("/[locale]/portal", "page");
 }
 

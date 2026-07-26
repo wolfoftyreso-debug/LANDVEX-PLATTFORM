@@ -8,8 +8,10 @@ import {
   getCompanyByOwner,
   getPrimarySlug,
   listCompanyCapacity,
+  listPortfolio,
   listWorkers,
 } from "@/modules/companies/service";
+import UploadPortfolio from "./upload-portfolio";
 import { listTrades } from "@/modules/catalog/service";
 import {
   listDispatchesForCompany,
@@ -87,6 +89,9 @@ export default async function Portal({
   const workers = company ? await listWorkers(company.id) : [];
   const state = kase?.state as CaseState | undefined;
   const capacity = company ? await listCompanyCapacity(company.id, false) : [];
+  const portfolio = company
+    ? await listPortfolio(company.id, { onlyApproved: false })
+    : [];
   const trades = company ? await listTrades() : [];
   const primarySlug = company ? await getPrimarySlug(company.id) : null;
   const tradeNameKey =
@@ -339,6 +344,42 @@ export default async function Portal({
                 <button type="submit">{common("save")}</button>
               </div>
             </form>
+          </div>
+
+          {/* Portfolio — project images, moderated by ops before going public */}
+          <div className="card">
+            <h3>{t("portfolioSection")}</h3>
+            {portfolio.length > 0 && (
+              <table>
+                <tbody>
+                  {portfolio.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.title}</strong>
+                        {item.description && (
+                          <div className="muted" style={{ fontSize: "0.8rem" }}>
+                            {item.description}
+                          </div>
+                        )}
+                        {item.status === "rejected" && item.moderationNote && (
+                          <div style={{ color: "var(--danger)", fontSize: "0.8rem" }}>
+                            {item.moderationNote}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${item.status === "approved" ? "approved" : item.status === "rejected" ? "rejected" : "submitted"}`}>
+                          {t(`portfolioStatus_${item.status}`)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div className="mt">
+              <UploadPortfolio />
+            </div>
           </div>
 
           {/* Capacity listings — "our teams are available" */}

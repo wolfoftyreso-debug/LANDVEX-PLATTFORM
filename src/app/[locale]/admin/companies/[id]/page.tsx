@@ -7,6 +7,8 @@ import { listCorridors } from "@/modules/catalog/service";
 import {
   getCompany,
   listContacts,
+  listPortfolio,
+  listReferences,
   listWorkers,
 } from "@/modules/companies/service";
 import { documents } from "@/modules/documents/schema";
@@ -14,8 +16,10 @@ import { verificationCases } from "@/modules/verification/schema";
 import { badgeVisible, type CaseState } from "@/modules/verification/domain";
 import {
   addContactAction,
+  addReferenceAction,
   addWorkerAction,
   assignOwnershipAction,
+  moderatePortfolioAction,
   openCaseAction,
 } from "@/app/[locale]/admin/actions";
 
@@ -36,13 +40,17 @@ export default async function CompanyDetail({
   const company = await getCompany(id);
   if (!company) notFound();
 
-  const [workers, contacts, docs, cases, corridors] = await Promise.all([
-    listWorkers(id),
-    listContacts(id),
-    db.select().from(documents).where(and(eq(documents.companyId, id))),
-    db.select().from(verificationCases).where(eq(verificationCases.companyId, id)),
-    listCorridors(),
-  ]);
+  const [workers, contacts, docs, cases, corridors, portfolio, references] =
+    await Promise.all([
+      listWorkers(id),
+      listContacts(id),
+      db.select().from(documents).where(and(eq(documents.companyId, id))),
+      db.select().from(verificationCases).where(eq(verificationCases.companyId, id)),
+      listCorridors(),
+      listPortfolio(id, { onlyApproved: false }),
+      listReferences(id),
+    ]);
+  const pendingPortfolio = portfolio.filter((p) => p.status === "pending");
 
   const kase = cases[0];
   const state = kase?.state as CaseState | undefined;
@@ -177,6 +185,96 @@ export default async function CompanyDetail({
             <input id="contact-phone" name="phone" />
           </div>
           <button type="submit" className="secondary">+</button>
+        </form>
+      </div>
+
+      {/* Portfolio moderation */}
+      <div className="card">
+        <h3>{t("portfolioModTitle")}</h3>
+        {pendingPortfolio.length === 0 && portfolio.length === 0 && (
+          <p className="muted">—</p>
+        )}
+        {portfolio.length > 0 && (
+          <table>
+            <tbody>
+              {portfolio.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <strong>{item.title}</strong>
+                    {item.description && (
+                      <div className="muted" style={{ fontSize: "0.8rem" }}>{item.description}</div>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`badge ${item.status === "approved" ? "approved" : item.status === "rejected" ? "rejected" : "submitted"}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td>
+                    {item.status === "pending" && (
+                      <div className="flex" style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <form action={moderatePortfolioAction}>
+                          <input type="hidden" name="itemId" value={item.id} />
+                          <input type="hidden" name="decision" value="approved" />
+                          <button type="submit" className="secondary">{t("portfolioApprove")}</button>
+                        </form>
+                        <form action={moderatePortfolioAction} className="inline">
+                          <input type="hidden" name="itemId" value={item.id} />
+                          <input type="hidden" name="decision" value="rejected" />
+                          <input name="note" placeholder="…" style={{ width: 120 }} />
+                          <button type="submit" className="danger">{t("portfolioReject")}</button>
+                        </form>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* References — collected by ops */}
+      <div className="card">
+        <h3>{t("referencesTitle")}</h3>
+        {references.length > 0 && (
+          <table>
+            <tbody>
+              {references.map((reference) => (
+                <tr key={reference.id}>
+                  <td><strong>{reference.projectTitle}</strong></td>
+                  <td className="muted">
+                    {reference.clientName} · {reference.country}
+                    {reference.year ? ` · ${reference.year}` : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <form action={addReferenceAction} className="inline mt">
+          <input type="hidden" name="companyId" value={company.id} />
+          <div>
+            <label htmlFor="ref-title">{t("refProject")}</label>
+            <input id="ref-title" name="projectTitle" required />
+          </div>
+          <div>
+            <label htmlFor="ref-client">{t("refClient")}</label>
+            <input id="ref-client" name="clientName" required />
+          </div>
+          <div>
+            <label htmlFor="ref-country">{t("refCountry")}</label>
+            <input id="ref-country" name="country" maxLength={2} defaultValue="SE" style={{ width: 60 }} />
+          </div>
+          <div>
+            <label htmlFor="ref-year">{t("refYear")}</label>
+            <input id="ref-year" name="year" type="number" min={1990} max={2100} style={{ width: 90 }} />
+          </div>
+          <div>
+            <label htmlFor="ref-scope">{t("refScope")}</label>
+            <input id="ref-scope" name="scopeSummary" />
+          </div>
+          <button type="submit">{t("refAdd")}</button>
         </form>
       </div>
 

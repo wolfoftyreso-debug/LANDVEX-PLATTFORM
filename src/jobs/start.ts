@@ -101,6 +101,16 @@ async function handleEvent(
       logger.info(payload, "user registered");
       break;
     }
+    case "companies.portfolio_submitted": {
+      const { createOpsTask } = await import("@/modules/verification/service");
+      await createOpsTask({
+        title: "Portfolio image awaiting moderation",
+        detail: `Item ${payload.itemId}`,
+        companyId: String(payload.companyId),
+        dueAt: new Date(),
+      });
+      break;
+    }
     case "companies.claim_requested": {
       const { createOpsTask } = await import("@/modules/verification/service");
       await createOpsTask({

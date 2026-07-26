@@ -86,6 +86,54 @@ export const workers = pgTable("workers", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+/** Project images are moderated: nothing goes public before ops approval */
+export const portfolioStatus = pgEnum("portfolio_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const portfolioItems = pgTable("portfolio_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  objectKey: text("object_key").notNull().unique(),
+  contentType: text("content_type").notNull(),
+  status: portfolioStatus("status").notNull().default("pending"),
+  moderationNote: text("moderation_note"),
+  moderatedBy: uuid("moderated_by").references(() => users.id),
+  uploadedBy: uuid("uploaded_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * References collected and checked by Baltic Bridge ops (Section 7 keeps a
+ * review ENGINE out of scope; structured, ops-collected references are the
+ * prescribed alternative). Client contact details stay off-platform.
+ */
+export const companyReferences = pgTable("company_references", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id),
+  projectTitle: text("project_title").notNull(),
+  clientName: text("client_name").notNull(), // company name, never a person
+  country: text("country").notNull(),
+  year: integer("year"),
+  scopeSummary: text("scope_summary"),
+  contactAvailable: text("contact_available").notNull().default("on_request"),
+  collectedBy: uuid("collected_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const capacityStatus = pgEnum("capacity_status", [
   "draft",
   "published",

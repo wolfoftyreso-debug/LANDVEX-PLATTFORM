@@ -110,7 +110,17 @@
     "unclaimedTitle": "Unclaimed catalog profile",
     "unclaimedHint": "Imported from an open source. Assign ownership only after verifying that the claimant represents the company (email domain, registry check, phone call).",
     "ownerEmail": "Owner email (supplier account)",
-    "assignOwner": "Assign ownership"
+    "assignOwner": "Assign ownership",
+    "portfolioModTitle": "Project images — moderation",
+    "portfolioApprove": "Approve",
+    "portfolioReject": "Reject",
+    "referencesTitle": "References (collected by ops)",
+    "refProject": "Project",
+    "refClient": "Client",
+    "refCountry": "Country",
+    "refYear": "Year",
+    "refScope": "Scope",
+    "refAdd": "Add reference"
   },
   "tasks": {
     "title": "Ops tasks",
@@ -170,7 +180,18 @@
     "dispatchedHint": "Dispatched to you by Baltic Bridge ops. Submit your offer before the validity date.",
     "certificationsLabel": "Certifications (comma-separated)",
     "certificationsHint": "Shown as self-reported — verified facts appear separately after ops review.",
-    "serviceAreasLabel": "Service areas (comma-separated)"
+    "serviceAreasLabel": "Service areas (comma-separated)",
+    "portfolioSection": "Project images",
+    "portfolioSubmitted": "Submitted for moderation",
+    "portfolioAddAnother": "Add more",
+    "portfolioTitle": "Project title",
+    "portfolioTitlePlaceholder": "e.g. Stainless process line, dairy 2026",
+    "portfolioDesc": "Short description (optional)",
+    "portfolioCta": "Upload image",
+    "portfolioModerationNote": "Images go public only after review by Baltic Bridge ops. Only upload images you have the right to use.",
+    "portfolioStatus_pending": "Awaiting review",
+    "portfolioStatus_approved": "Published",
+    "portfolioStatus_rejected": "Rejected"
   },
   "chrome": {
     "findSuppliers": "Find suppliers",
@@ -222,7 +243,11 @@
     "claimRegisterCta": "Claim this profile — create a supplier account",
     "serviceAreas": "Service areas",
     "selfReportedCerts": "Stated certifications",
-    "selfReportedNote": "stated by the company, not verified by Baltic Bridge"
+    "selfReportedNote": "stated by the company, not verified by Baltic Bridge",
+    "portfolioTitle": "Project images",
+    "referencesTitle": "References",
+    "referencesNote": "Collected and checked by Baltic Bridge ops. Reference contact details are shared on request during quote comparison.",
+    "referenceContact": "Contact via Baltic Bridge"
   },
   "rfqStatus": {
     "new": "New",
