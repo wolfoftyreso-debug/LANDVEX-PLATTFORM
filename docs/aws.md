@@ -236,9 +236,16 @@ the moment the service has open egress:
 
 ```bash
 # Inside a running task, or anywhere with real network:
-python3 -m scripts.sensor_probe all      # which sensor feeds actually answer
-python3 -m scripts.register_probe all    # which business registers answer
+make probe                       # every probe, one verdict per source
+python3 -m scripts.probe_all --json    # the same, for a pipeline
 ```
+
+`make probe` classifies each source as `answered`, `wrong_shape`,
+`blocked`, `not_configured`, `bad_args`, `our_bug` or `unclear`, and
+prints the exact `file:line` to flip for the sources that answered — and
+for no others. Those four categories exist because the first version
+conflated them: a blocked firewall came out looking like a broken
+adapter, which sends someone hunting a parser bug that does not exist.
 
 Every adapter currently carries `verified_live = False`. That is not
 pessimism — it is that nothing here has ever received a byte from those

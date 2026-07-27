@@ -2,6 +2,65 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — prober som går att tolka
+
+**Ett spärrat nät är inte en trasig adapter.** Skillnaden är hela poängen
+med en probe, och den var borttappad: `RegisterProvider.fetch` kastade
+bort felet den svalde, så svaret på "kom vi fram?" fanns inte kvar
+någonstans. Proben kunde bara räkna upp vad som kan ha hänt — och skrev
+det också: *"unreachable, path wrong, or the response shape differs"*.
+Tre möjligheter i en mening är inget utfall.
+
+- **`scripts/probe_all.py` (`make probe`)** kör alla prober och ger ett
+  verdikt per källa: `answered`, `wrong_shape`, `blocked`,
+  `not_configured`, `bad_args`, `our_bug`, `unclear`. Den skriver ut
+  `file:line` för de källor som svarat — och bara dem. En bock satt på
+  känsla är värre än ingen bock.
+- **Tre fel i första körningen, alla samma sort: den läste ord ur
+  brasklappar.** Ordet "unreachable" plockades ur meningen ovan och
+  kallades ett verdikt. `livability_probe` avslutar med 0 utan att prova
+  något ("nothing to probe") och räknades som *svarade* — en avbockad
+  verifiering som aldrig skett. Och "no industry code mapped", som var
+  ett felaktigt argument från min sida, lästes som ADAPTERFEL och hade
+  skickat någon att leta efter en parserbugg som inte finns.
+- **Providern bär nu `last_error`** och nollar det vid lyckat anrop,
+  precis som `Breaker` i `faults.py` gör av samma skäl.
+  `scripts/register_probe.py` returnerar därmed exit 3 för "kom aldrig
+  fram", skilt från 1 för "kom fram men formen stämde inte".
+- **`unreachable()` flyttad till `engine/datasources/faults.py`** och
+  används av båda proberna. Ett test hävdar att definitionen finns exakt
+  en gång — två kopior av samma regel glider isär, samma skäl som att
+  `percentile` bor på ett ställe.
+- **`verified_live` satt bara på basklassen.** En enda ändrad rad hade
+  bockat av alla tio klienterna samtidigt; det gick alltså inte att säga
+  att SMHI svarat men OpenAQ inte. Varje klient bär nu ett eget fält.
+- Utfall i byggmiljön: **0 svarade · 6 spärrade · 14 ej konfigurerade**,
+  ingenting avbockat. Proxyn nekar CONNECT med 403 och registrerar
+  avslaget själv. Det är ett svar, inte ett fel.
+
+## [Ej släppt] — lägesbilden mäts
+
+**Ett lägesdokument åldras i tysthet.** Siffror skrivna för hand var
+sanna den dag någon skrev dem och blir felaktiga utan att någon märker
+det — och en läsare som upptäcker EN fel siffra slutar tro på hela sidan.
+
+- **`scripts/standing.py` (`make standing`)** mäter nuläget ur koden vid
+  körning: marknader, byggda mot planerade beslut, sensorlägen,
+  leverantörer per klass, verifierade källor, testsviter, och om miljön
+  skulle klara startspärren. Luckorna HÄRLEDS ur samma mätning.
+- **Planen räknar av sig själv.** Varje post bär ett `done_when` som
+  läser mätningen; en punkt som blivit klar markeras klar och försvinner.
+  Bevisat med ett test som lägger till ett byggt beslut och kräver att
+  posten stänger sig.
+- **Två noggrannheter som annars hade gjort bilden bättre än den är:**
+  registerklienterna bär `verified_live` som fält i sin katalograd och
+  sensorklienterna som klassattribut — räknas bara den ena blir det 10 av
+  10 obekräftade i stället för 14 av 14. Och en klass utan adapter saknar
+  inte ett ANDRA nät, den saknar det första.
+- **`--md` skriver en överlämning** med doktrinen som inte får förhandlas
+  bort, så att en mottagande session ärver omdömet och inte bara talen.
+  Konkurrensbilden är märkt som analys, inte mätning.
+
 ## [Ej släppt] — driftsättning
 
 **Imagen var trasig.** `Dockerfile` kopierade `engine`, `api` och

@@ -184,9 +184,9 @@ def _har_beslut(m: dict, id_: str) -> bool:
 PLAN: tuple[dict, ...] = (
     # ── Nivå 1: gör produkten säljbar ────────────────────────────────
     {"id": "verify_live_sources", "tier": 1,
-     "what_en": "Run scripts/sensor_probe.py all and register_probe.py all "
-                "where egress is open; set verified_live only for the "
-                "sources that actually answered.",
+     "what_en": "Run `make probe` where egress is open. It reports one "
+                "verdict per source and prints the exact file:line to flip "
+                "for those that answered — and for no others.",
      "why_en": "It is the difference between a working machine and proven "
                "intelligence, and it is the first question every buyer "
                "asks.",
@@ -349,6 +349,7 @@ Kör alltid detta först, i den här ordningen:
 python3 -m scripts.standing     # den här bilden, mätt på nytt
 make test                       # alla sviter, utan pytest och utan nät
 make preflight                  # klarar den här miljön riktig trafik?
+make probe                      # vilka källor svarar? (kräver öppet nät)
 ```
 
 Ta den ÖVERSTA öppna punkten på nivå 1. Är den blockerad av nätet
