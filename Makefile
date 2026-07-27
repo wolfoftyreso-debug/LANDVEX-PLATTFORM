@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -57,6 +57,13 @@ logs: ## Tail app logs
 
 readiness: ## Hit every endpoint against a running server (BASE=...)
 	$(PY) -m scripts.readiness_check
+
+preflight: ## Is THIS environment ready for real traffic? (exits 1 if not)
+	@$(PY) -m scripts.preflight --strict
+
+env-template: ## Write a complete .env, generated from the registry
+	@$(PY) -m scripts.preflight --template > .env.example
+	@echo "Wrote .env.example — secrets left empty on purpose."
 
 smoke: check test ## Compile + full test suite (pre-deploy gate)
 	@echo "smoke OK — ready to deploy"

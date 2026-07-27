@@ -2,6 +2,66 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — driftsättning
+
+**Imagen var trasig.** `Dockerfile` kopierade `engine`, `api` och
+`frontend` — men inte `integrations`, som `api/main.py`,
+`api/dev_server.py` och två datakällsadaptrar importerar. Containern
+kraschade på import, och hela sviten var grön, eftersom testerna kör mot
+arbetskatalogen där allt finns. Ett bygge som är grönt i CI och dött i
+containern är den dyraste sorten: felet upptäcks av den som driftsätter,
+inte av den som skriver.
+
+- **`engine/deployment.py`** — ett register över alla 66 miljövariabler
+  med den enda rad som spelar roll vid en driftsättning: *vad händer om
+  den inte är satt?* Nivå (`required`/`recommended`/`optional`), syfte,
+  konsekvens, och `secret` för de elva vars värde aldrig får lämna
+  processen.
+- **Ett test hävdar åt BÅDA håll.** Varje variabel koden läser står i
+  registret, och varje registrerad variabel läses av koden. Första
+  körningen hittade sex odokumenterade — och när regexen bara sökte
+  `os.environ` missade den åtta till, som sensorklienterna läser via
+  klassattributet `ENV`. En dokumentation som får glida ifrån
+  verkligheten är sämre än ingen, för då tror man på den.
+- **`scripts/preflight.py`** — kontrollen körs, den beskrivs inte. Den
+  SKRIVER en riktig temporärfil till lagersökvägarna: en sökväg som ser
+  rätt ut men ligger på en read-only mount upptäcks annars av första
+  kunden som sparar något. Den öppnar däremot medvetet ingen
+  databasanslutning — ett preflight som hänger trettio sekunder på en
+  felaktig security group blir självt problemet det skulle upptäcka.
+- **Startspärren ligger i containerns startväg**, inte i ett dokument:
+  `CMD python -m scripts.preflight --gate && exec gunicorn …`.
+  `LANDVEX_PREFLIGHT` avgör vad ett underkänt resultat kostar — `strict`
+  vägrar ta trafik, `warn` startar och lägger skälen överst i loggen,
+  `off` hoppar över. Ett okänt värde tolkas som `warn`, aldrig som av:
+  ett stavfel får inte stänga av spärren. CI kör spärren mot en TOM
+  miljö och faller om den godkänner den.
+- **Två kombinationer är farligare än summan av delarna** och fälls
+  därför var för sig: utan både nycklar och JWT är API:et ÖPPET — varje
+  anropare blir admin i tenant `dev` på enterprise-planen, och
+  tenant-isoleringen skyddar då ingen från någon.
+- **SQLite-varningen räknar nu skrivare** (`LANDVEX_REPLICAS ×
+  WEB_CONCURRENCY`) i stället för att alltid gå igång. Ett medvetet
+  enprocessbygge med monterad volym är ett giltigt val och blir grönt,
+  med taket utskrivet. En varning som aldrig går att bli av med lär
+  läsaren att klicka förbi varningarna — och då fyller de ingen funktion
+  när det gäller.
+- **`deploy/aws/task-definition.json`** — ECS Fargate, redo att
+  registreras. Fyra saker i den är bärande och har varsitt test: varje
+  namn under `environment`/`secrets` finns i registret (en uppgift som
+  sätter `LANDVEX_DATABASE_URL` registreras utan protest och gör
+  ingenting); ingen hemlighet ligger i klartext där alla med
+  `ecs:DescribeTaskDefinition` ser den; `stopTimeout` överlever
+  gunicorns `--timeout`; publicerad port, `LANDVEX_PORT`, `EXPOSE` och
+  hälsokontrollens URL är samma tal. Ett femte test kör startspärren mot
+  exakt den miljö ECS sätter — och hittade en sökväg som ingen skapade.
+- **`.env.example` genereras** ur registret, och ett test faller om den
+  incheckade filen glidit isär från det. Hemligheter lämnas tomma:
+  ett värde i en fil checkas in förr eller senare.
+- **`docs/aws.md`** — körboken. Varje steg som kräver ett AWS-konto är
+  utmärkt som sådant, så att det som återstår är transkribering, inte
+  design.
+
 ## [Ej släppt] — tenant-isolering
 
 **Säkerhetsfel.** Plattformen autentiserade tenant, loggade tenant i varje

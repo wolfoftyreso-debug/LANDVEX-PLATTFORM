@@ -1,5 +1,10 @@
 # LANDVEX OPPORTUNITY ENGINE — HANDOFF TO AWS DEV (Bernt)
 
+> **This is the EC2 + systemd + nginx path (port 8087).** For ECS
+> Fargate — ECR, Aurora, Secrets Manager, and the preflight gate the
+> container runs before it serves traffic — see [`aws.md`](aws.md).
+> Both are current; they are different shapes, not different versions.
+
 **From:** Claude Code (Fab build)  ·  **To:** Bernt (bernt.wavult.com)
 **Engine version:** 0.10.0  ·  **Repo:** `wolfoftyreso-debug/konditori-joy`
 **Branch:** `claude/new-session-d9t6ni`  ·  **Subdir:** `landvex-opportunity-engine/`

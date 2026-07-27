@@ -37,6 +37,17 @@ jobs:
             --budgets docs/landvex-budgets.json
       - name: Demo (fäller sig själv om ett steg inte stämmer)
         run: python -m scripts.demo90
+      - name: Preflight (startspärren måste fälla en tom miljö)
+        # Containern kör exakt den här raden innan gunicorn startar. En
+        # spärr som aldrig prövas är en spärr man tror på utan skäl:
+        # här körs den mot en TOM miljö, där svaret ska vara nej.
+        run: |
+          if LANDVEX_PREFLIGHT=strict python -m scripts.preflight --gate; then
+            echo "preflight godkände en tom miljö — spärren är trasig"
+            exit 1
+          fi
+          LANDVEX_PREFLIGHT=warn python -m scripts.preflight --gate
+          LANDVEX_PREFLIGHT=off python -m scripts.preflight --gate
       - name: Test suite (auto-discovered, no deps, no network)
         run: |
           for t in tests/test_*.py; do

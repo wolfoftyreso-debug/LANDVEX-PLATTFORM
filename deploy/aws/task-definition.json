@@ -1,0 +1,79 @@
+{
+  "_comment": [
+    "LANDVEX Opportunity Engine — ECS Fargate task definition.",
+    "Placeholders in ${...} are filled by the deploy pipeline; everything",
+    "else is a deliberate value, and docs/aws.md says why for each one.",
+    "A test (tests/test_deploy.py) holds every name under 'environment'",
+    "and 'secrets' against engine/deployment.ENVIRONMENT, so this file",
+    "cannot drift into naming a variable the code does not read.",
+    "Register with: aws ecs register-task-definition --cli-input-json file://deploy/aws/task-definition.json"
+  ],
+  "family": "landvex-opportunity-engine",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/landvex-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/landvex-task",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/landvex/opportunity-engine:${IMAGE_TAG}",
+      "essential": true,
+      "readonlyRootFilesystem": false,
+      "portMappings": [
+        { "containerPort": 8000, "protocol": "tcp", "name": "http" }
+      ],
+      "environment": [
+        { "name": "LANDVEX_PREFLIGHT", "value": "strict" },
+        { "name": "LANDVEX_HOST", "value": "0.0.0.0" },
+        { "name": "LANDVEX_PORT", "value": "8000" },
+        { "name": "WEB_CONCURRENCY", "value": "2" },
+        { "name": "LANDVEX_REPLICAS", "value": "2" },
+        { "name": "LANDVEX_DB", "value": "off" },
+        { "name": "LANDVEX_AUDIT_LOG", "value": "/var/log/landvex/audit.jsonl" },
+        { "name": "LANDVEX_LIVE", "value": "1" },
+        { "name": "LANDVEX_RATE_LIMIT", "value": "300" },
+        { "name": "LANDVEX_SCB_BASE", "value": "https://api.scb.se/OV0104/v1/doris/en/ssd" },
+        { "name": "LANDVEX_KOLADA_URL", "value": "https://api.kolada.se/v2" },
+        { "name": "LANDVEX_CENSUS_BASE", "value": "https://api.census.gov/data" },
+        { "name": "LANDVEX_TRAFFIC_URL", "value": "https://api.trafikinfo.trafikverket.se/v2/data.json" },
+        { "name": "LANDVEX_TRAFFIC_FI_URL", "value": "https://tie.digitraffic.fi" },
+        { "name": "LANDVEX_WEATHER_URL", "value": "https://opendata-download-metobs.smhi.se" },
+        { "name": "LANDVEX_WEATHER_US_URL", "value": "https://api.weather.gov" },
+        { "name": "LANDVEX_HYDRO_URL", "value": "https://opendata-download-hydroobs.smhi.se" },
+        { "name": "LANDVEX_AIR_URL", "value": "https://api.openaq.org" },
+        { "name": "LANDVEX_SEISMIC_URL", "value": "https://earthquake.usgs.gov" },
+        { "name": "LANDVEX_AIS_URL", "value": "https://meri.digitraffic.fi" }
+      ],
+      "secrets": [
+        { "name": "LANDVEX_API_KEYS", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/api-keys" },
+        { "name": "LANDVEX_JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/jwt-secret" },
+        { "name": "LANDVEX_PG_DSN", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/pg-dsn" },
+        { "name": "LANDVEX_TRAFFIC_KEY", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/trafikverket-key" },
+        { "name": "LANDVEX_AIR_KEY", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/openaq-key" }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=3).status==200 else 1)\""],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 20
+      },
+      "stopTimeout": 35,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/landvex-opportunity-engine",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "app",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ]
+}
