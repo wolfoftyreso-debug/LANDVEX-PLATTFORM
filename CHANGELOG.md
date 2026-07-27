@@ -58,6 +58,30 @@ inte av den som skriver.
 - **`.env.example` genereras** ur registret, och ett test faller om den
   incheckade filen glidit isär från det. Hemligheter lämnas tomma:
   ett värde i en fil checkas in förr eller senare.
+- **CI bygger och startar imagen.** Sviten kör mot arbetskatalogen, där
+  allting finns; imagen är en annan maskin. Jobbet bygger, importerar
+  båda API-lagren inne i containern, kräver att startspärren vägrar utan
+  nycklar, och ställer tre riktiga frågor till den körande servern:
+  `/health` svarar 200, `/v1/catalog` utan nyckel ger 401, med nyckel
+  200. Revisionsraden i containerloggen visar `key_id: "cite…"` —
+  nyckeln själv hamnar aldrig i loggen.
+- **Jobbet hittade ett fel på sin första körning, och det var mitt.**
+  `COPY scripts ./scripts` stod i Dockerfile — och `scripts` stod i
+  `.dockerignore`. Bygget föll på COPY-raden, alltså hade raden aldrig
+  fungerat. Testet som skulle skydda saken läste bara Dockerfile och sa
+  god dag: halva sanningen ser precis ut som hela. Ett nytt test
+  korsläser filerna, prövat genom att lägga tillbaka raden.
+- **`deploy/aws/execution-role-policy.json`** — `GetSecretValue` på
+  exakt de fem hemligheter uppgiften nämner, inte på `landvex/*`, som
+  gör nästa hemlighet under prefixet läsbar utan att någon beslutat det.
+  Två test håller policyn mot uppgiftsdefinitionen åt båda håll: en
+  hemlighet uppgiften begär men rollen inte får läsa gör att uppgiften
+  inte startar, med ett felmeddelande som citerar ett ARN och ingenting
+  annat.
+- **`preflight --egress`** skriver ut vilka värdar den KÖRANDE miljön
+  ringer ut till, med den variabel som orsakar varje anrop. En brandvägg
+  öppnad efter en handskriven lista stänger ute den källa någon la till
+  i veckan — och det felet ser exakt ut som en trasig adapter.
 - **`docs/aws.md`** — körboken. Varje steg som kräver ett AWS-konto är
   utmärkt som sådant, så att det som återstår är transkribering, inte
   design.
