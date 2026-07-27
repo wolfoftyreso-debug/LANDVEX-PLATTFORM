@@ -22,3 +22,9 @@ landvex-audit.log
 # från just den maskin proben kördes på. Committas det ser hela projektet
 # ut att ha verifierade källor som aldrig prövats där. Kör proben lokalt.
 engine/datasources/verified.json
+
+# Genererad överlämning (`make handover`). Den speglar koden vid en
+# körning; incheckad blir den ett andra, åldrande lägesdokument — och två
+# lägesdokument som säger olika saker är sämre än ett. Kör om den i
+# stället: python3 -m scripts.standing --md
+NULAGE.md
