@@ -64,6 +64,26 @@ FRAGOR = [
 # marknader hänvisar ärligt till live-API:t.
 DEMO_MARKETS = ("us", "se", "de")
 
+# Storleken på den statiska demon är matrisen marknader × vertikaler ×
+# regioner × yrken. Full matris ger ~42 MB, vilket inte går att dela och
+# inte behöver delas: en rundvandring behöver DJUP i en marknad, inte
+# bredd över tre. `--lite` bakar en marknad och de vanligaste
+# vertikalerna. Icke-bakade val hänvisar ärligt till live-API:t, precis
+# som icke-bakade marknader alltid gjort — ingenting påstås vara
+# förberäknat som inte är det.
+# US, inte SE: konsolens standardmarknad är us, och ett demo vars
+# FÖRSTA klick svarar "den här kombinationen är inte förberäknad" visar
+# ingenting av produkten. Den baserade marknaden måste vara den som är
+# vald när sidan öppnas.
+LITE_MARKETS = ("us",)
+LITE_VERTICALS = ("cafe", "restaurang", "frisor", "elektriker", "gym",
+                  "bageri", "tandlakare", "bilverkstad")
+# Prognoserna är den tyngsta posten: regioner × yrken, två gånger
+# (prognos + simulering). Sex yrken i stället för 21 räcker för att visa
+# vad arbetskraftsmotorn gör.
+LITE_OCCUPATIONS = ("elektriker", "vvs_montor", "snickare", "larare",
+                    "sjukskoterska", "underskoterska")
+
 
 def _strip(f: dict) -> dict:
     f = dict(f)
@@ -72,8 +92,14 @@ def _strip(f: dict) -> dict:
     return f
 
 
-def build(out_path: str) -> None:
+def build(out_path: str, lite: bool = False,
+          fragment: bool = False) -> None:
     from engine.verticals import VERTICALS
+    marknader = LITE_MARKETS if lite else DEMO_MARKETS
+    vertikaler = ([v for v in VERTICALS if v in LITE_VERTICALS] if lite
+                  else VERTICALS)
+    yrken = ([o for o in OCCUPATIONS if o in LITE_OCCUPATIONS] if lite
+             else OCCUPATIONS)
     demo: dict = {
         # Endast bakade val erbjuds: en analysnivå, två marknader.
         "options": {**profile_options(),
@@ -81,7 +107,7 @@ def build(out_path: str) -> None:
         "occupations": occupation_catalog(),
         # Hela marknadskatalogen visas i menyn (alla EU-länder + delstater);
         # 'demo_precomputed' markerar vilka som är förberäknade i demon.
-        "markets": [{**m, "demo_precomputed": m["id"] in DEMO_MARKETS}
+        "markets": [{**m, "demo_precomputed": m["id"] in marknader}
                     for m in market_catalog()],
         "ask": {q: ask(q) for q in FRAGOR},
         "scans": {}, "wf_maps": {}, "forecasts": {}, "simulate": {},
@@ -103,11 +129,11 @@ def build(out_path: str) -> None:
         "agents": agents(AamosClient(base_url="")),
         "agent_chat": agent_chat_safe(AamosClient(base_url=""), ""),
     }
-    for market in DEMO_MARKETS:
-        for vid in VERTICALS:
+    for market in marknader:
+        for vid in vertikaler:
             demo["gaps"][f"{market}:{vid}"] = gap_analysis(
                 vid, market=market, top_n=5)
-    for market in DEMO_MARKETS:
+    for market in marknader:
         for ix in index_catalog():
             demo["index_maps"][f"{market}:{ix['id']}"] = index_map(
                 ix["id"], market=market)
@@ -119,8 +145,8 @@ def build(out_path: str) -> None:
         svar["forslag_en"] = [f for f in FRAGOR if f != q][:3]
 
     from engine.specialization import specializations_for
-    for market in DEMO_MARKETS:
-        for vid in VERTICALS:
+    for market in marknader:
+        for vid in vertikaler:
             # Generellt läge + varje specialisering (personlig score).
             specs = [None] + [s["id"] for s in specializations_for(vid)]
             for sp in specs:
@@ -146,7 +172,7 @@ def build(out_path: str) -> None:
                         demo["risk_intel"][okey] = risk_intelligence(
                             Location(h["lat"], h["lon"], address=h["lage_en"]),
                             vid, specialization=sp, market=market)
-        for occ in OCCUPATIONS:
+        for occ in yrken:
             demo["wf_maps"][f"{market}:{occ}"] = national_map(
                 occ, 2035, market=market)
             for kod, *_ in MARKETS[market].regions:
@@ -353,6 +379,17 @@ async function api(path, body) {
     html = html.replace('<script>\n"use strict";',
                         f'<script>window.DEMO = {payload};</script>\n'
                         f'<script>\n"use strict";', 1)
+    if fragment:
+        # En artefaktsida wrappas i sitt eget dokumentskelett vid
+        # publicering, så egna <html>/<head>/<body> skulle nästlas. Plocka
+        # ut innehållet i stället för att låta två skelett krocka.
+        import re as _re
+        huvud = _re.search(r"<head[^>]*>(.*?)</head>", html, _re.S)
+        kropp = _re.search(r"<body[^>]*>(.*?)</body>", html, _re.S)
+        if not (huvud and kropp):
+            raise SystemExit("hittade inte head/body — fragmentet vore trasigt")
+        html = huvud.group(1).strip() + "\n" + kropp.group(1).strip()
+
     out = pathlib.Path(out_path)
     out.write_text(html, encoding="utf-8")
     print(f"demo: {out} ({round(out.stat().st_size / 1024)} kB) · "
@@ -362,4 +399,6 @@ async function api(path, body) {
 
 
 if __name__ == "__main__":
-    build(sys.argv[1] if len(sys.argv) > 1 else "landvex-demo.html")
+    _argv = [a for a in sys.argv[1:] if not a.startswith("--")]
+    build(_argv[0] if _argv else "landvex-demo.html",
+          lite="--lite" in sys.argv, fragment="--fragment" in sys.argv)
