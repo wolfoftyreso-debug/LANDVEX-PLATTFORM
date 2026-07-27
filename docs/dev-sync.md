@@ -2,7 +2,7 @@
 
 **Snapshot date:** 2026-07-24
 **Branch:** `claude/new-session-d9t6ni` · **commit:** `b800532`
-**Engine version:** `0.10.0` (stamped in every report; marketing versions v0.1–v0.30 track features)
+**Engine version:** `1.1.0` (stamped in every report; marketing versions v0.1–v0.30 track features)
 
 This is the single entry point for the dev team. It summarizes the whole
 system and points at the detailed docs. Everything here is code that runs

@@ -612,6 +612,30 @@ def test_the_health_check_starts_after_preflight_has_had_time_to_run():
     assert c["healthCheck"]["startPeriod"] >= 15
 
 
+def test_the_stamped_engine_version_matches_the_released_one():
+    """Fyndet: motorn stämplade 0.10.0 i varje rapport och API-svar medan
+    CHANGELOG, Makefile och körboken alla sa 1.1.0. Hela dissg-skörden
+    — lambda, kpi, setpoints, scorekit, stats — ändrade den beräknande
+    logiken under samma stämpel.
+
+    Det bryter exakt det löfte engine/version.py själv ger: samma version
+    plus samma signalvärden ska ge samma score. Två materiellt olika
+    motorer under en stämpel gör sparade rapporter otolkbara i
+    efterhand."""
+    import re
+    from engine.version import ENGINE_VERSION
+    slappta = re.findall(r"^## \[(\d+\.\d+\.\d+)\]",
+                         (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8"),
+                         re.M)
+    assert slappta, "CHANGELOG saknar en släppt version"
+    assert ENGINE_VERSION == slappta[0], (
+        f"motorn stämplar {ENGINE_VERSION}, senast släppta är "
+        f"{slappta[0]} — en sparad rapport går inte att tolka i efterhand")
+    # Och imagen ska bära samma tal, annars pekar en tagg på fel motor.
+    mf = (_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert ENGINE_VERSION in mf, "Makefile-taggen matchar inte motorn"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

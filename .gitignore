@@ -28,3 +28,6 @@ engine/datasources/verified.json
 # lägesdokument som säger olika saker är sämre än ett. Kör om den i
 # stället: python3 -m scripts.standing --md
 NULAGE.md
+
+# Genererad rundtur (`make tour`) — byggs om ur motorn, checkas inte in.
+landvex-tour.html
