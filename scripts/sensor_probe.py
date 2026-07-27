@@ -76,7 +76,66 @@ def _probe_road_flow() -> tuple[str, dict | None]:
     return "ok", r
 
 
-PROBES = {"weather": _probe_weather, "road_flow": _probe_road_flow}
+def _probe_air_quality() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import OpenAqAir
+    c = OpenAqAir()
+    if not c.connected:
+        return "not configured", None
+    r = c.latest(59.3145, 18.0705)
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
+def _probe_water_level() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import SmhiHydro
+    c = SmhiHydro()
+    if not c.connected:
+        return "not configured", None
+    r = c.latest("water_level_cm",
+                 os.environ.get("LANDVEX_HYDRO_STATION", "2255"))
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
+def _probe_earth_observation() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import CopernicusStac
+    c = CopernicusStac()
+    if not c.connected:
+        return "not configured", None
+    # Ett fönster bakåt som bara behöver finnas, inte vara aktuellt: proben
+    # bekräftar sökvägen, inte världsläget. Datum tas in, aldrig härleds.
+    r = c.coverage(59.3145, 18.0705,
+                   start=os.environ.get("LANDVEX_EO_FROM", "2026-05-01"),
+                   end=os.environ.get("LANDVEX_EO_TO", "2026-07-01"))
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
+def _probe_building_meter() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import GenericSensorFeed
+    c = GenericSensorFeed()
+    if not c.connected:
+        return "not configured", None
+    strom = os.environ.get("LANDVEX_METER_STREAM", "")
+    if not strom:
+        return "not configured", None
+    r = c.readings(strom)
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
+PROBES = {
+    "weather": _probe_weather,
+    "road_flow": _probe_road_flow,
+    "air_quality": _probe_air_quality,
+    "water_level": _probe_water_level,
+    "earth_observation": _probe_earth_observation,
+    "building_meter": _probe_building_meter,
+}
 
 
 def main(argv: list[str]) -> int:

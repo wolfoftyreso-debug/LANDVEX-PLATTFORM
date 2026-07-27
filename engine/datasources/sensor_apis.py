@@ -237,7 +237,265 @@ class SmhiWeather(SensorClient):
         }
 
 
-CLIENTS = {c.sensor_class: c for c in (TrafikverketFlow, SmhiWeather)}
+
+
+# ── OpenAQ: luftkvalitet ────────────────────────────────────────────────
+class OpenAqAir(SensorClient):
+    """Senaste mätvärdet per parameter inom en radie.
+
+    Svarsform (OpenAQ v3, dokumenterad): {"results": [{"parameter":
+    {"name": "no2", "units": "µg/m³"}, "value": 21.4, "coordinates":
+    {...}, "datetime": {"utc": ".."}}]}
+
+    Nyckel krävs (gratis). Utan den finns ingen väg fram.
+    """
+
+    id = "openaq"
+    sensor_class = "air_quality"
+    ENV = "LANDVEX_AIR_URL"
+
+    # OpenAQ:s egna parameternamn → våra signal-id:n.
+    PARAMETERS = {"no2": "no2_ug_m3", "pm10": "pm10_ug_m3",
+                  "pm25": "pm25_ug_m3"}
+
+    def __init__(self, *a, api_key: str | None = None, **kw):
+        super().__init__(*a, **kw)
+        self.api_key = (api_key if api_key is not None
+                        else os.environ.get("LANDVEX_AIR_KEY", ""))
+
+    @property
+    def connected(self) -> bool:
+        return bool(self.base_url) and bool(self.api_key)
+
+    def latest(self, lat: float, lon: float, *,
+               radius_m: int = 12000) -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/v3/parameters/latest?"
+               + urllib.parse.urlencode(
+                   {"coordinates": f"{lat},{lon}",
+                    "radius": int(radius_m), "limit": 100}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            rader = json.loads(raw.decode("utf-8")).get("results") or []
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return _sammanfatta_luft(rader, self.PARAMETERS)
+
+
+def _sammanfatta_luft(rader: list, parametrar: dict) -> dict | None:
+    """Stationer → ett värde per parameter. None när ingen bar ett tal.
+
+    Medelvärde över stationerna i radien, med antalet kvar i svaret: en
+    station i en gatukanjon och tio spridda över en stad är två helt
+    olika underlag, och skillnaden får inte försvinna i ett tal.
+    """
+    per: dict[str, list] = {}
+    for r in rader if isinstance(rader, list) else []:
+        if not isinstance(r, dict):
+            continue
+        namn = ((r.get("parameter") or {}).get("name") or "").lower()
+        sid = parametrar.get(namn)
+        v = r.get("value")
+        if sid and isinstance(v, (int, float)):
+            per.setdefault(sid, []).append(float(v))
+    if not per:
+        return None
+    return {
+        "values": {k: round(sum(v) / len(v), 2) for k, v in per.items()},
+        "stations": {k: len(v) for k, v in per.items()},
+        "measured": True,
+        "source": "OpenAQ v3",
+        "basis_en": ("Mean per parameter across the stations inside the "
+                     "radius. One station in a street canyon and ten spread "
+                     "across a city are different bases for the same "
+                     "number, so the count stays in the answer."),
+    }
+
+
+# ── SMHI hydrologi: vattenstånd ─────────────────────────────────────────
+class SmhiHydro(SensorClient):
+    """Vattenföring och vattenstånd från SMHI:s hydrologiska nät.
+
+    Samma REST-form som metobs: parameter → station → period → data.json.
+    """
+
+    id = "smhi_hydro"
+    sensor_class = "water_level"
+    ENV = "LANDVEX_HYDRO_URL"
+
+    PARAMETERS = {"discharge_m3s": {"parameter": 1,
+                                    "label_en": "Discharge"},
+                  "water_level_cm": {"parameter": 2,
+                                     "label_en": "Water level"}}
+
+    def latest(self, signal_id: str, station: str) -> dict | None:
+        spec = self.PARAMETERS.get(signal_id)
+        if not (self.connected and spec):
+            return None
+        url = (f"{self.base_url}/api/version/1.0/parameter/"
+               f"{spec['parameter']}/station/{urllib.parse.quote(station)}"
+               f"/period/latest-day/data.json")
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            data = json.loads(raw.decode("utf-8"))
+            senaste = (data.get("value") or [])[-1]
+            varde = float(senaste["value"])
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return {
+            "signal": signal_id, "value": varde,
+            "label_en": spec["label_en"],
+            "station": (data.get("station") or {}).get("name", station),
+            "observed_at_ms": senaste.get("date"),
+            "measured": True, "source": "SMHI hydrology",
+            "basis_en": ("One gauge, one cross-section. What reaches a "
+                         "basement depends on terrain and culverts this "
+                         "series knows nothing about."),
+        }
+
+
+# ── Copernicus STAC: satellitpassager ───────────────────────────────────
+class CopernicusStac(SensorClient):
+    """Vilka scener som täcker en punkt mellan två datum.
+
+    STAC är en standard: POST /search med {collections, intersects,
+    datetime, limit} → {"features": [{"id": .., "properties":
+    {"datetime": .., "eo:cloud_cover": ..}}]}.
+
+    Klienten hämtar INTE bilder och räknar inte förändring. Den svarar på
+    den fråga som avgör om en jämförelse alls är möjlig: finns det två
+    tillräckligt molnfria passager över den här punkten?
+    """
+
+    id = "copernicus_stac"
+    sensor_class = "earth_observation"
+    ENV = "LANDVEX_EO_URL"
+    _default_transport = staticmethod(_http_post)
+
+    def coverage(self, lat: float, lon: float, *, start: str, end: str,
+                 collection: str = "sentinel-2-l2a",
+                 max_cloud: float = 30.0) -> dict | None:
+        if not self.connected:
+            return None
+        krop = json.dumps({
+            "collections": [collection],
+            "intersects": {"type": "Point", "coordinates": [lon, lat]},
+            "datetime": f"{start}/{end}", "limit": 100,
+        }).encode("utf-8")
+        raw = self._breaker.fetch(f"{self.base_url}/search", krop)
+        if raw is None:
+            return None
+        try:
+            scener = json.loads(raw.decode("utf-8")).get("features") or []
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return _sammanfatta_scener(scener, max_cloud, collection)
+
+
+def _sammanfatta_scener(scener: list, max_cloud: float,
+                        collection: str) -> dict | None:
+    if not isinstance(scener, list):
+        return None
+    moln = []
+    for f in scener:
+        p = (f or {}).get("properties") or {}
+        c = p.get("eo:cloud_cover")
+        moln.append(float(c) if isinstance(c, (int, float)) else None)
+    anvandbara = [c for c in moln if c is not None and c <= max_cloud]
+    return {
+        "scenes": len(scener),
+        "usable_scenes": len(anvandbara),
+        "max_cloud_pct": max_cloud,
+        "collection": collection,
+        "comparable": len(anvandbara) >= 2,
+        "measured": True,
+        "source": "Copernicus Data Space (STAC)",
+        # Det här är hela poängen med klienten: den säger om en jämförelse
+        # är MÖJLIG, inte vad den skulle visa. Två moln över samma tomt är
+        # inte "ingen förändring" — det är ingen observation.
+        "basis_en": (
+            f"{len(anvandbara)} of {len(scener)} scene(s) are under "
+            f"{max_cloud:g}% cloud. Fewer than two means no comparison can "
+            f"be made at all; cloud over a parcel is not evidence that "
+            f"nothing changed, it is an absence of observation."),
+    }
+
+
+# ── Generisk sensorfeed: ägarlevererade mätvärden ───────────────────────
+class GenericSensorFeed(SensorClient):
+    """Kontraktet en fastighetsägare, ett fjärrvärmebolag eller en
+    leverantör levererar in i.
+
+    Formen är medvetet minimal och dokumenterad:
+        GET {base}/readings?stream=<id>&since=<iso>
+        → {"readings": [{"at": "..", "value": 12.3, "unit": "kWh"}],
+           "stream": {"id": "..", "label": "..", "owner": ".."}}
+
+    De fyra klasserna utan öppet API — fastighetsmätare, fjärrvärme,
+    vatten, rörelsedata — delar den här formen i stället för att få var
+    sin halvfärdig adapter mot ett API som inte finns publikt.
+    """
+
+    id = "generic_feed"
+    sensor_class = "building_meter"
+    ENV = "LANDVEX_METER_URL"
+
+    def __init__(self, *a, sensor_class: str | None = None, **kw):
+        if sensor_class:
+            self.sensor_class = sensor_class
+        super().__init__(*a, **kw)
+
+    def readings(self, stream: str, since: str = "") -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/readings?"
+               + urllib.parse.urlencode(
+                   {"stream": stream, **({"since": since} if since else {})}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            data = json.loads(raw.decode("utf-8"))
+            rader = data.get("readings") or []
+            varden = [float(r["value"]) for r in rader
+                      if isinstance(r.get("value"), (int, float))]
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        if not varden:
+            return None
+        strom = data.get("stream") or {}
+        return {
+            "stream": strom.get("id", stream),
+            "label_en": strom.get("label", ""),
+            "owner": strom.get("owner", ""),
+            "readings": len(varden),
+            "latest": varden[-1],
+            "mean": round(sum(varden) / len(varden), 3),
+            "unit": (rader[-1] or {}).get("unit", ""),
+            "measured": True, "source": "owner-supplied feed",
+            "basis_en": ("Supplied by the owner of the asset, not measured "
+                         "independently. It is as good as their meter and "
+                         "their honesty, and neither is verifiable from "
+                         "here."),
+        }
+
+
+CLIENTS = {c.sensor_class: c for c in (
+    TrafikverketFlow, SmhiWeather, OpenAqAir, SmhiHydro, CopernicusStac,
+    GenericSensorFeed)}
 
 
 def client_for(sensor_class: str, **kw) -> SensorClient | None:

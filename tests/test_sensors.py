@@ -36,17 +36,35 @@ def test_every_sensor_class_declares_what_it_can_never_establish():
     for sid, s in S.SENSORS.items():
         assert len(s["cannot_en"]) > 60, f"{sid} saknar en riktig gräns"
         assert s["what_en"] and s["cadence"] and s["operator_en"], sid
-        assert s["state"] in ("adapter", "connected", "none"), sid
+        assert s["state"] in ("adapter", "connected", "contract",
+                              "none"), sid
         for d in s["feeds"]:
             assert d in DETECTION_KINDS, f"{sid} matar okänd upptäckt {d}"
 
 
 def test_the_gap_is_stated_rather_than_left_to_be_assumed():
     c = S.catalog()
-    byggt = c["by_state"].get("adapter", 0) + c["by_state"].get("connected", 0)
-    assert byggt + c["by_state"].get("none", 0) == c["count"]
-    assert str(byggt) in c["gap_en"], "sammanfattningen räknar inte rätt"
+    assert sum(c["by_state"].values()) == c["count"]
+    for lage in ("adapter", "contract", "none"):
+        assert str(c["by_state"].get(lage, 0)) in c["gap_en"], lage
     assert "quarterly" in c["gap_en"]
+
+
+def test_contract_and_adapter_are_not_the_same_promise():
+    """`contract` betyder att vi väntar på ett AVTAL, `adapter` att vi
+    väntar på en nyckel. Att slå ihop dem hade dolt att sex av klasserna
+    kräver att någon annan bestämmer sig, inte att vi bygger klart."""
+    kontrakt = [k for k, v in S.SENSORS.items() if v["state"] == "contract"]
+    assert kontrakt, "läget används inte alls"
+    for k in kontrakt:
+        assert S.SENSORS[k]["open_data"] is False, (
+            f"{k} är märkt öppen data men saknar publikt API — då är det "
+            f"antingen fel läge eller fel märkning")
+    # Och tvärtom: allt som har en adapter mot ett publikt API ska vara
+    # märkt som öppen data, annars stämmer inte kartan med terrängen.
+    for k, v in S.SENSORS.items():
+        if v["state"] == "adapter" and k != "field_observation":
+            assert v["open_data"], k
 
 
 def test_no_client_claims_to_be_live_verified_from_here():
@@ -261,6 +279,165 @@ def test_the_probe_never_writes_verified_live_by_itself():
     assert ".write(" not in src and "json.dump(" not in src
     # Den ska i stället be en människa göra det, i en läsbar commit.
     assert "by hand" in src and "someone can read" in src
+
+
+
+
+# ── OpenAQ ───────────────────────────────────────────────────────────────
+AQ_SVAR = {"results": [
+    {"parameter": {"name": "no2", "units": "µg/m³"}, "value": 21.4},
+    {"parameter": {"name": "no2", "units": "µg/m³"}, "value": 18.6},
+    {"parameter": {"name": "pm25", "units": "µg/m³"}, "value": 7.2},
+    {"parameter": {"name": "okänd"}, "value": 99.0},
+]}
+
+
+def test_air_quality_averages_per_parameter_and_keeps_the_station_count():
+    c = A.OpenAqAir(transport=lambda u, t: json.dumps(AQ_SVAR).encode(),
+                    base_url="https://aq.example", api_key="k")
+    r = c.latest(59.3, 18.1)
+    assert r["values"]["no2_ug_m3"] == 20.0        # (21.4+18.6)/2
+    assert r["values"]["pm25_ug_m3"] == 7.2
+    assert "pm10_ug_m3" not in r["values"]          # inget värde, inget påhitt
+    assert r["stations"] == {"no2_ug_m3": 2, "pm25_ug_m3": 1}
+    # En station i en gatukanjon och tio spridda är olika underlag.
+    assert "street canyon" in r["basis_en"]
+
+
+def test_air_quality_needs_a_key_before_it_calls():
+    sett = []
+    c = A.OpenAqAir(transport=lambda u, t: (sett.append(u), b"{}")[1],
+                    base_url="https://aq.example", api_key="")
+    assert c.connected is False and c.latest(59.3, 18.1) is None
+    assert sett == []
+
+
+# ── Copernicus STAC ──────────────────────────────────────────────────────
+def _stac(moln):
+    svar = {"features": [{"properties": {"eo:cloud_cover": c}} for c in moln]}
+    return A.CopernicusStac(
+        transport=lambda u, p, t: json.dumps(svar).encode(),
+        base_url="https://stac.example")
+
+
+def test_cloud_over_a_parcel_is_not_evidence_that_nothing_changed():
+    """Klientens hela poäng: den säger om en jämförelse är MÖJLIG, inte
+    vad den skulle visa."""
+    r = _stac([88.0, 91.0, 95.0]).coverage(
+        59.3, 18.1, start="2026-05-01", end="2026-07-01")
+    assert r["scenes"] == 3 and r["usable_scenes"] == 0
+    assert r["comparable"] is False
+    assert "absence of observation" in r["basis_en"]
+
+
+def test_two_clear_passes_make_a_comparison_possible():
+    r = _stac([4.0, 92.0, 11.0]).coverage(
+        59.3, 18.1, start="2026-05-01", end="2026-07-01")
+    assert r["usable_scenes"] == 2 and r["comparable"] is True
+
+
+def test_one_clear_pass_is_not_a_comparison():
+    r = _stac([4.0, 92.0]).coverage(59.3, 18.1, start="a", end="b")
+    assert r["usable_scenes"] == 1 and r["comparable"] is False
+
+
+# ── SMHI hydrologi ───────────────────────────────────────────────────────
+def test_a_gauge_says_what_it_measured_and_what_it_cannot():
+    svar = {"station": {"name": "Uppsala"},
+            "value": [{"date": 1785000000000, "value": "142.5"}]}
+    c = A.SmhiHydro(transport=lambda u, t: json.dumps(svar).encode(),
+                    base_url="https://hydro.example")
+    r = c.latest("water_level_cm", "2255")
+    assert r["value"] == 142.5 and r["station"] == "Uppsala"
+    assert "culverts" in r["basis_en"]
+
+
+# ── Ägarlevererad feed ───────────────────────────────────────────────────
+FEED_SVAR = {"stream": {"id": "bldg-12", "label": "Kv Björnen 4",
+                        "owner": "Fastighets AB"},
+             "readings": [{"at": "2026-07-27T08:00Z", "value": 41.2,
+                           "unit": "kWh"},
+                          {"at": "2026-07-27T09:00Z", "value": 38.8,
+                           "unit": "kWh"}]}
+
+
+def test_an_owner_supplied_feed_says_who_supplied_it():
+    """Den är så god som deras mätare och deras ärlighet, och ingendera
+    går att kontrollera härifrån. Att tiga om det vore att presentera
+    partsinlaga som mätning."""
+    c = A.GenericSensorFeed(
+        transport=lambda u, t: json.dumps(FEED_SVAR).encode(),
+        base_url="https://feed.example")
+    r = c.readings("bldg-12")
+    assert r["latest"] == 38.8 and r["mean"] == 40.0
+    assert r["owner"] == "Fastighets AB" and r["unit"] == "kWh"
+    assert "not measured independently" in r["basis_en"]
+
+
+def test_the_generic_feed_serves_several_sensor_classes():
+    """Sex klasser saknar publikt API. De delar en dokumenterad form i
+    stället för att få var sin halvfärdig adapter mot ett API som inte
+    finns."""
+    c = A.GenericSensorFeed(sensor_class="district_heating",
+                            base_url="https://feed.example")
+    assert c.sensor_class == "district_heating"
+    assert c.describe()["sensor_class"] == "district_heating"
+
+
+def test_a_feed_with_no_numbers_is_none():
+    c = A.GenericSensorFeed(
+        transport=lambda u, t: json.dumps({"readings": []}).encode(),
+        base_url="https://feed.example")
+    assert c.readings("x") is None
+
+
+def test_every_client_shares_the_one_breaker():
+    """Åtta adaptrar, en strömbrytare. En andra kopia av en regel är en
+    regel som kommer att glida isär."""
+    for cls in A.CLIENTS.values():
+        c = cls(base_url="https://x.example")
+        assert hasattr(c, "last_error") and hasattr(c, "down")
+
+
+
+def test_the_probe_covers_every_adapter_that_exists():
+    """En adapter utan probe kan aldrig bli verifierad — den står kvar som
+     obekräftad för alltid utan att någon märker varför."""
+    from scripts.sensor_probe import PROBES
+    utan = sorted(set(A.CLIENTS) - set(PROBES))
+    assert not utan, f"adaptrar utan probe: {utan}"
+    okanda = sorted(set(PROBES) - set(S.SENSORS))
+    assert not okanda, f"probe för okänd sensorklass: {okanda}"
+
+
+def test_the_registry_and_the_clients_agree_on_which_classes_have_adapters():
+    """Kartan måste stämma med terrängen åt BÅDA hållen."""
+    med_adapter = {k for k, v in S.SENSORS.items()
+                   if v["state"] in ("adapter", "contract")}
+    byggda = set(A.CLIENTS)
+    saknas = byggda - med_adapter
+    assert not saknas, (
+        f"klienter finns men registret säger inget byggt: {sorted(saknas)}")
+    for k in ("air_quality", "earth_observation", "water_level",
+              "road_flow", "weather"):
+        assert S.SENSORS[k]["state"] == "adapter", k
+        assert k in byggda, k
+
+
+
+def test_every_cadence_word_has_a_readable_form_on_the_surface():
+    """Kadensen är maskinvänliga ord. Skrivs de rakt ut efter "every" blir
+    de ogrammatiska — "every minutes", "every hourly". Ytan översätter, och
+    en ny kadens i registret måste få en översättning samtidigt."""
+    import pathlib
+    import re
+    html = (pathlib.Path(__file__).resolve().parent.parent
+            / "frontend" / "explore.html").read_text(encoding="utf-8")
+    block = html.split("const KADENS = {", 1)[1].split("};", 1)[0]
+    kanda = set(re.findall(r"(\w+)\s*:", block))
+    anvanda = {s["cadence"] for s in S.SENSORS.values()}
+    saknas = anvanda - kanda
+    assert not saknas, f"kadens utan läsbar form på ytan: {sorted(saknas)}"
 
 
 if __name__ == "__main__":

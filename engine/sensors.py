@@ -34,8 +34,13 @@ motorändring.
 from __future__ import annotations
 
 # state: connected  = en adapter finns OCH kan slås på med connected_by
-#        adapter    = adapter finns, källan ej verifierad live
-#        none       = ingenting byggt; upptäckten har inget som matar den
+#        adapter    = adapter mot ett publikt API finns, ej verifierad live
+#        contract   = inget publikt API existerar, men det finns en
+#                     dokumenterad form en ägare kan leverera IN i
+#                     (GenericSensorFeed). Skillnaden mot `adapter` är
+#                     inte kosmetisk: här väntar vi på ett AVTAL, inte på
+#                     en nyckel, och det är en helt annan sorts arbete.
+#        none       = ingenting byggt
 SENSORS: dict[str, dict] = {
     "grid_telemetry": {
         "label_en": "Electricity grid telemetry",
@@ -107,7 +112,7 @@ SENSORS: dict[str, dict] = {
         "cannot_en": "Localise a source. A station measures its own street "
                      "canyon, and wind moves the plume; the reading is not a "
                      "map of who emitted what.",
-        "state": "none",
+        "state": "adapter",
         "connected_by": "LANDVEX_AIR_URL",
         "operator_en": "Naturvårdsverket / SLB-analys (SE) · EEA (EU)",
         "open_data": True,
@@ -123,7 +128,7 @@ SENSORS: dict[str, dict] = {
         "cannot_en": "See through cloud in the optical bands, or establish "
                      "that a change is unpermitted. A difference between two "
                      "images is a difference between two images.",
-        "state": "none",
+        "state": "adapter",
         "connected_by": "LANDVEX_EO_URL",
         "operator_en": "Copernicus Sentinel-1/2 (ESA, open)",
         "open_data": True,
@@ -139,9 +144,136 @@ SENSORS: dict[str, dict] = {
         "cannot_en": "Be read across owners without consent. Consumption at "
                      "building level is close to personal data when the "
                      "building is small.",
-        "state": "none",
+        "state": "contract",
         "connected_by": "LANDVEX_METER_URL",
         "operator_en": "Property owners · district heating utilities",
+        "open_data": False,
+    },
+    "water_level": {
+        "label_en": "Water level and flow",
+        "what_en": "River and lake levels, discharge, and groundwater "
+                   "levels from the national hydrological network.",
+        "feeds": ("pattern_deviation", "infrastructure_decay"),
+        "cadence": "hourly",
+        "typical_lag": "1–3 h",
+        "cannot_en": "Predict flooding at a specific address. A gauge "
+                     "measures its own cross-section; what reaches a "
+                     "basement depends on terrain, culverts and drains "
+                     "that no water-level series contains.",
+        "state": "adapter",
+        "connected_by": "LANDVEX_HYDRO_URL",
+        "operator_en": "SMHI hydrology · SGU groundwater (SE)",
+        "open_data": True,
+    },
+    "public_transport": {
+        "label_en": "Public transport vehicle positions",
+        "what_en": "Live vehicle positions, delays and cancellations "
+                   "published as GTFS-Realtime by the transit operator.",
+        "feeds": ("traffic_shift", "pattern_deviation",
+                  "infrastructure_decay"),
+        "cadence": "seconds",
+        "typical_lag": "10–60 s",
+        "cannot_en": "Count passengers. A vehicle's position says where the "
+                     "service is, not whether anyone is on it, and a full "
+                     "bus and an empty one report identically.",
+        "state": "none",
+        "connected_by": "LANDVEX_TRANSIT_URL",
+        "operator_en": "Regional transit authorities (GTFS-RT is a standard)",
+        "open_data": True,
+    },
+    "vessel_traffic": {
+        "label_en": "Ship movements (AIS)",
+        "what_en": "Vessel identity, position, draught and destination "
+                   "broadcast continuously by ships over AIS.",
+        "feeds": ("traffic_shift", "new_activity", "pattern_deviation"),
+        "cadence": "minutes",
+        "typical_lag": "near real time",
+        "cannot_en": "Establish cargo or ownership. AIS carries what the "
+                     "crew entered; destination and draught are typed in "
+                     "and are wrong often enough to matter.",
+        "state": "none",
+        "connected_by": "LANDVEX_AIS_URL",
+        "operator_en": "Coastal authorities · commercial AIS aggregators",
+        "open_data": False,
+    },
+    "district_heating": {
+        "label_en": "District heating network",
+        "what_en": "Supply temperature, flow and load per network section, "
+                   "where the utility shares it.",
+        "feeds": ("energy_change", "infrastructure_decay",
+                  "pattern_deviation"),
+        "cadence": "hourly",
+        "typical_lag": "1–24 h",
+        "cannot_en": "Separate a leak from a cold spell without weather "
+                     "alongside it. Load follows outdoor temperature far "
+                     "more strongly than it follows any fault.",
+        "state": "contract",
+        "connected_by": "LANDVEX_HEAT_URL",
+        "operator_en": "District heating utilities",
+        "open_data": False,
+    },
+    "water_utility": {
+        "label_en": "Water and wastewater flows",
+        "what_en": "Consumption per zone and inflow at treatment works — "
+                   "the closest thing to a live occupancy signal a "
+                   "municipality already owns.",
+        "feeds": ("new_activity", "pattern_deviation",
+                  "infrastructure_decay"),
+        "cadence": "hourly",
+        "typical_lag": "1 day",
+        "cannot_en": "Be attributed to a household. Zone-level flow is an "
+                     "aggregate, and making it finer turns it into "
+                     "personal data about when people are home.",
+        "state": "contract",
+        "connected_by": "LANDVEX_WATER_URL",
+        "operator_en": "Municipal water utilities",
+        "open_data": False,
+    },
+    "waste_volume": {
+        "label_en": "Waste collection volumes",
+        "what_en": "Tonnage and pickup frequency per district — a lagging "
+                   "but honest proxy for how much activity a place "
+                   "actually carries.",
+        "feeds": ("new_activity", "pattern_deviation"),
+        "cadence": "weekly",
+        "typical_lag": "1–4 weeks",
+        "cannot_en": "Distinguish more people from more waste per person. "
+                     "Tonnage rises for both, and only one of them means "
+                     "the place is growing.",
+        "state": "contract",
+        "connected_by": "LANDVEX_WASTE_URL",
+        "operator_en": "Municipal waste management",
+        "open_data": False,
+    },
+    "parking_occupancy": {
+        "label_en": "Parking occupancy",
+        "what_en": "Occupied spaces per facility or street segment, from "
+                   "barriers, sensors or payment systems.",
+        "feeds": ("traffic_shift", "new_activity", "pattern_deviation"),
+        "cadence": "minutes",
+        "typical_lag": "minutes",
+        "cannot_en": "Measure demand once a facility is full. A lot at "
+                     "100% has been at 100% for an unknown margin, and the "
+                     "queue outside it is invisible to the sensor.",
+        "state": "contract",
+        "connected_by": "LANDVEX_PARKING_URL",
+        "operator_en": "Parking operators · municipalities",
+        "open_data": False,
+    },
+    "construction_activity": {
+        "label_en": "Construction site activity",
+        "what_en": "Machine hours, deliveries and crane movement on active "
+                   "sites, from telematics the contractor already collects.",
+        "feeds": ("structure_change", "new_activity",
+                  "pattern_deviation"),
+        "cadence": "daily",
+        "typical_lag": "1 day",
+        "cannot_en": "Say whether the work is permitted or on schedule. "
+                     "Activity is activity; the permit lives in a register "
+                     "and the schedule lives in a contract.",
+        "state": "contract",
+        "connected_by": "LANDVEX_SITE_URL",
+        "operator_en": "Contractors · equipment telematics vendors",
         "open_data": False,
     },
     "mobility_flow": {
@@ -155,7 +287,7 @@ SENSORS: dict[str, dict] = {
                      "who carries what, and small cells are suppressed — the "
                      "same k-anonymity floor that gates sensitive questions "
                      "applies here.",
-        "state": "none",
+        "state": "contract",
         "connected_by": "LANDVEX_MOVEMENT_URL",
         "operator_en": "Mobile operators · mobility data vendors",
         "open_data": False,
@@ -199,8 +331,10 @@ def catalog() -> dict:
         "unfed_detections": unfed_detections(),
         "gap_en": (
             f"{per_state.get('adapter', 0)} of {len(rader)} sensor classes "
-            f"have an adapter written; {per_state.get('none', 0)} have "
-            f"nothing built. The detection layer recognises "
+            f"have an adapter against a public API; "
+            f"{per_state.get('contract', 0)} have a documented shape an "
+            f"owner can deliver into but no public API to build against; "
+            f"{per_state.get('none', 0)} have nothing built. The detection layer recognises "
             f"{len(DETECTION_KINDS)} kinds of physical change, and most of "
             f"them are currently fed by statistics that update quarterly. "
             f"That is a real limit on what the platform can notice, and it "

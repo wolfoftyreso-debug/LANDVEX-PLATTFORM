@@ -130,6 +130,25 @@ section h2{margin:0 0 6px;font-size:22px;letter-spacing:-.014em;
 .dim p{margin:0;font-size:14.5px;color:var(--svag);text-wrap:pretty}
 .topp5{color:var(--stapel2);font-weight:600}
 
+/* Sensorlistan. Läget bärs av ett ord OCH en färgad punkt — aldrig av
+   färgen ensam, så den går att läsa i gråskala och med färgblindhet. */
+.sensor{display:grid;grid-template-columns:1fr auto;gap:6px 14px;
+        padding:12px 0;border-top:1px solid var(--linje);align-items:baseline}
+.sensor:first-child{border-top:0}
+.sensor h4{margin:0;font-size:16px;font-weight:600}
+.sensor .lage{font-size:13px;color:var(--svag);white-space:nowrap}
+/* På en telefon får lägesraden inte tvinga fram sidled scroll: den längre
+   kadenstexten ("updates every few minutes") sprängde 390 px med nowrap.
+   Under 560 px lägger den sig på egen rad och får brytas. */
+@media (max-width:560px){
+  .sensor{grid-template-columns:1fr}
+  .sensor .lage{white-space:normal}
+}
+.sensor .lage i{width:9px;height:9px;border-radius:50%;display:inline-block;
+                margin-right:6px;vertical-align:0}
+.sensor .inte{grid-column:1/-1;margin:0;font-size:14.5px;color:var(--svag);
+              text-wrap:pretty}
+.sensor .inte b{color:var(--text);font-weight:600}
 .laddar{color:var(--svag);font-style:italic}
 .fel{color:var(--rod)}
 footer{border-top:1px solid var(--linje);margin-top:26px;padding:26px 0 54px;
@@ -185,6 +204,13 @@ footer .rest{margin-left:auto;font-variant-numeric:tabular-nums}
     <div class="legend" id="hushallslegend"></div>
     <div class="par" id="hushallspar"><p class="laddar">Loading…</p></div>
     <p class="slutsats" id="hushallsslutsats"></p>
+  </section>
+
+  <section id="sensorer">
+    <h2>What it can actually measure</h2>
+    <p class="underrubrik" id="sensormeta">Loading…</p>
+    <div id="sensorlista"></div>
+    <p class="slutsats" id="sensorslutsats"></p>
   </section>
 
   <section id="dimensioner">
@@ -405,6 +431,50 @@ api("/v1/merit", {market:"se", top_n:1}).then(({d, ms}) => {
     .forEach(f => { f.style.width = f.dataset.w + "%"; }));
 }).catch(e => {
   $("#dimmeta").innerHTML =
+    `<span class="fel">Could not load: ${esc(e.message)}</span>`;
+});
+
+/* Sensorlandskapet. Det som är värt att visa är inte listan utan
+   KOLUMNEN "cannot" — en mätning i minuten känns som kunskap, och det är
+   just den känslan som gör sensordata farligare än statistik. */
+/* Kadensvärdena är maskinvänliga ord ("minutes", "hourly", "irregular").
+   Rakt utskrivna efter "every" blev de ogrammatiska — "every minutes",
+   "every hourly". Datat får förbli maskinvänligt; ytan översätter. */
+const KADENS = {
+  seconds:  "updates every few seconds",
+  minutes:  "updates every few minutes",
+  hourly:   "updates hourly",
+  daily:    "updates daily",
+  weekly:   "updates weekly",
+  days:     "updates every few days",
+  irregular:"updates irregularly"
+};
+
+const LAGE = {
+  adapter:  {ord: "adapter built",   färg: "var(--stapel2)"},
+  contract: {ord: "needs an agreement", färg: "var(--stapel)"},
+  none:     {ord: "nothing built",   färg: "var(--svag)"}
+};
+
+api("/v1/sensors").then(({d, ms}) => {
+  const byggda = (d.by_state.adapter || 0);
+  $("#sensormeta").innerHTML =
+    `The platform can recognise <b>${Object.keys(d.detection_coverage).length}
+     kinds of physical change</b>. These are the ${d.count} things that could
+     actually measure them — ${byggda} with an adapter written today.
+     Loaded in ${ms} ms.`;
+  $("#sensorlista").innerHTML = d.sensors.map(x => {
+    const l = LAGE[x.state] || LAGE.none;
+    return `<div class="sensor">
+      <h4>${esc(x.label_en)}</h4>
+      <span class="lage"><i style="background:${l.färg}"></i>${l.ord}
+        · ${esc(KADENS[x.cadence] || x.cadence)}</span>
+      <p class="inte"><b>Cannot:</b> ${esc(x.cannot_en)}</p>
+    </div>`;
+  }).join("");
+  $("#sensorslutsats").textContent = d.why_cannot_matters_en;
+}).catch(e => {
+  $("#sensormeta").innerHTML =
     `<span class="fel">Could not load: ${esc(e.message)}</span>`;
 });
 

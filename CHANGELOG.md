@@ -54,6 +54,43 @@ tabell isoleras utan att listan uppdateras:
 En halvt isolerad plattform som tros vara helt isolerad är farligare än
 en ingen litar på.
 
+## [Ej släppt] — sensorer
+
+Upptäcktslagret känner igen nio sorters FYSISK förändring medan varenda
+inkopplad källa är statistik som uppdateras kvartalsvis. Plattformen kunde
+upptäcka saker den inte hade någon möjlighet att se.
+
+- **`engine/sensors.py` (GET /v1/sensors)** — 16 sensorklasser, från
+  elnätstelemetri och satellitpassager till avfallsvolymer och
+  parkeringsbeläggning. Varje klass namnger vilka upptäckter den kan mata,
+  hur ofta den säger något nytt, och — den viktiga delen — vad den ALDRIG
+  kan avgöra.
+- **Tre lägen, inte två.** `adapter` = adapter mot ett publikt API.
+  `contract` = ingen publik API finns, men det finns en dokumenterad form
+  en ägare kan leverera in i. `none` = ingenting. Skillnaden är inte
+  kosmetisk: `contract` väntar på ett AVTAL, `adapter` på en nyckel, och
+  det är helt olika sorters arbete. Fördelningen är 7 · 7 · 2.
+- **Sex adaptrar** mot riktiga protokoll: Trafikverket TrafficFlow, SMHI
+  metobs, SMHI hydrologi, OpenAQ v3, Copernicus STAC, och en generisk
+  ägarfeed som sju klasser delar i stället för att få var sin halvfärdig
+  adapter mot ett API som inte finns publikt.
+- **Copernicus-klienten hämtar inga bilder.** Den svarar på frågan som
+  avgör om en jämförelse alls är möjlig: finns två tillräckligt molnfria
+  passager? Moln över en tomt är inte bevis för att inget hänt — det är
+  frånvaro av observation, och de två får aldrig blandas ihop.
+- **Strömbrytaren flyttades till `faults.py`** och delas av register- och
+  sensorklienterna. Ett mätnät har hundratals punkter; en nere källa får
+  kosta ett misslyckat anrop, inte ett per punkt.
+- **`scripts/sensor_probe.py`** bekräftar adaptrarna där nätet är öppet.
+  Den skriver aldrig `verified_live` själv — ett enda lyckosamt anrop ska
+  inte kunna märka kod som bevisad.
+- **`/explore` visar landskapet** med "Cannot"-raden som huvudsak. Läget
+  bärs av ett ord OCH en punkt, aldrig av färgen ensam.
+
+Sensordata frestar värre än statistik: en mätning i minuten KÄNNS som
+kunskap. En trafikräknare som visar fyrtio procent mindre flöde vet inte
+om vägen stängdes, arbetsgivaren flyttade eller slingan gick sönder.
+
 ## [Ej släppt] — kundytan
 
 Namnen på kundytan beskrev hur plattformen är BYGGD, inte vad någon får.
