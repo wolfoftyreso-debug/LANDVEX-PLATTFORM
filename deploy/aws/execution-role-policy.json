@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Inline policy for the ECS execution role (landvex-ecs-execution).",
+    "The execution role is what the ECS agent uses to START the task:",
+    "pull the image, read the secrets, create the log stream. It is NOT",
+    "the task role — the application itself needs no AWS permissions.",
+    "",
+    "Scoped to exactly the five secrets the task definition names, not to",
+    "landvex/* — a wildcard grows silently, and the next secret someone",
+    "puts under that prefix is readable by this task without anyone",
+    "deciding that. A test holds this list against",
+    "deploy/aws/task-definition.json in both directions: a secret the",
+    "task needs but the policy omits makes the task fail to start with an",
+    "error that names the ARN and nothing else."
+  ],
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadTheFiveSecretsTheTaskNames",
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": [
+        "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/api-keys*",
+        "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/jwt-secret*",
+        "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/pg-dsn*",
+        "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/trafikverket-key*",
+        "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:landvex/openaq-key*"
+      ]
+    },
+    {
+      "Sid": "PullTheImage",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "WriteTheLogStream",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:${AWS_REGION}:${AWS_ACCOUNT_ID}:log-group:/ecs/landvex-opportunity-engine:*"
+    }
+  ]
+}

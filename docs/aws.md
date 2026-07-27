@@ -84,8 +84,14 @@ aws secretsmanager create-secret --name landvex/trafikverket-key --secret-string
 aws secretsmanager create-secret --name landvex/openaq-key      --secret-string '...'
 ```
 
-The execution role needs `secretsmanager:GetSecretValue` on exactly
-those five ARNs — not on `landvex/*`, which grows silently.
+The execution role policy is written out at
+`deploy/aws/execution-role-policy.json`: `GetSecretValue` on exactly
+those five ARNs — not on `landvex/*`, which grows silently and makes the
+next secret anyone puts under that prefix readable by this task without
+a decision. Two tests hold it against the task definition in both
+directions, because a secret the task names but the role cannot read
+makes the task fail to start with an error that quotes an ARN and
+nothing else.
 
 `LANDVEX_API_KEYS` is the one that matters most. Without it **and**
 without `LANDVEX_JWT_SECRET`, every caller is an admin of tenant `dev`

@@ -494,6 +494,45 @@ def test_the_task_definition_refuses_to_serve_when_misconfigured():
         "en uppgift som startar trots blockerande brister når lastbalanseraren"
 
 
+def test_the_execution_role_can_read_exactly_the_secrets_the_task_needs():
+    """En hemlighet som uppgiften begär men rollen inte får läsa gör att
+    uppgiften inte startar, med ett felmeddelande som nämner ett ARN och
+    ingenting annat. Och tvärtom: en behörighet ingen använder är en
+    behörighet ingen tänkt på."""
+    import json
+    pol = json.loads((_ROOT / "deploy" / "aws" /
+                      "execution-role-policy.json").read_text(encoding="utf-8"))
+    tillatna = set()
+    for s in pol["Statement"]:
+        if "secretsmanager:GetSecretValue" in s["Action"]:
+            for arn in s["Resource"]:
+                tillatna.add(arn.rstrip("*").rsplit(":secret:", 1)[-1])
+    behovda = {s["valueFrom"].rsplit(":secret:", 1)[-1]
+               for s in _behallare()["secrets"]}
+    assert not behovda - tillatna, \
+        f"uppgiften läser hemligheter rollen inte får läsa: {sorted(behovda - tillatna)}"
+    assert not tillatna - behovda, \
+        f"rollen får läsa hemligheter ingen använder: {sorted(tillatna - behovda)}"
+    # Ett jokertecken över prefixet växer i tysthet.
+    for a in tillatna:
+        assert a not in ("landvex/", "landvex"), \
+            "landvex/* låter nästa hemlighet under prefixet bli läsbar " \
+            "utan att någon beslutat det"
+
+
+def test_the_log_group_in_the_policy_is_the_one_the_task_writes_to():
+    """Rätt behörighet på fel logggrupp ser ut som en behörighet."""
+    import json
+    pol = json.loads((_ROOT / "deploy" / "aws" /
+                      "execution-role-policy.json").read_text(encoding="utf-8"))
+    grupper = [s["Resource"] for s in pol["Statement"]
+               if "logs:PutLogEvents" in s["Action"]]
+    assert grupper, "rollen får inte skriva loggar alls"
+    task_grupp = _behallare()["logConfiguration"]["options"]["awslogs-group"]
+    assert any(task_grupp in g for g in grupper), \
+        f"uppgiften skriver till {task_grupp}, rollen får skriva till {grupper}"
+
+
 def test_the_published_port_is_the_one_the_image_actually_listens_on():
     c = _behallare()
     port = c["portMappings"][0]["containerPort"]
