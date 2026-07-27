@@ -53,3 +53,58 @@ jobs:
           for t in tests/test_*.py; do
             m="tests.$(basename "$t" .py)"; echo "── $m"; python -m "$m"
           done
+
+  # Sviten ovan kör mot arbetskatalogen, där allting finns. Imagen är en
+  # ANNAN maskin: den innehåller bara det Dockerfile kopierar dit. Den
+  # skillnaden lät `integrations/` fattas i imagen medan CI var grön —
+  # fyra importer som kraschade, upptäckta av den som driftsätter.
+  # Ett test läser numera COPY-raderna, men bara bygget bevisar saken.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build -t landvex/opportunity-engine:ci .
+      - name: Import everything the image is supposed to contain
+        # Ett bygge kan lyckas med en image som kraschar på första
+        # importen. Det här steget importerar båda API-lagren och
+        # integrationerna på riktigt.
+        run: |
+          docker run --rm landvex/opportunity-engine:ci python -c "
+          import api.main, api.dev_server, integrations.aamos
+          import engine.datasources.adapters, scripts.preflight
+          print('imports OK')"
+      - name: The gate must refuse an open API
+        # Samma spärr som i containerns CMD, men här mot en miljö UTAN
+        # nycklar: svaret ska vara nej, och det ska kosta starten.
+        run: |
+          if docker run --rm -e LANDVEX_PREFLIGHT=strict \
+               landvex/opportunity-engine:ci \
+               python -m scripts.preflight --gate; then
+            echo "imagen startar med öppet API — spärren är trasig"
+            exit 1
+          fi
+      - name: Start the container and answer a real request
+        run: |
+          docker run -d --name lv -p 8000:8000 \
+            -e LANDVEX_API_KEYS=citest:acme:analyst:pro \
+            -e LANDVEX_DB=off -e LANDVEX_LIVE=0 \
+            -e WEB_CONCURRENCY=1 -e LANDVEX_PREFLIGHT=strict \
+            landvex/opportunity-engine:ci
+          for i in $(seq 1 40); do
+            curl -fsS localhost:8000/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          echo "── /health"
+          curl -fsS localhost:8000/health
+          echo "── /v1/catalog utan nyckel ska ge 401"
+          kod=$(curl -s -o /dev/null -w '%{http_code}' localhost:8000/v1/catalog)
+          [ "$kod" = "401" ] || { echo "fick $kod, inte 401"; exit 1; }
+          echo "── /v1/catalog med nyckel"
+          curl -fsS -H 'X-API-Key: citest' localhost:8000/v1/catalog >/dev/null
+      - name: Container logs (alltid, så en misslyckad start går att läsa)
+        if: always()
+        run: docker logs lv || true
+      - name: Stop
+        if: always()
+        run: docker rm -f lv || true
