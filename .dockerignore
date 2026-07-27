@@ -5,5 +5,11 @@ __pycache__
 tests
 docs
 infra
-scripts
 landvex-audit.log
+
+# scripts/ ligger MEDVETET inte här. Dockerfile kopierar in katalogen:
+# proberna som avgör verified_live kan bara köras där nätet är öppet, och
+# startspärren (scripts/preflight.py) körs av containerns CMD innan
+# gunicorn får trafik. Låg den kvar i den här filen misslyckades bygget
+# på COPY-raden — vilket det gjorde, tills image-jobbet i CI provade att
+# bygga på riktigt.

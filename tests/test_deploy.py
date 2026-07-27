@@ -84,6 +84,28 @@ def test_the_probes_travel_with_the_image():
         "scripts/ följer inte med — proberna går inte att köra i drift"
 
 
+def test_nothing_the_dockerfile_copies_is_excluded_from_the_build_context():
+    """Fyndet: `COPY scripts ./scripts` stod i Dockerfile OCH `scripts`
+    stod i .dockerignore. Bygget föll på COPY-raden — men testet ovan
+    läste bara Dockerfile och sa god dag. Halva sanningen ser precis ut
+    som hela.
+
+    Det här är också hela skälet till att CI numera BYGGER imagen: ett
+    test som läser en fil bevisar bara det som står i filen."""
+    import fnmatch
+    monster = [r.strip() for r in
+               (_ROOT / ".dockerignore").read_text(encoding="utf-8").split("\n")
+               if r.strip() and not r.strip().startswith("#")]
+    utestangda = []
+    for kalla in _kopierade_paket():
+        for m in monster:
+            if fnmatch.fnmatch(kalla, m.lstrip("/").rstrip("/")):
+                utestangda.append(f"{kalla} (matchar .dockerignore-raden {m!r})")
+    assert not utestangda, (
+        "Dockerfile kopierar något som .dockerignore utesluter — bygget "
+        "faller på COPY-raden:\n  " + "\n  ".join(utestangda))
+
+
 def test_the_container_runs_as_a_non_root_user():
     txt = _DOCKERFILE.read_text(encoding="utf-8")
     assert re.search(r"^USER\s+(?!root)\S+", txt, re.M), \
