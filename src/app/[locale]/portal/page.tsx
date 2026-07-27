@@ -314,6 +314,19 @@ export default async function Portal({
                 </span>
               </div>
               <div>
+                <label htmlFor="p-awards">{t("awardsLabel")}</label>
+                <input
+                  id="p-awards"
+                  name="awards"
+                  placeholder="Gazele Biznesu 2023…"
+                  defaultValue={company.awards.join(", ")}
+                  style={{ width: "100%" }}
+                />
+                <span className="muted" style={{ fontSize: "0.75rem" }}>
+                  {t("certificationsHint")}
+                </span>
+              </div>
+              <div>
                 <label htmlFor="p-areas">{t("serviceAreasLabel")}</label>
                 <input
                   id="p-areas"

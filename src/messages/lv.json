@@ -200,7 +200,8 @@
     "portfolioModerationNote": "Attēli kļūst publiski tikai pēc Baltic Bridge ops komandas pārbaudes. Augšupielādējiet tikai attēlus, kurus jums ir tiesības izmantot.",
     "portfolioStatus_pending": "Gaida pārbaudi",
     "portfolioStatus_approved": "Publicēts",
-    "portfolioStatus_rejected": "Noraidīts"
+    "portfolioStatus_rejected": "Noraidīts",
+    "awardsLabel": "Apbalvojumi (atdalīti ar komatu)"
   },
   "chrome": {
     "findSuppliers": "Atrast piegādātājus",
@@ -256,7 +257,8 @@
     "portfolioTitle": "Projektu attēli",
     "referencesTitle": "References",
     "referencesNote": "Apkopojusi un pārbaudījusi Baltic Bridge ops komanda. Referenču kontaktinformācija tiek izsniegta pēc pieprasījuma piedāvājumu salīdzināšanas laikā.",
-    "referenceContact": "Sazināties caur Baltic Bridge"
+    "referenceContact": "Sazināties caur Baltic Bridge",
+    "statedAwards": "Norādītie apbalvojumi"
   },
   "rfqStatus": {
     "new": "Jauns",

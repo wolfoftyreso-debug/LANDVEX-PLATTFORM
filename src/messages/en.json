@@ -200,7 +200,8 @@
     "portfolioModerationNote": "Images go public only after review by Baltic Bridge ops. Only upload images you have the right to use.",
     "portfolioStatus_pending": "Awaiting review",
     "portfolioStatus_approved": "Published",
-    "portfolioStatus_rejected": "Rejected"
+    "portfolioStatus_rejected": "Rejected",
+    "awardsLabel": "Awards & recognitions (comma-separated)"
   },
   "chrome": {
     "findSuppliers": "Find suppliers",
@@ -256,7 +257,8 @@
     "portfolioTitle": "Project images",
     "referencesTitle": "References",
     "referencesNote": "Collected and checked by Baltic Bridge ops. Reference contact details are shared on request during quote comparison.",
-    "referenceContact": "Contact via Baltic Bridge"
+    "referenceContact": "Contact via Baltic Bridge",
+    "statedAwards": "Stated awards"
   },
   "rfqStatus": {
     "new": "New",

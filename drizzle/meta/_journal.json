@@ -57,6 +57,13 @@
       "when": 1785080265357,
       "tag": "0007_requirement_key_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785151487731,
+      "tag": "0008_company_awards",
+      "breakpoints": true
     }
   ]
 }

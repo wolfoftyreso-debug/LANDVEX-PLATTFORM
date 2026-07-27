@@ -24,12 +24,27 @@ import { writeAudit, appendOutbox } from "@/modules/audit/service";
 
 interface CatalogEntry {
   name: string;
-  country: "LT" | "LV" | "EE";
+  country: "LT" | "LV" | "EE" | "PL";
   city?: string;
   category: string;
   description: string;
   website?: string;
   yearFounded?: number;
+  /** Only certifications/awards explicitly stated on the cited source page */
+  certifications?: string[];
+  awards?: string[];
+  sourceUrl: string;
+  sourceName: string;
+}
+
+/** Facts found later for companies already imported — applied as updates */
+interface CatalogEnrichment {
+  name: string;
+  certifications?: string[];
+  awards?: string[];
+  city?: string;
+  yearFounded?: number;
+  website?: string;
   sourceUrl: string;
   sourceName: string;
 }
@@ -137,6 +152,9 @@ const CATALOG: CatalogEntry[] = [
     sourceUrl: "https://estonianexport.ee/directory/listing/radius-machining-ou/", sourceName: "Estonian Export Directory" },
 ];
 
+/** Later-sourced public facts for already-imported profiles (see importer) */
+const ENRICHMENTS: CatalogEnrichment[] = [];
+
 async function main() {
   const admin = await db.query.users.findFirst({
     where: eq(users.email, "admin@balticbridge.example"),
@@ -165,6 +183,8 @@ async function main() {
           sourceUrl: entry.sourceUrl,
           sourceName: entry.sourceName,
           languages: [],
+          certifications: entry.certifications ?? [],
+          awards: entry.awards ?? [],
         })
         .returning();
       if (!company) throw new Error("insert failed");
@@ -185,7 +205,46 @@ async function main() {
     created += 1;
   }
 
-  logger.info(`catalog seed complete: ${created} new unclaimed profiles (${CATALOG.length} total in catalog)`);
+  // Enrichment: apply later-sourced facts to already-imported profiles.
+  // Only fills fields, never downgrades claim status or touches ownership.
+  let enriched = 0;
+  for (const patch of ENRICHMENTS) {
+    const existing = await db.query.companies.findFirst({
+      where: eq(companies.name, patch.name),
+    });
+    if (!existing) continue;
+
+    const set: Record<string, unknown> = {};
+    if (patch.certifications?.length) set.certifications = patch.certifications;
+    if (patch.awards?.length) set.awards = patch.awards;
+    if (patch.city && !existing.city) set.city = patch.city;
+    if (patch.yearFounded && !existing.yearFounded) set.yearFounded = patch.yearFounded;
+    if (patch.website && !existing.website) set.website = patch.website;
+    if (Object.keys(set).length === 0) continue;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(companies)
+        .set({ ...set, updatedAt: new Date() })
+        .where(eq(companies.id, existing.id));
+      await writeAudit(tx, {
+        actorId: admin.id,
+        entityType: "company",
+        entityId: existing.id,
+        action: "company.enriched_from_open_source",
+        before: {
+          certifications: existing.certifications,
+          awards: existing.awards,
+        },
+        after: { ...set, sourceUrl: patch.sourceUrl, sourceName: patch.sourceName },
+      });
+    });
+    enriched += 1;
+  }
+
+  logger.info(
+    `catalog seed complete: ${created} new unclaimed profiles (${CATALOG.length} total in catalog), ${enriched} enriched`,
+  );
   await pool.end();
 }
 

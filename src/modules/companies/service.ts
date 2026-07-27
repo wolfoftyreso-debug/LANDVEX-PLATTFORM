@@ -194,6 +194,7 @@ export async function updateCompanyProfile(
     headcount?: number | null;
     languages?: string[];
     certifications?: string[];
+    awards?: string[];
     serviceAreas?: string[];
   },
 ): Promise<Company> {

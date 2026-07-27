@@ -200,7 +200,8 @@
     "portfolioModerationNote": "Nuotraukos skelbiamos tik po Baltic Bridge ops peržiūros. Įkelkite tik nuotraukas, kurias turite teisę naudoti.",
     "portfolioStatus_pending": "Laukia peržiūros",
     "portfolioStatus_approved": "Paskelbta",
-    "portfolioStatus_rejected": "Atmesta"
+    "portfolioStatus_rejected": "Atmesta",
+    "awardsLabel": "Apdovanojimai (atskirti kableliais)"
   },
   "chrome": {
     "findSuppliers": "Rasti tiekėjus",
@@ -256,7 +257,8 @@
     "portfolioTitle": "Projektų nuotraukos",
     "referencesTitle": "Rekomendacijos",
     "referencesNote": "Surinkta ir patikrinta Baltic Bridge ops komandos. Kontaktai pateikiami paprašius lyginant pasiūlymus.",
-    "referenceContact": "Kontaktas per Baltic Bridge"
+    "referenceContact": "Kontaktas per Baltic Bridge",
+    "statedAwards": "Nurodyti apdovanojimai"
   },
   "rfqStatus": {
     "new": "Nauja",

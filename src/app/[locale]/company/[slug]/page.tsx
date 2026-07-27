@@ -186,7 +186,9 @@ export default async function PublicCompanyPage({
 
         {/* Service areas + self-reported certifications (kept clearly apart
             from the platform-VERIFIED facts panel below) */}
-        {(company.serviceAreas.length > 0 || company.certifications.length > 0) && (
+        {(company.serviceAreas.length > 0 ||
+          company.certifications.length > 0 ||
+          company.awards.length > 0) && (
           <div className="card">
             {company.serviceAreas.length > 0 && (
               <p style={{ margin: 0 }}>
@@ -198,6 +200,13 @@ export default async function PublicCompanyPage({
               <p className="muted" style={{ margin: company.serviceAreas.length ? "0.5rem 0 0" : 0, fontSize: "0.9rem" }}>
                 <strong>{t("selfReportedCerts")}:</strong>{" "}
                 {company.certifications.join(" · ")}{" "}
+                <span style={{ fontSize: "0.8rem" }}>({t("selfReportedNote")})</span>
+              </p>
+            )}
+            {company.awards.length > 0 && (
+              <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.9rem" }}>
+                <strong>🏆 {t("statedAwards")}:</strong>{" "}
+                {company.awards.join(" · ")}{" "}
                 <span style={{ fontSize: "0.8rem" }}>({t("selfReportedNote")})</span>
               </p>
             )}

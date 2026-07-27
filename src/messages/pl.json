@@ -200,7 +200,8 @@
     "portfolioModerationNote": "Zdjęcia stają się publiczne dopiero po przeglądzie przez zespół operacyjny Baltic Bridge. Przesyłaj wyłącznie zdjęcia, do których masz prawa.",
     "portfolioStatus_pending": "Oczekuje na przegląd",
     "portfolioStatus_approved": "Opublikowano",
-    "portfolioStatus_rejected": "Odrzucono"
+    "portfolioStatus_rejected": "Odrzucono",
+    "awardsLabel": "Nagrody i wyróżnienia (rozdzielone przecinkami)"
   },
   "chrome": {
     "findSuppliers": "Znajdź dostawców",
@@ -256,7 +257,8 @@
     "portfolioTitle": "Zdjęcia projektów",
     "referencesTitle": "Referencje",
     "referencesNote": "Zebrane i sprawdzone przez zespół operacyjny Baltic Bridge. Dane kontaktowe referencji udostępniamy na życzenie podczas porównywania ofert.",
-    "referenceContact": "Kontakt przez Baltic Bridge"
+    "referenceContact": "Kontakt przez Baltic Bridge",
+    "statedAwards": "Deklarowane nagrody"
   },
   "rfqStatus": {
     "new": "Nowe",

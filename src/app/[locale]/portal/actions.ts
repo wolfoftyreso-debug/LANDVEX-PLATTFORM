@@ -64,6 +64,11 @@ export async function updateMyProfileAction(formData: FormData) {
       .map((c) => c.trim())
       .filter(Boolean)
       .slice(0, 20),
+    awards: String(formData.get("awards") ?? "")
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean)
+      .slice(0, 20),
     serviceAreas: String(formData.get("serviceAreas") ?? "")
       .split(",")
       .map((a) => a.trim())
