@@ -167,6 +167,41 @@ def test_the_position_table_has_no_competitor_column():
     assert hittad["state"] == ("yes" if m["sources_verified"] else "no")
 
 
+def test_no_row_asserts_a_capability_it_marks_as_missing():
+    """Fyndet: raden 'Refuses when the basis is thin' visade ✗ bredvid
+    bevistexten 'engine bär cannot_en/never_en i svaret' — kryss och
+    påstående i samma rad. Kontrollen letade efter fel sträng.
+
+    Ett kryss ska bära ett skäl till att det SAKNAS, aldrig en
+    beskrivning av att det finns."""
+    r = standing.rapport()
+    for rad in r["position"]:
+        if rad["state"] != "no":
+            continue
+        text = rad["evidence_en"].lower()
+        # Ett saknat läge beskrivs med en nolla eller ett uttalat "inte".
+        assert ("0 " in text or text.startswith("0")
+                or "inte" in text or "not " in text or "ingen" in text), rad
+    for c in r["commercial"]:
+        if not c["ready"]:
+            continue
+        assert "inte " not in c["evidence_en"].lower(), c
+
+
+def test_the_refusal_row_counts_the_real_thing():
+    """Kontrollen ska peka på fältet som faktiskt finns, inte på ett
+    grannfält med liknande namn."""
+    import pathlib
+    rot = pathlib.Path(__file__).resolve().parent.parent
+    n = (rot / "engine" / "surface.py").read_text(
+        encoding="utf-8").count('"refusal_en"')
+    assert n >= 4, "varje löfte ska bära sitt eget refusal_en"
+    rad = next(x for x in standing.rapport()["position"]
+               if "Refuses" in x["capability"])
+    assert rad["state"] == "yes"
+    assert str(n) in rad["evidence_en"]
+
+
 def test_readable_and_proven_are_never_the_same_number_by_accident():
     """Skillnaden mellan vad vi KAN läsa och vad som är BEVISAT är hela
     rapportens poäng. Utan en verifierad källa måste 'proven' vara noll."""

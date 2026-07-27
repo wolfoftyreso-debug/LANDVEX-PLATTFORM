@@ -276,10 +276,16 @@ def position(m: dict) -> list[dict]:
     kan vi bara påstå, och ett påstående i en tabell full av mätvärden
     ser ut som ett mätvärde.
     """
+    # Vägran finns som `refusal_en`, ett per löfte i surface.py — inte som
+    # `cannot_en`, som är sensorkatalogens fält. Första versionen letade
+    # efter fel sträng och visade kryss bredvid en bevistext som påstod
+    # motsatsen. Räkna dem, så kan raden inte glida ifrån verkligheten.
+    n_vagran = (_ROOT / "engine" / "surface.py").read_text(
+        encoding="utf-8").count('"refusal_en"')
     rader = [
-        ("Refuses when the basis is thin",
-         _finns("engine/surface.py", "cannot_en"),
-         "engine bär cannot_en/never_en i svaret"),
+        ("Refuses when the basis is thin", n_vagran > 0,
+         f"{n_vagran} löften bär var sitt refusal_en; sensorkatalogen "
+         f"bär cannot_en per klass"),
         ("Explains uncertainty as a band, not a number",
          _finns("engine/corroboration.py", "not_a_probability_en"),
          "band + skälet till att det inte är en procent"),
