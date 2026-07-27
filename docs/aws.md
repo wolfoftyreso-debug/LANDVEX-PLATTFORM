@@ -36,18 +36,18 @@ make env-template           # writes .env.example from the registry
 python3 -m scripts.preflight --json | jq .counts
 ```
 
-The registry behind it is `engine/deployment.py`: 66 variables, each
-with the only line that matters at deploy time — **what happens if it is
-not set.** A test asserts in both directions, so a variable the code
-reads cannot go undocumented and a documented variable cannot be
-fiction.
+The registry behind it is `engine/deployment.py`: every variable the code
+reads, each carrying the one line that matters at deploy time — **what
+happens if it is not set.** A test asserts in both directions, so a
+variable the code reads cannot go undocumented, and a documented
+variable cannot be fiction.
 
 ---
 
 ## 1. Build and push the image
 
 ```bash
-make smoke                                        # compile + 72 suites
+make smoke                                        # compile + every suite
 aws ecr create-repository --repository-name landvex/opportunity-engine
 aws ecr get-login-password --region "$AWS_REGION" \
   | docker login --username AWS --password-stdin \

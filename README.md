@@ -23,7 +23,8 @@ python3 -m api.dev_server            # → http://localhost:8000/
 #   LANDVEX_HOST=127.0.0.1 binds loopback only (no Windows Firewall prompt)
 
 # Full test suite (no pytest, no network):
-for t in tests/test_*.py; do python3 -m "tests.$(basename "$t" .py)"; done   # → 24 green
+make test          # every suite, no pytest, no network
+make preflight     # is THIS environment ready for real traffic?
 
 # Production API:
 pip install -r requirements.txt && uvicorn api.main:app --host 0.0.0.0 --port 8087
@@ -43,8 +44,9 @@ point (coverage, endpoints, integrations, activation checklist).
 | `api/` | Two interchangeable API layers — `main.py` (FastAPI, production) and `dev_server.py` (stdlib, zero deps), locked equal by a contract test. |
 | `integrations/` | AAMOS Capability Platform client (degrades honestly when not connected). |
 | `frontend/` | Self-contained portal (no external deps) — Apple-native theme, intro hero, optional real map layer. |
-| `tests/` | 24 suites, run without pytest and without network. |
-| `scripts/` | Pre-flight probes (SCB, AAMOS, permits, places, programs, quiXzoom) + the standalone-demo builder. |
+| `tests/` | Every suite runs without pytest and without network. |
+| `scripts/` | The start gate (`preflight`), source probes (SCB, AAMOS, sensors, registers), the 90-second demo, and the standalone-demo builder. Ships inside the image on purpose. |
+| `deploy/aws/` | ECS task definition and execution-role policy, both held against the code by tests. See [`docs/aws.md`](docs/aws.md). |
 | `infra/` | systemd unit, nginx conf, AWS notes, deployment collateral. |
 | `docs/` | Documentation — see [`docs/README.md`](docs/README.md). |
 
