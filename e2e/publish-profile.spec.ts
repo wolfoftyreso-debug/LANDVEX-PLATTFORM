@@ -19,7 +19,7 @@ test("supplier publishes a company profile", async ({ page }) => {
 
   // Create the company profile
   await page.getByLabel("Company name").fill(companyName);
-  await page.getByLabel("Country").fill("LT");
+  await page.getByLabel("Country").selectOption("LT");
   await page.getByLabel("City").fill("Kaunas");
   await page.getByRole("button", { name: "Create company" }).click();
   await expect(page.getByRole("heading", { name: companyName })).toBeVisible();

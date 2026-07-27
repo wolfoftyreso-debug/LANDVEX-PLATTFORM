@@ -148,7 +148,12 @@ export default async function Portal({
             <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: "0.5rem" }}>
               <div>
                 <label htmlFor="country">{tCompanies("country")}</label>
-                <input id="country" name="country" required maxLength={2} defaultValue="LT" />
+                <select id="country" name="country" required defaultValue="LT">
+                  <option value="LT">Lietuva</option>
+                  <option value="LV">Latvija</option>
+                  <option value="EE">Eesti</option>
+                  <option value="PL">Polska</option>
+                </select>
               </div>
               <div>
                 <label htmlFor="city">{tCompanies("city")}</label>

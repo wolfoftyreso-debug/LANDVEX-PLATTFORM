@@ -54,6 +54,9 @@ export default async function CompanyDetail({
 
   const kase = cases[0];
   const state = kase?.state as CaseState | undefined;
+  // Corridor follows the supplier's home country (LT→SE, PL→SE, …)
+  const caseCorridor =
+    corridors.find((c) => c.fromCountry === company.country) ?? corridors[0];
 
   return (
     <div>
@@ -112,13 +115,13 @@ export default async function CompanyDetail({
               <input
                 type="hidden"
                 name="corridorId"
-                value={corridors[0]?.id ?? ""}
+                value={caseCorridor?.id ?? ""}
               />
               {workers.map((w) => (
                 <input key={w.id} type="hidden" name="workerIds" value={w.id} />
               ))}
-              <button type="submit" disabled={!corridors[0]}>
-                {tVerification("openCase")} ({corridors[0]?.slug ?? "—"})
+              <button type="submit" disabled={!caseCorridor}>
+                {tVerification("openCase")} ({caseCorridor?.slug ?? "—"})
               </button>
             </form>
           </div>
