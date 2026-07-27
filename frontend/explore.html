@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Landvex — ask about a place</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpolygon points=%2712 2 22 7 12 12 2 7%27 fill=%27%23007AFF%27/%3E%3Cpolyline points=%272 12 12 17 22 12%27 fill=%27none%27 stroke=%27%2334C759%27 stroke-width=%272%27/%3E%3C/svg%3E">
+<style>
+/* Ytan för någon som INTE kan området.
+   /demo visar varför plattformen är ovanlig — den talar till en skeptiker
+   som vet hur mycket andra verktyg ljuger. För den som inte kan fältet
+   ser "null", "false" och "0.0" bara ut som att ingenting fungerar.
+   Här visas i stället vad systemet KAN: riktiga platser, riktiga tal,
+   och ett svar som ändrar sig när man ändrar vem som frågar.
+   Ärligheten finns kvar, men som en lugn fotnot i stället för rubrik.
+
+   Diagramfärgerna är validerade, inte valda på känsla
+   (scripts/validate_palette.js, sex kontroller, ljust och mörkt):
+     ljust  #007AFF + #22A63F   alla godkända inkl. kontrast
+     mörkt  #0A84FF + #2AAE4E   alla godkända
+   Blått ensamt bär magnitud (en serie, ingen förklaringsruta behövs);
+   paret används bara där två hushåll jämförs — då finns förklaringsruta
+   OCH direktetiketter, så identiteten aldrig vilar på färg allena. */
+:root{
+  --bg:#FBFBFD; --yta:#FFF; --text:#1D1D1F; --svag:#6E6E73; --linje:#E5E5EA;
+  --stapel:#007AFF; --stapel2:#22A63F; --spar:#ECECF0;
+  --gul:#B26A00; --rod:#C7362C;
+  --skugga:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;--linje:#2C2C2E;
+        --stapel:#0A84FF;--stapel2:#2AAE4E;--spar:#2C2C2E;
+        --gul:#FFB340;--rod:#FF6961;
+        --skugga:0 1px 3px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.4);}
+}
+:root[data-theme="dark"]{--bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;
+  --linje:#2C2C2E;--stapel:#0A84FF;--stapel2:#2AAE4E;--spar:#2C2C2E;
+  --gul:#FFB340;--rod:#FF6961;
+  --skugga:0 1px 3px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.4);}
+:root[data-theme="light"]{--bg:#FBFBFD;--yta:#FFF;--text:#1D1D1F;--svag:#6E6E73;
+  --linje:#E5E5EA;--stapel:#007AFF;--stapel2:#22A63F;--spar:#ECECF0;
+  --gul:#B26A00;--rod:#C7362C;
+  --skugga:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);
+  font:400 17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
+       "Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+
+header{padding:10vh 0 6vh;display:flex;flex-direction:column;gap:22px}
+.marke{display:flex;align-items:center;gap:11px}
+.marke svg{width:26px;height:26px}.marke b{font-size:14px;letter-spacing:.16em;font-weight:600}
+h1{margin:0;font-size:clamp(31px,5.6vw,50px);line-height:1.08;
+   letter-spacing:-.025em;font-weight:600;text-wrap:balance;max-width:17ch}
+h1 em{font-style:normal;color:var(--svag)}
+.ingress{margin:0;color:var(--svag);font-size:17px;max-width:58ch}
+
+form{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 340px;min-width:0;background:var(--yta);
+  color:var(--text);border:1px solid var(--linje);border-radius:13px;
+  padding:16px 18px;font:inherit;box-shadow:var(--skugga)}
+input:focus{outline:2px solid var(--stapel);outline-offset:1px}
+button{background:var(--stapel);color:#fff;border:0;border-radius:13px;
+  padding:16px 26px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.08)}
+button[disabled]{opacity:.55;cursor:default}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--yta);border:1px solid var(--linje);border-radius:999px;
+  padding:8px 15px;font:inherit;font-size:14.5px;color:var(--text);
+  cursor:pointer;font-weight:400}
+.chip:hover{border-color:var(--stapel);color:var(--stapel)}
+
+section{background:var(--yta);border:1px solid var(--linje);border-radius:18px;
+  padding:26px;box-shadow:var(--skugga);margin:0 0 20px}
+section h2{margin:0 0 6px;font-size:22px;letter-spacing:-.014em;
+           text-wrap:balance}
+.underrubrik{margin:0 0 20px;color:var(--svag);font-size:15px}
+.svar{font-size:19px;line-height:1.45;margin:0 0 14px;text-wrap:pretty}
+/* Vad staplarna visar. Ett diagram utan måttangivelse tvingar läsaren
+   att gissa vad talet betyder. */
+.matt{margin:0 0 14px;font-size:13.5px;color:var(--svag)}
+
+/* ── Stapeldiagram ───────────────────────────────────────────────────
+   Magnitud per plats. En serie → en färg, ingen förklaringsruta; varje
+   stapel direktetiketterad så värdet aldrig behöver läsas ur färgen. */
+.diagram{display:flex;flex-direction:column;gap:2px}
+.rad{display:grid;grid-template-columns:minmax(104px,34%) 1fr auto;
+     gap:12px;align-items:center;padding:5px 0;border-radius:8px}
+/* I den smalare jämförelsen får namnet mer plats: "Upplands Vä…" som
+   vinnare är en poäng som går förlorad i en ellips. */
+.par .rad{grid-template-columns:minmax(112px,46%) 1fr auto;gap:9px}
+.par .namn{font-size:14.5px}
+.par .varde{font-size:14px;min-width:3.2em}
+.rad:hover{background:var(--spar)}
+.namn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spar{display:block;background:var(--spar);border-radius:4px;height:22px}
+/* display:block är inte kosmetik: <span> är inline, och på ett inline-
+   element ignoreras både width och height. Utan den här raden ritades
+   spåren men ingen fyllnad alls — diagrammet såg tomt ut. */
+.fyll{display:block;height:100%;border-radius:0 4px 4px 0;
+      background:var(--stapel);width:0;
+      transition:width .55s cubic-bezier(.2,.7,.3,1)}
+.rad.b .fyll{background:var(--stapel2)}
+.varde{font-variant-numeric:tabular-nums;font-size:15px;min-width:3.6em;
+       text-align:right;color:var(--text)}
+@media (prefers-reduced-motion:reduce){.fyll{transition:none}}
+
+/* ── Jämförelse: två hushåll ─────────────────────────────────────── */
+.valj{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 14px;font-size:14px;
+        color:var(--svag)}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block;
+          margin-right:7px;vertical-align:-1px}
+.par{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.par h3{margin:0 0 3px;font-size:16px}
+.par .vem{margin:0 0 13px;font-size:13.5px;color:var(--svag);min-height:2.7em}
+.slutsats{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--linje);
+          font-size:16px;text-wrap:pretty}
+
+/* ── Dimensioner ─────────────────────────────────────────────────── */
+.dim{padding:13px 0;border-top:1px solid var(--linje)}
+.dim:first-child{border-top:0}
+.dimtopp{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.dim h4{margin:0;font-size:16px;font-weight:600}
+.dim .tal{font-variant-numeric:tabular-nums;color:var(--svag);font-size:14.5px;
+          white-space:nowrap}
+.dim .spar{margin:8px 0 7px;height:10px}
+.dim .fyll{border-radius:0 3px 3px 0}
+.dim p{margin:0;font-size:14.5px;color:var(--svag);text-wrap:pretty}
+.topp5{color:var(--stapel2);font-weight:600}
+
+.laddar{color:var(--svag);font-style:italic}
+.fel{color:var(--rod)}
+footer{border-top:1px solid var(--linje);margin-top:26px;padding:26px 0 54px;
+  font-size:14.5px;color:var(--svag);display:flex;gap:18px;flex-wrap:wrap;
+  align-items:center}
+footer a{color:var(--stapel);text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer .rest{margin-left:auto;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="marke">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#007AFF"/><stop offset="1" stop-color="#34C759"/>
+      </linearGradient></defs>
+      <polygon points="12 2 22 7 12 12 2 7" fill="url(#g)"/>
+      <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#g)"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#g)"
+        stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg><b>LANDVEX</b>
+  </div>
+  <h1>Ask a question about a place.<br><em>Get a real answer.</em></h1>
+  <p class="ingress">Type it the way you would say it. The answer comes back
+     with the places named, ranked, and scored — computed while you wait.</p>
+  <form id="form">
+    <input type="text" id="q" autocomplete="off" enterkeyhint="go"
+           aria-label="Your question"
+           placeholder="Where is the need for electricians greatest?">
+    <button type="submit" id="knapp">Ask</button>
+  </form>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <section id="svarsektion" hidden>
+    <h2 id="svarrubrik">The answer</h2>
+    <p class="underrubrik" id="svarmeta"></p>
+    <p class="svar" id="svartext"></p>
+    <p class="matt" id="svarmatt" hidden></p>
+    <div class="diagram" id="svardiagram"></div>
+  </section>
+
+  <section id="hushall">
+    <h2>Who is asking changes the answer</h2>
+    <p class="underrubrik">A nurse looking for somewhere to live in Sweden.
+       Same job, same data — asked by two different households.</p>
+    <div class="valj" id="hushallsval"></div>
+    <div class="legend" id="hushallslegend"></div>
+    <div class="par" id="hushallspar"><p class="laddar">Loading…</p></div>
+    <p class="slutsats" id="hushallsslutsats"></p>
+  </section>
+
+  <section id="dimensioner">
+    <h2>What makes a place work</h2>
+    <p class="underrubrik" id="dimmeta">Loading…</p>
+    <div id="dimlista"></div>
+  </section>
+</main>
+
+<footer>
+  <a href="/demo">Why this is unusual →</a>
+  <a href="/console">Full console</a>
+  <span>Every number on this page came from a live call to the engine.</span>
+  <span class="rest" id="rest"></span>
+</footer>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(path, body) {
+  const opt = body === undefined ? {}
+    : {method:"POST", headers:{"Content-Type":"application/json"},
+       body: JSON.stringify(body)};
+  const t0 = performance.now();
+  const r = await fetch(path, opt);
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return {d, ms: Math.round(performance.now() - t0)};
+}
+
+/* Ett stapeldiagram. rader = [{namn, varde, serie}]. Skalan går från 0
+   till högsta värdet, aldrig en avhuggen bas — en stapel som börjar på 60
+   får ett litet försprång att se ut som ett stort. */
+function diagram(el, rader, {suffix = ""} = {}) {
+  const max = Math.max(...rader.map(r => r.varde), 1);
+  el.innerHTML = rader.map(r => `
+    <div class="rad${r.serie === "b" ? " b" : ""}"
+         title="${esc(r.namn)}: ${r.varde}${esc(suffix)}">
+      <span class="namn">${esc(r.namn)}</span>
+      <span class="spar"><span class="fyll" data-w="${(r.varde/max)*100}"></span></span>
+      <span class="varde">${r.varde}${esc(suffix)}</span>
+    </div>`).join("");
+  requestAnimationFrame(() => el.querySelectorAll(".fyll").forEach(f => {
+    f.style.width = f.dataset.w + "%";
+  }));
+}
+
+/* VILKET tal ska stapeln visa? Raderna kommer i motorns rangordning, och
+   den ordningen bygger inte alltid på `score`. På en bristfråga rangordnas
+   de på `brist` (148, 145, 132) medan `score` går 71, 77, 76 — ritar man
+   score säger diagrammet emot meningen ovanför det, och listan ser osorterad
+   ut fast den är det motsatta.
+
+   Regeln: hitta det numeriska fält som faktiskt faller monotont över
+   raderna. Det är måttet motorn sorterade på. Ordningen ändras aldrig här
+   — att sortera om vore att påstå en annan rangordning än den motorn gjorde. */
+const MATT = {
+  brist:  "ranked by shortage (people short by the target year)",
+  score:  "ranked by score, out of 100",
+  overall:"ranked by overall score, out of 100"
+};
+
+function matRader(rader) {
+  if (!rader.length) return null;
+  const falt = Object.keys(rader[0])
+    .filter(k => rader.every(r => typeof r[k] === "number"));
+  const fallande = falt.filter(k =>
+    rader.every((r, i) => i === 0 || r[k] <= rader[i-1][k]));
+  const valt = fallande[0] || (falt.includes("score") ? "score" : falt[0]);
+  if (!valt) return null;
+  return {
+    rader: rader.slice(0, 6)
+      .map(r => ({namn: r.label_en || r.id, varde: r[valt]})),
+    etikett: MATT[valt] || `ranked by ${valt}`
+  };
+}
+
+/* ── 1. Fråga ──────────────────────────────────────────────────────── */
+/* Alla fyra är provade mot motorn och ger rader. "Which municipalities in
+   Sweden perform strongest?" stod här först och gav intent `hjalp` utan ett
+   enda svar — en exempelfråga som inte svarar är värre än ingen. */
+const EXEMPEL = [
+  "Where is the need for electricians greatest?",
+  "Which places perform best in Sweden?",
+  "Where should I open a hair salon?",
+  "Where is the shortage of nurses worst?"
+];
+$("#chips").innerHTML = EXEMPEL.map(q =>
+  `<button type="button" class="chip">${esc(q)}</button>`).join("");
+$("#chips").addEventListener("click", e => {
+  if (!e.target.classList.contains("chip")) return;
+  $("#q").value = e.target.textContent;
+  $("#form").requestSubmit();
+});
+
+$("#form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const q = $("#q").value.trim();
+  if (!q) return;
+  const sec = $("#svarsektion"), knapp = $("#knapp");
+  sec.hidden = false;
+  knapp.disabled = true;
+  $("#svarrubrik").textContent = "The answer";
+  $("#svarmeta").textContent = "asking the engine…";
+  $("#svartext").textContent = "";
+  $("#svardiagram").innerHTML = "";
+  try {
+    const {d, ms} = await api("/v1/ask", {question: q});
+    $("#svarmeta").textContent = `answered in ${ms} ms · POST /v1/ask`;
+    $("#svartext").textContent = d.svar_en || "No answer for that question.";
+    const matt = matRader(d.rader || []);
+    if (matt && matt.rader.length) {
+      diagram($("#svardiagram"), matt.rader);
+      $("#svarmatt").textContent = matt.etikett;
+      $("#svarmatt").hidden = false;
+    } else {
+      $("#svarmatt").hidden = true;
+    }
+    sec.scrollIntoView({behavior:"smooth", block:"nearest"});
+  } catch (e) {
+    $("#svarmeta").textContent = "";
+    $("#svartext").innerHTML =
+      `<span class="fel">The engine could not answer that: ${esc(e.message)}</span>`;
+  } finally { knapp.disabled = false; }
+});
+
+/* ── 2. Hushållen ─────────────────────────────────────────────────── */
+let HUSHALL = [];
+const VALDA = ["single", "single_parent_special_needs"];
+
+/* Kapa vid ordgräns. `slice(0,115)` gav "…health, c" mitt i ett ord —
+   en avhuggen stavelse ser ut som ett fel, inte som en förkortning. */
+function kortaNer(text, max) {
+  if (text.length <= max) return text;
+  const kap = text.slice(0, max);
+  const sista = kap.lastIndexOf(" ");
+  return (sista > max * 0.6 ? kap.slice(0, sista) : kap).replace(/[,.;:]$/, "")
+         + "…";
+}
+
+async function ritaHushall() {
+  const par = $("#hushallspar");
+  par.innerHTML = '<p class="laddar">Computing both rankings…</p>';
+  try {
+    const svar = await Promise.all(VALDA.map(h =>
+      api("/v1/livability", {market:"se", household:h,
+                             occupation:"sjukskoterska", top_n:4})));
+    const kort = svar.map(({d}, i) => {
+      const hh = HUSHALL.find(x => x.id === VALDA[i]) || {};
+      return `<div>
+        <h3>${esc(hh.label_en || VALDA[i])}</h3>
+        <p class="vem">${esc(kortaNer(hh.means_en || "", 118))}</p>
+        <div class="diagram" id="hh-${i}"></div></div>`;
+    }).join("");
+    par.innerHTML = kort;
+    svar.forEach(({d}, i) => diagram($("#hh-" + i),
+      (d.ranking || []).slice(0, 4)
+        .map(r => ({namn: r.region, varde: r.score, serie: i ? "b" : "a"}))));
+    $("#hushallslegend").innerHTML = VALDA.map((h, i) => {
+      const hh = HUSHALL.find(x => x.id === h) || {};
+      return `<span><i style="background:var(--stapel${i ? "2" : ""})"></i>` +
+             `${esc(hh.label_en || h)}</span>`;
+    }).join("");
+    const topp = svar.map(({d}) => ((d.ranking || [])[0] || {}).region);
+    $("#hushallsslutsats").innerHTML = topp[0] === topp[1]
+      ? `Both households come out on top in <b>${esc(topp[0])}</b> on this
+         data. Change one of the households above and the answer moves.`
+      : `The best place is <b>${esc(topp[0])}</b> for one household and
+         <b>${esc(topp[1])}</b> for the other. Same country, same
+         profession, same data — what changed is who is asking.`;
+  } catch (e) {
+    par.innerHTML = `<p class="fel">Could not compute: ${esc(e.message)}</p>`;
+  }
+}
+
+api("/v1/households").then(({d}) => {
+  HUSHALL = d.households || [];
+  $("#hushallsval").innerHTML = HUSHALL.map(h =>
+    `<button type="button" class="chip" data-id="${esc(h.id)}">${esc(h.label_en)}</button>`
+  ).join("");
+  ritaHushall();
+}).catch(() => {
+  $("#hushallspar").innerHTML =
+    '<p class="fel">Could not reach the engine.</p>';
+});
+
+/* Klick byter det ANDRA hushållet, så jämförelsen alltid har två olika. */
+$("#hushallsval").addEventListener("click", e => {
+  const id = e.target.dataset && e.target.dataset.id;
+  if (!id || VALDA.includes(id)) return;
+  VALDA[1] = id;
+  ritaHushall();
+});
+
+/* ── 3. Dimensionerna bakom en plats ──────────────────────────────── */
+api("/v1/merit", {market:"se", top_n:1}).then(({d, ms}) => {
+  const t = (d.ranking || [])[0];
+  if (!t) throw new Error("no ranking");
+  $("#dimmeta").innerHTML =
+    `<b>${esc(t.region)}</b> scores ${t.overall} out of 100 — the strongest of
+     ${d.of_regions} places measured. Six things were weighed, and it is ahead
+     of most comparable places on all of them. Computed in ${ms} ms.`;
+  $("#dimlista").innerHTML = t.dimensions.map(x => `
+    <div class="dim">
+      <div class="dimtopp"><h4>${esc(x.label_en)}</h4>
+        <span class="tal">${x.score.toFixed(1)}
+          ${x.percentile != null
+            ? `· <span class="${x.percentile >= 90 ? "topp5" : ""}">ahead of
+               ${Math.round(x.percentile)}% of places</span>` : ""}</span></div>
+      <span class="spar"><span class="fyll" data-w="${x.score}"></span></span>
+      <p>${esc(x.means_en)}</p>
+    </div>`).join("");
+  requestAnimationFrame(() => $("#dimlista").querySelectorAll(".fyll")
+    .forEach(f => { f.style.width = f.dataset.w + "%"; }));
+}).catch(e => {
+  $("#dimmeta").innerHTML =
+    `<span class="fel">Could not load: ${esc(e.message)}</span>`;
+});
+
+api("/v1/surface").then(({d}) => {
+  $("#rest").textContent = `${d.engine_count} engines · ${d.endpoint_count} endpoints`;
+}).catch(() => {});
+</script>
+</body>
+</html>

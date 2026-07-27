@@ -127,6 +127,8 @@ _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 _START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
 # Demosystemet: sex bevis, alla hämtade från det körande API:t.
 _DEMO = Path(__file__).resolve().parent.parent / "frontend" / "demo.html"
+# Ytan för den som INTE kan området: riktiga platser, riktiga tal.
+_EXPLORE = Path(__file__).resolve().parent.parent / "frontend" / "explore.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
@@ -180,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/console", "/demo", "/index.html", "/sandbox",
+    _OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html", "/sandbox",
                    "/health", "/v1/plans", "/openapi.json")
 
     def _tenant(self) -> str:
@@ -250,10 +252,11 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/agent-manifest":
             from api.agent_manifest import AGENT_MANIFEST
             return self._send(200, AGENT_MANIFEST)
-        if parsed.path in ("/", "/console", "/index.html", "/demo"):
+        if parsed.path in ("/", "/console", "/index.html", "/demo", "/explore"):
             self._status = 200
-            body = {"/": _START, "/demo": _DEMO}.get(
-                parsed.path, _FRONTEND).read_bytes()
+            body = {"/": _START, "/demo": _DEMO,
+                    "/explore": _EXPLORE}.get(parsed.path,
+                                              _FRONTEND).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

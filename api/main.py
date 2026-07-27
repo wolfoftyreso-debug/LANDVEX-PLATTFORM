@@ -112,7 +112,7 @@ if _CORS:
                        allow_headers=["Content-Type", "X-API-Key",
                                       "Authorization"])
 
-_OPEN_PATHS = ("/", "/console", "/demo", "/index.html", "/sandbox",
+_OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html", "/sandbox",
                "/health", "/docs", "/openapi.json", "/v1/plans")
 
 
@@ -254,12 +254,20 @@ _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 _START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
 # Demosystemet: sex bevis, alla hämtade från det körande API:t.
 _DEMO = Path(__file__).resolve().parent.parent / "frontend" / "demo.html"
+# Ytan för den som INTE kan området: riktiga platser, riktiga tal.
+_EXPLORE = Path(__file__).resolve().parent.parent / "frontend" / "explore.html"
 
 
 @app.get("/", include_in_schema=False)
 def front_door():
     """En fråga och fyra löften. Konsolen ligger på /console."""
     return FileResponse(_START, media_type="text/html")
+
+
+@app.get("/explore", include_in_schema=False)
+def explore_page():
+    """Riktiga platser och tal, för den som inte kan området."""
+    return FileResponse(_EXPLORE, media_type="text/html")
 
 
 @app.get("/demo", include_in_schema=False)

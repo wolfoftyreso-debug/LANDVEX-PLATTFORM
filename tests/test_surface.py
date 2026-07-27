@@ -263,6 +263,38 @@ def test_the_demo_page_says_nothing_it_did_not_fetch():
         "sidan lovar inte vad den gör när ett anrop misslyckas"
 
 
+
+def test_the_explore_page_only_offers_questions_the_engine_answers():
+    """Sidan är gjord för någon som INTE kan området. En exempelfråga som
+    ger noll rader är det värsta första intrycket som finns — den som
+    stod här först gav intent `hjalp` och ingenting alls."""
+    import pathlib
+    import re
+
+    from engine.ask import ask
+    html = (pathlib.Path(__file__).resolve().parent.parent
+            / "frontend" / "explore.html").read_text(encoding="utf-8")
+    block = html.split("const EXEMPEL = [", 1)[1].split("];", 1)[0]
+    fragor = re.findall(r'"([^"]+)"', block)
+    assert len(fragor) >= 3, "för få exempelfrågor"
+    tomma = [q for q in fragor if not (ask(q).get("rader") or [])]
+    assert not tomma, f"exempelfrågor utan svar: {tomma}"
+
+
+def test_the_explore_page_plots_the_measure_the_engine_ranked_by():
+    """Rangordnas raderna på brist men stapeln ritar score säger diagrammet
+    emot meningen ovanför sig, och en sorterad lista ser osorterad ut."""
+    import pathlib
+    html = (pathlib.Path(__file__).resolve().parent.parent
+            / "frontend" / "explore.html").read_text(encoding="utf-8")
+    assert "matRader" in html
+    assert "fallande" in html, "sidan letar inte upp det sorterade måttet"
+    assert "svarmatt" in html, "måttet står inte utskrivet vid diagrammet"
+    # Och den får aldrig sortera om motorns ordning.
+    assert ".sort(" not in html.split("<script>", 1)[1], \
+        "sidan sorterar om raderna — det påstår en annan rangordning"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
