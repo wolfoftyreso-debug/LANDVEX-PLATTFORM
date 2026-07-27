@@ -286,6 +286,19 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief/report"}]},
+        {"id": "sensors", "label_en": "What can actually be measured",
+         "beskrivning_en": "The detection layer recognises nine kinds of "
+                           "physical change — a built surface that differs, "
+                           "a flow that departs from its own range, an "
+                           "object gone. Almost every connected source is "
+                           "statistics that updates quarterly. This names "
+                           "which sensor class could feed each detection, "
+                           "how often it says something new, and — the part "
+                           "that matters — what it can NEVER establish "
+                           "however dense it is. A counter showing forty "
+                           "percent less flow does not know whether a road "
+                           "closed, an employer moved, or the loop broke.",
+         "endpoints": [{"method": "GET", "path": "/v1/sensors"}]},
         {"id": "surface", "label_en": "What Landvex offers",
          "beskrivning_en": "What a person is offered, as opposed to what "
                            "was built. Forty-five engines answer four "

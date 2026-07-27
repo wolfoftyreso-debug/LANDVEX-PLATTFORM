@@ -82,6 +82,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/households": "core",                 # hushållstyper (katalog)
     "/v1/registers": "core",                  # företagsregisterkartan
     "/v1/provenance": "core",                 # parametrarnas härkomst
+    "/v1/sensors": "core",                    # vad som kan mätas, och inte
     "/v1/surface": "core",                    # de fyra löftena — ytan
     "/v1/offering": "core",                   # vad varje nivå låter dig BESLUTA
                                               # — måste vara läsbar utan att

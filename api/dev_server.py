@@ -68,6 +68,7 @@ from engine.brief import catalog as brief_catalog, daily_brief, report as brief_
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
 from engine.surface import surface
+from engine.sensors import catalog as sensor_catalog
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -328,6 +329,8 @@ class Handler(BaseHTTPRequestHandler):
                                         "parameters": provenance_parameters(cls)})
             except ValueError as e:
                 return self._send(422, {"error": str(e)})
+        if parsed.path == "/v1/sensors":
+            return self._send(200, sensor_catalog())
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))

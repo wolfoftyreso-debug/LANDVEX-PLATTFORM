@@ -60,6 +60,7 @@ from engine.brief import catalog as brief_catalog, daily_brief, report as brief_
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
 from engine.surface import surface
+from engine.sensors import catalog as sensor_catalog
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -883,6 +884,12 @@ def provenance_ep(cls: str = ""):
         return {**provenance_summary(), "parameters": provenance_parameters(cls)}
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/sensors")
+def sensors_ep():
+    """What could measure what — and what a measurement never settles."""
+    return sensor_catalog()
 
 
 @app.get("/v1/surface")

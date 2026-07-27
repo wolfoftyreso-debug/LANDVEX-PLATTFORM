@@ -86,8 +86,10 @@ PROMISES: tuple[dict, ...] = (
         "refusal_en": "A quiet day is reported as a quiet day, never padded "
                       "with noise to look valuable.",
         "entry": "/v1/brief",
+        # `sensors` hör hit och inte till provenance: den handlar om vad
+        # plattformen alls KAN märka, vilket är det här löftets gräns.
         "engines": ("brief", "monitors", "inbox", "feeds", "event_study",
-                    "scenario", "correlate", "aamos_integration"),
+                    "scenario", "correlate", "sensors", "aamos_integration"),
     },
     {
         "id": "who_carries_it",
