@@ -162,6 +162,38 @@ the real one.
 
 ---
 
+## 4b. Egress — ask the environment, don't transcribe a list
+
+The task's security group (or the NAT/proxy allowlist) needs outbound
+443 to the sources that are actually configured. Print them from the
+environment rather than copying them out of this file:
+
+```bash
+python3 -m scripts.preflight --egress          # human-readable
+python3 -m scripts.preflight --egress --json   # for a security-group script
+```
+
+For the committed task definition that is 11 hosts, all on 443:
+`api.scb.se`, `api.kolada.se`, `api.census.gov`,
+`api.trafikinfo.trafikverket.se`, `tie.digitraffic.fi`,
+`opendata-download-metobs.smhi.se`, `api.weather.gov`,
+`opendata-download-hydroobs.smhi.se`, `api.openaq.org`,
+`earthquake.usgs.gov`, `meri.digitraffic.fi` — plus AAMOS, which is
+internal and unset here.
+
+Each line names the variable that causes the call, so a host can be
+removed knowing what stops working. A firewall opened from a
+hand-written list shuts out the source someone added last week, and that
+failure looks exactly like a broken adapter — which is the most
+expensive kind of confusion this platform can produce, because the whole
+product rests on knowing which sources answered.
+
+If egress stays closed, nothing breaks: every source degrades to mock,
+labelled mock, and `data_coverage` falls accordingly. That is a valid
+deployment — it is just a different product.
+
+---
+
 ## 5. Load balancer
 
 Target group: HTTP, port 8000, health check path `/health`, interval

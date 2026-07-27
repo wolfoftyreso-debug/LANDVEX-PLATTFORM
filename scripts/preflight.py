@@ -227,6 +227,29 @@ def mall() -> str:
     return "\n".join(rader) + "\n"
 
 
+def utgaende(env: dict) -> list[dict]:
+    """Vilka värdar den HÄR miljön kommer att ringa ut till.
+
+    Läses ur miljön, inte ur en lista i ett dokument: en brandvägg som
+    öppnats efter en handskriven uppräkning stänger ute den källa någon
+    la till i veckan, och felet syns då som "källan svarar inte" —
+    vilket är precis vad ett trasigt adapternamn också ser ut som.
+    """
+    from urllib.parse import urlsplit
+    varden: dict[str, list[str]] = {}
+    for namn in sorted(ENVIRONMENT):
+        v = str(env.get(namn, "") or "")
+        if not v.startswith(("http://", "https://")):
+            continue
+        delar = urlsplit(v)
+        if not delar.hostname:
+            continue
+        nyckel = f"{delar.hostname}:{delar.port or (443 if delar.scheme == 'https' else 80)}"
+        varden.setdefault(nyckel, []).append(namn)
+    return [{"host": h.rsplit(":", 1)[0], "port": int(h.rsplit(":", 1)[1]),
+             "for": v} for h, v in sorted(varden.items())]
+
+
 def _lage(env: dict) -> str:
     lage = str(env.get("LANDVEX_PREFLIGHT", "") or "warn").strip().lower()
     return lage if lage in ("strict", "warn", "off") else "warn"
@@ -235,6 +258,22 @@ def _lage(env: dict) -> str:
 def main(argv: list[str]) -> int:
     if "--template" in argv:
         print(mall(), end="")
+        return 0
+
+    if "--egress" in argv:
+        varden = utgaende(os.environ)
+        if "--json" in argv:
+            print(json.dumps(varden, indent=2, ensure_ascii=False))
+            return 0
+        print(f"{len(varden)} host(s) this environment will call outward:")
+        for v in varden:
+            adress = f"{v['host']}:{v['port']}"
+            print(f"  {adress:<38} {', '.join(v['for'])}")
+        if not varden:
+            print("  none — every source is unset, so nothing is called.")
+        print("\nOpen egress to exactly these. A firewall opened from a "
+              "hand-written list\nshuts out the source someone added last "
+              "week, and that failure looks\nexactly like a broken adapter.")
         return 0
 
     lage = _lage(os.environ)

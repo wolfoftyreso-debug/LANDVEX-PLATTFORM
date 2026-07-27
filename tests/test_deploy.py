@@ -423,6 +423,39 @@ def test_orchestration_variables_stay_out_of_preflight():
     assert redact("PGPASSWORD", "hemligt") == "set (7 chars)"
 
 
+def test_the_egress_list_is_read_from_the_environment_not_from_prose():
+    """En brandvägg öppnad efter en handskriven uppräkning stänger ute
+    den källa någon la till i veckan — och det felet ser exakt ut som en
+    trasig adapter."""
+    from scripts.preflight import utgaende
+    v = utgaende({"LANDVEX_SCB_BASE": "https://api.scb.se/OV0104/v1",
+                  "LANDVEX_AIR_URL": "https://api.openaq.org",
+                  "LANDVEX_TRAFFIC_URL": "http://intern:8087/data.json",
+                  "LANDVEX_DB": "/data/landvex.db",
+                  "LANDVEX_LIVE": "1"})
+    adresser = {(x["host"], x["port"]) for x in v}
+    assert ("api.scb.se", 443) in adresser
+    assert ("intern", 8087) in adresser, "port ur URL:en, inte gissad"
+    # Bara det som FAKTISKT är en URL — en sökväg är ingen värd.
+    assert all(x["host"] not in ("/data", "1") for x in v)
+    assert len(v) == 3
+    # Varje värd säger vilken variabel som orsakar anropet, annars går
+    # den inte att ta bort med vetskap om vad som slutar fungera.
+    assert all(x["for"] for x in v)
+
+
+def test_the_egress_list_covers_every_url_the_task_definition_sets():
+    """Uppgiftsdefinitionen är den miljö som faktiskt kommer att köra."""
+    from scripts.preflight import utgaende
+    env = {e["name"]: e["value"] for e in _behallare()["environment"]}
+    v = utgaende(env)
+    urler = [x for x in env.values() if x.startswith("http")]
+    assert len(v) == len(set(urler)), \
+        f"{len(urler)} URL:er men {len(v)} värdar i listan"
+    assert all(x["port"] == 443 for x in v), \
+        "en källa över http i produktion — avsiktligt eller ett stavfel?"
+
+
 def test_the_committed_env_example_is_not_stale():
     """Den incheckade .env.example är genererad. Går den isär från
     registret är den en instruktion som ljuger — kör `make env-template`."""
