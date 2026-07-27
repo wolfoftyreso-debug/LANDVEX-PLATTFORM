@@ -493,9 +493,204 @@ class GenericSensorFeed(SensorClient):
         }
 
 
-CLIENTS = {c.sensor_class: c for c in (
-    TrafikverketFlow, SmhiWeather, OpenAqAir, SmhiHydro, CopernicusStac,
-    GenericSensorFeed)}
+
+
+# ── USGS: seismik ───────────────────────────────────────────────────────
+class UsgsSeismic(SensorClient):
+    """Skalv över en magnitud inom en radie, senaste dygnet.
+
+    GeoJSON, ingen nyckel. Svarsform (dokumenterad): {"features":
+    [{"properties": {"mag": 4.2, "place": "..", "time": <ms>}}]}
+    """
+
+    id = "usgs"
+    sensor_class = "seismic"
+    ENV = "LANDVEX_SEISMIC_URL"
+
+    def events(self, lat: float, lon: float, *, radius_km: float = 200.0,
+               min_magnitude: float = 2.5, days: int = 1) -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/fdsnws/event/1/query?"
+               + urllib.parse.urlencode({
+                   "format": "geojson", "latitude": lat, "longitude": lon,
+                   "maxradiuskm": radius_km, "minmagnitude": min_magnitude,
+                   "limit": 200,
+                   # Fönstret skickas IN, härleds aldrig här: en modul som
+                   # frågar sin egen klocka går inte att testa deterministiskt.
+                   "starttime": f"-P{int(days)}D"}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            f = json.loads(raw.decode("utf-8")).get("features") or []
+            mags = [x["properties"]["mag"] for x in f
+                    if isinstance((x.get("properties") or {}).get("mag"),
+                                  (int, float))]
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return {
+            "events": len(f), "with_magnitude": len(mags),
+            "max_magnitude": max(mags) if mags else None,
+            "min_magnitude_queried": min_magnitude,
+            "radius_km": radius_km, "measured": True, "source": "USGS FDSN",
+            "basis_en": (f"Events at or above M{min_magnitude:g} within "
+                         f"{radius_km:g} km. Absence here means no event "
+                         f"ABOVE that threshold was catalogued — not that "
+                         f"the ground was still."),
+        }
+
+
+# ── Digitraffic (FI): fartyg och väg, öppet utan nyckel ─────────────────
+class DigitrafficMarine(SensorClient):
+    """Fartygspositioner i finskt farvatten. Öppet, ingen nyckel.
+
+    Svarsform: {"features": [{"mmsi": .., "properties": {"sog": ..,
+    "navStat": ..}}]}
+    """
+
+    id = "digitraffic_marine"
+    sensor_class = "vessel_traffic"
+    ENV = "LANDVEX_AIS_URL"
+
+    def vessels(self, *, min_speed_kn: float = 0.5) -> dict | None:
+        if not self.connected:
+            return None
+        raw = self._breaker.fetch(f"{self.base_url}/api/ais/v1/locations")
+        if raw is None:
+            return None
+        try:
+            f = json.loads(raw.decode("utf-8")).get("features") or []
+            farter = [(x.get("properties") or {}).get("sog") for x in f]
+            rorliga = [s for s in farter
+                       if isinstance(s, (int, float)) and s >= min_speed_kn]
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        if not f:
+            return None
+        return {
+            "vessels": len(f), "under_way": len(rorliga),
+            "measured": True, "source": "Digitraffic (Fintraffic) AIS",
+            "basis_en": ("Positions as broadcast. AIS carries what the crew "
+                         "entered; a vessel with the transponder off is "
+                         "simply absent, and absence is not stillness."),
+        }
+
+
+class DigitrafficRoad(SensorClient):
+    """Vägflöde i Finland — ANDRA leverantören för road_flow.
+
+    Poängen är inte fler mätpunkter utan en OBEROENDE mätning: två nät som
+    säger samma sak är det som gör ett underlag robust.
+    """
+
+    id = "digitraffic_road"
+    sensor_class = "road_flow"
+    ENV = "LANDVEX_TRAFFIC_FI_URL"
+
+    def flow(self, station: str) -> dict | None:
+        if not self.connected:
+            return None
+        raw = self._breaker.fetch(
+            f"{self.base_url}/api/tms/v1/stations/"
+            f"{urllib.parse.quote(station)}/data")
+        if raw is None:
+            return None
+        try:
+            varden = json.loads(raw.decode("utf-8")).get("sensorValues") or []
+            flode = [v["value"] for v in varden
+                     if str(v.get("name", "")).upper().startswith("OHITUKSET")
+                     and isinstance(v.get("value"), (int, float))]
+            fart = [v["value"] for v in varden
+                    if str(v.get("name", "")).upper().startswith("KESKINOPEUS")
+                    and isinstance(v.get("value"), (int, float))]
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        if not flode:
+            return None
+        return {
+            "vehicles_per_hour": round(sum(flode) / len(flode), 1),
+            "average_speed_kmh": (round(sum(fart) / len(fart), 1)
+                                  if fart else None),
+            "measurement_points": len(flode),
+            "measured": True, "source": "Digitraffic (Fintraffic) TMS",
+            "basis_en": (f"{len(flode)} sensor value(s) from one station. "
+                         f"A single station is one cross-section, not a "
+                         f"corridor."),
+        }
+
+
+# ── NOAA/NWS: väder i USA — ANDRA leverantören för weather ──────────────
+class NwsWeather(SensorClient):
+    """Senaste observation från en NWS-station. Öppet, ingen nyckel.
+
+    Svarsform: {"properties": {"temperature": {"value": 3.2,
+    "unitCode": "wmoUnit:degC"}, "station": ".."}}
+    """
+
+    id = "nws"
+    sensor_class = "weather"
+    ENV = "LANDVEX_WEATHER_US_URL"
+
+    def latest(self, signal_id: str, station: str) -> dict | None:
+        if not (self.connected and signal_id == "air_temperature_c"):
+            return None
+        raw = self._breaker.fetch(
+            f"{self.base_url}/stations/{urllib.parse.quote(station)}"
+            f"/observations/latest")
+        if raw is None:
+            return None
+        try:
+            p = json.loads(raw.decode("utf-8"))["properties"]
+            varde = p["temperature"]["value"]
+            if not isinstance(varde, (int, float)):
+                return None
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return {
+            "signal": signal_id, "value": float(varde),
+            "label_en": "Air temperature", "station": station,
+            "measured": True, "source": "NOAA / National Weather Service",
+            "basis_en": ("Latest hourly observation. NWS publishes "
+                         "unvalidated observations first; a value can be "
+                         "revised or withdrawn."),
+        }
+
+
+# En sensorklass kan ha FLERA leverantörer. Det är hela poängen: två
+# oberoende nät som mäter samma sak är det som gör ett underlag robust,
+# och strukturen som bara tillät en dolde att skillnaden fanns.
+PROVIDERS: dict[str, tuple] = {
+    "road_flow": (TrafikverketFlow, DigitrafficRoad),
+    "weather": (SmhiWeather, NwsWeather),
+    "air_quality": (OpenAqAir,),
+    "water_level": (SmhiHydro,),
+    "earth_observation": (CopernicusStac,),
+    "vessel_traffic": (DigitrafficMarine,),
+    "seismic": (UsgsSeismic,),
+    "building_meter": (GenericSensorFeed,),
+}
+
+# Bakåtkompatibel: första leverantören per klass.
+CLIENTS = {k: v[0] for k, v in PROVIDERS.items()}
+
+
+def providers_for(sensor_class: str) -> tuple:
+    return PROVIDERS.get(sensor_class, ())
+
+
+def independent_count(sensor_class: str) -> int:
+    """Hur många OBEROENDE nät som kan mäta klassen. En källa är en källa;
+    två är det som gör att man kan tro på den."""
+    return len(PROVIDERS.get(sensor_class, ()))
 
 
 def client_for(sensor_class: str, **kw) -> SensorClient | None:

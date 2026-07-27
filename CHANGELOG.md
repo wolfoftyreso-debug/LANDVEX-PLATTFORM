@@ -54,6 +54,33 @@ tabell isoleras utan att listan uppdateras:
 En halvt isolerad plattform som tros vara helt isolerad är farligare än
 en ingen litar på.
 
+## [Ej släppt] — samstämmighet
+
+**Fler sensorer gör inte ett underlag robustare av sig självt.** Tio
+mätpunkter på samma väg, från samma myndighet, genom samma insamlings-
+kedja, faller tillsammans när kedjan gör det — och tio samstämmiga tal
+från ett trasigt system ser precis ut som tio samstämmiga tal från ett
+fungerande.
+
+- **`engine/corroboration.py` (GET/POST /v1/corroboration)** poängsätter
+  hur väl underbyggt ett påstående är: hur många OBEROENDE nät som säger
+  det, om de mäter olika fysiska storheter, och om de är överens.
+- **En källa kan aldrig bekräfta sig själv**, hur perfekt den än stämmer
+  med sina egna avläsningar. Taket är `weak`.
+- **Oenighet är ett eget utfall.** Två nät som pekar åt olika håll är
+  sämre underlag än ett ensamt: minst ett har fel och det går inte att
+  veta vilket. Första versionen gav dem `strong` — oberoende och olik
+  modalitet räknades in medan oenigheten bara lät bli att lägga till.
+- **Modalitet skiljer sig från leverantör.** Två vägräknarnät är
+  oberoende men mäter samma storhet och kan dela systematiskt fel; en
+  vägräknare och en luftkvalitetsmätare kan inte det.
+- **Flera leverantörer per sensorklass.** Strukturen tillät bara en, och
+  dolde därmed att skillnaden fanns. `road_flow` och `weather` har nu två
+  oberoende nät var.
+- **Fyra nya klienter**, alla öppna: USGS seismik (GeoJSON, ingen nyckel),
+  Digitraffic AIS och väg (Fintraffic, ingen nyckel), NOAA/NWS väder.
+  Sjuttonde sensorklassen: seismik.
+
 ## [Ej släppt] — sensorer
 
 Upptäcktslagret känner igen nio sorters FYSISK förändring medan varenda

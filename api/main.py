@@ -61,6 +61,8 @@ from engine.provenance import parameters as provenance_parameters, summary as pr
 from engine.offering import offering
 from engine.surface import surface
 from engine.sensors import catalog as sensor_catalog
+from engine.corroboration import (assess as corroboration_assess,
+                                  catalog as corroboration_cat)
 from engine.registers import RegisterClient, register_catalog
 from engine.livability import HOUSEHOLDS
 from engine.livability_scan import livability_ranking
@@ -884,6 +886,22 @@ def provenance_ep(cls: str = ""):
         return {**provenance_summary(), "parameters": provenance_parameters(cls)}
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+class CorroborationRequest(BaseModel):
+    sources: list[dict] = Field(default_factory=list)
+
+
+@app.get("/v1/corroboration")
+def corroboration_catalog():
+    """How independence is judged, and why it is a band not a percentage."""
+    return corroboration_cat()
+
+
+@app.post("/v1/corroboration")
+def corroboration_ep(req: CorroborationRequest):
+    """How well supported a claim is. Disagreement is its own outcome."""
+    return corroboration_assess(req.sources)
 
 
 @app.get("/v1/sensors")

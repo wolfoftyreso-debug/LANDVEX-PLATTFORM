@@ -89,7 +89,8 @@ PROMISES: tuple[dict, ...] = (
         # `sensors` hör hit och inte till provenance: den handlar om vad
         # plattformen alls KAN märka, vilket är det här löftets gräns.
         "engines": ("brief", "monitors", "inbox", "feeds", "event_study",
-                    "scenario", "correlate", "sensors", "aamos_integration"),
+                    "scenario", "correlate", "sensors", "corroboration",
+                    "aamos_integration"),
     },
     {
         "id": "who_carries_it",

@@ -191,10 +191,10 @@ SENSORS: dict[str, dict] = {
         "cannot_en": "Establish cargo or ownership. AIS carries what the "
                      "crew entered; destination and draught are typed in "
                      "and are wrong often enough to matter.",
-        "state": "none",
+        "state": "adapter",
         "connected_by": "LANDVEX_AIS_URL",
-        "operator_en": "Coastal authorities · commercial AIS aggregators",
-        "open_data": False,
+        "operator_en": "Fintraffic Digitraffic (open) · coastal authorities",
+        "open_data": True,
     },
     "district_heating": {
         "label_en": "District heating network",
@@ -276,6 +276,22 @@ SENSORS: dict[str, dict] = {
         "operator_en": "Contractors · equipment telematics vendors",
         "open_data": False,
     },
+    "seismic": {
+        "label_en": "Seismic events",
+        "what_en": "Catalogued earthquakes above a magnitude threshold "
+                   "within a radius, from the global seismic network.",
+        "feeds": ("infrastructure_decay", "pattern_deviation"),
+        "cadence": "minutes",
+        "typical_lag": "2–20 min",
+        "cannot_en": "Say anything about damage. A magnitude is energy at "
+                     "the source; what a building does depends on distance, "
+                     "soil and how it was built, none of which is in the "
+                     "catalogue.",
+        "state": "adapter",
+        "connected_by": "LANDVEX_SEISMIC_URL",
+        "operator_en": "USGS FDSN (open) · national seismic networks",
+        "open_data": True,
+    },
     "mobility_flow": {
         "label_en": "Aggregated movement data",
         "what_en": "Anonymised, aggregated presence and travel between "
@@ -315,8 +331,14 @@ def catalog() -> dict:
     """Sensorlandskapet: vad som kan mätas, vad som är inkopplat, och vad
     varje mätning aldrig kan avgöra."""
     from .brief import DETECTION_KINDS
+    from .corroboration import MODALITY
+    from .datasources.sensor_apis import independent_count
     rader = [{"id": sid, **{k: v for k, v in s.items() if k != "feeds"},
-              "feeds": list(s["feeds"])}
+              "feeds": list(s["feeds"]),
+              # Hur många OBEROENDE nät som kan mäta klassen. Ett är ett;
+              # två är det som gör att man kan tro på det.
+              "independent_providers": independent_count(sid),
+              "modality": MODALITY.get(sid, "unknown")}
              for sid, s in SENSORS.items()]
     per_state: dict[str, int] = {}
     for s in SENSORS.values():
@@ -350,6 +372,23 @@ def catalog() -> dict:
             sum(1 for s in SENSORS.values() if s["open_data"]) / len(SENSORS),
             2),
         "clients": _client_status(),
+        "corroboration": _corroboration_summary(rader),
+    }
+
+
+def _corroboration_summary(rader: list[dict]) -> dict:
+    """Vad som faktiskt gör underlaget robust: två oberoende nät, inte
+    fler mätpunkter i samma."""
+    tva_plus = [r["id"] for r in rader if r["independent_providers"] >= 2]
+    return {
+        "classes_with_two_or_more_providers": tva_plus,
+        "count": len(tva_plus),
+        "why_en": (
+            "More sensors is not more robust. Ten points on the same road, "
+            "from the same authority, through the same collection chain, "
+            "fail together when the chain does. What raises the floor is a "
+            "second INDEPENDENT network — and only these classes have one."),
+        "detail": "/v1/corroboration",
     }
 
 

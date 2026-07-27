@@ -128,8 +128,32 @@ def _probe_building_meter() -> tuple[str, dict | None]:
     return "ok", r
 
 
+def _probe_seismic() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import UsgsSeismic
+    c = UsgsSeismic()
+    if not c.connected:
+        return "not configured", None
+    r = c.events(59.3145, 18.0705, radius_km=500.0, min_magnitude=1.0)
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
+def _probe_vessel_traffic() -> tuple[str, dict | None]:
+    from engine.datasources.sensor_apis import DigitrafficMarine
+    c = DigitrafficMarine()
+    if not c.connected:
+        return "not configured", None
+    r = c.vessels()
+    if r is None and unreachable(c.last_error):
+        return "unreachable", None
+    return "ok", r
+
+
 PROBES = {
     "weather": _probe_weather,
+    "seismic": _probe_seismic,
+    "vessel_traffic": _probe_vessel_traffic,
     "road_flow": _probe_road_flow,
     "air_quality": _probe_air_quality,
     "water_level": _probe_water_level,

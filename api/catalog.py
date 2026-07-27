@@ -286,6 +286,23 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief"},
                        {"method": "POST", "path": "/v1/brief/report"}]},
+        {"id": "corroboration", "label_en": "Does anything else say the same?",
+         "beskrivning_en": "More sensors is not more robust. Ten points on "
+                           "the same road, from the same authority, through "
+                           "the same collection chain, fail together when "
+                           "the chain does — and ten agreeing numbers from a "
+                           "broken system look exactly like ten agreeing "
+                           "numbers from a working one. This scores how "
+                           "well a claim is supported: how many INDEPENDENT "
+                           "networks say it, whether they measure different "
+                           "physical quantities, and whether they agree. "
+                           "Disagreement is reported as its own outcome, "
+                           "not as weak support: two networks pointing "
+                           "opposite ways is a worse basis than one, "
+                           "because at least one is wrong and which is not "
+                           "knowable from here.",
+         "endpoints": [{"method": "GET", "path": "/v1/corroboration"},
+                       {"method": "POST", "path": "/v1/corroboration"}]},
         {"id": "sensors", "label_en": "What can actually be measured",
          "beskrivning_en": "The detection layer recognises nine kinds of "
                            "physical change — a built surface that differs, "
