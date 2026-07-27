@@ -125,6 +125,8 @@ _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 # Dörren: en fråga och fyra löften. Konsolen med nio flikar finns kvar
 # oförändrad på /console — den är vad man hittar EFTER sin första fråga.
 _START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
+# Demosystemet: sex bevis, alla hämtade från det körande API:t.
+_DEMO = Path(__file__).resolve().parent.parent / "frontend" / "demo.html"
 
 # Persistens: LANDVEX_DB = sökväg (default landvex.db) eller "off".
 _DB = os.environ.get("LANDVEX_DB", "landvex.db")
@@ -178,8 +180,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/console", "/index.html", "/sandbox", "/health",
-                   "/v1/plans", "/openapi.json")
+    _OPEN_PATHS = ("/", "/console", "/demo", "/index.html", "/sandbox",
+                   "/health", "/v1/plans", "/openapi.json")
 
     def _tenant(self) -> str:
         """Vilken kund frågan kommer från. Lagret KRÄVER den — ett argument
@@ -248,9 +250,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/agent-manifest":
             from api.agent_manifest import AGENT_MANIFEST
             return self._send(200, AGENT_MANIFEST)
-        if parsed.path in ("/", "/console", "/index.html"):
+        if parsed.path in ("/", "/console", "/index.html", "/demo"):
             self._status = 200
-            body = (_START if parsed.path == "/" else _FRONTEND).read_bytes()
+            body = {"/": _START, "/demo": _DEMO}.get(
+                parsed.path, _FRONTEND).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

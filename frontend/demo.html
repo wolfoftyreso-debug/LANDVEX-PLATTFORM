@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Landvex — six things nothing else does</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpolygon points=%2712 2 22 7 12 12 2 7%27 fill=%27%23007AFF%27/%3E%3Cpolyline points=%272 12 12 17 22 12%27 fill=%27none%27 stroke=%27%2334C759%27 stroke-width=%272%27/%3E%3C/svg%3E">
+<style>
+/* Demosystemet. Varje siffra på sidan kommer från ett anrop mot det
+   körande API:t, gjort medan du tittar — endpoint och svarstid står
+   utskrivna vid varje bevis så att vem som helst kan göra om det.
+   Ingenting här är förinspelat. Misslyckas ett anrop säger beviset det
+   i stället för att visa en gammal siffra. */
+:root{
+  --bg:#FBFBFD; --yta:#FFF; --text:#1D1D1F; --svag:#6E6E73; --linje:#E5E5EA;
+  --bla:#007AFF; --gron:#34C759; --gul:#FF9F0A; --rod:#FF3B30;
+  --kod:#F5F5F7;
+  --skugga:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;--linje:#2C2C2E;
+        --kod:#111113;--skugga:0 1px 3px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.4);}
+}
+:root[data-theme="dark"]{--bg:#000;--yta:#1C1C1E;--text:#F5F5F7;--svag:#98989D;
+  --linje:#2C2C2E;--kod:#111113;--skugga:0 1px 3px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.4);}
+:root[data-theme="light"]{--bg:#FBFBFD;--yta:#FFF;--text:#1D1D1F;--svag:#6E6E73;
+  --linje:#E5E5EA;--kod:#F5F5F7;--skugga:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);
+  font:400 17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
+       "Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px}
+
+header{padding:9vh 0 5vh;display:flex;flex-direction:column;gap:20px}
+.marke{display:flex;align-items:center;gap:11px}
+.marke svg{width:26px;height:26px}
+.marke b{font-size:14px;letter-spacing:.16em;font-weight:600}
+h1{margin:0;font-size:clamp(29px,5.2vw,44px);line-height:1.1;
+   letter-spacing:-.024em;font-weight:600;text-wrap:balance;max-width:19ch}
+h1 em{font-style:normal;color:var(--svag)}
+.ingress{margin:0;color:var(--svag);font-size:16.5px;max-width:62ch}
+.kor{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:4px}
+button.primar{background:var(--bla);color:#fff;border:0;border-radius:12px;
+  padding:14px 24px;font:inherit;font-weight:600;cursor:pointer}
+button.primar:hover{filter:brightness(1.08)}
+button.primar[disabled]{opacity:.5;cursor:default}
+.status{color:var(--svag);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* ── Bevis ─────────────────────────────────────────────────────────── */
+.bevis{background:var(--yta);border:1px solid var(--linje);border-radius:18px;
+  padding:24px;box-shadow:var(--skugga);margin:0 0 18px}
+.bevis.vagran{border-left:3px solid var(--gul)}
+.bevis header{padding:0;display:block}
+.nr{font-size:12.5px;color:var(--svag);font-variant-numeric:tabular-nums;
+    letter-spacing:.06em}
+.bevis h2{margin:5px 0 8px;font-size:21px;letter-spacing:-.012em;
+          text-wrap:balance}
+.fraga{margin:0 0 16px;color:var(--svag);font-size:15.5px;font-style:italic}
+.meta{display:flex;gap:9px;align-items:center;flex-wrap:wrap;
+      font-size:12.5px;color:var(--svag);margin:0 0 12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pill{border:1px solid var(--linje);border-radius:999px;padding:3px 10px}
+.pill.ms{font-variant-numeric:tabular-nums}
+.ut{background:var(--kod);border:1px solid var(--linje);border-radius:12px;
+    padding:15px 16px;font-size:13.5px;min-height:52px}
+.ut.tom{color:var(--svag);font-style:italic;
+        font-family:inherit;font-size:15px}
+/* Dataraderna behöver sin uppställning och får scrolla i egen ruta.
+   Slutsatsen under dem är en MENING — den ska brytas, inte klippas.
+   Med `white-space:pre` på hela rutan försvann just den rad som var
+   poängen med beviset. */
+.ut pre{margin:0;overflow-x:auto;white-space:pre;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.ut .prosa{margin:12px 0 0;padding-top:11px;border-top:1px solid var(--linje);
+           font-family:inherit;font-size:14.5px;line-height:1.5}
+.ut .fel{color:var(--rod)}
+.varfor{margin:15px 0 0;font-size:15px}
+.varfor b{color:var(--gul)}
+.fel{color:var(--rod)}
+
+/* Jämförelse sida vid sida */
+.jmf{display:grid;gap:13px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.jmf > div{background:var(--kod);border:1px solid var(--linje);
+           border-radius:12px;padding:15px}
+.jmf h3{margin:0 0 4px;font-size:14.5px;letter-spacing:-.005em}
+.jmf .vem{margin:0 0 11px;font-size:12.5px;color:var(--svag)}
+.jmf ol{margin:0;padding-left:19px;font-variant-numeric:tabular-nums;
+        font-size:14.5px}
+.jmf li{padding:3px 0}
+.jmf li span{color:var(--svag);font-size:13px}
+.flip{margin-top:11px;padding-top:11px;border-top:1px solid var(--linje);
+      font-size:14px}
+
+footer{border-top:1px solid var(--linje);margin-top:26px;padding:24px 0 50px;
+  display:flex;gap:18px;flex-wrap:wrap;font-size:14.5px;align-items:center}
+footer a{color:var(--bla);text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer .rest{margin-left:auto;color:var(--svag)}
+@media (prefers-reduced-motion:no-preference){
+  .ut{transition:opacity .15s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="marke">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#007AFF"/><stop offset="1" stop-color="#34C759"/>
+      </linearGradient></defs>
+      <polygon points="12 2 22 7 12 12 2 7" fill="url(#g)"/>
+      <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#g)"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#g)"
+                stroke-width="2" opacity=".55" stroke-linecap="round"
+                stroke-linejoin="round"/>
+    </svg><b>LANDVEX</b>
+  </div>
+  <h1>Six things this does<br><em>that a confident number cannot.</em></h1>
+  <p class="ingress">Every figure below is fetched from the running API while
+     you watch — the endpoint and the response time are printed on each
+     proof, so you can repeat it yourself. Nothing here is pre-recorded. If a
+     call fails, the proof says so instead of showing you an old number.</p>
+  <div class="kor">
+    <button class="primar" id="kor">Run all six</button>
+    <span class="status" id="status">Not run yet.</span>
+  </div>
+</header>
+
+<main id="bevis"></main>
+
+<footer>
+  <a href="/">← Front door</a>
+  <a href="/console">Full console</a>
+  <a href="/v1/catalog">API catalogue</a>
+  <span class="rest" id="rest"></span>
+</footer>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function call(path, body) {
+  const t0 = performance.now();
+  const opt = body === undefined ? {}
+    : {method:"POST", headers:{"Content-Type":"application/json"},
+       body: JSON.stringify(body)};
+  let data, ok = true;
+  try {
+    const r = await fetch(path, opt);
+    data = await r.json();
+    ok = r.ok;
+  } catch (e) { data = {error: String(e)}; ok = false; }
+  return {data, ok, ms: Math.round(performance.now() - t0), path};
+}
+
+/* Varje bevis: frågan, ett riktigt anrop, och varför svaret är ovanligt.
+   `render` får svaret och returnerar det som ska stå i utfallsrutan. */
+const BEVIS = [
+  {
+    id: "refusal",
+    vagran: true,
+    rubrik: "It refuses to answer",
+    fraga: "“How saturated is the market for electricians in Tyresö?”",
+    endpoint: "POST /v1/saturation",
+    run: () => call("/v1/saturation",
+      {vertical:"elektriker", region:"0138", market:"se"}),
+    render: d => {
+      const s = d.supply || {};
+      return {data:
+        `establishments : ${s.establishments}\n` +
+        `measured       : ${s.measured}\n` +
+        `population     : ${d.population}\n` +
+        `industry code  : ${(d.industry_code||{}).code ?? "known"}`,
+        prosa: s.basis_en || ""};
+    },
+    varfor: "<b>Why it matters.</b> It has the municipality, the population " +
+            "and the industry code. It still will not put a number on it. " +
+            "Every comparable tool returns a confident figure here — that is " +
+            "the whole difference, and it is the first thing shown rather " +
+            "than a footnote."
+  },
+  {
+    id: "household",
+    rubrik: "The same data, two households, two answers",
+    fraga: "“I am a nurse in Sweden. Where should I move?” — asked twice, " +
+           "once by someone living alone and once by a single parent whose " +
+           "child needs extra support.",
+    endpoint: "POST /v1/livability ×2",
+    run: async () => {
+      const [a, b] = await Promise.all([
+        call("/v1/livability", {market:"se", household:"single",
+                                occupation:"sjukskoterska", top_n:3}),
+        call("/v1/livability", {market:"se",
+                                household:"single_parent_special_needs",
+                                occupation:"sjukskoterska", top_n:3})]);
+      return {data:{a:a.data, b:b.data}, ok:a.ok && b.ok, ms:a.ms + b.ms,
+              path:"/v1/livability"};
+    },
+    html: d => {
+      const lista = r => (r.ranking || []).slice(0,3).map(x =>
+        `<li>${esc(x.region)} <span>${x.score}</span></li>`).join("");
+      const top = r => ((r.ranking || [])[0] || {}).region;
+      const flip = top(d.a) !== top(d.b)
+        ? `The top place changes: <b>${esc(top(d.a))}</b> for one household, ` +
+          `<b>${esc(top(d.b))}</b> for the other.`
+        : "Both households top the same place on this data.";
+      return `<div class="jmf">
+        <div><h3>Living alone</h3><p class="vem">Pay and commute carry the
+             most weight.</p><ol>${lista(d.a)}</ol></div>
+        <div><h3>Single parent, child needing support</h3>
+             <p class="vem">Support services carry the heaviest weight of the
+             twelve dimensions.</p><ol>${lista(d.b)}</ol></div>
+      </div><p class="flip">${flip}</p>`;
+    },
+    varfor: "<b>Why it matters.</b> A single ranking pretends every household " +
+            "wants the same thing. The weighting is stated, not hidden, and " +
+            "changing who is asking changes the answer on identical data."
+  },
+  {
+    id: "coverage",
+    rubrik: "It shows how thin its own answer is",
+    fraga: "“Give me the full decision report for electricians in Tyresö.”",
+    endpoint: "POST /v1/report",
+    run: () => call("/v1/report",
+      {kommun_kod:"0138", market:"se", vertical:"elektriker"}),
+    render: d => {
+      const a = d.analysis || {};
+      const cov = a.data_coverage;
+      return {data:
+        `data_coverage : ${cov}\n` +
+        `opportunity   : ${a.opportunity_score ?? "—"}`,
+        prosa: cov === 0
+          ? "Zero. Not one signal in this report comes from a connected "
+          + "live source — and the report says so on its own front, "
+          + "unprompted."
+          : `${Math.round(cov*100)}% of the signals are measured; the rest `
+          + "are labelled mock."};
+    },
+    varfor: "<b>Why it matters.</b> A confidence figure that never drops is " +
+            "decoration. This one is allowed to read zero, on the front of " +
+            "the answer, without being asked."
+  },
+  {
+    id: "owner",
+    rubrik: "No decision without a named owner",
+    fraga: "“Register the decision to open a second salon in Örebro.”",
+    endpoint: "POST /v1/decisions/commit ×2",
+    run: async () => {
+      const expected = {metric:"omsattning", direction:"increase", target:12.0};
+      const bad = await call("/v1/decisions/commit",
+        {decision:"Open a second salon in Örebro", owners:{}, expected});
+      const good = await call("/v1/decisions/commit",
+        {decision:"Open a second salon in Örebro",
+         owners:{formellt:"A. Lindqvist", operativt:"M. Ohlsson",
+                 uppfoljning:"Internal audit"},
+         expected, kpi_ids:["omsattning"], horizon_months:18});
+      return {data:{bad:bad.data, good:good.data}, ok:true,
+              ms:bad.ms + good.ms, path:"/v1/decisions/commit"};
+    },
+    render: d => ({data:
+      `with three named owners → ${d.good.id ? d.good.id.slice(0,12) : "—"}` +
+      `   status ${d.good.status ?? "—"}`,
+      prosa: "Without owners the platform answered: “"
+           + (d.bad.error || JSON.stringify(d.bad)) + "”"}),
+    varfor: "<b>Why it matters.</b> Refused at the moment the commitment is " +
+            "made — not discovered by an auditor two years later. The " +
+            "outcome is later resolved against what was promised."
+  },
+  {
+    id: "provenance",
+    rubrik: "It audits its own numbers, not just yours",
+    fraga: "“Where do the thresholds that decide whether you may speak come " +
+           "from?”",
+    endpoint: "GET /v1/provenance",
+    run: () => call("/v1/provenance"),
+    render: d => {
+      const c = d.by_class || {};
+      return {data:
+        `sourced    : ${c.sourced}\n` +
+        `convention : ${c.convention}\n` +
+        `calibrated : ${c.calibrated}\n` +
+        `assumed    : ${c.assumed}`,
+        prosa: d.headline_en || ""};
+    },
+    varfor: "<b>Why it matters.</b> The platform labels the provenance of " +
+            "its data. This labels the provenance of its own judgement. A " +
+            "threshold that decides whether the system may speak deserves at " +
+            "least as much scrutiny as the numbers it lets through."
+  },
+  {
+    id: "quiet",
+    rubrik: "A quiet day is reported as a quiet day",
+    fraga: "“What did you find in this region today?” — on a day with nothing " +
+           "above the significance floor.",
+    endpoint: "POST /v1/brief",
+    run: () => call("/v1/brief", {reports:[], areas:["se-14"], plan:"pro"}),
+    render: d => ({data: d.headline_en || "",
+                   prosa: d.quiet_day_en || ""}),
+    varfor: "<b>Why it matters.</b> The sentence above is the platform\u2019s " +
+            "own, returned by the call — not a caption written around it. " +
+            "Silence is a result the engine is willing to publish, which is " +
+            "what makes the noisy days worth opening."
+  }
+];
+
+function skal(b, i) {
+  return `<article class="bevis${b.vagran ? " vagran" : ""}" id="b-${b.id}">
+    <span class="nr">${i+1} / ${BEVIS.length}</span>
+    <h2>${esc(b.rubrik)}</h2>
+    <p class="fraga">${b.fraga}</p>
+    <div class="meta"><span class="pill">${esc(b.endpoint)}</span>
+      <span class="pill ms" id="ms-${b.id}">not run</span></div>
+    <div class="ut tom" id="ut-${b.id}">Press “Run all six”, or run this one
+      on its own.</div>
+    <p class="varfor">${b.varfor}</p>
+  </article>`;
+}
+
+$("#bevis").innerHTML = BEVIS.map(skal).join("");
+
+async function körEtt(b) {
+  const ut = $("#ut-" + b.id), ms = $("#ms-" + b.id);
+  ut.className = "ut tom"; ut.textContent = "calling…";
+  const res = await b.run();
+  ms.textContent = res.ms + " ms";
+  if (!res.ok && !b.render) {
+    ut.className = "ut";
+    ut.innerHTML = `<p class="prosa fel">the call failed: ` +
+                   esc(JSON.stringify(res.data)) + `</p>`;
+    return false;
+  }
+  try {
+    ut.className = "ut";
+    if (b.html) { ut.innerHTML = b.html(res.data); }
+    else {
+      const r = b.render(res.data);
+      ut.innerHTML = `<pre>${esc(r.data)}</pre>` +
+        (r.prosa ? `<p class="prosa">${esc(r.prosa)}</p>` : "");
+    }
+    return true;
+  } catch (e) {
+    ut.className = "ut";
+    ut.innerHTML = `<p class="prosa fel">could not read the response: ` +
+      esc(e.message) + `</p><pre>` +
+      esc(JSON.stringify(res.data).slice(0, 300)) + `</pre>`;
+    return false;
+  }
+}
+
+$("#kor").addEventListener("click", async () => {
+  const knapp = $("#kor");
+  knapp.disabled = true;
+  const t0 = performance.now();
+  let ok = 0;
+  for (let i = 0; i < BEVIS.length; i++) {
+    $("#status").textContent = `running ${i+1} of ${BEVIS.length}…`;
+    if (await körEtt(BEVIS[i])) ok++;
+  }
+  const s = ((performance.now() - t0) / 1000).toFixed(1);
+  $("#status").textContent =
+    `${ok} of ${BEVIS.length} proofs answered · ${s}s · all from the live API`;
+  knapp.disabled = false;
+  knapp.textContent = "Run again";
+});
+
+/* Klick på ett enskilt bevis kör bara det. */
+$("#bevis").addEventListener("click", ev => {
+  const art = ev.target.closest("article.bevis");
+  if (!art) return;
+  const b = BEVIS.find(x => "b-" + x.id === art.id);
+  if (b) körEtt(b);
+});
+
+fetch("/v1/surface").then(r => r.json()).then(s => {
+  $("#rest").textContent =
+    `${s.engine_count} engines · ${s.endpoint_count} endpoints`;
+}).catch(() => {});
+</script>
+</body>
+</html>

@@ -112,8 +112,8 @@ if _CORS:
                        allow_headers=["Content-Type", "X-API-Key",
                                       "Authorization"])
 
-_OPEN_PATHS = ("/", "/console", "/index.html", "/sandbox", "/health",
-               "/docs", "/openapi.json", "/v1/plans")
+_OPEN_PATHS = ("/", "/console", "/demo", "/index.html", "/sandbox",
+               "/health", "/docs", "/openapi.json", "/v1/plans")
 
 
 @app.middleware("http")
@@ -252,12 +252,20 @@ _FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 _SANDBOX = Path(__file__).resolve().parent.parent / "frontend" / "sandbox.html"
 # Dörren. Konsolen med nio flikar ligger kvar oförändrad på /console.
 _START = Path(__file__).resolve().parent.parent / "frontend" / "start.html"
+# Demosystemet: sex bevis, alla hämtade från det körande API:t.
+_DEMO = Path(__file__).resolve().parent.parent / "frontend" / "demo.html"
 
 
 @app.get("/", include_in_schema=False)
 def front_door():
     """En fråga och fyra löften. Konsolen ligger på /console."""
     return FileResponse(_START, media_type="text/html")
+
+
+@app.get("/demo", include_in_schema=False)
+def demo_page():
+    """Sex bevis, alla hämtade live. Se frontend/demo.html."""
+    return FileResponse(_DEMO, media_type="text/html")
 
 
 @app.get("/console", include_in_schema=False)

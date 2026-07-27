@@ -232,6 +232,37 @@ def test_every_engine_still_says_what_it_does_somewhere():
             f"{g['id']} har namn men ingen förklaring"
 
 
+
+def test_the_demo_page_only_calls_endpoints_that_exist():
+    """Demosidan är det man visar för en kund. Ett anrop mot en borttagen
+    endpoint upptäcks då framför dem, inte i CI."""
+    import pathlib
+    import re
+    html = (pathlib.Path(__file__).resolve().parent.parent
+            / "frontend" / "demo.html").read_text(encoding="utf-8")
+    called = set(re.findall(r'call\("(/v1/[^"]+)"', html))
+    assert len(called) >= 5, f"demosidan visar bara {len(called)} bevis"
+    missing = called - _all_paths()
+    assert not missing, f"demo.html anropar endpoints som inte finns: {missing}"
+
+
+def test_the_demo_page_says_nothing_it_did_not_fetch():
+    """Sidans löfte är att varje siffra kommer från ett live-anrop. Då får
+    det inte finnas hårdkodade resultat i HTML:en."""
+    import pathlib
+    import re
+    html = (pathlib.Path(__file__).resolve().parent.parent
+            / "frontend" / "demo.html").read_text(encoding="utf-8")
+    kropp = html.split("<main", 1)[1].split("</main>", 1)[0] \
+        if "<main" in html else ""
+    # Bevisen renderas av JS; <main> ska vara tom i källan.
+    assert "Stockholm" not in kropp and "Tyresö" not in kropp, \
+        "demosidan har inbakade resultat i HTML — då är de inte hämtade"
+    # Och den ska säga att den kan misslyckas.
+    assert re.search(r"if a call fails|the call failed", html, re.I), \
+        "sidan lovar inte vad den gör när ett anrop misslyckas"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
