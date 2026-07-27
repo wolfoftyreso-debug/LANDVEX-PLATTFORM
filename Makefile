@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -57,6 +57,13 @@ logs: ## Tail app logs
 
 readiness: ## Hit every endpoint against a running server (BASE=...)
 	$(PY) -m scripts.readiness_check
+
+standing: ## Where we stand and what comes next — measured, not transcribed
+	@$(PY) -m scripts.standing
+
+handover: ## Same thing as markdown, for pasting into another session
+	@$(PY) -m scripts.standing --md > NULAGE.md
+	@echo "Wrote NULAGE.md"
 
 preflight: ## Is THIS environment ready for real traffic? (exits 1 if not)
 	@$(PY) -m scripts.preflight --strict
