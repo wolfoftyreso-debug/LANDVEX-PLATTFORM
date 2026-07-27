@@ -94,6 +94,104 @@ def test_the_report_says_what_it_cannot_know():
         assert p["market_en"], f"{p['id']} saknar marknadskontext"
 
 
+# ── Blocken en VD läser ─────────────────────────────────────────────────
+def test_corroboration_never_becomes_a_percentage_in_the_report():
+    """Motorn vägrar med flit att uttrycka samstämmighet i procent — en
+    siffra som '84 % säkert' inbjuder till att multipliceras vidare i
+    kalkyler den inte tål. En säljsiffra får inte smyga in den bakvägen
+    i lägesrapporten."""
+    r = standing.rapport()
+    text = json_dumps(r)
+    for förbjudet in ("average_corroboration", "corroboration_percent",
+                      "avg_corroboration", "corroboration_pct"):
+        assert förbjudet not in text, förbjudet
+    # Och det ska stå VARFÖR den saknas, annars ser den bara bortglömd ut.
+    md = standing.markdown(r)
+    assert "84 % säkert" in md or "84%" in md
+    assert "BAND" in md or "band" in md
+
+
+def test_the_trust_index_says_it_is_about_the_build_not_an_answer():
+    """Ett tillitstal som läses som 'hur säkert är det här svaret' är
+    farligare än inget tal alls."""
+    t = standing.rapport()["trust"]
+    assert "measures US, not an answer" in t["about_en"]
+    assert "corroboration.py" in t["about_en"]
+    for k, v in t["components"].items():
+        assert 0.0 <= v <= 1.0, (k, v)
+    # Summan ska gå att räkna efter för hand ur de PUBLICERADE raderna.
+    # Toleransen är en halv enhet i sista visade decimalen — mer exakt
+    # än så kan ett avrundat tal inte vara, och att kräva det vore att
+    # testa avrundning i stället för konsistens.
+    snitt = sum(t["components"].values()) / len(t["components"])
+    assert abs(t["overall"] - snitt) <= 5e-5, (t["overall"], snitt)
+
+
+def test_the_trust_index_does_not_invent_a_test_score():
+    """En påhittad procentsats bland mätta ärver de andras
+    trovärdighet. Testandelen finns bara om sviten faktiskt kördes."""
+    t = standing.rapport()["trust"]
+    assert t["tests_measured"] is False
+    assert "tests_passing" not in t["components"]
+
+
+def test_commercial_readiness_is_derived_not_ticked_by_hand():
+    """En bock satt för hand blir kvar när funktionen tas bort, och då
+    säljer någon något som inte finns."""
+    r = standing.rapport()
+    rader = {c["capability"]: c for c in r["commercial"]}
+    # De fyra planerade besluten MÅSTE visa kryss.
+    for namn in ("Export", "Scheduling", "Dashboards", "White label"):
+        assert rader[namn]["ready"] is False, namn
+    assert rader["API"]["ready"] is True
+    assert rader["Tests"]["ready"] is True
+    # Ingen bock får bära en brasklapp om att den inte gäller.
+    for c in r["commercial"]:
+        if c["ready"]:
+            assert " men " not in c["evidence_en"].lower(), c
+
+
+def test_the_position_table_has_no_competitor_column():
+    """Vad en konkurrent gör kan vi bara påstå, och ett påstående i en
+    tabell full av mätvärden ser ut som ett mätvärde."""
+    r = standing.rapport()
+    for rad in r["position"]:
+        assert set(rad) == {"capability", "state", "evidence_en"}, rad
+        assert rad["state"] in ("yes", "no", "partial")
+        assert rad["evidence_en"]
+    namn = {rad["capability"] for rad in r["position"]}
+    assert any("Proven live endpoints" in n for n in namn)
+    hittad = next(rad for rad in r["position"]
+                  if "Proven live" in rad["capability"])
+    m = r["measured"]
+    assert hittad["state"] == ("yes" if m["sources_verified"] else "no")
+
+
+def test_readable_and_proven_are_never_the_same_number_by_accident():
+    """Skillnaden mellan vad vi KAN läsa och vad som är BEVISAT är hela
+    rapportens poäng. Utan en verifierad källa måste 'proven' vara noll."""
+    m = standing.rapport()["measured"]
+    assert m["detection_readable"] <= m["detection_kinds"]
+    if m["sources_verified"] == 0:
+        assert m["detection_proven"] == 0
+
+
+def test_modalities_count_only_classes_we_can_actually_read():
+    """En klass i läge `contract` bidrar med en beskrivning, inte med en
+    mätning. Att räkna den vore att låta kartan gälla som terräng."""
+    from engine.sensors import SENSORS
+    m = standing.rapport()["measured"]
+    läsbara = [k for k, v in SENSORS.items()
+               if (v.get("state") if isinstance(v, dict) else "") == "adapter"]
+    assert m["adapter_classes"] == len(läsbara)
+    assert m["independent_modalities"] <= len(läsbara)
+
+
+def json_dumps(obj) -> str:
+    import json
+    return json.dumps(obj, ensure_ascii=False, default=str)
+
+
 def test_the_handover_carries_the_rules_that_must_not_be_negotiated_away():
     """Markdown-utdatan är en överlämning till en annan session. Utan
     doktrinen i den ärver mottagaren siffrorna men inte omdömet."""

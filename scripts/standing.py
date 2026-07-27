@@ -25,8 +25,25 @@ den här filen. Varje post bär ett `done_when` som läser samma mätning:
 en punkt som blivit klar markeras ✓ och räknas bort automatiskt. Planen
 kan alltså inte påstå att något återstår som redan är gjort.
 
-Avsnitt 4 är det jag INTE kan veta: konkurrentbilden kommer ur analys,
-inte ur en mätning, och den ska verifieras där nätet är öppet.
+Rapporten inleds med fyra block som en VD eller en säljchef läser före
+koden — och även de är HÄRLEDDA, inte skrivna:
+
+  * **Reality intelligence status** — marknader, källor, modaliteter,
+    detektionstäckning i två nivåer: vad vi KAN läsa, och vad som är
+    BEVISAT. Där står medvetet ingen "genomsnittlig samstämmighet i
+    procent": motorn vägrar uttrycka samstämmighet som en procentsats,
+    och en säljsiffra får inte smyga in den bakvägen.
+  * **Commercial readiness** — vad som går att sälja idag, med en rad per
+    förmåga. En bock satt för hand blir kvar när funktionen tas bort.
+  * **Trust index** — hur långt bygget kommit mot att förtjäna
+    förtroende. Måttet gäller OSS, aldrig ett enskilt svar, och det står
+    i utskriften.
+  * **Competitive position** — som fakta, utan konkurrentkolumn: vi kan
+    mäta oss själva, men vad en konkurrent gör kan vi bara påstå, och ett
+    påstående i en tabell full av mätvärden ser ut som ett mätvärde.
+
+Sista avsnittet är det jag INTE kan veta: konkurrentanalysen kommer ur
+resonemang, inte ur en mätning, och ska verifieras där nätet är öppet.
 
 Rent stdlib. Körs från repots rot.
 """
@@ -100,6 +117,35 @@ def matning() -> dict:
         r'@app\.(?:get|post|put|delete|patch)\(\s*["\']([^"\']+)',
         (_ROOT / "api" / "main.py").read_text(encoding="utf-8"))))
 
+    # ── Vad som går att MÄTA, och vad som bara är beskrivet ──────────
+    # Modaliteter räknas bara för klasser vi faktiskt kan läsa. En klass
+    # i läge `contract` bidrar med en beskrivning, inte med en mätning,
+    # och att räkna den vore att låta kartan gälla som terräng.
+    from engine.corroboration import MODALITY
+    adapterklasser = [k for k in sensors.SENSORS if _lage(k) == "adapter"]
+    modaliteter = {MODALITY.get(k, k) for k in adapterklasser}
+    tva_nat = [k for k in leverantorer if len(leverantorer[k]) >= 2
+               and _lage(k) == "adapter"]
+
+    # Detektionstäckning i två nivåer, eftersom skillnaden är hela
+    # poängen: vad vi KAN läsa, och vad som är BEVISAT att vi läser.
+    detektion = s.get("detection_coverage", {})
+    lasbar = [d for d, kl in detektion.items()
+              if any(_lage(k) == "adapter" for k in kl)]
+    bevisad = [d for d, kl in detektion.items()
+               if any(kallor.get(c, False)
+                      for k in kl
+                      for c in [x.__name__ for x in
+                                sensor_apis.PROVIDERS.get(k, ())])]
+
+    # Kalibrering: finns det utfall att räkna Brier på? Utan lager är
+    # svaret noll, och noll är rätt svar — inte "vet ej".
+    try:
+        from engine import outcomes
+        n_utfall = len(outcomes.all_records())
+    except Exception:                                # noqa: BLE001
+        n_utfall = 0
+
     pf = preflight(os.environ)
     from scripts.preflight import utgaende
 
@@ -119,6 +165,14 @@ def matning() -> dict:
         "sources_verified": len(verifierade),
         "sources_verified_names": verifierade,
         "sources_unverified": len(overifierade),
+        "source_adapters": len(kallor),
+        "adapter_classes": len(adapterklasser),
+        "independent_modalities": len(modaliteter),
+        "classes_with_two_networks": sorted(tva_nat),
+        "detection_kinds": len(detektion),
+        "detection_readable": len(lasbar),
+        "detection_proven": len(bevisad),
+        "outcomes_recorded": n_utfall,
         "register_countries": len(getattr(register_apis, "PROVIDER_FOR", {})),
         "endpoints": len(rutter),
         "engine_modules": len(list((_ROOT / "engine").glob("*.py"))),
@@ -127,6 +181,130 @@ def matning() -> dict:
         "preflight_counts": pf["counts"],
         "egress_hosts": len(utgaende(os.environ)),
     }
+
+
+# ── 1b. Blocken en VD läser före koden ──────────────────────────────────
+def kommersiell(m: dict) -> list[dict]:
+    """Vad en säljchef ser direkt: vad som går att sälja idag.
+
+    Varje rad härleds. En bock satt för hand blir kvar när funktionen
+    tas bort, och då säljer någon något som inte finns.
+    """
+    byggt = set(m["decisions_built"])
+    rader = [
+        ("API", m["endpoints"] > 0, f"{m['endpoints']} endpoints under /v1/"),
+        ("Authentication", _finns("api/security.py", "class Gate"),
+         "API-nycklar + JWT, tenantisolering"),
+        ("Monitoring", _finns("api/main.py", "/v1/monitors/run"),
+         "bevakningar med egna trösklar"),
+        ("Contracts", _finns("tests/test_contract.py", "def test_"),
+         "båda API-lagren låsta lika"),
+        ("Tests", m["test_suites"] > 0,
+         f"{m['test_suites']} sviter, utan pytest och utan nät"),
+        ("Machine access", "machine_access" in byggt, "OpenAPI + nycklar"),
+        ("Export", "export_findings" in byggt, "CSV/Parquet/API ut"),
+        ("Scheduling", "scheduled_runs" in byggt, "körningar utan människa"),
+        ("Dashboards", "own_dashboards" in byggt, "kundens egna vyer"),
+        ("White label", "white_label" in byggt, "rapport under kundens märke"),
+        # En bock med brasklapp är ingen bock: kvoter och planer finns,
+        # men ingen betalning går att ta emot, och det är det säljchefen
+        # frågar om.
+        ("Billing", _finns("api/licensing.py", "stripe")
+         or _finns("api/main.py", "stripe"),
+         "kvoter, planer och komplexitetsbudget finns i licensing.py — "
+         "men ingen betalintegration"),
+    ]
+    return [{"capability": k, "ready": bool(v), "evidence_en": e}
+            for k, v, e in rader]
+
+
+def _finns(relativ: str, text: str) -> bool:
+    p = _ROOT / relativ
+    return p.exists() and text in p.read_text(encoding="utf-8")
+
+
+def tillit(m: dict, testandel: float | None = None) -> dict:
+    """Hur långt bygget kommit mot att förtjäna förtroende.
+
+    OBS, och det står också i utskriften: det här är ett mått på OSS,
+    inte på ett svar. Det säger ingenting om hur säkert ett enskilt
+    påstående om en plats är — den bedömningen gör
+    `engine/corroboration.py`, och den vägrar med flit att uttrycka sig
+    i procent. Att blanda ihop de två vore att ge en säljsiffra
+    beviskraft den inte har.
+    """
+    delar = {
+        "decisions_built": (len(m["decisions_built"]) / m["decisions_total"]
+                            if m["decisions_total"] else 0.0),
+        "detection_readable": (m["detection_readable"] / m["detection_kinds"]
+                               if m["detection_kinds"] else 0.0),
+        "independent_networks": (len(m["classes_with_two_networks"])
+                                 / m["adapter_classes"]
+                                 if m["adapter_classes"] else 0.0),
+        "live_sources": (m["sources_verified"] / m["source_adapters"]
+                         if m["source_adapters"] else 0.0),
+        "detection_proven": (m["detection_proven"] / m["detection_kinds"]
+                             if m["detection_kinds"] else 0.0),
+        "calibration": 1.0 if m["outcomes_recorded"] >= 100 else
+                       round(m["outcomes_recorded"] / 100, 4),
+    }
+    if testandel is not None:
+        delar["tests_passing"] = testandel
+    # Summan räknas på de PUBLICERADE talen, inte på de oavrundade. En
+    # läsare som adderar raderna i rapporten ska få rapportens egen
+    # totalsumma — annars är siffrorna inte kontrollerbara, vilket är
+    # hela poängen med att mäta dem.
+    visade = {k: round(v, 4) for k, v in delar.items()}
+    return {
+        "components": visade,
+        "overall": round(sum(visade.values()) / len(visade), 4),
+        "tests_measured": testandel is not None,
+        "about_en": (
+            "This measures US, not an answer. It says how far the build has "
+            "come toward deserving trust — not how certain any statement "
+            "about a place is. That judgement lives in corroboration.py, "
+            "which deliberately refuses to speak in percentages, because a "
+            "number like '84% certain' invites being multiplied onward into "
+            "calculations it cannot carry."),
+    }
+
+
+def position(m: dict) -> list[dict]:
+    """Var produkten står — som fakta, inte som marknadsföring.
+
+    Ingen konkurrentkolumn. Vi kan mäta oss själva; vad en konkurrent gör
+    kan vi bara påstå, och ett påstående i en tabell full av mätvärden
+    ser ut som ett mätvärde.
+    """
+    rader = [
+        ("Refuses when the basis is thin",
+         _finns("engine/surface.py", "cannot_en"),
+         "engine bär cannot_en/never_en i svaret"),
+        ("Explains uncertainty as a band, not a number",
+         _finns("engine/corroboration.py", "not_a_probability_en"),
+         "band + skälet till att det inte är en procent"),
+        ("Corroborates across independent networks",
+         len(m["classes_with_two_networks"]) > 0,
+         f"{len(m['classes_with_two_networks'])} av {m['adapter_classes']} "
+         f"läsbara klasser har två oberoende nät"),
+        ("Treats disagreement as its own finding",
+         _finns("engine/corroboration.py", "conflicting"),
+         "två oense nät är sämre underlag än ett ensamt"),
+        ("Binds a decision to named owners",
+         _finns("engine/accountability.py", "def "),
+         "beslut utan ägare vägras"),
+        ("Proven live endpoints", m["sources_verified"] > 0,
+         f"{m['sources_verified']} av {m['source_adapters']} verifierade"),
+        ("Historical calibration", m["outcomes_recorded"] > 0,
+         f"{m['outcomes_recorded']} utfall registrerade"),
+        ("Own observation stream (field observation)",
+         "partial", "adapter byggd; Vision-ledet som läser inskickad "
+                    "media är inte draget"),
+    ]
+    return [{"capability": k,
+             "state": ("partial" if v == "partial" else
+                       "yes" if v else "no"),
+             "evidence_en": e} for k, v, e in rader]
 
 
 # ── 2. Luckorna, härledda ur mätningen ──────────────────────────────────
@@ -392,11 +570,34 @@ def plan(m: dict) -> list[dict]:
     return ut
 
 
-def rapport() -> dict:
+def kor_sviten() -> float | None:
+    """Andel testsviter som faktiskt går igenom — körda, inte antagna.
+
+    Utan det här skulle tillitsindexet behöva en påhittad procentsats för
+    "tester", och en påhittad siffra bland mätta är värre än ingen: den
+    ärver de andras trovärdighet.
+    """
+    import subprocess
+    filer = sorted((_ROOT / "tests").glob("test_*.py"))
+    if not filer:
+        return None
+    gröna = 0
+    for f in filer:
+        r = subprocess.run([sys.executable, "-m", f"tests.{f.stem}"],
+                           cwd=_ROOT, capture_output=True, text=True)
+        gröna += r.returncode == 0
+    return round(gröna / len(filer), 4)
+
+
+def rapport(med_tester: bool = False) -> dict:
     m = matning()
     p = plan(m)
+    testandel = kor_sviten() if med_tester else None
     return {
         "measured": m,
+        "commercial": kommersiell(m),
+        "trust": tillit(m, testandel),
+        "position": position(m),
         "gaps": luckor(m),
         "plan": p,
         "plan_open": [x["id"] for x in p if x["done"] is not True],
@@ -433,6 +634,65 @@ def skriv(r: dict) -> None:
     print("  Measured from the code at run time. Nothing here is "
           "transcribed.")
 
+    def _rad(etikett: str, varde: str) -> None:
+        prickar = "." * max(2, 26 - len(etikett))
+        print(f"  {etikett}{prickar}{varde}")
+
+    _rubrik("Reality intelligence status")
+    _rad("Markets", str(m["markets"]))
+    _rad("Regions", str(m["regions"]))
+    _rad("Source adapters", str(m["source_adapters"]))
+    _rad("Live verified", f"{m['sources_verified']} / {m['source_adapters']}")
+    _rad("Sensor classes", f"{m['sensor_classes']} "
+                           f"({m['adapter_classes']} readable)")
+    _rad("Independent modalities", str(m["independent_modalities"]))
+    _rad("Classes with 2 networks",
+         f"{len(m['classes_with_two_networks'])} / {m['adapter_classes']}")
+    _rad("Detection kinds readable",
+         f"{m['detection_readable']} / {m['detection_kinds']}")
+    _rad("Detection kinds proven",
+         f"{m['detection_proven']} / {m['detection_kinds']}")
+    _rad("Outcomes for calibration", str(m["outcomes_recorded"]))
+    print()
+    for rad in _bryt(
+            "There is no 'average corroboration %' here on purpose. "
+            "Corroboration is a band, and the engine refuses to express it "
+            "as a percentage — a figure like '84% certain' invites being "
+            "multiplied onward into calculations it cannot carry. What can "
+            "be counted is structural: how many classes have a second "
+            "independent network, and how many detection kinds we can "
+            "actually read.", 72):
+        print(f"  {rad}")
+
+    _rubrik("Commercial readiness")
+    for c in r["commercial"]:
+        print(f"  {'✓' if c['ready'] else '✗'} {c['capability']:16s} "
+              f"{c['evidence_en']}")
+
+    t = r["trust"]
+    _rubrik("Trust index — about the build, never about an answer")
+    for k, v in sorted(t["components"].items(), key=lambda x: -x[1]):
+        stapel = "█" * int(round(v * 24))
+        print(f"  {k:22s} {v * 100:5.1f}%  {stapel}")
+    print(f"  {'OVERALL':22s} {t['overall'] * 100:5.1f}%")
+    if not t["tests_measured"]:
+        print("  (tests not measured — pass --with-tests to run the suite "
+              "and include it)")
+    print()
+    for rad in _bryt(t["about_en"], 72):
+        print(f"  {rad}")
+
+    _rubrik("Competitive position — measured, no competitor column")
+    for c in r["position"]:
+        mark = {"yes": "✓", "no": "✗", "partial": "~"}[c["state"]]
+        print(f"  {mark} {c['capability']:44s} {c['evidence_en']}")
+    print()
+    for rad in _bryt(
+            "No competitor column: we can measure ourselves, but what a "
+            "competitor does we could only assert — and an assertion in a "
+            "table full of measurements looks like a measurement.", 72):
+        print(f"  {rad}")
+
     _rubrik("Built")
     print(f"  {m['markets']} markets · {m['regions']} regions · "
           f"{m['endpoints']} endpoints · {m['engine_modules']} engine modules")
@@ -443,8 +703,6 @@ def skriv(r: dict) -> None:
           " · ".join(f"{v} {k}" for k, v in m["sensor_states"].items()))
     print(f"  {m['register_countries']} countries mapped to a business "
           f"register")
-    print(f"  sources verified live: {m['sources_verified']} of "
-          f"{m['sources_verified'] + m['sources_unverified']}")
     print(f"  this environment: preflight "
           f"{'READY' if m['preflight_ready'] else 'not ready'} · "
           f"{m['egress_hosts']} egress host(s) configured")
@@ -496,10 +754,54 @@ def skriv(r: dict) -> None:
 
 def markdown(r: dict) -> str:
     m = r["measured"]
+    t = r["trust"]
     u = ["# LANDVEX — nuläge och fortsatt plan", "",
          "_Genererad av `python3 -m scripts.standing --md`. Siffrorna är "
          "mätta ur koden vid körning._", "",
-         "## Byggt", "",
+         "## Reality intelligence status", "",
+         "| | |", "|---|---|",
+         f"| Markets | {m['markets']} |",
+         f"| Regions | {m['regions']} |",
+         f"| Source adapters | {m['source_adapters']} |",
+         f"| **Live verified** | **{m['sources_verified']} / "
+         f"{m['source_adapters']}** |",
+         f"| Sensor classes | {m['sensor_classes']} "
+         f"({m['adapter_classes']} readable) |",
+         f"| Independent modalities | {m['independent_modalities']} |",
+         f"| Classes with 2 networks | "
+         f"{len(m['classes_with_two_networks'])} / {m['adapter_classes']} |",
+         f"| Detection kinds readable | {m['detection_readable']} / "
+         f"{m['detection_kinds']} |",
+         f"| Detection kinds proven | {m['detection_proven']} / "
+         f"{m['detection_kinds']} |",
+         f"| Outcomes for calibration | {m['outcomes_recorded']} |", "",
+         "Ingen \"genomsnittlig samstämmighet i procent\" står här med "
+         "flit. Samstämmighet är ett BAND, och motorn vägrar uttrycka det "
+         "som en procentsats — en siffra som \"84 % säkert\" inbjuder till "
+         "att multipliceras vidare i kalkyler den inte tål. Det som går "
+         "att räkna är strukturellt: hur många klasser som har ett andra "
+         "oberoende nät, och hur många detektionsslag vi faktiskt kan "
+         "läsa.", "",
+         "## Commercial readiness", ""]
+    for c in r["commercial"]:
+        u.append(f"- {'✓' if c['ready'] else '✗'} **{c['capability']}** — "
+                 f"{c['evidence_en']}")
+    u += ["", "## Trust index", "",
+          "_Måttet gäller BYGGET, aldrig ett enskilt svar._", "",
+          "| Komponent | Andel |", "|---|---|"]
+    for k, v in sorted(t["components"].items(), key=lambda x: -x[1]):
+        u.append(f"| {k} | {v * 100:.1f}% |")
+    u += [f"| **Overall** | **{t['overall'] * 100:.1f}%** |", "",
+          t["about_en"], "",
+          "## Competitive position", "",
+          "_Ingen konkurrentkolumn: vi kan mäta oss själva, men vad en "
+          "konkurrent gör kan vi bara påstå._", "",
+          "| Förmåga | | Bevis |", "|---|---|---|"]
+    for c in r["position"]:
+        mark = {"yes": "✓", "no": "✗", "partial": "~"}[c["state"]]
+        u.append(f"| {c['capability']} | {mark} | {c['evidence_en']} |")
+    u += ["",
+          "## Byggt", "",
          f"- {m['markets']} marknader, {m['regions']} regioner, "
          f"{m['endpoints']} endpoints, {m['engine_modules']} motormoduler",
          f"- {len(m['decisions_built'])} av {m['decisions_total']} beslut "
@@ -532,7 +834,7 @@ def markdown(r: dict) -> str:
 
 
 def main(argv: list[str]) -> int:
-    r = rapport()
+    r = rapport(med_tester="--with-tests" in argv)
     if "--json" in argv:
         print(json.dumps(r, indent=2, ensure_ascii=False))
     elif "--md" in argv:

@@ -38,6 +38,45 @@ Tre möjligheter i en mening är inget utfall.
   ingenting avbockat. Proxyn nekar CONNECT med 403 och registrerar
   avslaget själv. Det är ett svar, inte ett fel.
 
+## [Ej släppt] — lägesbilden svarar på affärsfrågorna också
+
+Rapporten var teknisk. En VD, en säljchef och en investerare letar efter
+tre andra saker, och de saknades — så de har lagts till, **härledda på
+samma villkor som resten**: inga inskrivna tal.
+
+- **Reality intelligence status** överst: marknader, källadaptrar,
+  liveverifierade, modaliteter, och detektionstäckning i TVÅ nivåer —
+  vad vi KAN läsa (9 av 9) mot vad som är BEVISAT (0 av 9). Skillnaden
+  är hela rapportens poäng.
+- **Ingen "genomsnittlig samstämmighet i procent"**, trots att en sådan
+  rad efterfrågades. `engine/corroboration.py` vägrar med flit uttrycka
+  samstämmighet som procentsats — en siffra som "84 % säkert" inbjuder
+  till att multipliceras vidare i kalkyler den inte tål — och en
+  säljsiffra får inte smyga in den bakvägen. Det som redovisas är
+  strukturellt och räknebart: hur många klasser som har ett andra
+  oberoende nät (2 av 9). Ett test faller om en procentsats införs.
+- **Commercial readiness**: en rad per förmåga, härledd. `Billing` fick
+  först en bock med brasklappen "men ingen betalintegration" — en bock
+  med brasklapp är ingen bock, och ett test förbjuder nu just den
+  konstruktionen.
+- **Trust index** med komponenter och totalsumma, plus raden som gör
+  talet ofarligt: **måttet gäller BYGGET, aldrig ett enskilt svar.** Ett
+  tillitstal som läses som "hur säkert är det här svaret" är farligare
+  än inget tal alls. `--with-tests` kör sviten på riktigt i stället för
+  att hitta på en testprocent — en påhittad siffra bland mätta ärver de
+  andras trovärdighet.
+- **Competitive position** som fakta, **utan konkurrentkolumn**: vi kan
+  mäta oss själva, men vad en konkurrent gör kan vi bara påstå, och ett
+  påstående i en tabell full av mätvärden ser ut som ett mätvärde.
+- Totalsumman räknas på de PUBLICERADE talen, inte på de oavrundade. En
+  läsare som adderar raderna ska få rapportens egen summa — annars är
+  siffrorna inte kontrollerbara, vilket var hela skälet att mäta dem.
+
+Utfall nu: overall **33,1 %** utan sviten mätt, **42,7 %** med. Den
+siffran ska stiga månad för månad, och de två nollorna som håller ner
+den — `live_sources` och `calibration` — är exakt de två översta
+punkterna i planen.
+
 ## [Ej släppt] — lägesbilden mäts
 
 **Ett lägesdokument åldras i tysthet.** Siffror skrivna för hand var

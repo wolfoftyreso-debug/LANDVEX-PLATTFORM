@@ -47,6 +47,10 @@ ignore = [
 # från omvärlden når anropet. Undantaget står här och inte som ett
 # noqa i koden, så att skälet är läsbart utan att man öppnar filen.
 "scripts/probe_all.py" = ["T20", "S101", "S603"]
+# standing.py --with-tests kör testsviten som delprocesser, av samma skäl:
+# en påhittad procentsats för "tester" bland mätta siffror ärver de
+# andras trovärdighet. Argumenten kommer ur en glob över tests/.
+"scripts/standing.py" = ["T20", "S101", "S603"]
 "demo.py" = ["T20"]
 "run.py" = ["T20"]
 # Serverlagren loggar strukturerat till stdout med flit (se AuditLog).
