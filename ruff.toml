@@ -42,6 +42,11 @@ ignore = [
 "tests/*" = ["S101", "S105", "S106", "S107", "T20", "B011"]
 # Skript ÄR kommandoradsverktyg: att skriva till stdout är deras uppgift.
 "scripts/*" = ["T20", "S101"]
+# probe_all startar de andra proberna som delprocesser. Argumenten kommer
+# ur en literal tabell i filen och från sys.executable — ingen inmatning
+# från omvärlden når anropet. Undantaget står här och inte som ett
+# noqa i koden, så att skälet är läsbart utan att man öppnar filen.
+"scripts/probe_all.py" = ["T20", "S101", "S603"]
 "demo.py" = ["T20"]
 "run.py" = ["T20"]
 # Serverlagren loggar strukturerat till stdout med flit (se AuditLog).

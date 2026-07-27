@@ -69,6 +69,11 @@ class RegisterProvider:
         self._retry_after_s = retry_after_s
         self._clock = clock
         self._down_until = 0.0
+        # Felet från det SENASTE misslyckade anropet. Utan det går det
+        # inte att skilja "kom aldrig fram" från "svarade konstigt", och
+        # då blir en spärrad brandvägg nedskriven som en trasig adapter.
+        # `Breaker` i faults.py bär samma fält av samma skäl.
+        self.last_error: BaseException | None = None
 
     # ── Strömbrytare ─────────────────────────────────────────────────
     @property
@@ -90,9 +95,11 @@ class RegisterProvider:
             raw = self._transport(url, payload, self.timeout)
         except OUR_BUGS:
             raise            # vårt fel, inte omvärldens – se faults.py
-        except Exception:    # noqa: BLE001 – ärlig degradering
+        except Exception as e:   # noqa: BLE001 – ärlig degradering
+            self.last_error = e
             self._trip()
             return None
+        self.last_error = None
         self._reset()
         return raw
 

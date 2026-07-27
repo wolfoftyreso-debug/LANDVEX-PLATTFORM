@@ -45,6 +45,33 @@ def is_our_bug(exc: BaseException) -> bool:
     return isinstance(exc, OUR_BUGS)
 
 
+def unreachable(exc: BaseException | None) -> bool:
+    """Betyder felet ONÅBAR värd (nät/policy) snarare än konstigt svar?
+
+    Skillnaden är hela poängen med en probe. En spärrad brandvägg säger
+    ingenting om adapterns kvalitet; ett konstigt svar gör det.
+
+    En egen TCP-koll mot värden dög inte: med en utgående proxy LYCKAS
+    anslutningen medan hämtningen ändå faller, och då skrevs en spärrad
+    brandvägg ned som en trasig adapter. Klassa på felet från det
+    VERKLIGA anropet i stället.
+
+    Låg här, inte i en av proberna, eftersom två prober behöver den och
+    två kopior av samma regel glider isär — samma skäl som `percentile`
+    bor i engine/stats.py.
+    """
+    import socket
+    import urllib.error
+
+    if exc is None:
+        return False
+    if isinstance(exc, urllib.error.HTTPError):
+        # Servern svarade. 404 är ett riktigt svar; 403/407/5xx är inte.
+        return exc.code in (403, 407, 502, 503, 504)
+    return isinstance(exc, (urllib.error.URLError, socket.timeout, OSError,
+                            ConnectionError))
+
+
 class source_fault:
     """Kontexthanterare: svälj omvärldens fel, släpp igenom våra egna.
 

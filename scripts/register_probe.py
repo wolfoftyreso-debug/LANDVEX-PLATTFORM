@@ -14,6 +14,7 @@ from __future__ import annotations
 import sys
 import traceback
 
+from engine.datasources.faults import unreachable
 from engine.datasources.register_apis import (PROVIDER_FOR, PXWEB_TABLES,
                                               provider_for, providers_status)
 from engine.registers import REGISTERS, industry_code
@@ -29,7 +30,9 @@ SAMPLES = [
 ]
 
 
-def probe(country: str, region: str, trade: str, label: str = "") -> bool:
+def probe(country: str, region: str, trade: str,
+          label: str = "") -> bool | None:
+    """True svarade · False adapterfel · None kom aldrig fram."""
     code = industry_code(trade, country)
     reg = REGISTERS.get(country, {})
     print(f"\n── {country.upper()} {label or region} "
@@ -45,11 +48,29 @@ def probe(country: str, region: str, trade: str, label: str = "") -> bool:
     try:
         got = p.count(country, region, code["code"])
     except Exception as e:  # noqa: BLE001
+        if unreachable(e):
+            print(f"   ·· never got there: {type(e).__name__}: {e}")
+            return None
         print(f"   ✗ transport error: {type(e).__name__}: {e}")
         return False
     if got is None:
-        print("   ✗ no count returned — endpoint unreachable, path wrong, "
-              "or the response shape differs. Nothing was invented.")
+        # Förr stod här "unreachable, path wrong, or the response shape
+        # differs" — tre möjligheter i en mening, vilket gjorde utfallet
+        # otolkbart för både människa och sammanställning. Felet från det
+        # verkliga anropet finns kvar på providern; läs det i stället för
+        # att räkna upp vad som KAN ha hänt.
+        fel = getattr(p, "last_error", None)
+        if unreachable(fel):
+            print(f"   ·· never got there: {type(fel).__name__}: {fel}")
+            print("      The network stopped the call. This says NOTHING "
+                  "about the adapter — check the egress policy.")
+            return None
+        if fel is not None:
+            print(f"   ✗ reached the host, but the call failed: "
+                  f"{type(fel).__name__}: {fel}")
+            return False
+        print("   ✗ reached the host, but no count came back — the path or "
+              "the response shape differs. Nothing was invented.")
         return False
     print(f"   ✓ {got['count']} establishments "
           f"({got.get('year') or 'year n/a'}) — {got['source']}")
@@ -59,6 +80,10 @@ def probe(country: str, region: str, trade: str, label: str = "") -> bool:
 def main(argv: list[str]) -> int:
     if len(argv) >= 4:
         ok = probe(argv[1], argv[2], argv[3])
+        # None = kom aldrig fram. Egen kod, eftersom ett spärrat nät och
+        # en trasig adapter kräver olika åtgärder av olika personer.
+        if ok is None:
+            return 3
         return 0 if ok else 1
     if len(argv) == 2 and argv[1] == "all":
         import socket
@@ -86,8 +111,11 @@ def main(argv: list[str]) -> int:
             print(f"  {pr['id']:12s} {', '.join(pr['countries'])[:44]:46s} "
                   f"{pr['protocol']}")
         results = [probe(c, r, t, lbl) for c, r, t, lbl in SAMPLES]
-        n = sum(1 for r in results if r)
-        print(f"\n{n}/{len(results)} registers answered.")
+        n = sum(1 for r in results if r is True)
+        spärrade = sum(1 for r in results if r is None)
+        print(f"\n{n}/{len(results)} registers answered"
+              + (f" · {spärrade} never got there (network, not adapter)"
+                 if spärrade else "") + ".")
         if n == 0:
             print("None answered. If this environment blocks outbound "
                   "network, that is the expected result here — run it where "

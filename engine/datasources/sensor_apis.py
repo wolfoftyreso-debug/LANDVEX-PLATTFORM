@@ -117,6 +117,7 @@ class TrafikverketFlow(SensorClient):
     id = "trafikverket"
     sensor_class = "road_flow"
     ENV = "LANDVEX_TRAFFIC_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
     _default_transport = staticmethod(_http_post)
 
     def __init__(self, *a, api_key: str | None = None, **kw):
@@ -199,6 +200,7 @@ class SmhiWeather(SensorClient):
     id = "smhi"
     sensor_class = "weather"
     ENV = "LANDVEX_WEATHER_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def latest(self, signal_id: str, station: str) -> dict | None:
         spec = SMHI_PARAMETERS.get(signal_id)
@@ -253,6 +255,7 @@ class OpenAqAir(SensorClient):
     id = "openaq"
     sensor_class = "air_quality"
     ENV = "LANDVEX_AIR_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     # OpenAQ:s egna parameternamn → våra signal-id:n.
     PARAMETERS = {"no2": "no2_ug_m3", "pm10": "pm10_ug_m3",
@@ -327,6 +330,7 @@ class SmhiHydro(SensorClient):
     id = "smhi_hydro"
     sensor_class = "water_level"
     ENV = "LANDVEX_HYDRO_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     PARAMETERS = {"discharge_m3s": {"parameter": 1,
                                     "label_en": "Discharge"},
@@ -379,6 +383,7 @@ class CopernicusStac(SensorClient):
     id = "copernicus_stac"
     sensor_class = "earth_observation"
     ENV = "LANDVEX_EO_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
     _default_transport = staticmethod(_http_post)
 
     def coverage(self, lat: float, lon: float, *, start: str, end: str,
@@ -450,6 +455,7 @@ class GenericSensorFeed(SensorClient):
     id = "generic_feed"
     sensor_class = "building_meter"
     ENV = "LANDVEX_METER_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def __init__(self, *a, sensor_class: str | None = None, **kw):
         if sensor_class:
@@ -506,6 +512,7 @@ class UsgsSeismic(SensorClient):
     id = "usgs"
     sensor_class = "seismic"
     ENV = "LANDVEX_SEISMIC_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def events(self, lat: float, lon: float, *, radius_km: float = 200.0,
                min_magnitude: float = 2.5, days: int = 1) -> dict | None:
@@ -554,6 +561,7 @@ class DigitrafficMarine(SensorClient):
     id = "digitraffic_marine"
     sensor_class = "vessel_traffic"
     ENV = "LANDVEX_AIS_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def vessels(self, *, min_speed_kn: float = 0.5) -> dict | None:
         if not self.connected:
@@ -591,6 +599,7 @@ class DigitrafficRoad(SensorClient):
     id = "digitraffic_road"
     sensor_class = "road_flow"
     ENV = "LANDVEX_TRAFFIC_FI_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def flow(self, station: str) -> dict | None:
         if not self.connected:
@@ -637,6 +646,7 @@ class NwsWeather(SensorClient):
     id = "nws"
     sensor_class = "weather"
     ENV = "LANDVEX_WEATHER_US_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
 
     def latest(self, signal_id: str, station: str) -> dict | None:
         if not (self.connected and signal_id == "air_temperature_c"):

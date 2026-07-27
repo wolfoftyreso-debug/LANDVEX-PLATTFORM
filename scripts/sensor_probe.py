@@ -25,31 +25,11 @@ from __future__ import annotations
 
 import json
 import os
-import socket
 import sys
-import urllib.error
-import urllib.parse
 
+from engine.datasources.faults import unreachable
 from engine.datasources.sensor_apis import CLIENTS
 from engine.sensors import SENSORS
-
-
-def unreachable(exc) -> bool:
-    """Betyder felet ONÅBAR värd (nät/policy) snarare än konstigt svar?
-
-    En egen TCP-koll mot värden dög inte: med en utgående proxy LYCKAS
-    anslutningen medan hämtningen ändå faller, och då skrevs en spärrad
-    brandvägg ned som en trasig adapter — precis det falska underkännande
-    proben finns för att undvika. Klassa på felet från det VERKLIGA
-    anropet i stället. Samma regel som livability_sources._classify.
-    """
-    if exc is None:
-        return False
-    if isinstance(exc, urllib.error.HTTPError):
-        # Servern svarade. 404 är ett riktigt svar; 403/407/5xx är inte.
-        return exc.code in (403, 407, 502, 503, 504)
-    return isinstance(exc, (urllib.error.URLError, socket.timeout, OSError,
-                            ConnectionError))
 
 
 def _probe_weather() -> tuple[str, dict | None]:
