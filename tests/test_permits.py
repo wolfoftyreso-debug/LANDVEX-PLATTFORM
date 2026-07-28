@@ -11,7 +11,7 @@ from engine.scoring import analyze
 
 _LOC = Location(59.33, 18.06, address="Stockholm")
 
-_OBJ = '{"building_permits": 42, "detail_plans": 7, "development_m2": 120}'
+_OBJ = '{"building_permits": 42, "detail_plans": 7, "permitted_m2": 120}'
 _LIST = '[{"area_m2": 5000}, {"area_m2": 3000}, {}]'
 
 
@@ -31,14 +31,19 @@ def test_object_feed():
     c = _client(_OBJ)
     d = c.fetch_permits(59.33, 18.06)
     assert d == {"building_permits": 42.0, "detail_plans": 7.0,
-                 "development_m2": 120.0}
+                 "permitted_m2": 120.0}
 
 
 def test_list_feed_counts_and_area():
     c = _client(_LIST)
     d = c.fetch_permits(59.33, 18.06)
     assert d["building_permits"] == 3.0          # counted
-    assert d["development_m2"] == 8.0             # (5000+3000)/1000
+    # PERMITTED yta, inte observerad. Fältet hette development_m2, vilket
+    # är kontradiktionsindexets OBSERVERADE sida — med bygglovskällan
+    # inkopplad jämförde indexet därmed bygglov mot bygglov.
+    assert d["permitted_m2"] == 8.0               # (5000+3000)/1000
+    assert "development_m2" not in d, (
+        "bygglov får aldrig fylla den observerade sidan")
 
 
 def test_source_provides_real_signals_in_resolver():

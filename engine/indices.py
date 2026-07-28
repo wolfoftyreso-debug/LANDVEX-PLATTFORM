@@ -198,7 +198,11 @@ def index_families() -> list[dict]:
             if all(i in known for i in ids)]
 
 # Kontradiktionsindexet: officiellt planerat vs observerat utfört.
-_PLANNED = (("building_permits", 0.5), ("detail_plans", 0.5))
+# Planerat = det officiella pappersarbetet. `permitted_m2` hör HIT, inte
+# till den observerade sidan: den summeras ur bygglovsposternas area och
+# säger vad som fått tillstånd, inte vad som står på marken.
+_PLANNED = (("building_permits", 0.4), ("detail_plans", 0.3),
+            ("permitted_m2", 0.3))
 _OBSERVED = (("development_m2", 0.7), ("renovation_index", 0.3))
 CONTRADICTION_THRESHOLD = 35
 
