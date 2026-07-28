@@ -404,10 +404,19 @@ def test_the_probe_covers_every_adapter_that_exists():
     """En adapter utan probe kan aldrig bli verifierad — den står kvar som
      obekräftad för alltid utan att någon märker varför."""
     from scripts.sensor_probe import PROBES
-    utan = sorted(set(A.CLIENTS) - set(PROBES))
-    assert not utan, f"adaptrar utan probe: {utan}"
-    okanda = sorted(set(PROBES) - set(S.SENSORS))
-    assert not okanda, f"probe för okänd sensorklass: {okanda}"
+    # Nycklarna är `klass:klient`. Att bara kräva en probe per KLASS lät
+    # ett andra nät ligga oprobat i registret: NWS och Digitraffic road
+    # hade funnits i PROVIDERS sedan tidigare utan någon väg att bli
+    # bekräftade.
+    vantade = {f"{klass}:{c.id}" for klass, grupp in A.PROVIDERS.items()
+               for c in grupp}
+    utan = sorted(vantade - set(PROBES))
+    assert not utan, f"leverantörer utan probe: {utan}"
+    okanda = sorted(set(PROBES) - vantade)
+    assert not okanda, f"probe utan leverantör: {okanda}"
+    for nyckel in PROBES:
+        klass = nyckel.split(":", 1)[0]
+        assert klass in S.SENSORS, f"probe för okänd sensorklass: {klass}"
 
 
 def test_the_registry_and_the_clients_agree_on_which_classes_have_adapters():

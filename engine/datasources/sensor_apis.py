@@ -531,23 +531,40 @@ class UsgsSeismic(SensorClient):
             return None
         try:
             f = json.loads(raw.decode("utf-8")).get("features") or []
-            mags = [x["properties"]["mag"] for x in f
-                    if isinstance((x.get("properties") or {}).get("mag"),
-                                  (int, float))]
         except OUR_BUGS:
             raise
         except Exception:      # noqa: BLE001
             return None
-        return {
-            "events": len(f), "with_magnitude": len(mags),
-            "max_magnitude": max(mags) if mags else None,
-            "min_magnitude_queried": min_magnitude,
-            "radius_km": radius_km, "measured": True, "source": "USGS FDSN",
-            "basis_en": (f"Events at or above M{min_magnitude:g} within "
-                         f"{radius_km:g} km. Absence here means no event "
-                         f"ABOVE that threshold was catalogued — not that "
-                         f"the ground was still."),
-        }
+        return _sammanfatta_skalv(f, min_magnitude, radius_km, "USGS FDSN")
+
+
+def _sammanfatta_skalv(features: list, min_magnitude: float,
+                       radius_km: float, source: str) -> dict | None:
+    """FDSN-GeoJSON → ett svar. Delas av USGS och EMSC.
+
+    Två kataloger som svarar på samma FDSN-fråga ska sammanfattas av
+    SAMMA kod, annars kan en skillnad mellan dem lika gärna komma från
+    två olika parsningar som från två olika seismiska nät — och då är
+    hela jämförelsen värdelös.
+    """
+    if not isinstance(features, list):
+        return None
+    mags = [x["properties"]["mag"] for x in features
+            if isinstance((x.get("properties") or {}).get("mag"),
+                          (int, float))]
+    return {
+        "events": len(features), "with_magnitude": len(mags),
+        "max_magnitude": max(mags) if mags else None,
+        "min_magnitude_queried": min_magnitude,
+        "radius_km": radius_km, "measured": True, "source": source,
+        "basis_en": (f"Events at or above M{min_magnitude:g} within "
+                     f"{radius_km:g} km, as catalogued by {source}. Absence "
+                     f"here means no event ABOVE that threshold was "
+                     f"catalogued — not that the ground was still. Two "
+                     f"catalogues routinely differ by a few tenths of a "
+                     f"magnitude for the same event; that is a real "
+                     f"disagreement about the measurement, not a bug."),
+    }
 
 
 # ── Digitraffic (FI): fartyg och väg, öppet utan nyckel ─────────────────
@@ -675,18 +692,550 @@ class NwsWeather(SensorClient):
         }
 
 
+# ── EMSC: seismik — ANDRA leverantören för seismic ──────────────────────
+class EmscSeismic(SensorClient):
+    """Europeisk skalvkatalog, samma FDSN-protokoll som USGS.
+
+    Poängen är inte fler skalv utan en ANNAN KATALOG. Två seismiska nät
+    lokaliserar och magnitudsätter samma händelse var för sig, och när de
+    inte är överens är det ett fynd om mätningen — inte ett fel.
+
+    EMSC:s parameternamn skiljer sig från USGS (`minmag`, `maxradius` i
+    grader), och det är precis den sortens detalj som gör att en generisk
+    "FDSN-shim" hade tystnat i stället för att svara.
+    """
+
+    id = "emsc"
+    sensor_class = "seismic"
+    ENV = "LANDVEX_SEISMIC_EMSC_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+
+    def events(self, lat: float, lon: float, *, radius_km: float = 200.0,
+               min_magnitude: float = 2.5, days: int = 1) -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/fdsnws/event/1/query?"
+               + urllib.parse.urlencode({
+                   "format": "json", "lat": lat, "lon": lon,
+                   # EMSC tar radien i GRADER, inte kilometer. 1° ≈ 111 km
+                   # längs en storcirkel; att skicka km hade gett en radie
+                   # hundra gånger för stor och ett svar som såg rimligt ut.
+                   "maxradius": round(radius_km / 111.0, 4),
+                   "minmag": min_magnitude, "limit": 200,
+                   "start": f"-P{int(days)}D"}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            f = json.loads(raw.decode("utf-8")).get("features") or []
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return _sammanfatta_skalv(f, min_magnitude, radius_km,
+                                  "EMSC (seismicportal.eu)")
+
+
+# ── Sensor.Community: luft — ANDRA leverantören för air_quality ─────────
+class SensorCommunityAir(SensorClient):
+    """Medborgardrivna luftsensorer. Öppet, ingen nyckel.
+
+    Oberoendet är starkare än vanligt: det är inte bara en annan ägare
+    utan en annan MÄTPRINCIP. OpenAQ läser myndigheternas
+    referensinstrument; det här är billiga optiska partikelräknare hos
+    privatpersoner. Att de två pekar åt samma håll säger därför mer än
+    två referensstationer som gör det.
+
+    Svarsform (dokumenterad): [{"sensor": {"id": .., "sensor_type":
+    {"name": "SDS011"}}, "sensordatavalues": [{"value_type": "P1",
+    "value": "12.3"}], "location": {..}}]
+    """
+
+    id = "sensor_community"
+    sensor_class = "air_quality"
+    ENV = "LANDVEX_AIR_COMMUNITY_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+
+    # P1/P2 är nätets egna namn. NO₂ finns INTE — och den luckan döljs
+    # inte genom att mappa den till något som råkar likna.
+    PARAMETERS = {"P1": "pm10_ug_m3", "P2": "pm25_ug_m3"}
+
+    def latest(self, lat: float, lon: float, *,
+               radius_km: float = 12.0) -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/airrohr/v1/filter/"
+               f"area={lat},{lon},{radius_km:g}")
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            rader = json.loads(raw.decode("utf-8"))
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return _sammanfatta_medborgarluft(rader, self.PARAMETERS)
+
+
+def _sammanfatta_medborgarluft(rader: list, parametrar: dict) -> dict | None:
+    per: dict[str, list] = {}
+    sensorer = set()
+    for r in rader if isinstance(rader, list) else []:
+        if not isinstance(r, dict):
+            continue
+        sensorer.add(((r.get("sensor") or {}).get("id")))
+        for v in r.get("sensordatavalues") or []:
+            sid = parametrar.get(str((v or {}).get("value_type", "")))
+            if not sid:
+                continue
+            try:
+                tal = float(v["value"])
+            except (TypeError, ValueError, KeyError):
+                continue      # ett obrukbart värde är inte ett nollvärde
+            # Nyckeln skapas EFTER att värdet gått att läsa. Ett
+            # setdefault före konverteringen lämnade en tom lista kvar för
+            # parametern, och medelvärdet delade med noll.
+            per.setdefault(sid, []).append(tal)
+    if not per:
+        return None
+    return {
+        "values": {k: round(sum(v) / len(v), 2) for k, v in per.items()},
+        "readings": {k: len(v) for k, v in per.items()},
+        "sensors": len([s for s in sensorer if s is not None]),
+        "measured": True, "source": "Sensor.Community",
+        "basis_en": (
+            "Low-cost optical particle counters run by private "
+            "individuals. They read high in humid air and are not "
+            "calibrated against a reference instrument, so they are a "
+            "second opinion on DIRECTION rather than on level. NO₂ is not "
+            "measured by this network at all — the parameter is absent "
+            "here, not zero."),
+    }
+
+
+# ── USGS Water Services: vatten — ANDRA leverantören för water_level ────
+# Omräkning till SMHI:s enheter. Två nät som jämförs i olika enheter blir
+# "conflicting" av ren aritmetik, och det är den sortens tysta fel hela
+# korroboreringslagret finns för att fånga.
+_CFS_TILL_M3S = 0.0283168
+_FOT_TILL_CM = 30.48
+
+
+class UsgsWater(SensorClient):
+    """Vattenföring och vattenstånd från USGS NWIS. Öppet, ingen nyckel.
+
+    Svarsform (dokumenterad): {"value": {"timeSeries": [{"sourceInfo":
+    {"siteName": ".."}, "variable": {"variableCode": [{"value":
+    "00060"}]}, "values": [{"value": [{"value": "123", "dateTime":
+    ".."}]}]}]}}
+    """
+
+    id = "usgs_water"
+    sensor_class = "water_level"
+    ENV = "LANDVEX_HYDRO_US_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+
+    # USGS parameterkod → (vårt signal-id, faktor till vår enhet)
+    PARAMETERS = {"00060": ("discharge_m3s", _CFS_TILL_M3S),
+                  "00065": ("water_level_cm", _FOT_TILL_CM)}
+
+    def latest(self, signal_id: str, station: str) -> dict | None:
+        koder = {k for k, (sid, _) in self.PARAMETERS.items()
+                 if sid == signal_id}
+        if not (self.connected and koder):
+            return None
+        url = (f"{self.base_url}/nwis/iv/?"
+               + urllib.parse.urlencode({
+                   "format": "json", "sites": station,
+                   "parameterCd": ",".join(sorted(koder)),
+                   "siteStatus": "all"}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            serier = (json.loads(raw.decode("utf-8"))
+                      .get("value", {}).get("timeSeries") or [])
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        return _sammanfatta_usgs_vatten(serier, signal_id, station,
+                                        self.PARAMETERS)
+
+
+def _sammanfatta_usgs_vatten(serier: list, signal_id: str, station: str,
+                             parametrar: dict) -> dict | None:
+    for s in serier if isinstance(serier, list) else []:
+        if not isinstance(s, dict):
+            continue
+        kod = ((s.get("variable") or {}).get("variableCode") or [{}])[0] \
+            .get("value")
+        spec = parametrar.get(str(kod))
+        if not spec or spec[0] != signal_id:
+            continue
+        try:
+            punkter = (s.get("values") or [{}])[0].get("value") or []
+            ra = float(punkter[-1]["value"])
+        except (TypeError, ValueError, IndexError, KeyError):
+            continue
+        if ra <= -999998:      # NWIS skriver -999999 för "ingen avläsning"
+            continue
+        enhet_in = "ft³/s" if signal_id == "discharge_m3s" else "ft"
+        enhet_ut = "m³/s" if signal_id == "discharge_m3s" else "cm"
+        return {
+            "signal": signal_id, "value": round(ra * spec[1], 3),
+            "raw_value": ra, "raw_unit": enhet_in, "unit": enhet_ut,
+            "label_en": ("Discharge" if signal_id == "discharge_m3s"
+                         else "Water level"),
+            "station": ((s.get("sourceInfo") or {})
+                        .get("siteName") or station),
+            "observed_at": (punkter[-1] or {}).get("dateTime", ""),
+            "measured": True, "source": "USGS Water Services (NWIS)",
+            "basis_en": (
+                f"Converted from {enhet_in} to {enhet_ut} "
+                f"(×{spec[1]:g}) so it can stand beside the Swedish "
+                f"hydrological series. Comparing two networks in "
+                f"different units produces 'conflicting' by arithmetic "
+                f"alone — one gauge, one cross-section, same limit as any "
+                f"other."),
+        }
+    return None
+
+
+# ── NASA CMR: satellit — ANDRA leverantören för earth_observation ───────
+class NasaCmrScenes(SensorClient):
+    """Landsat-passager via NASA:s Common Metadata Repository.
+
+    Oberoendet sitter i KONSTELLATIONEN: Copernicus svarar för Sentinel,
+    det här för Landsat. Två satelliter i olika banor över samma tomt är
+    två chanser att se förbi ett moln — och två helt skilda ägarkedjor.
+
+    Svarsform (dokumenterad): {"feed": {"entry": [{"id": "..",
+    "time_start": "..", "cloud_cover": "12.0"}]}}
+    """
+
+    id = "nasa_cmr"
+    sensor_class = "earth_observation"
+    ENV = "LANDVEX_EO_NASA_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+
+    def coverage(self, lat: float, lon: float, *, start: str, end: str,
+                 collection: str = "LANDSAT_OT_C2_L2",
+                 max_cloud: float = 30.0) -> dict | None:
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/search/granules.json?"
+               + urllib.parse.urlencode({
+                   "short_name": collection,
+                   "point": f"{lon},{lat}",
+                   "temporal": f"{start}T00:00:00Z,{end}T00:00:00Z",
+                   "page_size": 100}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            poster = ((json.loads(raw.decode("utf-8")).get("feed") or {})
+                      .get("entry") or [])
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        # CMR skriver molntäcket som STRÄNG. Att jämföra "12.0" med ett
+        # tal ger TypeError i Python 3 — scenen hade tyst räknats som
+        # oanvändbar, och en tom karta hade sett ut som "ingen passage".
+        scener = []
+        for p in poster if isinstance(poster, list) else []:
+            c = (p or {}).get("cloud_cover")
+            try:
+                moln = float(c) if c is not None else None
+            except (TypeError, ValueError):
+                moln = None
+            scener.append({"properties": {"eo:cloud_cover": moln}})
+        return _sammanfatta_scener(scener, max_cloud, collection)
+
+
+# ── BarentsWatch: AIS — ANDRA leverantören för vessel_traffic ───────────
+def _http_form(url: str, payload: bytes, timeout: float) -> bytes:
+    req = urllib.request.Request(
+        url, data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded",
+                 "Accept": "application/json", "User-Agent": _UA})
+    with urllib.request.urlopen(req, timeout=timeout) as r:   # noqa: S310
+        return r.read()
+
+
+def _http_get_bearer(url: str, token: str, timeout: float) -> bytes:
+    req = urllib.request.Request(
+        url, headers={"Accept": "application/json", "User-Agent": _UA,
+                      "Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:   # noqa: S310
+        return r.read()
+
+
+class BarentsWatchAis(SensorClient):
+    """Norska AIS via BarentsWatch. Kräver ett registrerat konto.
+
+    Till skillnad från Digitraffic ligger det här bakom OAuth2 client
+    credentials: id och hemlighet växlas mot ett kortlivat token som
+    sedan bärs som Bearer. Utan bägge finns ingen väg fram, och klienten
+    säger det i stället för att returnera en tom lista — en tom lista
+    hade lästs som "inga fartyg i farvattnet".
+
+    Svarsform (dokumenterad): [{"mmsi": .., "speedOverGround": ..,
+    "navigationalStatus": ..}]
+    """
+
+    id = "barentswatch"
+    sensor_class = "vessel_traffic"
+    ENV = "LANDVEX_AIS_NO_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+    _default_transport = staticmethod(_http_get_bearer)
+
+    def __init__(self, *a, client_id: str | None = None,
+                 client_secret: str | None = None,
+                 token_url: str | None = None,
+                 token_transport=None, **kw):
+        super().__init__(*a, **kw)
+        self.client_id = (client_id if client_id is not None
+                          else os.environ.get("LANDVEX_AIS_NO_CLIENT_ID", ""))
+        self._secret = (client_secret if client_secret is not None
+                        else os.environ.get("LANDVEX_AIS_NO_SECRET", ""))
+        self.token_url = (token_url if token_url is not None else
+                          os.environ.get("LANDVEX_AIS_NO_TOKEN_URL",
+                                         "https://id.barentswatch.no"
+                                         "/connect/token"))
+        self._token_transport = token_transport or _http_form
+        self._token = ""
+
+    @property
+    def connected(self) -> bool:
+        # Tre delar krävs. Saknas en är källan inte "nere" — den är inte
+        # ansökt om, vilket är en helt annan sak att åtgärda.
+        return bool(self.base_url and self.client_id and self._secret)
+
+    def _hamta_token(self) -> str:
+        if self._token:
+            return self._token
+        payload = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": self.client_id, "client_secret": self._secret,
+            "scope": "ais"}).encode("utf-8")
+        try:
+            raw = self._token_transport(self.token_url, payload,
+                                        self._breaker.timeout)
+            self._token = json.loads(raw.decode("utf-8"))["access_token"]
+        except OUR_BUGS:
+            raise
+        except Exception as e:      # noqa: BLE001
+            # Går token-utbytet inte igenom är hela källan otillgänglig.
+            # Felet sparas där proben letar efter det.
+            self._breaker.last_error = e
+            self._breaker.trip()
+            return ""
+        return self._token
+
+    def vessels(self, *, min_speed_kn: float = 0.5) -> dict | None:
+        if not self.connected:
+            return None
+        token = self._hamta_token()
+        if not token:
+            return None
+        raw = self._breaker.fetch(f"{self.base_url}/v1/latest/combined",
+                                  token)
+        if raw is None:
+            return None
+        try:
+            rader = json.loads(raw.decode("utf-8"))
+            farter = [(r or {}).get("speedOverGround") for r in rader]
+            rorliga = [s for s in farter
+                       if isinstance(s, (int, float)) and s >= min_speed_kn]
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        if not isinstance(rader, list) or not rader:
+            return None
+        return {
+            "vessels": len(rader), "under_way": len(rorliga),
+            "measured": True, "source": "BarentsWatch AIS (Kystverket)",
+            "basis_en": ("Norwegian coastal AIS. Same limit as any AIS "
+                         "feed — it carries what the crew entered, and a "
+                         "vessel with the transponder off is simply "
+                         "absent. Independent of Fintraffic in operator, "
+                         "waters and collection chain, but not in "
+                         "technology: a fault in AIS itself would move "
+                         "both."),
+        }
+
+
+_XML_MAX_BYTES = 8 << 20        # 8 MiB; ett dygns last är några tiotal kB
+
+
+def _entsoe_kvantiteter(raw: bytes) -> list[float]:
+    """Läs `quantity` ur ett ENTSO-E-dokument, utan XML-beroende.
+
+    `xml.etree` är sårbart för entitetsexpansion ("billion laughs") och
+    externa entiteter, och `defusedxml` är ett beroende kärnan inte får
+    ta. Båda attackerna kräver en DEKLARATION i dokumentet, så svaret
+    avvisas om det bär en — och storleken har ett tak innan parsern ens
+    får se det. Det är en riktig spärr, inte en dämpning: ett dokument
+    utan DOCTYPE kan inte expandera någonting.
+    """
+    if len(raw) > _XML_MAX_BYTES:
+        raise ValueError(f"ENTSO-E answered with {len(raw)} bytes, over the "
+                         f"{_XML_MAX_BYTES} limit — not parsed")
+    huvud = raw[:4096].lstrip().lower()
+    if b"<!doctype" in huvud or b"<!entity" in raw[:65536].lower():
+        raise ValueError("the document declares entities; refused unparsed "
+                         "rather than expanded")
+    import xml.etree.ElementTree as ET      # noqa: S405 – se docstring ovan
+    rot = ET.fromstring(raw.decode("utf-8"))   # noqa: S314 – deklarationer
+    # Namnrymden varierar med dokumentversion; matcha på taggens lokala
+    # namn i stället för att hårdkoda en URI som ändras.
+    return [float(e.text) for e in rot.iter()
+            if e.tag.rsplit("}", 1)[-1] == "quantity" and e.text]
+
+
+# ── De två nät som redan fanns men aldrig räknades ──────────────────────
+# `grid_telemetry` och `field_observation` stod som
+# `independent_providers: 0` i /v1/sensors trots att båda HAR ett nät —
+# deras klienter (SvkClient, DirectQuixzoomClient) byggdes före den här
+# tabellen och registrerades aldrig i den. En nolla läses som "ingenting
+# byggt", och värre: klasserna föll ur listan över dem som saknar ett
+# ANDRA nät, så luckan syntes inte alls i lägesrapporten.
+#
+# Adaptrarna nedan lägger inte till någon förmåga. De gör de befintliga
+# näten RÄKNINGSBARA.
+class SvkGrid(SensorClient):
+    """Svenska kraftnät — nätet som redan fanns för grid_telemetry."""
+
+    id = "svk"
+    sensor_class = "grid_telemetry"
+    ENV = "LANDVEX_SVK_URL"
+    verified_live = False
+
+    def __init__(self, *a, client=None, **kw):
+        super().__init__(*a, **kw)
+        if client is None:
+            from .svk import SvkClient
+            # Exakt samma bas-URL, aldrig 'or None': ett tomt
+            # värde som faller tillbaka på miljön hade låtit
+            # wrappern säga 'ej ansluten' om en klient som är det.
+            client = SvkClient(base_url=self.base_url)
+        self._client = client
+
+    def production_mix(self) -> dict | None:
+        if not self.connected:
+            return None
+        return self._client.production_mix()
+
+
+class QuixzoomField(SensorClient):
+    """quiXzoom — nätet som redan fanns för field_observation."""
+
+    id = "quixzoom"
+    sensor_class = "field_observation"
+    ENV = "LANDVEX_QUIXZOOM_URL"
+    verified_live = False
+
+    def __init__(self, *a, client=None, **kw):
+        super().__init__(*a, **kw)
+        if client is None:
+            from .quixzoom_direct import DirectQuixzoomClient
+            client = DirectQuixzoomClient(base_url=self.base_url)
+        self._client = client
+
+    def missions(self, lat: float, lon: float,
+                 radius_km: float = 5.0) -> dict | None:
+        if not self.connected:
+            return None
+        return self._client.quixzoom_missions(lat, lon, radius_km)
+
+
+# ── ENTSO-E: elnät — ANDRA leverantören för grid_telemetry ──────────────
+class EntsoeGrid(SensorClient):
+    """Europeisk transparensplattform. Kräver en ansökt (gratis) token.
+
+    Sensorraden för grid_telemetry namnger redan ENTSO-E som operatör
+    vid sidan av Svenska kraftnät — men bara den ena var byggd, så
+    klassen hade i praktiken ett nät.
+
+    ENTSO-E svarar med XML, inte JSON. Klienten läser därför bara det den
+    behöver ur dokumentet i stället för att låtsas att svaret är JSON.
+    """
+
+    id = "entsoe"
+    sensor_class = "grid_telemetry"
+    ENV = "LANDVEX_ENTSOE_URL"
+    verified_live = False   # sätts av scripts/probe_all där nätet är öppet
+
+    def __init__(self, *a, token: str | None = None, **kw):
+        super().__init__(*a, **kw)
+        self.token = (token if token is not None
+                      else os.environ.get("LANDVEX_ENTSOE_TOKEN", ""))
+
+    @property
+    def connected(self) -> bool:
+        # Utan token finns ingen väg fram. "Inte ansökt om" är ett annat
+        # tillstånd än "nere", och det åtgärdas av en ansökan.
+        return bool(self.base_url) and bool(self.token)
+
+    def load(self, area: str, *, start: str, end: str) -> dict | None:
+        """Faktisk last per budområde (documentType A65, processType A16)."""
+        if not self.connected:
+            return None
+        url = (f"{self.base_url}/api?"
+               + urllib.parse.urlencode({
+                   "securityToken": self.token, "documentType": "A65",
+                   "processType": "A16", "outBiddingZone_Domain": area,
+                   "periodStart": start, "periodEnd": end}))
+        raw = self._breaker.fetch(url)
+        if raw is None:
+            return None
+        try:
+            varden = _entsoe_kvantiteter(raw)
+        except OUR_BUGS:
+            raise
+        except Exception:      # noqa: BLE001
+            return None
+        if not varden:
+            return None
+        return {
+            "area": area, "points": len(varden),
+            "latest_mw": varden[-1],
+            "mean_mw": round(sum(varden) / len(varden), 1),
+            "measured": True, "source": "ENTSO-E Transparency Platform",
+            "basis_en": ("Actual load per bidding zone as published by the "
+                         "TSOs themselves. Same limit as any zone "
+                         "aggregate: a factory starting up and a wind lull "
+                         "move it identically, and neither is attributable "
+                         "to a site. Published values are revised for "
+                         "weeks after the fact."),
+        }
+
+
 # En sensorklass kan ha FLERA leverantörer. Det är hela poängen: två
 # oberoende nät som mäter samma sak är det som gör ett underlag robust,
 # och strukturen som bara tillät en dolde att skillnaden fanns.
+#
+# Ordningen är inte godtycklig: den första leverantören är den `CLIENTS`
+# och `client_for` väljer, alltså den som svarar när bara ett svar
+# behövs. Den ska vara den med bredast täckning för vår hemmamarknad.
 PROVIDERS: dict[str, tuple] = {
     "road_flow": (TrafikverketFlow, DigitrafficRoad),
     "weather": (SmhiWeather, NwsWeather),
-    "air_quality": (OpenAqAir,),
-    "water_level": (SmhiHydro,),
-    "earth_observation": (CopernicusStac,),
-    "vessel_traffic": (DigitrafficMarine,),
-    "seismic": (UsgsSeismic,),
+    "air_quality": (OpenAqAir, SensorCommunityAir),
+    "water_level": (SmhiHydro, UsgsWater),
+    "earth_observation": (CopernicusStac, NasaCmrScenes),
+    "vessel_traffic": (DigitrafficMarine, BarentsWatchAis),
+    "seismic": (UsgsSeismic, EmscSeismic),
+    "grid_telemetry": (SvkGrid, EntsoeGrid),
     "building_meter": (GenericSensorFeed,),
+    # Ett nät, och det syns nu som ett i stället för som noll. quiXzoom
+    # är vår egen insamlingskedja; ett andra nät för samma sak vore en
+    # annan fältplattform, och någon sådan finns inte att koppla in.
+    "field_observation": (QuixzoomField,),
 }
 
 # Bakåtkompatibel: första leverantören per klass.
@@ -704,9 +1253,33 @@ def independent_count(sensor_class: str) -> int:
 
 
 def client_for(sensor_class: str, **kw) -> SensorClient | None:
+    """Ett svar när bara ett behövs — den första leverantören."""
     cls = CLIENTS.get(sensor_class)
     return cls(**kw) if cls else None
 
 
+def clients_for(sensor_class: str, **kw) -> list[SensorClient]:
+    """ALLA nät som kan mäta klassen. Det är den här listan man frågar
+    när svaret ska kunna bekräftas av något annat än sig självt."""
+    return [cls(**kw) for cls in PROVIDERS.get(sensor_class, ())]
+
+
+def all_clients() -> list[type]:
+    """Varje leverantörsklass, en gång, i registerordning."""
+    ut, sedda = [], set()
+    for grupp in PROVIDERS.values():
+        for cls in grupp:
+            if cls.__name__ not in sedda:
+                sedda.add(cls.__name__)
+                ut.append(cls)
+    return ut
+
+
 def clients_status() -> list[dict]:
-    return [cls().describe() for cls in CLIENTS.values()]
+    """Vad varje BYGGD klient säger om sig själv.
+
+    Gick tidigare på `CLIENTS.values()` — första leverantören per klass —
+    vilket gjorde de andra näten osynliga i /v1/sensors. Ett andra nät
+    som inte syns är ett andra nät ingen vet att de kan koppla in.
+    """
+    return [cls().describe() for cls in all_clients()]

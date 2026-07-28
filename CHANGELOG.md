@@ -2,6 +2,62 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — ett andra oberoende nät
+
+**En källa kan aldrig bekräfta sig själv.** Sju sensorklasser hade exakt
+ett nät och satt därför fast i bandet `weak`, hur väl de än stämde med
+sig själva. Klasser med två oberoende nät går från **2 av 9 till 8 av 9**.
+
+Nya leverantörer — alla med injicerbar transport, `verified_live = False`
+och en `basis_en` som säger vad mätningen inte kan avgöra:
+
+| Klass | Andra nätet | Varför det är oberoende |
+|---|---|---|
+| `air_quality` | Sensor.Community | Medborgarsensorer: annan ägare **och** annan mätprincip än OpenAQ:s referensinstrument |
+| `water_level` | USGS NWIS | Annan hydrologisk myndighet, annan flod |
+| `earth_observation` | NASA CMR (Landsat) | **En annan konstellation** än Copernicus Sentinel |
+| `seismic` | EMSC | Två FDSN-kataloger som magnitudsätter samma skalv var för sig |
+| `vessel_traffic` | BarentsWatch | Kystverket vs Fintraffic, med OAuth2-utbyte före anropet |
+| `grid_telemetry` | ENTSO-E | Sensorraden namngav redan ENTSO-E som operatör — bara SVK var byggd |
+
+**Tre fynd som gjorde arbetet större än fem klienter:**
+
+- **Motorn kunde inte se ett andra nät inom samma klass.**
+  `corroboration.assess()` räknade oberoende som antal unika
+  `sensor_class`. Modulens EGET exempel — Trafikverket och Digitraffic —
+  har båda `road_flow`, så koden räknade dem som en källa och satte taket
+  *"a single network cannot corroborate itself"* på just det par
+  docstringen valt för att visa vad oberoende betyder. Källor bär nu ett
+  valfritt `network`; utan fältet är varje tal identiskt med förut, vilket
+  ett test bevisar. Två nät i samma klass når `moderate` men **aldrig**
+  `strong` — de delar modalitet och kan bära samma systematiska fel.
+- **Proben kunde bara nå det första nätet per klass.** `PROBES` var
+  nycklad på sensorklass, så NWS och Digitraffic road hade legat i
+  registret utan någon väg att bli bekräftade. Nycklarna är nu
+  `klass:klient`, och `sensor_probe air_quality` betyder fortfarande hela
+  klassen. Raden sa dessutom åt den som ville koppla in det andra nätet
+  att sätta det FÖRSTAS miljövariabel.
+- **Två nät räknades som noll.** `grid_telemetry` och `field_observation`
+  stod som `independent_providers: 0` fast båda hade ett nät — deras
+  klienter byggdes före leverantörstabellen. Nollan gjorde mer skada än
+  att se snål ut: klasserna föll ur listan över dem som saknar ett ANDRA
+  nät, så luckan syntes inte alls i lägesrapporten.
+
+Övrigt: `_sammanfatta_medborgarluft` skapade nyckeln före värdet lästes,
+så en oläslig avläsning gav en tom lista och division med noll (fångat av
+testet innan koden kördes skarpt). USGS konverterar cfs→m³/s och fot→cm i
+klienten och **namnger konverteringen i svaret** — två nät jämförda i
+olika enheter blir `conflicting` av ren aritmetik. NWIS-sentinelvärdet
+`-999999` avvisas i stället för att bli ett vattenstånd på minus tre
+kilometer. ENTSO-E svarar med XML: dokument som deklarerar entiteter
+avvisas oparsade och storleken har ett tak, eftersom `defusedxml` är ett
+beroende kärnan inte får ta.
+
+**Ansökningar som krävs för att verifiera live:** BarentsWatch
+(client credentials), ENTSO-E (token via mejl), Trafikverket och OpenAQ
+(gratis nycklar, ej ansökta än). Ingen klient har fått `verified_live =
+True` — proben har körts mot fixturer, inte mot riktiga värdar.
+
 ## [Ej släppt] — vad vi kan svara på HÄR
 
 Tredje Tier 1-posten. Hela alt-data-branschen döljer att den är

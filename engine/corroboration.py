@@ -7,11 +7,21 @@ samstämmiga tal från ett trasigt system ser precis ut som tio
 samstämmiga tal från ett fungerande.
 
 Det som gör ett underlag robust är att ett OBEROENDE nät säger samma
-sak. Två sensorklasser räknas som oberoende när de mäter olika fysiska
-storheter, drivs av olika organisationer, och når oss genom skilda
-insamlingskedjor. Trafikverkets slingor och Digitraffics slingor mäter
-samma sorts sak men drivs av olika myndigheter i olika länder — de är
-oberoende. Två slingor på samma väg är det inte.
+sak. Trafikverkets slingor och Digitraffics slingor mäter samma sorts
+sak men drivs av olika myndigheter i olika länder — de är oberoende. Två
+slingor på samma väg är det inte.
+
+**Nätet, inte klassen, avgör oberoendet.** Den skillnaden var borta i
+första versionen: koden räknade unika `sensor_class`, så exemplet ovan —
+modulens eget — blev EN källa, och taket "a single network cannot
+corroborate itself" slog till på just det par som skulle visa vad
+oberoende betyder. Källor bär därför ett valfritt `network`, och två
+leverantörer inom samma klass räknas som två nät.
+
+Att de delar MODALITET räknas fortfarande emot dem: två fordonsräknare
+kan bära samma systematiska fel, och paret når därför `moderate` men
+aldrig `strong`. Det starkaste underlaget är fortfarande två nät som
+mäter olika fysiska storheter och ändå pekar åt samma håll.
 
 Modulen räknar ut tre saker om ett påstående:
 
@@ -97,14 +107,29 @@ def _agreement(varden: list[float]) -> float | None:
 def assess(sources: list[dict]) -> dict:
     """Hur väl underbyggt ett påstående är.
 
-    `sources` = [{"sensor_class": .., "value": <valfritt tal>,
-                  "measured": bool}]. Ett värde är frivilligt: två nät
-    kan bekräfta ATT något hände utan att mäta samma storhet.
+    `sources` = [{"sensor_class": .., "network": <valfritt id>,
+                  "value": <valfritt tal>, "measured": bool}].
+
+    Ett värde är frivilligt: två nät kan bekräfta ATT något hände utan
+    att mäta samma storhet. `network` är också frivilligt och faller
+    tillbaka på klassen — men två leverantörer inom samma klass
+    (Trafikverket och Digitraffic) räknas som två nät bara om de säger
+    vilka de är.
     """
     matta = [s for s in sources if s.get("measured", True)]
     klasser = [s.get("sensor_class", "") for s in matta]
     modaliteter = {MODALITY.get(k, k or "unknown") for k in klasser}
-    n_oberoende = len(set(klasser))
+    # Oberoende räknas på NÄTET, inte på klassen. Utan `network` faller
+    # varje källa tillbaka på sin klass, så ett anrop som inte känner
+    # till fältet får exakt samma tal som förut.
+    #
+    # Skillnaden är inte teoretisk: modulens eget exempel ovan —
+    # Trafikverkets slingor och Digitraffics — har BÅDA
+    # sensor_class="road_flow". Med klassräkning blev de en enda källa
+    # och taket "a single network cannot corroborate itself" slog till på
+    # just det par docstringen valt som förebild för oberoende.
+    nat = [s.get("network") or s.get("sensor_class", "") for s in matta]
+    n_oberoende = len(set(nat))
     n_modaliteter = len(modaliteter)
 
     varden = [s["value"] for s in matta if "value" in s]
@@ -146,6 +171,8 @@ def assess(sources: list[dict]) -> dict:
 
     return {
         "independent_sources": n_oberoende,
+        "networks": sorted(set(nat)),
+        "sensor_classes": sorted(set(klasser)),
         "modalities": sorted(modaliteter),
         "agreement": samstammighet,
         "score": poang,
@@ -162,21 +189,31 @@ def assess(sources: list[dict]) -> dict:
     }
 
 
-def independence(a: str, b: str) -> dict:
-    """Är två sensorklasser oberoende av varandra?"""
+def independence(a: str, b: str, *, network_a: str = "",
+                 network_b: str = "") -> dict:
+    """Är två källor oberoende av varandra?
+
+    Klassen säger VAD som mäts, nätet säger VEM som mäter det. Två
+    leverantörer inom samma klass är oberoende av varandra (olika
+    myndighet, olika insamlingskedja) men delar modalitet — de kan bära
+    samma systematiska fel, och når därför aldrig högsta bandet.
+    """
     ma, mb = MODALITY.get(a, "unknown"), MODALITY.get(b, "unknown")
+    na, nb = network_a or a, network_b or b
+    oberoende = na != nb
     return {
         "a": a, "b": b, "modality_a": ma, "modality_b": mb,
-        "independent": a != b,
+        "network_a": na, "network_b": nb,
+        "independent": oberoende,
         "different_modality": ma != mb,
         "why_en": (
             "Different networks measuring different physical quantities. "
             "The strongest kind of corroboration."
-            if a != b and ma != mb else
+            if oberoende and ma != mb else
             "Different networks, but the same physical quantity — they can "
             "still share a systematic error."
-            if a != b else
-            "The same class. More points from one network is more of the "
+            if oberoende else
+            "The same network. More points from one network is more of the "
             "same evidence, not a second opinion."),
     }
 

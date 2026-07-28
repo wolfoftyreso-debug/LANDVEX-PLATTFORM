@@ -116,6 +116,92 @@ def test_the_catalog_states_the_principle_rather_than_implying_it():
         assert klasser, m
 
 
+def test_two_networks_in_the_same_class_are_two_sources():
+    """Modulens EGET exempel på oberoende — Trafikverket och Digitraffic —
+    räknades som en enda källa, eftersom oberoende mättes på klass och
+    båda är road_flow. Taket 'a single network cannot corroborate itself'
+    slog alltså till på just det par docstringen valt som förebild."""
+    r = C.assess([
+        {"sensor_class": "road_flow", "network": "trafikverket",
+         "value": 820},
+        {"sensor_class": "road_flow", "network": "digitraffic_road",
+         "value": 800}])
+    assert r["independent_sources"] == 2
+    assert r["capped_by_single_source"] is False
+    assert r["strength"] == "moderate"
+    assert r["networks"] == ["digitraffic_road", "trafikverket"]
+    assert r["sensor_classes"] == ["road_flow"]
+
+
+def test_two_networks_in_the_same_class_still_never_reach_strong():
+    """De delar modalitet och kan bära samma systematiska fel. Bättre än
+    ett nät, sämre än ett nät plus ett satellitbevis."""
+    samma = C.assess([
+        {"sensor_class": "road_flow", "network": "trafikverket", "value": 800},
+        {"sensor_class": "road_flow", "network": "digitraffic_road",
+         "value": 800}])
+    olika = C.assess([
+        {"sensor_class": "road_flow", "network": "trafikverket", "value": 800},
+        {"sensor_class": "earth_observation", "network": "copernicus_stac",
+         "value": 800}])
+    assert samma["strength"] == "moderate"
+    assert olika["strength"] == "strong"
+    assert samma["score"] < olika["score"]
+
+
+def test_two_networks_that_disagree_are_still_a_finding():
+    r = C.assess([
+        {"sensor_class": "seismic", "network": "usgs", "value": 4.4},
+        {"sensor_class": "seismic", "network": "emsc", "value": 1.2}])
+    assert r["conflicting"] is True and r["strength"] == "conflicting"
+
+
+def test_the_same_network_twice_is_not_a_second_opinion():
+    r = C.assess([
+        {"sensor_class": "road_flow", "network": "trafikverket", "value": 820},
+        {"sensor_class": "road_flow", "network": "trafikverket", "value": 818}])
+    assert r["independent_sources"] == 1
+    assert r["strength"] not in ("moderate", "strong")
+
+
+def test_no_single_network_can_ever_reach_moderate_whatever_it_says():
+    """Uttömmande, inte exemplifierande.
+
+    Taket SINGLE_SOURCE_CEILING är en andra spärr på en dörr poängen
+    redan bommar: med ett enda nät kan summan aldrig överstiga 0,45
+    (0,25 för olika modalitet + 0,20 för perfekt samstämmighet), och
+    +0,45 för oberoende kräver två nät. Testet visar det genom att pröva
+    varje kombination som går att bygga med ett nät i stället för att
+    lita på att en flagga sätts.
+    """
+    klasser = sorted(C.MODALITY)
+    for a in klasser:
+        for b in klasser:
+            for varden in ((800, 800), (800, 799), (0, 0), (5, 5000)):
+                r = C.assess([
+                    {"sensor_class": a, "network": "ett_nat",
+                     "value": varden[0]},
+                    {"sensor_class": b, "network": "ett_nat",
+                     "value": varden[1]}])
+                assert r["independent_sources"] == 1, (a, b)
+                assert r["score"] <= 0.45, (a, b, varden, r["score"])
+                assert r["strength"] in ("none", "weak", "conflicting"), (
+                    a, b, varden, r["strength"])
+
+
+def test_leaving_the_network_out_changes_nothing():
+    """Bakåtkompatibilitet, mätt: ett anrop som inte känner till fältet
+    ska få exakt samma tal som före ändringen."""
+    utan = C.assess([{"sensor_class": "road_flow", "value": 820},
+                     {"sensor_class": "weather", "value": 800}])
+    med = C.assess([
+        {"sensor_class": "road_flow", "network": "road_flow", "value": 820},
+        {"sensor_class": "weather", "network": "weather", "value": 800}])
+    assert utan["score"] == med["score"]
+    assert utan["strength"] == med["strength"]
+    assert utan["independent_sources"] == med["independent_sources"] == 2
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -211,6 +211,73 @@ ENVIRONMENT: dict[str, dict] = {
     "LANDVEX_AIS_URL": _v("optional", "Digitraffic marine AIS. No key.",
                           "Vessel movements are not read.",
                           example="https://meri.digitraffic.fi"),
+    # ── Andra nätet per sensorklass ─────────────────────────────────
+    # En källa kan aldrig bekräfta sig själv. Var och en av de här är den
+    # ANDRA leverantören för en klass som redan har en — utan dem är
+    # klassen låst i bandet `weak` hur väl den än stämmer med sig själv.
+    "LANDVEX_AIR_COMMUNITY_URL": _v(
+        "optional", "Sensor.Community (citizen air sensors). No key.",
+        "Air quality rests on OpenAQ alone, and a single network cannot "
+        "corroborate itself.",
+        example="https://data.sensor.community"),
+    "LANDVEX_HYDRO_US_URL": _v(
+        "optional", "USGS Water Services (NWIS). No key.",
+        "Water level rests on SMHI alone.",
+        example="https://waterservices.usgs.gov"),
+    "LANDVEX_EO_NASA_URL": _v(
+        "optional", "NASA CMR granule search — Landsat coverage. No key.",
+        "Satellite coverage rests on Copernicus alone, so a cloudy "
+        "Sentinel pass cannot be checked against another constellation.",
+        example="https://cmr.earthdata.nasa.gov"),
+    "LANDVEX_SEISMIC_EMSC_URL": _v(
+        "optional", "EMSC seismic portal (FDSN). No key.",
+        "Seismic events rest on the USGS catalogue alone.",
+        example="https://www.seismicportal.eu"),
+    "LANDVEX_AIS_NO_URL": _v(
+        "optional", "BarentsWatch AIS (Norwegian coastal waters).",
+        "Vessel traffic rests on Fintraffic alone.",
+        example="https://live.ais.barentswatch.no"),
+    "LANDVEX_AIS_NO_CLIENT_ID": _v(
+        "optional", "BarentsWatch client id (register an account).",
+        "No token is requested and the source refuses — 'not applied for' "
+        "is a different state from 'down', and it is fixed by an "
+        "application rather than by a restart."),
+    "LANDVEX_AIS_NO_SECRET": _v(
+        "optional", "BarentsWatch client secret.",
+        "As above — the credential exchange cannot be made.",
+        secret=True),
+    "LANDVEX_ENTSOE_URL": _v(
+        "optional", "ENTSO-E Transparency Platform base.",
+        "Grid telemetry rests on Svenska kraftnät alone, although the "
+        "sensor catalogue already names ENTSO-E as an operator.",
+        example="https://web-api.tp.entsoe.eu"),
+    "LANDVEX_ENTSOE_TOKEN": _v(
+        "optional", "ENTSO-E API token (free, but applied for by email).",
+        "No call is made even with the URL set — 'not applied for' is a "
+        "different state from 'down'.",
+        secret=True),
+    "LANDVEX_ENTSOE_AREA": _v(
+        "optional", "Bidding zone EIC code for the ENTSO-E probe.",
+        "The probe uses SE3."),
+    "LANDVEX_ENTSOE_FROM": _v(
+        "optional", "Start of the ENTSO-E probe window (yyyymmddHHMM).",
+        "The probe uses a documented default window."),
+    "LANDVEX_ENTSOE_TO": _v(
+        "optional", "End of the ENTSO-E probe window (yyyymmddHHMM).",
+        "The probe uses a documented default window."),
+    "LANDVEX_HYDRO_US_STATION": _v(
+        "optional", "Site id for the USGS water probe.",
+        "The probe uses a documented default gauge."),
+    "LANDVEX_WEATHER_US_STATION": _v(
+        "optional", "Station id for the NWS weather probe.",
+        "The probe uses a documented default station."),
+    "LANDVEX_TRAFFIC_FI_STATION": _v(
+        "optional", "Station id for the Digitraffic road probe.",
+        "The probe uses a documented default station."),
+    "LANDVEX_AIS_NO_TOKEN_URL": _v(
+        "optional", "BarentsWatch OAuth2 token endpoint.",
+        "The documented default endpoint is used.",
+        example="https://id.barentswatch.no/connect/token"),
     "LANDVEX_METER_URL": _v(
         "optional", "Owner-supplied sensor feed base "
                     "(building meters, district heating, water, waste).",

@@ -340,7 +340,15 @@ def test_the_front_door_proves_rather_than_asserts():
         "beviset måste avgränsas till scoringlagret — Landvex använder AI "
         "för perception, och ett bevis som motsäger den egna sajten är "
         "sämre än inget bevis")
-    assert "0 of 14" in text, "det obevisade ska stå kvar i ingången"
+    # Siffran RÄKNAS numera (den stod "0 of 14" för hand och blev falsk
+    # i tysthet så fort en adapter tillkom). Testet håller därför faktumet
+    # — att det obevisade står kvar i ingången — och inte formuleringen.
+    from scripts.standing import matning
+    m = matning()
+    assert (f"{m['sources_verified']} of {m['source_adapters']} source "
+            f"adapters") in text, "det obevisade ska stå kvar i ingången"
+    assert m["sources_verified"] == 0, (
+        "noll är sant här: nätet är spärrat och ingen probe har fått svar")
 
 
 def test_every_number_the_surface_shows_can_explain_itself():
