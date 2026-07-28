@@ -120,6 +120,56 @@ def test_a_contradiction_built_only_on_mock_is_not_a_finding():
     assert "not a finding about the world" in c["skipped_en"]
 
 
+def _halvt_verklig(*signaler: str):
+    """Resolver där NAMNGIVNA signaler påstås komma ur en riktig källa
+    och resten är mock. Så ser läget ut dagen den första riktiga källan
+    kopplas in — och det är då spärren nedan blir skarp."""
+    import dataclasses
+
+    from engine.datasources.mock import MockSource
+    from engine.scoring import Resolver
+
+    class R:
+        def __init__(self):
+            self.inner = Resolver([MockSource()])
+
+        def resolve(self, loc, purpose, signals):
+            values, meta = self.inner.resolve(loc, purpose, signals)
+            for sid in signaler:
+                if sid in values:
+                    values[sid] = dataclasses.replace(values[sid],
+                                                      source="osm")
+            return values, meta
+
+    return R()
+
+
+def test_one_real_side_against_simulated_paper_is_not_a_contradiction():
+    """Det farligaste felet i hela sveparen, och det var på riktigt där.
+
+    Spärren släppte igenom så fort NÅGON drivare var verklig. Mätt före
+    fixen: med bara den observerade sidan verklig rapporterades Solna som
+    en kontradiktion på 36 med `sources: ["mock", "osm"]` — presenterat
+    som "a finding about the place". Hela avståndet kom ur mockdata.
+    """
+    for sida in (("development_m2", "renovation_index"),
+                 ("building_permits", "detail_plans")):
+        c = A.contradictions("se", resolver=_halvt_verklig(*sida), limit=6)
+        assert c["count"] == 0, f"halvt verkligt fynd: {c['findings']}"
+        assert c["skipped_one_sided"] == c["regions_examined"]
+        assert "measures the simulation" in c["skipped_en"]
+
+
+def test_a_contradiction_where_both_sides_are_real_still_lands():
+    """Spärren får inte tysta det den finns för att släppa fram."""
+    c = A.contradictions(
+        "se", resolver=_halvt_verklig("development_m2", "building_permits"),
+        limit=6)
+    assert c["skipped_one_sided"] == 0
+    assert c["count"] >= 1
+    assert all(f["sources"] for f in c["findings"])
+
+
 def test_a_contradiction_needs_no_sample_to_be_real():
     c = A.contradictions("us", limit=1)
     assert "A single region is enough" in c["means_en"]

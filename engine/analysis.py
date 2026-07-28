@@ -79,13 +79,16 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
     renoveringsindex). Ingen ny formel; det här är sökningen, inte
     måttet.
     """
-    from engine.indices import CONTRADICTION_THRESHOLD, city_assessment
+    from engine.indices import (CONTRADICTION_THRESHOLD, _OBSERVED, _PLANNED,
+                                city_assessment)
     from engine.markets import MARKETS
 
     if market not in MARKETS:
         raise ValueError(f"Unknown market: {market}")
+    planerade = {sid for sid, _ in _PLANNED}
+    observerade = {sid for sid, _ in _OBSERVED}
     regioner = MARKETS[market].regions[:limit or None]
-    fynd, prövade, tunna = [], 0, 0
+    fynd, prövade, tunna, halva = [], 0, 0, 0
     for kod, namn, lat, lon in regioner:
         prövade += 1
         bed = city_assessment(kod, market=market, resolver=resolver)
@@ -102,9 +105,23 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
                 f"'nothing found'")
         # Ett index som helt vilar på mock är vår egen generator som
         # motsäger sig själv. Det räknas inte som ett fynd om världen.
-        kallor = {d.get("kalla") for d in (rad.get("drivare") or [])}
+        drivare = rad.get("drivare") or []
+        kallor = {d.get("kalla") for d in drivare}
         if kallor <= {"mock", None}:
             tunna += 1
+            continue
+        # Och ETT verkligt värde räcker inte. Indexet är en JÄMFÖRELSE
+        # mellan två sidor; är den ena sidan simulerad mäter avståndet
+        # vår generator, inte platsen. Mätt: med bara den observerade
+        # sidan verklig rapporterades Solna som en kontradiktion på 36
+        # med `sources: ["mock", "osm"]` — ett fynd om världen som helt
+        # kom ur mockdata. Spärren måste därför gälla PER SIDA, och den
+        # blir aktuell i samma stund som den första riktiga bygglovs-
+        # källan kopplas in.
+        akta = {d["signal_id"] for d in drivare
+                if d.get("kalla") not in ("mock", None)}
+        if not (akta & planerade) or not (akta & observerade):
+            halva += 1
             continue
         if rad["varde"] < CONTRADICTION_THRESHOLD:
             continue
@@ -124,6 +141,7 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
         "findings": sorted(fynd, key=lambda f: -f["value"]),
         "count": len(fynd), "regions_examined": prövade,
         "skipped_all_mock": tunna,
+        "skipped_one_sided": halva,
         "threshold": CONTRADICTION_THRESHOLD,
         "means_en": (
             "Where the official paperwork and the observed ground differ "
@@ -135,7 +153,11 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
             "them apart needs a look at the place."),
         "skipped_en": (f"{tunna} region(s) skipped: every driver was "
                        f"simulated, and our own generator contradicting "
-                       f"itself is not a finding about the world."),
+                       f"itself is not a finding about the world. "
+                       f"{halva} more skipped because only ONE side of "
+                       f"the comparison was real — measuring real ground "
+                       f"against simulated paperwork measures the "
+                       f"simulation."),
     }
 
 

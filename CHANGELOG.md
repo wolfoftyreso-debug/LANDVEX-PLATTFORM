@@ -2,6 +2,43 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — nyhetsskörden bevisad, och två spärrar som saknades
+
+`independent_verification` gick från vägran till räknad — och på vägen
+dit föll två fel som båda hade gett tal om fel land.
+
+- **Skörden körd hela vägen mot en riktig HTTP-server**
+  (`tests/test_news_harvest.py`): fyra RSS-flöden, ingen fejkad
+  transport, hela kedjan urllib → Breaker → parsning → checksumma →
+  `news_items`. Tre titlar med samma telegram i två ägargrupper blir
+  **ett kluster, två nät**; den fjärde står ensam och får inte påverka
+  något. Andra körningen lagrar samma rader, inte dubbelt så många —
+  bevisat även över en omstart av lagret.
+- **Sverige passerar viktgolvet för första gången**: `of_weight`
+  0,25 → **0,55**, index **63,6**. `public_data_alignment` och
+  `event_coverage_ratio` står kvar som `refused` och namnges i svaret.
+- **Rättat: `independent_verification` läste HELA nyhetslagret oavsett
+  marknad.** Två svenska tidningar gav **Tyskland och Japan 100 %**
+  oberoende verifiering. Det är precis det modulens egen inledning säger
+  sig undvika — ett tal om ETT lands press räknat på ett ANNATS.
+  `news.all_items` tar nu `market`, och ett kluster måste innehålla minst
+  en rad från landets egen press. Globala telegram får bekräfta en
+  inhemsk uppgift, men ett kluster som bara är telegram är ingen tysk
+  journalistik.
+- **Rättat: motsägelsesvepet krävde bara att NÅGON drivare var verklig.**
+  Med enbart den observerade sidan verklig rapporterades Solna som en
+  kontradiktion på 36 med `sources: ["mock", "osm"]`, presenterat som
+  "a finding about the place" — hela avståndet kom ur mockdata. Spärren
+  gäller nu **per sida**: verkligt papper OCH verklig mark, annars
+  `skipped_one_sided`. Felet var latent i dag och hade slagit till i
+  samma stund som den första riktiga bygglovskällan kopplades in.
+
+Fortfarande blockerat med angivet skäl: **ingen öppen nyckellös
+bygglovskälla finns** — Boverket har inget publikt API och kommunernas
+portaler är fragmenterade. Fixtur bevisar parsning och lagring, aldrig
+att en adress svarar: **inget `verified_live` sätts av det här**, och ett
+test låser det.
+
 ## [Ej släppt] — referensdata som lyfter USA över grinden
 
 Tre av MRAI:s fyra blockerare, angripna där de faktiskt satt.

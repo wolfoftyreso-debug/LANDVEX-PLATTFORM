@@ -142,15 +142,25 @@ def _source_diversity(market: str) -> tuple[float | None, dict, str]:
 def _independent_verification(market: str) -> tuple[float | None, dict, str]:
     from engine import news as N
 
-    poster = N.all_items(max_age_days=N_WINDOW_DAYS)
+    poster = N.all_items(market=market, max_age_days=N_WINDOW_DAYS)
     if not poster:
         return None, {"items": 0}, (
             "No reporting has been harvested for this market, so there is "
             "nothing to verify. That is an absence of INPUT, not a "
             "finding about the press.")
-    kluster = N.cluster(poster)
+    # Klustret får innehålla globala telegram — de är oberoende röster —
+    # men det måste innehålla minst EN rad från landets egen press.
+    # Utan den regeln räknades ett Reuters-telegram som tysk verifiering.
+    kluster = [k for k in N.cluster(poster)
+               if any(i.get("market") == market for i in k["items"])]
+    if not kluster:
+        return None, {"items": len(poster), "clusters": 0}, (
+            "Reporting was harvested, but none of it came from this "
+            "market's own press — only global wire copy. A wire item is "
+            "not this country's journalism, and counting it as such would "
+            "score every country the same. Absence of INPUT, again.")
     bekraftade = [k for k in kluster if k["may_inform_analysis"]]
-    andel = len(bekraftade) / len(kluster) if kluster else 0.0
+    andel = len(bekraftade) / len(kluster)
     return andel, {
         "clusters": len(kluster), "corroborated": len(bekraftade),
         "single_owner": len(kluster) - len(bekraftade),
@@ -163,13 +173,21 @@ def _public_data_alignment(market: str, limit: int) -> tuple[float | None,
     from engine.analysis import contradictions
 
     c = contradictions(market, limit=limit)
-    granskade = c["regions_examined"] - c["skipped_all_mock"]
+    # Halvt verkliga regioner räknas INTE som granskade. Ett index där
+    # bara ena sidan är verklig mäter mocken, och att lägga dem i nämnaren
+    # hade sänkt alignment för länder där vi kopplat in EN källa.
+    granskade = (c["regions_examined"] - c["skipped_all_mock"]
+                 - c.get("skipped_one_sided", 0))
     if granskade <= 0:
         return None, {"regions_examined": c["regions_examined"],
-                      "skipped_all_mock": c["skipped_all_mock"]}, (
-            "Every region's contradiction index rested entirely on "
-            "simulated data. Our own generator contradicting itself says "
-            "nothing about this country.")
+                      "skipped_all_mock": c["skipped_all_mock"],
+                      "skipped_one_sided": c.get("skipped_one_sided", 0)}, (
+            "No region had BOTH a real planned record and a real observed "
+            "one. Where everything was simulated, our own generator "
+            "contradicting itself says nothing about this country; where "
+            "only one side was real, the distance measures the simulation. "
+            "This component stays refused until an open permits or "
+            "detail-plan source is connected.")
     # Hög alignment = FÅ motsägelser bland de granskade.
     return 1.0 - (c["count"] / granskade), {
         "regions_examined": c["regions_examined"],
@@ -201,7 +219,7 @@ def _attention_rows(market: str) -> list[dict]:
         elif r.get("signal_id") == "population_total":
             folk[r["region_code"]] = r.get("value")
     publicerat: dict[str, int] = {}
-    for post in N.all_items(max_age_days=N_WINDOW_DAYS):
+    for post in N.all_items(market=market, max_age_days=N_WINDOW_DAYS):
         kod = post.get("region_code")
         if kod:
             publicerat[kod] = publicerat.get(kod, 0) + 1

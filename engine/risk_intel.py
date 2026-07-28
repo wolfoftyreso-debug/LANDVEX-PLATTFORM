@@ -321,7 +321,7 @@ def _observations(location: Location, market: str, res) -> dict:
         from engine.markets import MARKETS
     except Exception:                                   # noqa: BLE001
         return {}
-    poster = N.all_items(max_age_days=N_MAX_AGE_DAYS)
+    poster = N.all_items(market=market, max_age_days=N_MAX_AGE_DAYS)
     if not poster:
         return {}
     regioner = MARKETS[market].regions if market in MARKETS else []

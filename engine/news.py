@@ -408,12 +408,27 @@ def store_items(rader: list[dict]) -> int:
     return len(rader)
 
 
-def all_items(region_code: str = "", *, max_age_days: float = 0.0,
-              now: float = 0.0) -> list[dict]:
+def all_items(region_code: str = "", *, market: str = "",
+              max_age_days: float = 0.0, now: float = 0.0) -> list[dict]:
+    """Poster ur lagret. `market` är inte valfri lyx.
+
+    Utan den läste MRAI:s `independent_verification` HELA lagret för
+    varje land: två svenska tidningar gav Tyskland och Japan 100 %
+    oberoende verifiering. Det är exakt det fel modulen säger sig
+    undvika — ett tal om ETT lands press räknat på ett ANNATS.
+
+    Globala telegramrader (`market == ""`) släpps igenom med flit. En
+    Reuters-notis som bekräftar en SVT-uppgift ÄR en oberoende röst; det
+    är den viktigaste bekräftelsen som finns. Anropare som väger ett
+    lands press måste därför också kräva att klustret innehåller minst
+    en rad FRÅN landet — se mrai._independent_verification.
+    """
     rader = (_STORE.all_news() if _STORE is not None
              and getattr(_STORE, "all_news", None) else list(_MINNE.values()))
     if region_code:
         rader = [r for r in rader if r.get("region_code") == region_code]
+    if market:
+        rader = [r for r in rader if r.get("market") in ("", market)]
     if max_age_days:
         import time as _t
         nu = now or _t.time()
