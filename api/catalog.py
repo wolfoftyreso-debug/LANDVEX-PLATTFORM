@@ -383,6 +383,27 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
+        {"id": "inspections", "label_en": "Prove your assets were checked",
+         "beskrivning_en": "A register of the customer's own physical objects "
+                           "(flagpoles, lifebuoys, ladders, signs, chargers), "
+                           "the routines that say how often each must be "
+                           "checked, what falls due, an order to a quiXzoom "
+                           "field contributor, the verdict, and a compliance "
+                           "record that can be shown to a board or an insurer "
+                           "afterwards. A verdict without evidence is refused, "
+                           "and the photo itself is never stored here — only "
+                           "the verdict and the mission reference.",
+         "endpoints": [{"method": "GET", "path": "/v1/assets"},
+                       {"method": "POST", "path": "/v1/assets"},
+                       {"method": "GET", "path": "/v1/routines"},
+                       {"method": "POST", "path": "/v1/routines"},
+                       {"method": "GET", "path": "/v1/inspections/due"},
+                       {"method": "POST", "path": "/v1/inspections/dispatch"},
+                       {"method": "POST", "path": "/v1/inspections/verdict"},
+                       {"method": "GET",
+                        "path": "/v1/inspections/compliance"},
+                       {"method": "GET",
+                        "path": "/v1/inspections/exceptions"}]},
         {"id": "sensitive", "label_en": "Sensitive questions",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

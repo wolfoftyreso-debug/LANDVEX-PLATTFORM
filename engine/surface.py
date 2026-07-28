@@ -107,7 +107,8 @@ PROMISES: tuple[dict, ...] = (
         # Också det kommersiella förhållandet: vad du köpte, vem du är,
         # och vad plattformen därmed är skyldig dig.
         "engines": ("accountability", "decision", "outcomes", "offering",
-                    "surface", "customer", "visitor", "admin"),
+                    "surface", "customer", "visitor", "admin",
+                    "inspections"),
     },
 )
 

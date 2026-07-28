@@ -96,6 +96,16 @@ DECISIONS: tuple[dict, ...] = (
      "who_en": "Insurers, banks, utilities, infrastructure owners.",
      "decides_en": "Where to direct attention across a whole portfolio.",
      "answered_by": "/v1/brief"},
+    {"id": "prove_assets_are_checked", "audience": "investor",
+     "plan": "enterprise", "status": "built",
+     "question_en": "Are our assets actually being checked — and can we "
+                    "prove it?",
+     "who_en": "Anyone responsible for physical objects in public: "
+               "infrastructure owners, contractors, municipalities, "
+               "insurers.",
+     "decides_en": "Where to send someone this week, and what to hand an "
+                   "auditor or an insurer after something has happened.",
+     "answered_by": "/v1/inspections/compliance"},
     {"id": "own_detection_rules", "audience": "investor", "plan": "enterprise", "status": "built",
      "question_en": "Can we watch what matters to US, on our thresholds?",
      "who_en": "Organisations with their own risk definitions.",

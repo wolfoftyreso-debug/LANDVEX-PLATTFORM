@@ -276,6 +276,13 @@ ENVIRONMENT: dict[str, dict] = {
                                "likely be refused.", secret=True),
     "LANDVEX_QUIXZOOM_PATH": _v("optional", "Observations path override.",
                                 "The documented path is used."),
+    "LANDVEX_QUIXZOOM_MISSION_PATH": _v(
+        "optional", "Path quiXzoom accepts a mission ORDER on. Reading "
+                    "missions and ordering one are different endpoints.",
+        "The documented default path is used. Ordering still refuses "
+        "entirely unless LANDVEX_QUIXZOOM_URL is set — no mission id is "
+        "ever invented.",
+        example="/api/missions"),
     "LANDVEX_QUIXZOOM_AUTH_HEADER": _v(
         "optional", "Header name for the quiXzoom key.",
         "The documented default header is used."),

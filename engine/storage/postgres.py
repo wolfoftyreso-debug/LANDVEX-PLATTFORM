@@ -127,6 +127,36 @@ CREATE TABLE IF NOT EXISTS findings (
     PRIMARY KEY (monitor_id, checksum)
 );
 CREATE INDEX IF NOT EXISTS idx_findings_mon ON findings(monitor_id);
+
+-- Återkommande kontroller av kundens egna objekt. Motsvarar migration 7
+-- i SQLite-lagret; de två får inte glida isär (tests/test_storage.py).
+-- `checks` bär ALDRIG media: bilden stannar hos quiXzoom, som har
+-- samtycket. Här ligger domen och en referens till uppdraget.
+CREATE TABLE IF NOT EXISTS assets (
+    id      TEXT NOT NULL,
+    tenant  TEXT NOT NULL DEFAULT '',
+    kind    TEXT NOT NULL DEFAULT '',
+    payload JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
+
+CREATE TABLE IF NOT EXISTS routines (
+    id      TEXT NOT NULL,
+    tenant  TEXT NOT NULL DEFAULT '',
+    payload JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
+
+CREATE TABLE IF NOT EXISTS checks (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    asset_id     TEXT NOT NULL,
+    routine_id   TEXT NOT NULL DEFAULT '',
+    performed_at TEXT NOT NULL DEFAULT '',
+    verdict      TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_checks_tenant ON checks(tenant, asset_id);
 """
 
 
@@ -381,6 +411,61 @@ class PostgresStore(Store):
         with self._conn.cursor() as cur:
             cur.execute("SELECT payload FROM findings "
                         "ORDER BY created_at, checksum")
+            return [r[0] for r in cur.fetchall()]
+
+    # ── Återkommande kontroller ──────────────────────────────────────
+    def save_asset(self, record: dict[str, Any]) -> str:
+        import json
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO assets (id, tenant, kind, payload) "
+                "VALUES (%s,%s,%s,%s) ON CONFLICT (tenant, id) DO UPDATE "
+                "SET kind=EXCLUDED.kind, payload=EXCLUDED.payload",
+                (record["id"], record.get("tenant", ""),
+                 record.get("kind", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_assets(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM assets ORDER BY tenant, id")
+            return [r[0] for r in cur.fetchall()]
+
+    def save_routine(self, record: dict[str, Any]) -> str:
+        import json
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO routines (id, tenant, payload) "
+                "VALUES (%s,%s,%s) ON CONFLICT (tenant, id) DO UPDATE "
+                "SET payload=EXCLUDED.payload",
+                (record["id"], record.get("tenant", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_routines(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM routines ORDER BY tenant, id")
+            return [r[0] for r in cur.fetchall()]
+
+    def save_check(self, record: dict[str, Any]) -> str:
+        import json
+        import uuid as _uuid
+        cid = record.get("id") or str(_uuid.uuid4())
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO checks (id, tenant, asset_id, routine_id, "
+                "performed_at, verdict, payload) VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload",
+                (cid, record.get("tenant", ""), record["asset_id"],
+                 record.get("routine_id", ""),
+                 record.get("performed_at", ""), record.get("verdict", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return cid
+
+    def all_checks(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM checks "
+                        "ORDER BY performed_at, id")
             return [r[0] for r in cur.fetchall()]
 
     def close(self) -> None:

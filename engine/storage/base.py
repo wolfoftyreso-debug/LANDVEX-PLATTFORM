@@ -130,6 +130,34 @@ class Store(ABC):
     def all_findings(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    # ── Återkommande kontroller av kundens egna objekt ───────────────
+    # Ingen av metoderna tar tenant: motorn filtrerar (engine/inspections
+    # ._las), lagret lagrar. Samma delning som för bevakningar. Tenant
+    # ligger som kolumn i SQLite för att raden ska gå att hänföra till en
+    # kund utan att packa upp JSON.
+    def save_asset(self, record: dict[str, Any]):
+        """Persistera/uppdatera ett objekt (idempotent på tenant+id).
+        None = stöds ej → process-minne."""
+        return None
+
+    def all_assets(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def save_routine(self, record: dict[str, Any]):
+        """Persistera/uppdatera en kontrollrutin (idempotent på tenant+id)."""
+        return None
+
+    def all_routines(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def save_check(self, record: dict[str, Any]):
+        """Persistera ett utfall (append-only). Bär ALDRIG media — bara
+        domen och en referens till uppdraget hos quiXzoom."""
+        return None
+
+    def all_checks(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def close(self) -> None:   # noqa: B027 – avsiktlig no-op, ej abstrakt
         """Stäng lagret. Medvetet INTE abstrakt: ett lager utan
         resurser att frigöra ska slippa implementera en tom metod,

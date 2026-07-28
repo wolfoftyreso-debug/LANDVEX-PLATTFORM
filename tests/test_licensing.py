@@ -21,7 +21,7 @@ def test_plans_and_addons_are_valid_data():
     for a in ADDONS.values():
         assert a["capabilities"] and a["pris_manad"]["USD"] > 0
     kat = plans_catalog()
-    assert len(kat["plans"]) == 3 and len(kat["tillagg"]) == 5
+    assert len(kat["plans"]) == 3 and len(kat["tillagg"]) == len(ADDONS)
     assert "list price" in kat["prisnot_en"].lower() or \
            "example" in kat["prisnot_en"].lower()      # ärlig prismärkning
 
@@ -127,6 +127,30 @@ def test_monthly_quota_per_plan():
         raise AssertionError("Kvottaket slog inte till")
     q.check("annan-tenant", 100)         # per tenant, inte globalt
     q.check("acme", None)                # enterprise: obegränsat
+
+
+def test_asset_inspections_are_gated_and_buyable_without_enterprise():
+    """Kontrollmodulen ligger i Enterprise OCH som tillägg.
+
+    Ligger den bara i den dyraste planen kan den första riktiga kunden —
+    en flaggleverantör med några hundra flaggstänger — inte köpa det hon
+    behöver. Och saknas kapabilitetsraden helt är endpointen oskyddad:
+    `required_capability` returnerar None för okända vägar, och då
+    släpper api/security.py igenom vem som helst.
+    """
+    for path in ("/v1/assets", "/v1/routines", "/v1/inspections/due",
+                 "/v1/inspections/dispatch", "/v1/inspections/verdict",
+                 "/v1/inspections/compliance", "/v1/inspections/exceptions"):
+        assert required_capability(path) == "asset_inspections", path
+    auth = ApiAuth(keys_env="proff:acme:analyst:pro,"
+                            "flagg:flaggab:analyst:free:asset_inspections")
+    assert auth.authorize("flagg", "GET", "/v1/inspections/compliance")
+    try:
+        auth.authorize("proff", "GET", "/v1/inspections/compliance")
+    except AuthError as e:
+        assert e.status == 403 and "/v1/plans" in e.message_en
+    else:
+        raise AssertionError("Professional kom in utan tillägget")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ PostgresStore.selftest() vid driftsättning.
 """
 from __future__ import annotations
 
+import os
+import tempfile
 
 from engine.datasources.adapters import ScbSource
 from engine.datasources.base import DataSource, Resolver
@@ -272,6 +274,68 @@ def test_legacy_rows_are_invisible_rather_than_guessed():
     store._conn.commit()
     assert store.list_profiles(tenant="kommunen") == []
     assert store.get_profile("gammal", tenant="kommunen") is None
+
+
+def test_inspections_survive_a_restart_and_stay_per_tenant():
+    """Ett efterlevnadsregister som bara finns i processminnet är inget
+    register: det som ska visas för en nämnd ett år senare måste finnas
+    kvar efter en omstart."""
+    from engine import inspections as I
+
+    path = os.path.join(tempfile.mkdtemp(), "kontroller.db")
+    store = SqliteStore(path)
+    I.set_store(store)
+    try:
+        I.save_asset(I.asset("fp1", "flagpole", lat=59.3, lon=18.0,
+                             tenant="flaggab"))
+        I.save_asset(I.asset("boj1", "lifebuoy", lat=59.4, lon=18.1,
+                             tenant="kommunen"))
+        I.save_routine(I.routine("vecka", "Weekly flag check", "flagpole", 7,
+                                 checks=["present"], tenant="flaggab"))
+        I.save_check(I.record("fp1", "vecka", "pass", mission_id="qz-1",
+                              performed_at="2026-07-20", tenant="flaggab"))
+        store.close()
+
+        igen = SqliteStore(path)          # omstart: nytt lager, samma fil
+        I.set_store(igen)
+        assert [a["id"] for a in I.all_assets("flaggab")] == ["fp1"]
+        assert [a["id"] for a in I.all_assets("kommunen")] == ["boj1"]
+        assert I.all_routines("kommunen") == []
+        assert [c["asset_id"] for c in I.all_checks("flaggab")] == ["fp1"]
+        assert I.all_checks("kommunen") == []
+        igen.close()
+    finally:
+        I.set_store(None)
+        I.reset()
+
+
+def test_no_stored_check_carries_the_photo_itself():
+    """En fältbild på en badplats innehåller människor. Landvex lagrar
+    domen och referensen; bilden stannar hos quiXzoom, som har samtycket.
+    Kolumnen finns inte, och den ska inte kunna smyga in."""
+    store = SqliteStore(":memory:")
+    kolumner = {r[1] for r in
+                store._conn.execute("PRAGMA table_info(checks)").fetchall()}
+    for förbjuden in ("image", "photo", "media", "image_data", "blob",
+                      "thumbnail"):
+        assert förbjuden not in kolumner, förbjuden
+    store.close()
+
+
+def test_both_stores_offer_the_inspection_contract():
+    """Samma sak som för rapporter: ett lager som bär registret lokalt men
+    inte i produktion ser säkert ut precis där ingen kund finns."""
+    import inspect
+
+    from engine.storage.postgres import PostgresStore
+    for klass in (SqliteStore, PostgresStore):
+        for name in ("save_asset", "all_assets", "save_routine",
+                     "all_routines", "save_check", "all_checks"):
+            assert callable(getattr(klass, name, None)), \
+                f"{klass.__name__}.{name} saknas"
+    src = inspect.getsource(PostgresStore)
+    assert "ON CONFLICT (tenant, id)" in src, \
+        "postgres skriver över fel kunds objekt vid id-krock"
 
 
 if __name__ == "__main__":

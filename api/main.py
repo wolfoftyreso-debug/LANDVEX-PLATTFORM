@@ -72,6 +72,7 @@ from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
+from engine import inspections as _insp
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -193,6 +194,11 @@ set_outcome_store(STORE)
 set_accountability_store(STORE)
 set_corrections_store(STORE)
 set_monitors_store(STORE)
+# Kontrollregistret måste ligga i lagret här också, inte bara i
+# dev-servern: det är produktionsvägen, och ett efterlevnadsregister som
+# bara finns i processminnet är borta vid nästa omstart — precis det
+# register som ska gå att visa ett år senare.
+_insp.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -914,6 +920,102 @@ def sensors_ep():
 def surface_ep(detail: bool = False):
     """Four promises. The full catalogue stays at /v1/catalog."""
     return surface(detail)
+
+
+@app.get("/v1/assets")
+def assets_ep(request: Request):
+    """The customer's own physical objects."""
+    from engine import inspections as I
+    return {"assets": I.all_assets(_tenant(request)), "source": "customer"}
+
+
+@app.post("/v1/assets", status_code=201)
+def assets_create_ep(request: Request, body: dict):
+    from engine import inspections as I
+    try:
+        rec = I.asset(body["id"], body["kind"],
+                      label_en=body.get("label_en", ""),
+                      lat=body.get("lat"), lon=body.get("lon"),
+                      address=body.get("address", ""),
+                      installed_at=body.get("installed_at", ""),
+                      tenant=_tenant(request))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    I.save_asset(rec)
+    return rec
+
+
+@app.get("/v1/routines")
+def routines_ep(request: Request):
+    """What must be checked, how often, and what counts as a pass."""
+    from engine import inspections as I
+    return {"routines": I.all_routines(_tenant(request)), **I.catalog()}
+
+
+@app.post("/v1/routines", status_code=201)
+def routines_create_ep(request: Request, body: dict):
+    from engine import inspections as I
+    try:
+        rec = I.routine(body["id"], body["label_en"], body["applies_to"],
+                        int(body["every_days"]),
+                        checks=tuple(body.get("checks") or ()),
+                        weekday=body.get("weekday"),
+                        season=tuple(body["season"]) if body.get("season")
+                        else None,
+                        owners=body.get("owners"),
+                        expected=body.get("expected"),
+                        tenant=_tenant(request))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    I.save_routine(rec)
+    return rec
+
+
+@app.get("/v1/inspections/due")
+def inspections_due_ep(request: Request):
+    """What a dispatch run would order today."""
+    from engine import inspections as I
+    return I.due_now(_tenant(request))
+
+
+@app.post("/v1/inspections/dispatch")
+def inspections_dispatch_ep(request: Request):
+    """Order field missions for everything that falls due."""
+    from integrations.quixzoom_dispatch import dispatch_due
+    return dispatch_due(_tenant(request))
+
+
+@app.post("/v1/inspections/verdict", status_code=201)
+def inspections_verdict_ep(request: Request, body: dict):
+    """Record an outcome. Evidence required for anything but 'unclear'."""
+    from engine import inspections as I
+    try:
+        rec = I.record(body["asset_id"], body["routine_id"],
+                       body["verdict"],
+                       performed_at=body.get("performed_at", ""),
+                       mission_id=body.get("mission_id", ""),
+                       evidence_ref=body.get("evidence_ref", ""),
+                       observed_by=body.get("observed_by", ""),
+                       note_en=body.get("note_en", ""),
+                       tenant=_tenant(request))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    I.save_check(rec)
+    return rec
+
+
+@app.get("/v1/inspections/compliance")
+def inspections_compliance_ep(request: Request):
+    """Every object, last seen, next due — what you show afterwards."""
+    from engine import inspections as I
+    return I.report(_tenant(request))
+
+
+@app.get("/v1/inspections/exceptions")
+def inspections_exceptions_ep(request: Request):
+    """Only what needs someone."""
+    from engine import inspections as I
+    return I.exception_feed(_tenant(request))
 
 
 @app.get("/v1/commercial")

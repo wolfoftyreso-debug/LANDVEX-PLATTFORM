@@ -73,6 +73,10 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/admin": "core",                      # administrativt register
     "/v1/monitors": "monitoring",             # bevakningar + cron (styrd API)
     "/v1/inbox": "monitoring",                # händelseroutning per intresse
+    "/v1/assets": "asset_inspections",        # kundens egna objekt
+    "/v1/routines": "asset_inspections",      # hur ofta de ska kontrolleras
+    "/v1/inspections": "asset_inspections",   # förfall, beställning, dom,
+                                              # efterlevnad, avvikelser
     "/v1/visitor": "core",                    # onboarding-sömmen
     "/v1/customer": "core",                   # kundresan KYC→aktiv
     "/v1/flows": "opportunity",               # kostnad/nytta (förväntat värde)
@@ -182,8 +186,12 @@ PLANS: dict[str, dict] = _PlanMap({
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "monitoring", "partner_api",
-                         "platform_ops"),
+                         "platform_ops", "asset_inspections"),
         "ingar_en": ["Everything in Professional",
+                     "Asset inspections: your own objects, recurring "
+                     "routines, field orders, verdicts and a compliance "
+                     "record (also sold as an add-on to any plan — a "
+                     "contractor with 300 flagpoles is not an enterprise)",
                      "Partner API + agent manifest",
                      "AAMOS agents, watchlist and cognition endpoints "
                      "(requires AAMOS_CORE_URL)",
@@ -207,6 +215,13 @@ ADDONS: dict[str, dict] = {
     "intelligence_map": {"label_en": "Intelligence Map Live",
                          "pris_manad": {"USD": 149, "EUR": 139},
                          "capabilities": ("intelligence_map_live",)},
+    # Tillägget finns för att den första riktiga kunden för modulen — en
+    # flaggleverantör som sköter flaggor och flaggstänger i stora delar av
+    # Stockholm — inte är ett enterpriseföretag. Ligger kapabiliteten bara
+    # i den dyraste planen kan hon inte köpa det hon behöver.
+    "asset_inspections": {"label_en": "Asset Inspections",
+                          "pris_manad": {"USD": 249, "EUR": 229},
+                          "capabilities": ("asset_inspections",)},
     "partner_api": {"label_en": "Partner API & Agents",
                     "pris_manad": {"USD": 499, "EUR": 459},
                     "capabilities": ("partner_api",)},

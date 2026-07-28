@@ -313,6 +313,7 @@
     <button class="tab" data-mode="console"><svg class="ikon"><use href="#i-puls"/></svg>Console</button>
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
     <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
+    <button class="tab" data-mode="kontroll"><svg class="ikon"><use href="#i-bock"/></svg>Checks</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
 </header>
@@ -384,6 +385,13 @@
         <textarea id="watchChatText" rows="2" placeholder="Ask the platform agents a question …"></textarea></div>
       <button id="watchChatSend" style="background:var(--accent);border:none;color:#fff;font-weight:600">Send</button>
       <div id="watchChatUt" class="motiv" style="margin-top:10px"></div>
+    </div>
+    <div id="vyKontroll" style="display:none">
+      <h2>Prove it was checked</h2>
+      <p class="motiv">Your own objects, how often each must be seen, what
+        falls due, and what can be shown afterwards. The verdict and a
+        mission reference are stored here — never the photograph.</p>
+      <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
     </div>
     <div id="vyInstall" style="display:none">
       <h2>Settings</h2>
@@ -1056,6 +1064,8 @@ const LAGEN = {
              status: "Defaults are saved locally in your browser." },
   console: { rubrik: "Console", titel: "Landvex · Intelligence Console",
              status: "λ computed live from /v1/lambda · KPI status is deterministic." },
+  kontroll: { rubrik: "Compliance", titel: "Recurring checks · your own objects",
+              status: "Register, routines, what falls due and what failed." },
 };
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
@@ -1070,6 +1080,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyPaket").style.display = MODE === "paket" ? "" : "none";
   $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
+  $("vyKontroll").style.display = MODE === "kontroll" ? "" : "none";
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendIndex").style.display = MODE === "index" ? "" : "none";
@@ -1087,6 +1098,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
     "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
   if (MODE === "watch") visaWatch();
+  if (MODE === "kontroll") visaKontroll();
 });
 
 // ---- Intelligence Console (skördade lager: λ-index + KPI-motor) ----------
@@ -1865,6 +1877,109 @@ function watchAgentsHTML(ag) {
   const notis = ag.notis_en || (ag.aamos && ag.aamos.notis_en);
   if (notis) ut += `<p class="roi-notis">${esc(notis)}</p>`;
   return ut;
+}
+
+// ---- Kontroller: efterlevnadsregister + avvikelseflöde -------------------
+const KFARG = { ok: "#34C759", due_soon: "#FFCC00", overdue: "#FF9500",
+                failed: "#FF3B30", never_checked: "#57647A",
+                out_of_season: "#57647A" };
+// Statusen har en egen bandnyckel så kartan och listan aldrig kan säga
+// olika saker om samma objekt.
+const KBAND = { ok: "gron", due_soon: "gul", overdue: "orange",
+                failed: "rod", never_checked: "gul",
+                out_of_season: "gron" };
+const KTEXT = { ok: "Current", due_soon: "Falls due", overdue: "Overdue",
+                failed: "Failed", never_checked: "Never checked",
+                out_of_season: "Out of season" };
+
+function kontrollRad(r) {
+  const a = r.asset || {}, f = KFARG[r.status] || "#57647A";
+  const sen = r.days_overdue ? ` · ${r.days_overdue} d` : "";
+  return `<div class="rad" style="display:flex;gap:10px;align-items:baseline;` +
+    `padding:7px 0;border-bottom:1px solid var(--line)">` +
+    `<span style="color:${f};font-weight:600;min-width:112px">` +
+    `${esc(KTEXT[r.status] || r.status)}${esc(sen)}</span>` +
+    `<span style="flex:1">${esc(a.label_en || a.id || "")}` +
+    `<span class="motiv" style="display:block">${esc(a.address || "")}</span></span>` +
+    `<span class="motiv" style="white-space:nowrap">next ${esc(r.next_due || "–")}</span></div>`;
+}
+
+function ritaKontrollKarta(rader) {
+  const pkt = rader.filter(r => r.asset && r.asset.lat != null &&
+                                r.asset.lon != null);
+  tomKarta();
+  if (!pkt.length) return;          // ingen karta hellre än fel karta
+  const lat = pkt.map(r => r.asset.lat), lon = pkt.map(r => r.asset.lon);
+  // Marginal runt objekten: en bbox som är exakt objektens utsträckning
+  // lägger prickarna i kanten, och en enda punkt ger noll bredd.
+  const m = 0.02;
+  setBox([Math.min(...lat) - m, Math.max(...lat) + m,
+          Math.min(...lon) - m, Math.max(...lon) + m]);
+  vb = { x: 0, y: 0, w: W, h: H }; applyVB();
+  for (const r of pkt) {
+    const a = r.asset;
+    laggPunkt(a.lat, a.lon, KBAND[r.status] || "gul", 7,
+      `${a.label_en || a.id} — ${KTEXT[r.status] || r.status}` +
+      (a.address ? ` · ${a.address}` : ""), a.id, () => {});
+  }
+}
+
+async function visaKontroll() {
+  if (MODE !== "kontroll") return;
+  const wrap = $("hotspots");
+  wrap.innerHTML = "<p class='motiv'>Loading the register …</p>";
+  const [reg, avv, rut] = await Promise.allSettled([
+    api("/v1/inspections/compliance"), api("/v1/inspections/exceptions"),
+    api("/v1/routines")]);
+  if (MODE !== "kontroll") return;
+  if (reg.status !== "fulfilled") {
+    wrap.innerHTML = watchFel(reg.reason);
+    $("kontrollKund").innerHTML = "";
+    return;
+  }
+  const c = reg.value;
+  const andel = Math.round((c.share_current || 0) * 100);
+  const lagen = c.by_status || {};
+  let html = watchKort("Compliance record", "bock",
+    `<p class="motiv" style="margin-bottom:8px">` +
+    `<b style="color:var(--text);font-size:18px">${andel}%</b> current ` +
+    `· ${c.current} of ${c.count} objects` +
+    Object.keys(lagen).sort().map(k =>
+      ` · <span style="color:${KFARG[k] || "#57647A"}">${esc(KTEXT[k] || k)} ` +
+      `${lagen[k]}</span>`).join("") + `</p>` +
+    (c.rows || []).map(kontrollRad).join("") +
+    `<p class="motiv" style="margin-top:10px">${esc(c.means_en || "")}</p>` +
+    `<p class="motiv"><b>Cannot:</b> ${esc(c.cannot_en || "")}</p>`);
+  if (avv.status === "fulfilled") {
+    const a = avv.value;
+    html += watchKort("Exceptions", "varning", a.count
+      ? (a.exceptions || []).map(kontrollRad).join("") +
+        `<p class="motiv" style="margin-top:10px">${a.count} of ` +
+        `${a.of_total} objects need someone.</p>`
+      : `<p class="motiv">${esc(a.quiet_en || "Nothing needs anyone.")}</p>`);
+  }
+  if (rut.status === "fulfilled") {
+    html += watchKort("Routines", "kugge", (rut.value.routines || []).map(r =>
+      `<div style="padding:7px 0;border-bottom:1px solid var(--line)">` +
+      `<b>${esc(r.label_en || r.id)}</b> — every ${r.every_days} day(s)` +
+      (r.weekday !== null && r.weekday !== undefined
+        ? ` on ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][r.weekday]}` : "") +
+      (r.season ? ` · season ${esc(r.season[0])}–${esc(r.season[1])}` : "") +
+      `<span class="motiv" style="display:block">Passes when: ` +
+      `${(r.checks || []).map(esc).join(", ")}</span>` +
+      (r.owners && Object.keys(r.owners).length
+        ? `<span class="motiv" style="display:block">Owners: ` +
+          Object.entries(r.owners).map(([k, v]) => `${esc(k)} ${esc(v)}`)
+            .join(" · ") + `</span>` : "") + `</div>`).join(""));
+  }
+  wrap.innerHTML = html;
+  ritaKontrollKarta(c.rows || []);
+  const k = (window.DEMO && window.DEMO.inspections) || null;
+  $("kontrollKund").innerHTML = k
+    ? `<b style="color:var(--text)">${esc(k.customer_en)}</b> — ${esc(k.note_en)}` +
+      ` <span style="display:block">Register computed ${esc(k.as_of)}; ` +
+      `a static file does not age with the calendar.</span>`
+    : "";
 }
 
 async function visaWatch() {

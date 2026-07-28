@@ -74,10 +74,12 @@ PACKAGINGS: tuple[dict, ...] = (
        "cannot make, a claim they need settled this week. The natural "
        "first purchase after the open tier.",
        "one mission", False,
-       depends_on_en="NOT DELIVERABLE YET: mission dispatch, media capture "
-                     "with preserved sensor metadata and the Vision step "
-                     "that reads it are not built. Selling it today "
-                     "promises a chain that is not closed.",
+       depends_on_en="NOT DELIVERABLE YET: ordering is now built "
+                     "(integrations/quixzoom_dispatch.py) but has never "
+                     "been confirmed against a live quiXzoom endpoint, "
+                     "and the step that reads the returned media is "
+                     "AAMOS's, not wired here. The chain is shorter than "
+                     "it was and it is still not closed.",
        plans=("pro",)),
 
     _p("pilot_then_subscription", "Pilot, then annual subscription",

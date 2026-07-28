@@ -128,6 +128,30 @@ def from_finding(f: dict) -> dict:
             "checksum": f.get("checksum", "")}
 
 
+def from_inspection_exception(rad: dict) -> dict:
+    """En avvikelse i kontrollregistret (engine.inspections) → samma form.
+
+    Allvarsgraden följer utfallet och inte kalendern: ett underkänt objekt
+    är allvarligare än ett som förfaller om två dagar, hur nyligen det än
+    kontrollerades. `metrics` bär rutinens mätare så att ett ansvarskort
+    som lovat `share_current` faktiskt träffas när det inte hålls.
+    """
+    status = rad.get("status", "")
+    sen = int(rad.get("days_overdue") or 0)
+    grad = ("high" if status == "failed" else
+            "high" if sen > 7 else
+            "medium" if status in ("overdue", "never_checked") else "low")
+    a = rad.get("asset") or {}
+    return {"origin": "inspection", "source_id": rad.get("routine_id", ""),
+            "severity": grad, "scope": a.get("id", ""),
+            "scope_type": "asset",
+            "summary": f"{status}: {a.get('label_en') or a.get('id', '')}"
+                       f"{' · ' + a['address'] if a.get('address') else ''}",
+            "why": [rad.get("why_en", "")],
+            "metrics": ["share_current", "days_overdue"],
+            "owner": "", "checksum": f"{a.get('id', '')}:{status}:{sen}"}
+
+
 # ── Routning ─────────────────────────────────────────────────────────────
 def _matches(st: dict, ev: dict, decisions: dict) -> tuple[bool, str]:
     """Träffar händelsen detta intresse? Returnerar (träff, skäl på engelska)."""

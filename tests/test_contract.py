@@ -144,6 +144,25 @@ def test_catalog_declares_the_method_each_endpoint_actually_answers():
                 f"båda servrarna på"
 
 
+def test_both_layers_back_the_same_engines_with_the_store():
+    """Samma yta räcker inte om bara den ena servern persisterar.
+
+    dev-servern hade `inspections.set_store(STORE)`; FastAPI-lagret hade
+    det inte. Ytan var identisk och kontraktstestet grönt — men i
+    produktion låg efterlevnadsregistret i processminnet och var borta vid
+    nästa omstart. Det är den sortens drift som bara syns om något läser
+    båda filerna.
+    """
+    fapi = (_ROOT / "main.py").read_text(encoding="utf-8")
+    dev = (_ROOT / "dev_server.py").read_text(encoding="utf-8")
+    for modul in ("outcome", "accountability", "corrections", "monitors"):
+        for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
+            assert f"set_{modul}_store(STORE)" in src, f"{namn}: {modul}"
+    for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
+        assert re.search(r"\w+\.set_store\(STORE\)", src), \
+            f"{namn} kopplar inte kontrollregistret till lagret"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

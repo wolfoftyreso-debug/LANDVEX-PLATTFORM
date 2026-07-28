@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Landvex Opportunity Engine",
-    "version": "0.10.0",
-    "description": "Decision Intelligence for the Physical World"
+    "version": "1.1.0",
+    "description": "What the data supports — and where it runs out"
   },
   "paths": {
     "/v1/ask": {
@@ -347,6 +347,982 @@
         "summary": "City indices (infrastructure risk, commercial activity, safety, climate risk, urban growth) + the contradiction index – sourced & traceable.",
         "tags": [
           "indices"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/kpi": {
+      "get": {
+        "summary": "Societal KPI registry (7 categories) with invert-aware status/trend and threshold + velocity alerts. Deterministic, no ML.",
+        "tags": [
+          "kpi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/kpi/evaluate": {
+      "post": {
+        "summary": "Societal KPI registry (7 categories) with invert-aware status/trend and threshold + velocity alerts. Deterministic, no ML.",
+        "tags": [
+          "kpi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/lambda": {
+      "post": {
+        "summary": "Geometric-mean balance index across 8 societal axes (~1.0 balanced); penalises extremes so a strong axis cannot mask a weak one.",
+        "tags": [
+          "lambda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/setpoints": {
+      "get": {
+        "summary": "Calibrated reference thresholds per indicator (Maastricht 60%, Gini 0.30, TFR 2.1 …) with four nested zones and sourced derivation.",
+        "tags": [
+          "setpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/setpoints/assess": {
+      "post": {
+        "summary": "Calibrated reference thresholds per indicator (Maastricht 60%, Gini 0.30, TFR 2.1 …) with four nested zones and sourced derivation.",
+        "tags": [
+          "setpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/cite": {
+      "post": {
+        "summary": "Turns a figure into a verifiable, content-hashed, versioned claim with 3-owner governance and text/APA/BibTeX citations.",
+        "tags": [
+          "claims"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/feeds": {
+      "get": {
+        "summary": "Change detection: turns KPI movements into deduplicated why-now events (top changes, structural decline, priority alerts, anomalies).",
+        "tags": [
+          "feeds"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/feeds/events": {
+      "post": {
+        "summary": "Change detection: turns KPI movements into deduplicated why-now events (top changes, structural decline, priority alerts, anomalies).",
+        "tags": [
+          "feeds"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/worthiness": {
+      "post": {
+        "summary": "Scores which changes are worth surfacing and ranks them hero/primary/secondary/mention.",
+        "tags": [
+          "worthiness"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/decision": {
+      "get": {
+        "summary": "Structured decision basis (coverage, gaps, assumptions) — never a recommendation. Crisis queries are met with support resources.",
+        "tags": [
+          "decision"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Structured decision basis (coverage, gaps, assumptions) — never a recommendation. Crisis queries are met with support resources.",
+        "tags": [
+          "decision"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/strim": {
+      "get": {
+        "summary": "Citable, versioned, neutral entity graph (schema.org / JSON-LD) with immutable slugs and an editorial neutral-language gate.",
+        "tags": [
+          "strim"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/strim/entity": {
+      "post": {
+        "summary": "Citable, versioned, neutral entity graph (schema.org / JSON-LD) with immutable slugs and an editorial neutral-language gate.",
+        "tags": [
+          "strim"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/sources": {
+      "get": {
+        "summary": "Connection status for the Kolada and SVK/ENTSO-E adapters — honestly not-connected until their URL is set.",
+        "tags": [
+          "data_sources"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/kolada": {
+      "get": {
+        "summary": "Connection status for the Kolada and SVK/ENTSO-E adapters — honestly not-connected until their URL is set.",
+        "tags": [
+          "data_sources"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/svk": {
+      "get": {
+        "summary": "Connection status for the Kolada and SVK/ENTSO-E adapters — honestly not-connected until their URL is set.",
+        "tags": [
+          "data_sources"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/outcomes": {
+      "post": {
+        "summary": "Logs establishments and real outcomes, calibrates the model (Brier, reliability), and unlocks a survival-based expected_roi once data exists.",
+        "tags": [
+          "outcomes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/outcomes/calibration": {
+      "get": {
+        "summary": "Logs establishments and real outcomes, calibrates the model (Brier, reliability), and unlocks a survival-based expected_roi once data exists.",
+        "tags": [
+          "outcomes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/outcomes/roi": {
+      "post": {
+        "summary": "Logs establishments and real outcomes, calibrates the model (Brier, reliability), and unlocks a survival-based expected_roi once data exists.",
+        "tags": [
+          "outcomes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/correlate": {
+      "post": {
+        "summary": "Surfaces associations across domains (e.g. diet x pharma x living) as hypotheses — never causation: spurious flag, confounder control (partial correlation), and replication across markets.",
+        "tags": [
+          "correlate"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/correlate/cross-market": {
+      "post": {
+        "summary": "Surfaces associations across domains (e.g. diet x pharma x living) as hypotheses — never causation: spurious flag, confounder control (partial correlation), and replication across markets.",
+        "tags": [
+          "correlate"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/scenario": {
+      "post": {
+        "summary": "Credibility-gated societal scenarios: only speaks when there are enough credible sources AND a systematic historical tendency; shows the basis, a widening band and explicit assumptions. Never a bare prediction.",
+        "tags": [
+          "scenario"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/event-study": {
+      "post": {
+        "summary": "Before/after an intervention and difference-in-differences vs controls (e.g. legalisation -> accidents). Observational, parallel-trends stated.",
+        "tags": [
+          "event_study"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/benchmark": {
+      "post": {
+        "summary": "Places a value in the distribution of comparable units (percentile, z-score, outlier band) — is a claimed shortage/excess actually unusual, or normal?",
+        "tags": [
+          "benchmark"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/wages": {
+      "get": {
+        "summary": "Standard wage per standard occupation across markets. Swedish anchor (wage-statistics level) x documented FX — schablon, not PPP-adjusted; real local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
+        "tags": [
+          "wages"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/wages/lookup": {
+      "post": {
+        "summary": "Standard wage per standard occupation across markets. Swedish anchor (wage-statistics level) x documented FX — schablon, not PPP-adjusted; real local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
+        "tags": [
+          "wages"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/wages/compare": {
+      "post": {
+        "summary": "Standard wage per standard occupation across markets. Swedish anchor (wage-statistics level) x documented FX — schablon, not PPP-adjusted; real local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
+        "tags": [
+          "wages"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/wages/context": {
+      "post": {
+        "summary": "Standard wage per standard occupation across markets. Swedish anchor (wage-statistics level) x documented FX — schablon, not PPP-adjusted; real local wages arrive via SCB/BLS/Eurostat/ILOSTAT.",
+        "tags": [
+          "wages"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/corrections/submit": {
+      "post": {
+        "summary": "Wikipedia-style sourced corrections from regional users; when enough independent, converging, sourced corrections arrive the system adapts the value (labelled community, reversible, traceable).",
+        "tags": [
+          "corrections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/corrections/consensus": {
+      "post": {
+        "summary": "Wikipedia-style sourced corrections from regional users; when enough independent, converging, sourced corrections arrive the system adapts the value (labelled community, reversible, traceable).",
+        "tags": [
+          "corrections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/corrections/adapt": {
+      "post": {
+        "summary": "Wikipedia-style sourced corrections from regional users; when enough independent, converging, sourced corrections arrive the system adapts the value (labelled community, reversible, traceable).",
+        "tags": [
+          "corrections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/entrypoints": {
+      "get": {
+        "summary": "Role-based doors into the engine — citizen, business, investor, municipality, journalist, researcher. Each ends in a decision answer (answered_by), tools as the evidence layer, event feeds as the live overlay.",
+        "tags": [
+          "entrypoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin": {
+      "get": {
+        "summary": "Complete level-1 units for 18 countries (US states, Canadian provinces, Swiss cantons, German Länder, Swedish counties, French/Spanish/Italian/Danish/Dutch/Norwegian/Finnish/Austrian/Belgian/Irish/Portuguese/Polish/Czech regions), a level-2 municipal tier (counties/kommuner/communes) that loads live from official registers, and a level-3 postal tier (ZIP/postcode/PLZ) documented per country — a partial seed is never presented as complete.",
+        "tags": [
+          "admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/flows/expected-value": {
+      "post": {
+        "summary": "Expected value beyond the feelings: certain costs against probability-weighted gains — net value, benefit/cost ratio, break-even probability and sensitivity (where the conclusion is fragile). Gated on credible sources; a framing, never advice.",
+        "tags": [
+          "flows"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/customer/journey": {
+      "get": {
+        "summary": "Where a customer stands across KYC, onboarding, platform setup and active operation — each stage naming its owner. KYC and onboarding are owned outside this platform and it says so instead of pretending to progress them. KYC is never performed or self-attested here: absent a provider verdict the answer is not_verified, and billing, live layers, partner API and sensitive analysis stay gated.",
+        "tags": [
+          "customer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/customer/stage": {
+      "post": {
+        "summary": "Where a customer stands across KYC, onboarding, platform setup and active operation — each stage naming its owner. KYC and onboarding are owned outside this platform and it says so instead of pretending to progress them. KYC is never performed or self-attested here: absent a provider verdict the answer is not_verified, and billing, live layers, partner API and sensitive analysis stay gated.",
+        "tags": [
+          "customer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/visitor/contract": {
+      "get": {
+        "summary": "The documented seam a customer onboarding delivers into. Accepts a customer record via field names or aliases, reports what is missing rather than inferring it, and grades how well the platform knows this visitor (unknown → partial → known → routed) with the single next question that lifts it a step.",
+        "tags": [
+          "visitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/visitor": {
+      "post": {
+        "summary": "The documented seam a customer onboarding delivers into. Accepts a customer record via field names or aliases, reports what is missing rather than inferring it, and grades how well the platform knows this visitor (unknown → partial → known → routed) with the single next question that lifts it a step.",
+        "tags": [
+          "visitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/households": {
+      "get": {
+        "summary": "Where a specific household can build a good life: job demand for the occupation, pay after tax converted to one currency, childcare, schools, safety, housing, cost of living, healthcare, support services, communications and social fabric — weighted by household type, including a single parent with a child needing additional support. For regulated professions the right to work and qualification recognition are reported BEFORE any ranking, because they decide first. Best and worst are both shown.",
+        "tags": [
+          "livability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/livability": {
+      "post": {
+        "summary": "Where a specific household can build a good life: job demand for the occupation, pay after tax converted to one currency, childcare, schools, safety, housing, cost of living, healthcare, support services, communications and social fabric — weighted by household type, including a single parent with a child needing additional support. For regulated professions the right to work and qualification recognition are reported BEFORE any ranking, because they decide first. Best and worst are both shown.",
+        "tags": [
+          "livability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/merit": {
+      "post": {
+        "summary": "Which places perform measurably well across six dimensions of business capability — enterprise base, labour engagement, economic breadth, investment conversion, attraction and resilience — with how (which dimensions they lead) and why (which sourced drivers differ). Credit is awarded on exactly the standard used to challenge a place: same normalisation, same peer percentiles, same refusal when coverage is thin, and no causal claim.",
+        "tags": [
+          "merit"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/brief": {
+      "get": {
+        "summary": "What the platform found without being asked. Each detection kind declares what it observes AND what that observation does not establish — a changed surface with no matching permit is a discrepancy to check, never a finding of illegality. Confidence is a band with its components shown rather than a fabricated percentage, actions are options stating what each would resolve rather than instructions, and a quiet day is reported as a quiet day. Sorted by decision value, never by recency.",
+        "tags": [
+          "brief"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "What the platform found without being asked. Each detection kind declares what it observes AND what that observation does not establish — a changed surface with no matching permit is a discrepancy to check, never a finding of illegality. Confidence is a band with its components shown rather than a fabricated percentage, actions are options stating what each would resolve rather than instructions, and a quiet day is reported as a quiet day. Sorted by decision value, never by recency.",
+        "tags": [
+          "brief"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/brief/report": {
+      "post": {
+        "summary": "What the platform found without being asked. Each detection kind declares what it observes AND what that observation does not establish — a changed surface with no matching permit is a discrepancy to check, never a finding of illegality. Confidence is a band with its components shown rather than a fabricated percentage, actions are options stating what each would resolve rather than instructions, and a quiet day is reported as a quiet day. Sorted by decision value, never by recency.",
+        "tags": [
+          "brief"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/corroboration": {
+      "get": {
+        "summary": "More sensors is not more robust. Ten points on the same road, from the same authority, through the same collection chain, fail together when the chain does — and ten agreeing numbers from a broken system look exactly like ten agreeing numbers from a working one. This scores how well a claim is supported: how many INDEPENDENT networks say it, whether they measure different physical quantities, and whether they agree. Disagreement is reported as its own outcome, not as weak support: two networks pointing opposite ways is a worse basis than one, because at least one is wrong and which is not knowable from here.",
+        "tags": [
+          "corroboration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "More sensors is not more robust. Ten points on the same road, from the same authority, through the same collection chain, fail together when the chain does — and ten agreeing numbers from a broken system look exactly like ten agreeing numbers from a working one. This scores how well a claim is supported: how many INDEPENDENT networks say it, whether they measure different physical quantities, and whether they agree. Disagreement is reported as its own outcome, not as weak support: two networks pointing opposite ways is a worse basis than one, because at least one is wrong and which is not knowable from here.",
+        "tags": [
+          "corroboration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/sensors": {
+      "get": {
+        "summary": "The detection layer recognises nine kinds of physical change — a built surface that differs, a flow that departs from its own range, an object gone. Almost every connected source is statistics that updates quarterly. This names which sensor class could feed each detection, how often it says something new, and — the part that matters — what it can NEVER establish however dense it is. A counter showing forty percent less flow does not know whether a road closed, an employer moved, or the loop broke.",
+        "tags": [
+          "sensors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/surface": {
+      "get": {
+        "summary": "What a person is offered, as opposed to what was built. Forty-five engines answer four questions a human actually asks: is that true, is there room for me, what changed, and who carries the decision. Each promise names what it REFUSES as well as what it settles. The full catalogue is unchanged and still served at /v1/catalog for machines — a test asserts every engine belongs to exactly one promise, so nothing was left homeless or counted twice to make the surface look wider.",
+        "tags": [
+          "surface"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/offering": {
+      "get": {
+        "summary": "What each tier lets you DECIDE, not how much data it lets you download. Every offer names the question it settles, who asks it and the endpoint that answers. Anything not written yet is listed under not_built_yet rather than omitted or implied: a test asserts that every offer marked 'built' points at an endpoint present in this catalogue, so a plan cannot be sold on a feature that does not exist.",
+        "tags": [
+          "offering"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/provenance": {
+      "get": {
+        "summary": "Where the platform's OWN numbers come from. Every tunable constant declares its origin: sourced to a named authority, an established convention, calibrated from outcome data here, or simply assumed. The thresholds that decide whether the system may speak at all are held to the same standard as the data they let through.",
+        "tags": [
+          "provenance"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/registers": {
+      "get": {
+        "summary": "How saturated a trade's market is in a place: establishments per 10,000 residents, ranked against comparable regions, with the band, the peer median and how many more or fewer it would take to reach it. Every count states whether it came from an official business register or is an estimate. Density is never presented as opportunity.",
+        "tags": [
+          "saturation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/saturation": {
+      "post": {
+        "summary": "How saturated a trade's market is in a place: establishments per 10,000 residents, ranked against comparable regions, with the band, the peer median and how many more or fewer it would take to reach it. Every count states whether it came from an official business register or is an estimate. Density is never presented as opportunity.",
+        "tags": [
+          "saturation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inbox": {
+      "get": {
+        "summary": "Turns broadcast feeds into 'your decision may have changed'. A visitor registers what they have at stake (a place, a trade, an occupation, a decision they own, a watch they set); movements are routed by that stake, ranked so accountability outranks curiosity, and everything held back is listed with its reason.",
+        "tags": [
+          "inbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inbox/subscribe": {
+      "post": {
+        "summary": "Turns broadcast feeds into 'your decision may have changed'. A visitor registers what they have at stake (a place, a trade, an occupation, a decision they own, a watch they set); movements are routed by that stake, ranked so accountability outranks curiosity, and everything held back is listed with its reason.",
+        "tags": [
+          "inbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inbox/route": {
+      "post": {
+        "summary": "Turns broadcast feeds into 'your decision may have changed'. A visitor registers what they have at stake (a place, a trade, an occupation, a decision they own, a watch they set); movements are routed by that stake, ranked so accountability outranks curiosity, and everything held back is listed with its reason.",
+        "tags": [
+          "inbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/monitors": {
+      "get": {
+        "summary": "Register a watch on a metric — threshold breach, structural change-point, anomaly or sustained decline — run it on a schedule (cron), and escalate a triggered finding into an owned decision. Control-infrastructure intelligence: find errors and deviations, closed against accountability.",
+        "tags": [
+          "monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Register a watch on a metric — threshold breach, structural change-point, anomaly or sustained decline — run it on a schedule (cron), and escalate a triggered finding into an owned decision. Control-infrastructure intelligence: find errors and deviations, closed against accountability.",
+        "tags": [
+          "monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/monitors/evaluate": {
+      "post": {
+        "summary": "Register a watch on a metric — threshold breach, structural change-point, anomaly or sustained decline — run it on a schedule (cron), and escalate a triggered finding into an owned decision. Control-infrastructure intelligence: find errors and deviations, closed against accountability.",
+        "tags": [
+          "monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/monitors/run": {
+      "post": {
+        "summary": "Register a watch on a metric — threshold breach, structural change-point, anomaly or sustained decline — run it on a schedule (cron), and escalate a triggered finding into an owned decision. Control-infrastructure intelligence: find errors and deviations, closed against accountability.",
+        "tags": [
+          "monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/monitors/escalate": {
+      "post": {
+        "summary": "Register a watch on a metric — threshold breach, structural change-point, anomaly or sustained decline — run it on a schedule (cron), and escalate a triggered finding into an owned decision. Control-infrastructure intelligence: find errors and deviations, closed against accountability.",
+        "tags": [
+          "monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/assets": {
+      "get": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/routines": {
+      "get": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inspections/due": {
+      "get": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inspections/dispatch": {
+      "post": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inspections/verdict": {
+      "post": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inspections/compliance": {
+      "get": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/inspections/exceptions": {
+      "get": {
+        "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",
+        "tags": [
+          "inspections"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/sensitive-association": {
+      "post": {
+        "summary": "Surfaces associations on protected categories (origin, victim status, health…) ONLY with k-anonymity, mandatory confounder control (raw vs controlled), official sources, and ecological-fallacy warnings. Truth, never ammunition.",
+        "tags": [
+          "sensitive"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/decisions/commit": {
+      "post": {
+        "summary": "Commits a decision to a responsible owner + an expected outcome, resolves it against the actual, and keeps a per-owner ledger. Every result carries its framing (a result is always an answer).",
+        "tags": [
+          "accountability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/decisions/resolve": {
+      "post": {
+        "summary": "Commits a decision to a responsible owner + an expected outcome, resolves it against the actual, and keeps a per-owner ledger. Every result carries its framing (a result is always an answer).",
+        "tags": [
+          "accountability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/decisions/ledger": {
+      "get": {
+        "summary": "Commits a decision to a responsible owner + an expected outcome, resolves it against the actual, and keeps a per-owner ledger. Every result carries its framing (a result is always an answer).",
+        "tags": [
+          "accountability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/catalog": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/agent-manifest": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/audit": {
+      "get": {
+        "summary": "Markets, reports, health and metrics.",
+        "tags": [
+          "platform"
         ],
         "responses": {
           "200": {

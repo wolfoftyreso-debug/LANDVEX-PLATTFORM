@@ -124,6 +124,33 @@ METRICS: dict[str, dict] = {
         "ranks places, it does not decide for you.",
         "weighted signal model (engine/scoring.py)", "0–100"),
 
+    "days_overdue": _m(
+        "Days overdue",
+        "How far past its due date an object is — the interval says how "
+        "often someone decided it must be seen; this is how far past that "
+        "decision it now is.",
+        "Days. Zero means it is not late. It keeps counting until a check "
+        "is recorded, so a large number is an old omission, not a large "
+        "problem.",
+        "It says nothing about the object's condition. An overdue flagpole "
+        "may be perfectly fine; the number measures the ROUTINE, not the "
+        "thing. That is exactly why an overdue register is worth having "
+        "before an incident rather than after.",
+        "due date from the routine's interval versus today "
+        "(engine/inspections.py:status)", "days"),
+
+    "share_current": _m(
+        "Share current",
+        "The proportion of objects that are within their interval and not "
+        "failed.",
+        "0–1. It is the figure a board or an insurer asks for, and the one "
+        "that can be shown afterwards.",
+        "A register of checks is not a guarantee of condition. 100% "
+        "current means every object passed WHEN IT WAS LOOKED AT — not "
+        "that every object is intact now.",
+        "objects with status ok or due_soon over total "
+        "(engine/inspections.py:compliance)", "0–1"),
+
     "data_coverage": _m(
         "Data coverage",
         "How much of what the engine wanted to measure it actually got.",

@@ -78,6 +78,7 @@ from engine.merit_scan import market_merit, region_merit
 from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
+from engine import inspections as insp_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -141,6 +142,7 @@ set_outcome_store(STORE)
 set_accountability_store(STORE)
 set_corrections_store(STORE)
 set_monitors_store(STORE)
+insp_engine.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -359,6 +361,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 "subscriptions": inbox_engine.subscriptions(sub),
                 "stake_kinds": list(inbox_engine.STAKE_WEIGHT)})
+        if parsed.path == "/v1/assets":
+            return self._send(200, {"assets": insp_engine.all_assets(
+                self._tenant()), "source": "customer"})
+        if parsed.path == "/v1/routines":
+            return self._send(200, {"routines": insp_engine.all_routines(
+                self._tenant()), **insp_engine.catalog()})
+        if parsed.path == "/v1/inspections/due":
+            return self._send(200, insp_engine.due_now(self._tenant()))
+        if parsed.path == "/v1/inspections/compliance":
+            return self._send(200, insp_engine.report(self._tenant()))
+        if parsed.path == "/v1/inspections/exceptions":
+            return self._send(200,
+                              insp_engine.exception_feed(self._tenant()))
         if parsed.path == "/v1/monitors":
             return self._send(200, monitors_engine.catalog())
         if parsed.path == "/v1/kolada":
@@ -657,6 +672,43 @@ class Handler(BaseHTTPRequestHandler):
                         who, evs, decisions=decisions, now=req.get("now", "")))
                 return self._send(200, inbox_engine.route(
                     evs, decisions=decisions, now=req.get("now", "")))
+            if self.path == "/v1/assets":
+                rec = insp_engine.asset(
+                    req["id"], req["kind"],
+                    label_en=req.get("label_en", ""),
+                    lat=req.get("lat"), lon=req.get("lon"),
+                    address=req.get("address", ""),
+                    installed_at=req.get("installed_at", ""),
+                    tenant=self._tenant())
+                insp_engine.save_asset(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/routines":
+                rec = insp_engine.routine(
+                    req["id"], req["label_en"],
+                    req["applies_to"],
+                    int(req["every_days"]),
+                    checks=tuple(req.get("checks") or ()),
+                    weekday=req.get("weekday"),
+                    season=tuple(req["season"]) if req.get("season") else None,
+                    owners=req.get("owners"), expected=req.get("expected"),
+                    tenant=self._tenant())
+                insp_engine.save_routine(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/inspections/verdict":
+                rec = insp_engine.record(
+                    req["asset_id"], req["routine_id"],
+                    req["verdict"],
+                    performed_at=req.get("performed_at", ""),
+                    mission_id=req.get("mission_id", ""),
+                    evidence_ref=req.get("evidence_ref", ""),
+                    observed_by=req.get("observed_by", ""),
+                    note_en=req.get("note_en", ""),
+                    tenant=self._tenant())
+                insp_engine.save_check(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/inspections/dispatch":
+                from integrations.quixzoom_dispatch import dispatch_due
+                return self._send(200, dispatch_due(self._tenant()))
             if self.path == "/v1/monitors":
                 return self._send(200, monitors_engine.define(
                     str(req["metric"]), str(req["scope"]), str(req["rule"]),

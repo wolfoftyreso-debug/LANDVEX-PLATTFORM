@@ -2,6 +2,63 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — kontroller som förfaller
+
+**Plattformen kunde svara på frågor om platser, men inte hålla reda på
+objekt över tid.** En flaggleverantör som sköter flaggor och flaggstänger
+i stora delar av Stockholm, eller en kommun som ska kontrollera livbojar
+på badplatser, har samma behov: ett register över egna objekt, ett
+intervall, en förfallodag, någon som åker dit, en dom — och något att
+visa en nämnd eller en försäkringsgivare efteråt. Ingen del av det fanns.
+Det är också luckan som gjorde paketeringen `per_mission` märkt NOT
+DELIVERABLE.
+
+- **`engine/inspections.py`** — tillgångar, rutiner, kontroller.
+  Kadensen är `every_days` + valfri veckodag + valfri säsong, och
+  **vägrar** det den inte kan uttrycka exakt: "var 10:e dag, på tisdagar"
+  avvisas med ett skäl som går att åtgärda i stället för att tolkas. En
+  rutin som tyst blir något annat än vad någon skrev är farligare än en
+  som avvisas — den som skrev den tror att kontrollen sker.
+- **Ingen dom utan bevis.** Ett `pass` utan uppdrags-id eller
+  mediereferens avvisas (422). Endast `unclear` får sakna bevis, för det
+  är vad `unclear` betyder.
+- **`never_checked` är inte `ok`.** Ett objekt ingen har tittat på
+  räknas inte som aktuellt, och ett underkänt objekt rankas över
+  schemat oavsett när nästa kontroll infaller.
+- **`integrations/quixzoom_dispatch.py`** beställer fältuppdrag — eller
+  vägrar med namngivet skäl. Utan `LANDVEX_QUIXZOOM_URL` hittas *inget*
+  uppdrags-id på: ett påhittat id ser ut som en beställd kontroll ända
+  fram till dagen någon frågar varför ingen varit på plats. Kontraktet är
+  inte bekräftat mot riktig värd härifrån (nätet är policyspärrat), så
+  `verified_live = False` står kvar.
+- **Sju endpoints i båda API-lagren**, låsta av kontraktstestet, och en
+  egen kapabilitet `asset_inspections`. Den ligger i Enterprise **och**
+  som tillägg: den första riktiga kunden har några hundra flaggstänger,
+  inte ett enterpriseavtal. Utan kapabilitetsraden hade endpointerna
+  varit helt ogrindade — `required_capability` returnerar None för okända
+  vägar, och då släpper auth-lagret igenom vem som helst.
+- **Migration 7** (SQLite + Postgres): `assets`, `routines`, `checks` med
+  tenant som kolumn. Ett efterlevnadsregister i processminnet är inget
+  register. FastAPI-lagret kopplade inte in lagret alls — ytan var
+  identisk och kontraktstestet grönt, medan produktionsvägen tappade allt
+  vid omstart. Ett test läser numera båda filerna.
+- **Mediet lagras aldrig här.** En fältbild på en badplats innehåller
+  människor. Landvex bär domen och en referens; bilden stannar hos
+  quiXzoom, som har samtycket. Ett test faller om en kolumn som ser ut
+  att bära media läggs till.
+- **Ansvarskort per rutin** (`accountability_card`) går in i samma
+  register som alla andra beslut, med de tre rollnamnen från
+  `engine/claims.OWNER_ROLES` och ett mätbart förväntat utfall.
+  Avvikelser normaliseras till inkorgens händelseform — men routningen
+  **vägrar** utan uttryckliga prenumerationer: de bär ingen tenant, och
+  ett fallback till "alla prenumeranter" hade skickat en kunds adresser
+  till en annans inkorg.
+- **Demokund i konsolen:** flaggleverantören i Stockholm, åtta stänger,
+  veckovis rutin, blandade utfall — aktuellt, underkänt, aldrig
+  kontrollerat och försenat. Märkt `source="mock"`; gatorna är riktiga,
+  raderna är det inte. Ny flik **Checks** ritar objekten på kartan i
+  statusfärg. `make seed-checks` lägger samma fixtur i lagret.
+
 ## [Ej släppt] — prober som går att tolka
 
 **Ett spärrat nät är inte en trasig adapter.** Skillnaden är hela poängen

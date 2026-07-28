@@ -90,6 +90,40 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_reports_tenant  ON reports(tenant);
     CREATE INDEX IF NOT EXISTS idx_profiles_tenant ON profiles(tenant);
     """),
+    # Återkommande kontroller av kundens egna objekt. Tenant är en KOLUMN
+    # här och inte bara ett fält i nyttolasten: registret är det som visas
+    # för en nämnd eller en försäkringsgivare efter en olycka, och då ska
+    # det gå att se i databasen vem raden tillhör utan att packa upp JSON.
+    #
+    # `checks` bär INTE media. Bilden stannar hos quiXzoom, som har
+    # samtycket; här ligger domen och en referens (mission_id/evidence_ref).
+    # En fältbild på en badplats innehåller människor — den kolumnen ska
+    # aldrig läggas till.
+    (7, """
+    CREATE TABLE IF NOT EXISTS assets (
+        id      TEXT NOT NULL,
+        tenant  TEXT NOT NULL DEFAULT '',
+        kind    TEXT NOT NULL DEFAULT '',
+        payload TEXT NOT NULL,
+        PRIMARY KEY (tenant, id)
+    );
+    CREATE TABLE IF NOT EXISTS routines (
+        id      TEXT NOT NULL,
+        tenant  TEXT NOT NULL DEFAULT '',
+        payload TEXT NOT NULL,
+        PRIMARY KEY (tenant, id)
+    );
+    CREATE TABLE IF NOT EXISTS checks (
+        id           TEXT PRIMARY KEY,
+        tenant       TEXT NOT NULL DEFAULT '',
+        asset_id     TEXT NOT NULL,
+        routine_id   TEXT NOT NULL DEFAULT '',
+        performed_at TEXT NOT NULL DEFAULT '',
+        verdict      TEXT NOT NULL DEFAULT '',
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_checks_tenant ON checks(tenant, asset_id);
+    """),
 ]
 
 _DDL = """
@@ -422,6 +456,61 @@ class SqliteStore(Store):
         with self._lock:
             rows = self._conn.execute(
                 "SELECT payload FROM findings ORDER BY created_at, checksum"
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    # ── Återkommande kontroller ──────────────────────────────────────
+    def save_asset(self, record: dict[str, Any]) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO assets (id, tenant, kind, payload) "
+                "VALUES (?,?,?,?)",
+                (record["id"], record.get("tenant", ""),
+                 record.get("kind", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_assets(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM assets ORDER BY tenant, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def save_routine(self, record: dict[str, Any]) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO routines (id, tenant, payload) "
+                "VALUES (?,?,?)",
+                (record["id"], record.get("tenant", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_routines(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM routines ORDER BY tenant, id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def save_check(self, record: dict[str, Any]) -> str:
+        # Append-only: ett utfall skrivs aldrig över. En kontroll som
+        # gjordes om samma dag är en NY rad — det är två observationer,
+        # och registret ska visa båda.
+        cid = record.get("id") or str(uuid.uuid4())
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO checks (id, tenant, asset_id, "
+                "routine_id, performed_at, verdict, payload) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (cid, record.get("tenant", ""), record["asset_id"],
+                 record.get("routine_id", ""),
+                 record.get("performed_at", ""), record.get("verdict", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return cid
+
+    def all_checks(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM checks ORDER BY performed_at, id"
             ).fetchall()
         return [json.loads(r[0]) for r in rows]
 

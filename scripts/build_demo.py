@@ -30,6 +30,7 @@ from engine.risk_intel import risk_intelligence
 from engine.plan import establishment_plan
 from engine.profile import profile_from_dict, profile_options
 from engine.risk import assess
+from scripts.seed_inspections import payload as inspections_payload
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
                               occupation_catalog)
@@ -128,6 +129,10 @@ def build(out_path: str, lite: bool = False,
                        source_status),
         "agents": agents(AamosClient(base_url="")),
         "agent_chat": agent_chat_safe(AamosClient(base_url=""), ""),
+        # Demokunden för kontrollmodulen: flaggleverantören i Stockholm.
+        # Byggs ur fixturens egna listor, aldrig ur ett lager — demon ska
+        # inte kunna råka visa en riktig kunds objekt och adresser.
+        "inspections": inspections_payload(),
     }
     for market in marknader:
         for vid in vertikaler:
@@ -292,6 +297,10 @@ async function api(path, body) {
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
+  if (path === "/v1/inspections/compliance") return D.inspections.compliance;
+  if (path === "/v1/inspections/exceptions") return D.inspections.exceptions;
+  if (path === "/v1/routines") return D.inspections.routines;
+  if (path === "/v1/assets") return D.inspections.assets;
   if (path === "/v1/plans") return D.plans_catalog;
   if (path === "/health") return D.health;
   if (path === "/v1/catalog") return D.catalog;

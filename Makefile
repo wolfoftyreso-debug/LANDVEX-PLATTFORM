@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front full-demo
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front full-demo seed-checks
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -70,6 +70,9 @@ full-demo: ## The whole thing in one file: console (full matrix) + entry + evide
 	@$(PY) -m scripts.build_demo  .build-konsol.html
 	@$(PY) -m scripts.bundle_demo .build-konsol.html landvex-full-demo.html
 	@rm -f .build-ingang.html .build-bevis.html .build-konsol.html
+
+seed-checks: ## Load the demo customer (flag supplier, Stockholm) into the store
+	@$(PY) -m scripts.seed_inspections --seed
 
 tour: ## Build a clickable tour with real engine responses baked in
 	@$(PY) -m scripts.build_tour landvex-tour.html
