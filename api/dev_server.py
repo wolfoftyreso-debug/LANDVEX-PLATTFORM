@@ -80,6 +80,8 @@ from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import inspections as insp_engine
 from engine import scheduler
+from engine import analysis as analysis_engine
+from engine import harvest as harvest_engine
 from engine.coverage import compare_markets, coverage
 from engine.export import catalog as export_catalog, export as export_data
 from api.ticker import start as start_ticker, status as ticker_status
@@ -151,6 +153,10 @@ insp_engine.set_store(STORE)
 # omstart (annars slutar en veckorunda tyst att köras), och claimet som
 # hindrar två processer från att köra samma jobb sitter i databasen.
 scheduler.set_store(STORE)
+# Skörden och frågan MÅSTE dela lager: utan den här raden
+# skördar make harvest till en databas som API:t inte läser,
+# och varje svar blir mock fast rader finns.
+harvest_engine.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -403,6 +409,12 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/exceptions":
             return self._send(200,
                               insp_engine.exception_feed(self._tenant()))
+        if parsed.path == "/v1/analysis":
+            q = parse_qs(parsed.query)
+            return self._send(200, {
+                **analysis_engine.register(q.get("kind", [""])[0],
+                                           q.get("market", [""])[0]),
+                **analysis_engine.catalog()})
         if parsed.path == "/v1/coverage/markets":
             q = parse_qs(parsed.query)
             marknader = [m for m in q.get("markets", [""])[0].split(",") if m]
@@ -748,6 +760,12 @@ class Handler(BaseHTTPRequestHandler):
                     tenant=self._tenant())
                 insp_engine.save_check(rec)
                 return self._send(201, rec)
+            if self.path == "/v1/analysis/run":
+                return self._send(200, analysis_engine.run(
+                    req.get("market") or DEFAULT_MARKET,
+                    resolver=RESOLVER,
+                    limit=int(req.get("limit", 0)),
+                    as_of=str(req.get("as_of", ""))))
             if self.path == "/v1/schedules":
                 kinds = scheduler.JOB_KINDS
                 k = kinds.get(req.get("kind", ""))

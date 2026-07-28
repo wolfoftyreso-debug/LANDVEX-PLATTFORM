@@ -90,7 +90,7 @@ PROMISES: tuple[dict, ...] = (
         # plattformen alls KAN märka, vilket är det här löftets gräns.
         "engines": ("brief", "monitors", "inbox", "feeds", "event_study",
                     "scenario", "correlate", "sensors", "corroboration",
-                    "aamos_integration", "scheduler"),
+                    "aamos_integration", "scheduler", "analysis"),
     },
     {
         "id": "who_carries_it",

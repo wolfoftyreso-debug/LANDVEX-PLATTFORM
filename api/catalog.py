@@ -383,6 +383,17 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
+        {"id": "analysis", "label_en": "Find what disagrees",
+         "beskrivning_en": "Sweeps a market for contradictions (official "
+                           "paperwork against observed ground) and for "
+                           "relationships between signals across regions, "
+                           "and keeps what it found in a register. Never "
+                           "reports a pair where both signals are "
+                           "simulated, states how many pairs were tested "
+                           "on every finding, and never uses a causal "
+                           "word.",
+         "endpoints": [{"method": "GET", "path": "/v1/analysis"},
+                       {"method": "POST", "path": "/v1/analysis/run"}]},
         {"id": "coverage", "label_en": "What we can answer where you are",
          "beskrivning_en": "Publishes the platform's own coverage per "
                            "market: the share of each industry's weighted "

@@ -1127,6 +1127,32 @@
         }
       }
     },
+    "/v1/analysis": {
+      "get": {
+        "summary": "Sweeps a market for contradictions (official paperwork against observed ground) and for relationships between signals across regions, and keeps what it found in a register. Never reports a pair where both signals are simulated, states how many pairs were tested on every finding, and never uses a causal word.",
+        "tags": [
+          "analysis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/analysis/run": {
+      "post": {
+        "summary": "Sweeps a market for contradictions (official paperwork against observed ground) and for relationships between signals across regions, and keeps what it found in a register. Never reports a pair where both signals are simulated, states how many pairs were tested on every finding, and never uses a causal word.",
+        "tags": [
+          "analysis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/coverage": {
       "get": {
         "summary": "Publishes the platform's own coverage per market: the share of each industry's weighted signal picture that a connected source can actually answer for, which adapter would open which signals, and which adapters do not reach that market at all. Computed from the source and sensor state, never asserted.",

@@ -149,6 +149,22 @@ def _run_harvest(job: dict, now: float) -> dict:
                           f"via {kalla}")}
 
 
+def _run_analyse(job: dict, now: float) -> dict:
+    """Svep en marknad efter motsägelser och samband, lägg fynden i
+    registret. Dedup på checksumma: samma motsägelse två dygn i rad är
+    ett fynd, inte två."""
+    from engine import analysis
+
+    p = job["params"]
+    r = analysis.run(p.get("market", "se"), limit=int(p.get("limit", 0)),
+                     as_of=p.get("as_of", ""))
+    return {"new_findings": r["new_findings"], "found": r["found"],
+            "detail_en": (
+                f"{r['found']} finding(s), {r['new_findings']} new. "
+                f"{r['relationships']['skipped_all_mock']} pair(s) skipped "
+                f"where both signals were simulated.")}
+
+
 JOB_KINDS: dict[str, dict] = {
     "inspections_dispatch": {
         "label_en": "Order field missions for what falls due",
@@ -180,6 +196,14 @@ JOB_KINDS: dict[str, dict] = {
         "note_en": "Open reference data is the same for every customer, "
                    "so it is stored without a tenant. The request path "
                    "reads the store and never calls a third party."},
+    "analyse": {
+        "label_en": "Search a market for contradictions and relationships",
+        "capability": "opportunity",
+        "params_en": "market, limit (optional)",
+        "run": _run_analyse,
+        "note_en": "Never reports a pair where both signals are "
+                   "simulated: two mock series correlate exactly as the "
+                   "generator built them."},
     "monitors": {
         "label_en": "Wake the registered watches",
         "capability": "monitoring",

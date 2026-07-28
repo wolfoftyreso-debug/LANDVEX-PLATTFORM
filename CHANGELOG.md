@@ -2,6 +2,48 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — leta efter samband och motsägelser, och vägra oftare än man rapporterar
+
+Plattformen kunde redan RÄKNA ett samband (`engine/correlate.py`) och ett
+kontradiktionsindex för en plats (`engine/indices.py`). Vad som saknades
+var någon som **letade** — svepte en marknad och lade fynden i ett
+register någon kan öppna i efterhand.
+
+`engine/analysis.py`, `GET /v1/analysis` (registret) och
+`POST /v1/analysis/run` (sökningen).
+
+- **Mock mot mock rapporteras aldrig.** Två simulerade serier korrelerar
+  exakt som generatorn byggde dem; ett sådant "samband" är ett eko av
+  vår egen kod som ser ut som ett fynd om världen. På ren mockdata
+  hoppas **alla 2 145 par** över och noll fynd rapporteras — det är
+  sökningen som fungerar, inte som är trasig.
+- **Antalet prövade par står på VARJE fynd**, inte bara i en
+  sammanfattning som går att klippa bort. Ett samband ur tio par och ett
+  ur tvåtusen är inte samma påstående.
+- **Minst 12 regioner och |r| ≥ 0,5**, annars ingenting. En korrelation
+  på fem punkter är en linje genom brus.
+- **`sources_seen` i svaret:** utan det går en körning där allt var mock
+  inte att skilja från en där inget samband fanns.
+- **Tvärsnitt, inte tidsserie** — plattformen har ännu ingen historik att
+  korrelera över tid, och att låtsas annat vore att uppfinna en tidsaxel.
+- Motsägelser kräver inget urval: när pappret säger en sak och marken en
+  annan är det ett fynd även på en enda plats. Men indexet får inte vila
+  enbart på mock — vår egen generator som motsäger sig själv säger
+  ingenting om världen.
+- Fynden dedupliceras på checksumma. Samma motsägelse två dygn i rad är
+  ETT fynd, och `new_findings` räknar bara det registret inte hade.
+- Ny jobbtyp `analyse` i schemaläggaren.
+
+**Tre fynd, alla samma sort — kod som tyst letade på fel ställe:**
+`city_assessment` returnerar listan under nyckeln `index`, inte
+`indices`, så motsägelsesökningen hittade aldrig indexet och rapporterade
+"inga fynd" med full tillförsikt. Ingen av API-lagren kopplade
+skördelagret till lagret, så `make harvest` skrev till en databas API:t
+inte läste. Och sökningen föll tillbaka på en mock-only resolver, vilket
+gjorde varje par till mock mot mock. Alla tre gav svaret "inga fynd" —
+det farligaste möjliga felet i just den här modulen, eftersom det ser
+korrekt ut. Kontraktstestet räknar nu modulerna var för sig.
+
 ## [Ej släppt] — öppna källor, skördade i stället för frågade
 
 **`competition_pressure` var mock i alla 35 marknader.** `places.py`

@@ -74,6 +74,7 @@ from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine import inspections as _insp
 from engine import scheduler as _sched
+from engine import harvest as _harvest
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -204,6 +205,9 @@ _insp.set_store(STORE)
 # kör två workers samma jobb och kunden får två beställda uppdrag för
 # samma objekt.
 _sched.set_store(STORE)
+# Skörden och frågan måste dela lager, annars läser
+# förfrågningsvägen en tom tabell och svarar mock.
+_harvest.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -1078,6 +1082,27 @@ def schedules_run_ep(request: Request, body: dict | None = None):
         if v["capability"] in p.capabilities}
     return scheduler.run_due(_tenant(request), (body or {}).get("now"),
                              tillatna)
+
+
+@app.get("/v1/analysis")
+def analysis_register_ep(kind: str = "", market: str = ""):
+    """What the sweep has found — contradictions and relationships."""
+    from engine import analysis
+    return {**analysis.register(kind, market), **analysis.catalog()}
+
+
+@app.post("/v1/analysis/run")
+def analysis_run_ep(body: dict | None = None):
+    """Sweep a market and add what is new to the register."""
+    from engine import analysis
+    b = body or {}
+    try:
+        return analysis.run(b.get("market") or DEFAULT_MARKET,
+                            resolver=RESOLVER,
+                            limit=int(b.get("limit", 0)),
+                            as_of=str(b.get("as_of", "")))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/coverage")

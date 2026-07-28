@@ -88,6 +88,8 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # paketet (köp export, läs allt).
     # Täckningsytan är publik med flit: den som måste köpa för att
     # få veta vad talen vilar på har redan fått fel produkt.
+    # Sökningen är analys, inte katalog — samma paket som svepet.
+    "/v1/analysis": "opportunity",
     "/v1/coverage": "core",
     "/v1/export": "core",
     "/v1/assets": "asset_inspections",        # kundens egna objekt
