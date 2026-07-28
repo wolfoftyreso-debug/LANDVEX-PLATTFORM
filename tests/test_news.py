@@ -136,7 +136,8 @@ def test_outlets_agreeing_is_agreement_about_a_report():
 
 # ── Uppmärksamhetsindexet ───────────────────────────────────────────────
 def _rader(n: int, publicerat=None):
-    return [{"region": f"r{i}", "reported": 100,
+    return [{"region": f"r{i}", "reported_per_100k": 800,
+             "population": 100_000,
              "published": (publicerat[i] if publicerat else 10)}
             for i in range(n)]
 
@@ -160,20 +161,23 @@ def test_a_place_written_about_far_more_than_its_peers_is_flagged_as_such():
     topp = r["rows"][0]
     assert topp["region"] == "r5" and topp["band"] == "far_above"
     assert topp["vs_peer_median"] == 4.0
-    assert "article(s) per" in topp["means_en"]
+    assert "article(s) per 100k" in topp["means_en"]
     # och en typisk plats kallas typisk, inte bra eller dålig
     assert {x["band"] for x in r["rows"][1:]} == {"typical"}
 
 
 def test_a_region_without_a_reported_count_is_left_out_not_assumed_zero():
-    rader = _rader(6) + [{"region": "utan", "published": 12}]
+    rader = _rader(6) + [{"region": "utan", "published": 12,
+                          "population": 50_000}]
     r = N.attention_index(rader)
     assert "utan" not in {x["region"] for x in r["rows"]}
     assert r["peers"] == 6
 
 
 def test_zero_reported_is_not_an_infinite_ratio():
-    r = N.attention_index(_rader(6) + [{"region": "noll", "reported": 0,
+    r = N.attention_index(_rader(6) + [{"region": "noll",
+                                        "reported_per_100k": 0,
+                                        "population": 10_000,
                                         "published": 5}])
     assert all(x["region"] != "noll" for x in r["rows"])
 
@@ -193,6 +197,162 @@ def test_every_outlet_declares_an_owner_because_guessing_one_is_the_bug():
         assert o["owner"], oid
         assert isinstance(o["agency"], bool), oid
         assert o["label_en"], oid
+
+
+# ── Vägen in i bedömningen ──────────────────────────────────────────────
+def _lagg_in(titel: str, utgivare, region="0180"):
+    import time
+    poster = []
+    for o in utgivare:
+        p = _post(o, titel, "Beskedet kom pa tisdagen enligt bolaget")
+        p.update({"region_code": region, "market": "se",
+                  "harvested_at": time.time(), "link": f"https://{o}/1"})
+        p["checksum"] = N.item_checksum(p)
+        poster.append(p)
+    N.store_items(poster)
+
+
+def test_a_confirmed_news_item_never_moves_the_risk_score():
+    """Den viktigaste raden i hela kopplingen. risk_score väger ihop
+    ENDAST kategorier som går att räkna ur signaler — ett tal som kunde
+    flyttas av en rubrik vore inte längre härlett."""
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    plats = Location(59.33, 18.06)
+    innan = risk_intelligence(plats, "gym", market="se")
+    _lagg_in("Kommunen varslar 200 anstallda i Stockholm",
+             ("svt", "dn"), region=innan and "0180")
+    efter = risk_intelligence(plats, "gym", market="se")
+    assert efter["risk_score"] == innan["risk_score"]
+    assert efter["computed_coverage"] == innan["computed_coverage"]
+    assert efter["data_coverage"] == innan["data_coverage"]
+    N.reset()
+
+
+def test_two_independent_owners_move_a_category_from_monitoring_to_observed():
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    _lagg_in("Nya krav pa upphandling infors i Stockholm", ("svt", "dn"))
+    r = risk_intelligence(Location(59.33, 18.06), "gym", market="se")
+    kat = {c["id"]: c for c in r["risk_categories"]}["regulatory"]
+    assert kat["status"] == "observed"
+    assert kat["band_en"] == "Elevated"
+    assert set(kat["sources_en"]) == {"svt", "bonnier"}
+    assert "not part of risk_score" in kat["notis_en"]
+    N.reset()
+
+
+def test_a_single_owner_leaves_the_category_on_monitoring():
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    _lagg_in("Nya krav pa upphandling infors i Stockholm", ("svt",))
+    r = risk_intelligence(Location(59.33, 18.06), "gym", market="se")
+    kat = {c["id"]: c for c in r["risk_categories"]}["regulatory"]
+    assert kat["status"] == "monitoring"
+    assert "observed" not in r["observed_categories"]
+    N.reset()
+
+
+def test_an_observed_category_carries_no_number_at_all():
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    _lagg_in("Nya krav pa upphandling infors i Stockholm", ("svt", "dn"))
+    r = risk_intelligence(Location(59.33, 18.06), "gym", market="se")
+    for c in r["risk_categories"]:
+        if c.get("status") == "observed":
+            for forbjudet in ("risk", "value", "signal_id", "drivers"):
+                assert forbjudet not in c, forbjudet
+    N.reset()
+
+
+def test_a_computed_category_keeps_its_number_when_news_touches_it():
+    """Rapporteringen läggs BREDVID talet, aldrig i det."""
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    plats = Location(59.33, 18.06)
+    innan = {c["id"]: c for c in
+             risk_intelligence(plats, "gym", market="se")["risk_categories"]}
+    _lagg_in("Konkurrent etablerar sig och oppnar i Stockholm",
+             ("svt", "dn"))
+    efter = {c["id"]: c for c in
+             risk_intelligence(plats, "gym", market="se")["risk_categories"]}
+    m = efter["market"]
+    assert m["status"] == "computed"
+    assert m["risk"] == innan["market"]["risk"]
+    if "reported_alongside" in m:
+        assert "did NOT change it" in m["reported_note_en"]
+    N.reset()
+
+
+def test_news_older_than_a_week_is_not_what_has_happened():
+    from engine.models import Location
+    from engine.risk_intel import risk_intelligence
+
+    N.reset()
+    gammal = _post("svt", "Nya krav pa upphandling infors i Stockholm", "x")
+    gammal.update({"region_code": "0180", "harvested_at": 0.0,
+                   "link": "https://svt/1"})
+    gammal["checksum"] = N.item_checksum(gammal)
+    tva = dict(gammal, outlet="dn", owner="bonnier")
+    tva["checksum"] = N.item_checksum(tva)
+    N.store_items([gammal, tva])
+    r = risk_intelligence(Location(59.33, 18.06), "gym", market="se")
+    assert r["observed_categories"] == []
+    N.reset()
+
+
+# ── Flödena ─────────────────────────────────────────────────────────────
+def test_every_feed_points_at_an_outlet_whose_owner_we_know():
+    """Ett flöde vars ägare vi inte känner gör syndikering till
+    bekräftelse — precis det modulen finns för att förhindra."""
+    for f in N.FEEDS:
+        assert f["outlet"] in N.OUTLETS, f["outlet"]
+        assert N.OUTLETS[f["outlet"]]["owner"], f["outlet"]
+        assert f["url"].startswith("https://"), f["outlet"]
+
+
+def test_a_global_feed_is_offered_for_every_market():
+    se = {f["outlet"] for f in N.feeds_for("se")}
+    de = {f["outlet"] for f in N.feeds_for("de")}
+    assert "svt" in se and "svt" not in de
+    assert {"reuters", "ap"} <= se and {"reuters", "ap"} <= de
+
+
+def test_the_region_is_matched_on_name_and_says_that_it_is_crude():
+    from engine.markets import MARKETS
+
+    reg = MARKETS["se"].regions
+    assert N.region_of({"title": "Brand i Nacka centrum"}, reg) == "0182"
+    assert N.region_of({"title": "Ingen ort namns har"}, reg) == ""
+    assert "mention, not a subject" in N.REGION_MATCH_CANNOT_EN
+
+
+def test_a_keyword_is_a_candidate_not_a_judgement():
+    k = N.cluster([_post("svt", "Nya regler for upphandling"),
+                   _post("dn", "Nya regler for upphandling")])
+    assert "regulatory" in N.categories_of(k[0])
+    assert "not a topic model" in N.CATEGORY_MATCH_CANNOT_EN
+
+
+def test_a_broken_feed_does_not_hide_behind_the_others():
+    """Sju flöden som svarar och ett som inte gör det ska gå att skilja
+    från åtta som svarar."""
+    N.reset()
+    assert N.last_harvest()["items"] == 0
+    N.set_last_harvest({"items": 12, "feeds": 8,
+                        "unparsed": [{"outlet": "di", "why_en": "x"}]})
+    assert N.last_harvest()["unparsed"][0]["outlet"] == "di"
+    N.reset()
 
 
 if __name__ == "__main__":

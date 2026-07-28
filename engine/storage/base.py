@@ -176,6 +176,14 @@ class Store(ABC):
     def all_harvested(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    def save_news(self, rows: list[dict[str, Any]]):
+        """Nyhetsposter (idempotent på checksumma). Ingen tenant:
+        publicerad text är densamma för alla."""
+        return None
+
+    def all_news(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def claim_job(self, job_id: str, tenant: str, now: float,
                   gap_seconds: float):
         """Ta jobbet ATOMISKT om det inte körts inom `gap_seconds`.

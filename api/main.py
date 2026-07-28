@@ -75,6 +75,7 @@ from engine.monitors import set_store as set_monitors_store
 from engine import inspections as _insp
 from engine import scheduler as _sched
 from engine import harvest as _harvest
+from engine import news as _news
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -208,6 +209,7 @@ _sched.set_store(STORE)
 # Skörden och frågan måste dela lager, annars läser
 # förfrågningsvägen en tom tabell och svarar mock.
 _harvest.set_store(STORE)
+_news.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)

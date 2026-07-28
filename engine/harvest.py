@@ -40,6 +40,7 @@ import json
 import math
 import os
 import time
+import time as _time
 import urllib.parse
 import urllib.request
 
@@ -148,6 +149,57 @@ def _parse_overpass(raw: bytes, verticals: list[str]) -> dict[str, int]:
     return ut
 
 
+def _harvest_news(region: tuple, source: dict, transport) -> list[dict]:
+    """Nyhetsposter är INTE en signal med ett värde.
+
+    Skörden går därför inte via `store_rows` utan via
+    `engine/news.store_items` och tabellen `news_items`. Att trycka in en
+    rubrik i `harvested` hade krävt ett `signal_id` som inte är en
+    signal — och skördelagrets åldersregel hade då gällt fel sak.
+
+    Regionen skickas in men används inte som frågeparameter: ett RSS-flöde
+    tar inga koordinater. Posterna knyts till region EFTER hämtningen,
+    på namn, och den matchningen är grov med flit (news.region_of).
+    """
+    from engine import news as N
+    from engine.markets import MARKETS
+
+    marknad = source.get("market", "")
+    regioner = [r for m in ([marknad] if marknad in MARKETS else MARKETS)
+                for r in MARKETS[m].regions]
+    poster, trasiga = [], []
+    for feed in N.feeds_for(marknad):
+        raw = transport(feed["url"])
+        if raw is None:
+            continue
+        try:
+            hamtat = N.parse_feed(raw, feed["outlet"])
+        except OUR_BUGS:
+            raise
+        except Exception as e:                # noqa: BLE001, S112
+            # Ett trasigt flöde stoppar inte de andra, men det får inte
+            # heller försvinna tyst: sju flöden som svarar och ett som
+            # inte gör det ska gå att skilja från åtta som svarar.
+            trasiga.append({"outlet": feed["outlet"],
+                            "why_en": f"{type(e).__name__}: {e}"})
+            continue
+        for post in hamtat:
+            post["market"] = feed["market"] or marknad
+            post["region_code"] = N.region_of(post, regioner)
+            post["checksum"] = N.item_checksum(post)
+            post["harvested_at"] = _time.time()
+            poster.append(post)
+    n = N.store_items(poster)
+    # Trasiga flöden lagras som en not på skörden i stället för att
+    # skrivas till stdout: motorn skriver inte till terminalen, och sju
+    # flöden som svarar ska gå att skilja från åtta.
+    N.set_last_harvest({"items": n, "feeds": len(N.feeds_for(marknad)),
+                        "unparsed": trasiga})
+    # Returnerar tom lista: raderna ligger redan i sin egen tabell, och
+    # att också lägga dem i `harvested` vore två sanningar om samma sak.
+    return []
+
+
 def _harvest_osm(region: tuple, source: dict, transport) -> list[dict]:
     kod, _namn, lat, lon = region[0], region[1], region[2], region[3]
     verticals = sorted(OSM_TAGS)
@@ -221,6 +273,28 @@ SOURCES: dict[str, dict] = {
             "It is observed supply, never a count of registered "
             "businesses: /v1/saturation still refuses where no business "
             "register is connected."),
+    },
+    "news": {
+        "label_en": "News feeds (RSS/Atom)",
+        "fills_en": "Corroborated reporting — never a signal value",
+        "signals": (),
+        "env": "LANDVEX_NEWS_ON",
+        # Nyheter har ingen ENDA adress — de har åtta, och de står som
+        # data i engine/news.FEEDS. Sentinelvärdet gör källan påslagbar
+        # av LANDVEX_OPEN_DATA utan att låtsas att det finns en URL.
+        "default_url": "feeds://engine.news.FEEDS",
+        "keyless": True,
+        "markets": (),
+        "max_age_days": 7,
+        "quality": 0.4,
+        "post": False,
+        "harvest": _harvest_news,
+        "cannot_en": (
+            "News never becomes a signal value. A corroborated item can "
+            "raise a RISK BAND and name the outlets behind it; a headline "
+            "that could set a number would make this a rumour amplifier "
+            "with an API. Items are attached to a region by NAME, which "
+            "is a mention and not a subject."),
     },
     "open_meteo": {
         "label_en": "Open-Meteo",

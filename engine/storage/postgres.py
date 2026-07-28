@@ -188,6 +188,23 @@ CREATE TABLE IF NOT EXISTS harvested (
     PRIMARY KEY (source, region_code, signal_id)
 );
 CREATE INDEX IF NOT EXISTS idx_harvested_src ON harvested(source, observed_at);
+
+-- Nyhetsposter (migration 10 i SQLite-lagret). En rubrik är ingen signal
+-- med ett värde, så de bor för sig. Ingen tenant.
+CREATE TABLE IF NOT EXISTS news_items (
+    checksum     TEXT PRIMARY KEY,
+    outlet       TEXT NOT NULL DEFAULT '',
+    owner        TEXT NOT NULL DEFAULT '',
+    market       TEXT NOT NULL DEFAULT '',
+    region_code  TEXT NOT NULL DEFAULT '',
+    title        TEXT NOT NULL DEFAULT '',
+    summary      TEXT NOT NULL DEFAULT '',
+    link         TEXT NOT NULL DEFAULT '',
+    published    TEXT NOT NULL DEFAULT '',
+    harvested_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_news_region ON news_items(region_code, harvested_at);
 """
 
 
@@ -564,6 +581,38 @@ class PostgresStore(Store):
             for payload, observed_at in cur.fetchall():
                 d = dict(payload)
                 d["observed_at"] = observed_at
+                ut.append(d)
+            return ut
+
+    # ── Nyhetsposter ─────────────────────────────────────────────────
+    def save_news(self, rows: list[dict[str, Any]]) -> int:
+        import json
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO news_items (checksum, outlet, owner, market, "
+                "region_code, title, summary, link, published, "
+                "harvested_at, payload) VALUES "
+                "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (checksum) DO UPDATE SET "
+                "region_code=EXCLUDED.region_code, "
+                "harvested_at=EXCLUDED.harvested_at, "
+                "payload=EXCLUDED.payload",
+                [(r["checksum"], r.get("outlet", ""), r.get("owner", ""),
+                  r.get("market", ""), r.get("region_code", ""),
+                  r.get("title", ""), r.get("summary", ""),
+                  r.get("link", ""), r.get("published", ""),
+                  float(r.get("harvested_at") or 0),
+                  json.dumps(r, ensure_ascii=False)) for r in rows])
+        return len(rows)
+
+    def all_news(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload, harvested_at FROM news_items "
+                        "ORDER BY harvested_at DESC, checksum")
+            ut = []
+            for payload, harvested_at in cur.fetchall():
+                d = dict(payload)
+                d["harvested_at"] = harvested_at
                 ut.append(d)
             return ut
 

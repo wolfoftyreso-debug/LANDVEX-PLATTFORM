@@ -254,6 +254,12 @@ ENVIRONMENT: dict[str, dict] = {
         "their own variable — this only saves setting twenty of them. "
         "Sources that need a key are never enabled by it.",
         example="on"),
+    "LANDVEX_NEWS_ON": _v(
+        "optional", "Switch on news harvesting (RSS/Atom, no key). The "
+                    "feed addresses are data in engine/news.FEEDS.",
+        "No news is read, and every risk category that only reporting "
+        "could observe stays in 'monitoring'.",
+        example="on"),
     "LANDVEX_OSM_URL": _v(
         "optional", "Overpass endpoint (OpenStreetMap). No key.",
         "Competing supply stays mock in every market — the single "

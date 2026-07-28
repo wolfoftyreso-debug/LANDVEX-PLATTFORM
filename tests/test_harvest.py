@@ -264,7 +264,13 @@ def test_every_source_declares_what_it_needs_and_what_it_cannot_do():
         assert s["max_age_days"] > 0, sid
         assert 0 < s["quality"] <= 1.0, sid
         assert len(s["cannot_en"]) > 60, sid
-        assert s["signals"] and s["default_url"].startswith("https://"), sid
+        assert s["default_url"].startswith(("https://", "feeds://")), sid
+        # En källa som fyller EN signal ska säga vilken. En som inte
+        # fyller någon (nyheter) ska säga varför den ändå finns — annars
+        # ser den ut som en glömd rad.
+        if not s["signals"]:
+            assert "never a signal" in s["fills_en"].lower() or \
+                "never becomes a signal" in s["cannot_en"].lower(), sid
 
 
 def test_the_scheduler_can_run_a_harvest_and_says_when_it_is_off():

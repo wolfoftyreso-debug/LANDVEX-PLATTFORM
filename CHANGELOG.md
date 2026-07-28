@@ -2,6 +2,38 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — nyheterna kopplade till bedömningen
+
+Nyhetsmodulen kunde bedöma men ingen matade den och ingen läste den. Nu
+gör båda det — och den enda farliga raden i hela kopplingen är låst av
+ett test.
+
+- **`risk_score` rör sig aldrig av en nyhet.** Talet väger ihop endast
+  kategorier som går att räkna ur signaler; ett Risk Score som kunde
+  flyttas av en rubrik vore inte längre härlett. Ett test kör samma
+  plats före och efter en bekräftad uppgift och kräver identiskt tal,
+  identisk `computed_coverage` och identisk `data_coverage`.
+- **Ett tredje läge: `observed`.** En kategori utan drivsignaler som
+  träffas av en uppgift med **två oberoende ägare** går från
+  `monitoring` till `observed` — med band, utgivare och länkar, men utan
+  tal. En ensam ägare lämnar den på `monitoring`. En BERÄKNAD kategori
+  behåller sitt tal och får rapporteringen bredvid sig, aldrig i det.
+- **Åtta flöden som data** (`news.FEEDS`), nyckellösa. Varje rad pekar
+  på en utgivare vars ägare vi känner — ett flöde med okänd ägare gör
+  syndikering till bekräftelse, och ett test håller det.
+- **Migration 10, `news_items`.** En rubrik är ingen signal med ett
+  värde, så den bor inte i `harvested`.
+- Nyheter äldre än sju dygn är inte "vad som hänt" och räknas som
+  frånvarande.
+- Regionmatchning på namn, och `cannot_en` säger att en omnämnande inte
+  är ett ämne. Nyckelordsmatchning mot riskkategori likaså: artikeln
+  följer med så att en människa kan kasta ut den.
+- **Uppmärksamhetsindexet fick sin metod rätt.** Kolada N07403 är
+  *anmälda våldsbrott per 100 000* — en kvot. Ett rått artikelantal mot
+  en kvot hade till hälften mätt ortens storlek, så båda sidor
+  normaliseras nu per 100 000, och funktionen **vägrar** när
+  befolkningen saknas i stället för att blanda en kvot med ett antal.
+
 ## [Ej släppt] — nyheter som underlag, med grinden före
 
 Nyhetsflöden ska mata den samlade analysen. Det är rätt beslut och också

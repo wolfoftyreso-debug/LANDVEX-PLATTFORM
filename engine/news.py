@@ -258,6 +258,201 @@ def claims_for(clusters: list[dict], *, market: str = "") -> dict:
     }
 
 
+# ── Flödena ─────────────────────────────────────────────────────────────
+# En rad per flöde. `outlet` MÅSTE finnas i OUTLETS: ett flöde vars ägare
+# vi inte känner gör syndikering till bekräftelse, vilket är exakt det
+# den här modulen finns för att förhindra. Ett test håller det.
+#
+# RSS är nyckellöst och universellt — "alla tänkbara flöden" är därmed en
+# rad var, inte en integration var.
+FEEDS: tuple[dict, ...] = (
+    {"outlet": "svt", "market": "se", "section": "nyheter",
+     "url": "https://www.svt.se/nyheter/rss.xml"},
+    {"outlet": "sr", "market": "se", "section": "ekot",
+     "url": "https://api.sr.se/api/rss/program/83"},
+    {"outlet": "dn", "market": "se", "section": "ekonomi",
+     "url": "https://www.dn.se/ekonomi/rss/"},
+    {"outlet": "di", "market": "se", "section": "nyheter",
+     "url": "https://www.di.se/rss"},
+    {"outlet": "svd", "market": "se", "section": "naringsliv",
+     "url": "https://www.svd.se/feed/articles.rss"},
+    {"outlet": "aftonbladet", "market": "se", "section": "nyheter",
+     "url": "https://rss.aftonbladet.se/rss2/small/pages/sections/senastenytt/"},
+    {"outlet": "reuters", "market": "", "section": "business",
+     "url": "https://www.reutersagency.com/feed/?best-topics=business-finance"},
+    {"outlet": "ap", "market": "", "section": "business",
+     "url": "https://rsshub.app/apnews/topics/business"},
+)
+
+
+def feeds_for(market: str = "") -> list[dict]:
+    """Flöden som gäller en marknad. Tom `market` på raden = global."""
+    return [f for f in FEEDS
+            if not market or not f["market"] or f["market"] == market]
+
+
+# ── Plats: grov med flit, och sagt att den är det ───────────────────────
+def region_of(post: dict, regions: list[tuple]) -> str:
+    """Vilken region en post nämner. Tomt när ingen nämns.
+
+    Namnmatchning är trubbigt. "Nacka" i en artikel betyder inte att
+    artikeln HANDLAR om Nacka, och en ort som heter samma sak som ett
+    efternamn matchar på fel grunder. Alternativet — ingen platsknytning
+    alls — hade gjort flödet oanvändbart för en platsbaserad plattform,
+    så matchningen finns och `cannot_en` säger vad den är värd.
+
+    Längsta namnet vinner: "Västra Götaland" ska inte tappas till
+    "Götaland" när båda finns.
+    """
+    text = f"{post.get('title', '')} {post.get('summary', '')}".lower()
+    traffar = [(len(namn), kod) for kod, namn, *_ in regions
+               if namn and namn.lower() in text]
+    return max(traffar)[1] if traffar else ""
+
+
+REGION_MATCH_CANNOT_EN = (
+    "A region is attached when its name appears in the headline or lead. "
+    "That is a mention, not a subject: an article can name a place in "
+    "passing, and a town that shares a name with a person matches for the "
+    "wrong reason. Every attached item carries its own link so the "
+    "attachment can be dismissed by whoever reads it.")
+
+
+# ── Ämne: vilken riskkategori en uppgift rör ────────────────────────────
+# Orden är data. En ny kategori eller ett nytt språk är rader, inte kod.
+# Kategori-id:na är de i engine/risk_intel.RISK_CATEGORIES.
+CATEGORY_TERMS: dict[str, tuple[str, ...]] = {
+    "regulatory": ("regel", "regler", "lag ", "lagen", "krav", "moms",
+                   "upphandling", "föreskrift", "förbud", "tillstånd",
+                   "regulation", "law", "ruling", "permit", "ban"),
+    "staffing": ("varsel", "varslar", "uppsägning", "säger upp",
+                 "rekryterar", "vd ", "personalbrist", "strejk",
+                 "layoff", "hiring", "strike", "resigns"),
+    "market": ("etablerar", "öppnar", "lägger ned", "lägger ner",
+               "konkurs", "expanderar", "förvärvar", "stänger",
+               "opens", "closes", "bankrupt", "acquires", "expands"),
+    "project": ("överklagat", "överklagar", "pausat", "pausas",
+                "avbryter", "stoppas", "försenas", "finansieringen",
+                "appealed", "paused", "cancelled", "delayed"),
+    "customer": ("betalningsanmärkning", "rekonstruktion", "obestånd",
+                 "utmätning", "kronofogden",
+                 "insolvency", "default", "reconstruction"),
+    "legal": ("stämmer", "rättegång", "dom ", "åtal", "vite",
+              "lawsuit", "court", "fined", "charged"),
+}
+
+CATEGORY_MATCH_CANNOT_EN = (
+    "A keyword match is a candidate, not a judgement. It is not a topic "
+    "model: an article about a rule change in a sport matches the same "
+    "word as one about a rule change in a trade. The article travels with "
+    "the finding precisely so a person can throw it out.")
+
+
+def categories_of(cluster_: dict) -> list[str]:
+    """Vilka riskkategorier ett kluster kan röra."""
+    text = (f"{cluster_.get('title', '')} "
+            + " ".join(i.get("summary", "")
+                       for i in cluster_.get("items", []))).lower()
+    return sorted(kat for kat, ord_ in CATEGORY_TERMS.items()
+                  if any(o in text for o in ord_))
+
+
+def observations_for(clusters: list[dict], region_code: str = "") -> dict:
+    """Bekräftade uppgifter per riskkategori — grinden redan passerad.
+
+    Bara kluster med minst två oberoende ägare kommer hit. Det som
+    returneras bär ALDRIG ett tal: kategorin, klustret, ägarna, och en
+    länk per artikel.
+    """
+    per: dict[str, list] = {}
+    for k in clusters:
+        if not k.get("may_inform_analysis"):
+            continue
+        if region_code and k.get("region_code") not in ("", region_code):
+            continue
+        for kat in categories_of(k):
+            per.setdefault(kat, []).append({
+                "title": k["title"], "owners": k["owners"],
+                "outlets": k["outlets"],
+                "networks": k["independent_networks"],
+                "strength": k["strength"],
+                "links": [i.get("link", "") for i in k.get("items", [])
+                          if i.get("link")],
+                "checksum": k["checksum"],
+            })
+    return {
+        "by_category": per, "categories": sorted(per),
+        "count": sum(len(v) for v in per.values()),
+        "region_code": region_code,
+        "cannot_en": CATEGORY_MATCH_CANNOT_EN + " " + REGION_MATCH_CANNOT_EN,
+    }
+
+
+# ── Lagret ──────────────────────────────────────────────────────────────
+_STORE = None
+_MINNE: dict[str, dict] = {}
+
+
+def set_store(store: object) -> None:
+    global _STORE
+    _STORE = store
+
+
+def store_items(rader: list[dict]) -> int:
+    if not rader:
+        return 0
+    if _STORE is not None and getattr(_STORE, "save_news", None):
+        return _STORE.save_news(rader)
+    for r in rader:
+        _MINNE[r["checksum"]] = dict(r)
+    return len(rader)
+
+
+def all_items(region_code: str = "", *, max_age_days: float = 0.0,
+              now: float = 0.0) -> list[dict]:
+    rader = (_STORE.all_news() if _STORE is not None
+             and getattr(_STORE, "all_news", None) else list(_MINNE.values()))
+    if region_code:
+        rader = [r for r in rader if r.get("region_code") == region_code]
+    if max_age_days:
+        import time as _t
+        nu = now or _t.time()
+        tak = max_age_days * 86400
+        # En nyhet som är två veckor gammal är inte "vad som hänt". Samma
+        # regel som skördelagret: för gammal = frånvarande, inte ett svar.
+        rader = [r for r in rader
+                 if (nu - float(r.get("harvested_at") or 0)) <= tak]
+    return rader
+
+
+_SENASTE: dict = {}
+
+
+def set_last_harvest(info: dict) -> None:
+    _SENASTE.clear()
+    _SENASTE.update(info)
+
+
+def last_harvest() -> dict:
+    """Vad den senaste skörden gjorde — inklusive vilka flöden som inte
+    gick att läsa. Utan det ser en halv skörd ut som en hel."""
+    return dict(_SENASTE) or {"items": 0, "feeds": 0, "unparsed": [],
+                              "note_en": "No harvest has run in this "
+                                         "process."}
+
+
+def reset() -> None:
+    """Endast för tester."""
+    _MINNE.clear()
+    _SENASTE.clear()
+
+
+def item_checksum(post: dict) -> str:
+    return canonical_hash({"outlet": post.get("outlet", ""),
+                           "title": post.get("title", ""),
+                           "link": post.get("link", "")})
+
+
 # ── Uppmärksamhetsindexet: anmält mot publicerat ────────────────────────
 # Två register om samma verklighet som inte behöver stämma överens. Det
 # ena är myndighetens (anmälda brott), det andra redaktionernas
@@ -283,26 +478,50 @@ PEER_MIN = 5          # under så här många jämförbara platser: ingen kvot
 def attention_index(rows: list[dict]) -> dict:
     """Publicerat per anmält, jämfört med jämförbara platser.
 
-    `rows` = [{"region": .., "reported": <antal anmälda>,
-               "published": <antal artiklar>, "category": ..}]
-    Båda talen ska komma UTIFRÅN — modulen räknar en kvot, den hämtar
+    `rows` = [{"region": .., "reported_per_100k": .., "published": ..,
+               "population": ..}]
+
+    **Båda sidor måste vara per capita.** Den anmälda sidan ÄR det redan
+    — Kolada N07403 är "anmälda våldsbrott per 100 000 invånare". Ett rått
+    artikelantal mot en kvot mäter till hälften bara ortens storlek: en
+    storstad har fler artiklar OCH fler anmälningar, och kvoten hade
+    speglat befolkningen snarare än uppmärksamheten. Funktionen VÄGRAR
+    därför när befolkningen saknas, i stället för att blanda en kvot med
+    ett antal — det är den sortens tysta fel som ser fullt rimligt ut.
+
+    Båda talen kommer UTIFRÅN. Modulen räknar en kvot; den hämtar
     ingenting och hittar aldrig på ett av dem.
     """
-    giltiga = [r for r in rows
-               if isinstance(r.get("reported"), (int, float))
-               and isinstance(r.get("published"), (int, float))
-               and r["reported"] > 0]
+    giltiga, utan_folk = [], []
+    for r in rows:
+        anmalt = r.get("reported_per_100k")
+        publicerat = r.get("published")
+        folk = r.get("population")
+        if not (isinstance(anmalt, (int, float)) and anmalt > 0
+                and isinstance(publicerat, (int, float))):
+            continue
+        if not (isinstance(folk, (int, float)) and folk > 0):
+            utan_folk.append(r.get("region", ""))
+            continue
+        giltiga.append({**r, "published_per_100k": publicerat / folk * 100_000})
     if len(giltiga) < PEER_MIN:
         return {
             "rows": [], "count": 0, "peers": len(giltiga),
+            "missing_population": utan_folk,
             "refusal_en": (
                 f"An attention ratio needs peers to mean anything: one "
-                f"place's number is not high or low by itself. Fewer than "
-                f"{PEER_MIN} comparable places had both a reported count "
-                f"and a published count, so no ratio was computed."),
+                f"place's number is not high or low by itself. "
+                f"{len(giltiga)} comparable place(s) had a reported RATE, a "
+                f"published count and a population — fewer than the "
+                f"{PEER_MIN} required, so no ratio was computed."
+                + (f" {len(utan_folk)} place(s) were dropped for having no "
+                   f"population: comparing a raw article count with a "
+                   f"per-100k rate would measure size, not attention."
+                   if utan_folk else "")),
             "cannot_en": _ATT_CANNOT,
         }
-    kvoter = [r["published"] / r["reported"] for r in giltiga]
+    kvoter = [r["published_per_100k"] / r["reported_per_100k"]
+              for r in giltiga]
     ordnat = sorted(kvoter)
     median = ordnat[len(ordnat) // 2]
     ut = []
@@ -312,29 +531,36 @@ def attention_index(rows: list[dict]) -> dict:
                 else "below" if rel <= 0.8 else "typical")
         ut.append({
             "region": r.get("region", ""), "category": r.get("category", ""),
-            "reported": r["reported"], "published": r["published"],
-            "published_per_reported": round(k, 4),
+            "reported_per_100k": round(r["reported_per_100k"], 2),
+            "published": r["published"],
+            "published_per_100k": round(r["published_per_100k"], 2),
+            "population": r["population"],
+            "ratio": round(k, 4),
             "vs_peer_median": round(rel, 2), "band": band,
             "means_en": (
-                f"{r['published']} article(s) per {r['reported']} reported "
-                f"incident(s) — {round(rel, 2)}× the median of "
+                f"{round(r['published_per_100k'], 1)} article(s) per 100k "
+                f"inhabitants against {round(r['reported_per_100k'], 1)} "
+                f"reported per 100k — {round(rel, 2)}× the median of "
                 f"{len(giltiga)} comparable places."),
         })
     return {
         "rows": sorted(ut, key=lambda x: -x["vs_peer_median"]),
         "count": len(ut), "peers": len(giltiga),
+        "missing_population": utan_folk,
         "peer_median": round(median, 4),
         "means_en": (
             "How much a place is written about relative to what is "
-            "REPORTED there, measured against comparable places. It is an "
-            "attention ratio, and attention is the only thing it "
-            "measures."),
+            "REPORTED there, both per 100k inhabitants, measured against "
+            "comparable places. It is an attention ratio, and attention is "
+            "the only thing it measures."),
         "cannot_en": _ATT_CANNOT,
     }
 
 
 _ATT_CANNOT = (
-    "It does not measure how much happened. Propensity to report varies "
+    "Both sides are per 100k inhabitants; mixing a rate with a raw count "
+    "would make this a population measure wearing a ratio's clothes. And "
+    "it does not measure how much happened. Propensity to report varies "
     "sharply between offence types and between groups, and the dark "
     "figure is a different size everywhere — this is published against "
     "REPORTED, never published against occurred. A low ratio is not proof "

@@ -165,7 +165,8 @@ def test_both_layers_back_the_same_engines_with_the_store():
     # claimet som hindrar dubbelkörning fanns inte.
     for modul, vad in (("inspections", "kontrollregistret"),
                        ("scheduler", "schemalagda jobb"),
-                       ("harvest", "skördad öppen data")):
+                       ("harvest", "skördad öppen data"),
+                       ("news", "nyhetsposter")):
         for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
             # Modulen importeras under olika alias i de två filerna; leta
             # upp aliaset i stället för att gissa det.

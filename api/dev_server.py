@@ -82,6 +82,7 @@ from engine import inspections as insp_engine
 from engine import scheduler
 from engine import analysis as analysis_engine
 from engine import harvest as harvest_engine
+from engine import news as news_engine
 from engine.coverage import compare_markets, coverage
 from engine.export import catalog as export_catalog, export as export_data
 from api.ticker import start as start_ticker, status as ticker_status
@@ -157,6 +158,7 @@ scheduler.set_store(STORE)
 # skördar make harvest till en databas som API:t inte läser,
 # och varje svar blir mock fast rader finns.
 harvest_engine.set_store(STORE)
+news_engine.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)

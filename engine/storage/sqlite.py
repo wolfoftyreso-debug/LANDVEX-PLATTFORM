@@ -165,6 +165,30 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_harvested_src
         ON harvested(source, observed_at);
     """),
+    # Nyhetsposter. De passar INTE i `harvested`, som är
+    # (källa, region, signal, VÄRDE): en rubrik är ingen signal med ett
+    # värde, och att trycka in den där hade krävt ett signal_id som inte
+    # är en signal.
+    #
+    # Ingen tenant: publicerad text är densamma för alla, precis som
+    # skördad öppen data.
+    (10, """
+    CREATE TABLE IF NOT EXISTS news_items (
+        checksum     TEXT PRIMARY KEY,
+        outlet       TEXT NOT NULL DEFAULT '',
+        owner        TEXT NOT NULL DEFAULT '',
+        market       TEXT NOT NULL DEFAULT '',
+        region_code  TEXT NOT NULL DEFAULT '',
+        title        TEXT NOT NULL DEFAULT '',
+        summary      TEXT NOT NULL DEFAULT '',
+        link         TEXT NOT NULL DEFAULT '',
+        published    TEXT NOT NULL DEFAULT '',
+        harvested_at REAL NOT NULL DEFAULT 0,
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_news_region
+        ON news_items(region_code, harvested_at);
+    """),
 ]
 
 _DDL = """
@@ -628,6 +652,34 @@ class SqliteStore(Store):
         for payload, observed_at in rader:
             d = json.loads(payload)
             d["observed_at"] = observed_at      # kolumnen är sanningen
+            ut.append(d)
+        return ut
+
+    # ── Nyhetsposter ─────────────────────────────────────────────────
+    def save_news(self, rows: list[dict[str, Any]]) -> int:
+        with self._lock, self._conn:
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO news_items (checksum, outlet, "
+                "owner, market, region_code, title, summary, link, "
+                "published, harvested_at, payload) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                [(r["checksum"], r.get("outlet", ""), r.get("owner", ""),
+                  r.get("market", ""), r.get("region_code", ""),
+                  r.get("title", ""), r.get("summary", ""),
+                  r.get("link", ""), r.get("published", ""),
+                  float(r.get("harvested_at") or 0),
+                  json.dumps(r, ensure_ascii=False)) for r in rows])
+        return len(rows)
+
+    def all_news(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload, harvested_at FROM news_items "
+                "ORDER BY harvested_at DESC, checksum").fetchall()
+        ut = []
+        for payload, harvested_at in rader:
+            d = json.loads(payload)
+            d["harvested_at"] = harvested_at
             ut.append(d)
         return ut
 

@@ -130,9 +130,35 @@ def _band_en(risk: float) -> str:
         "High" if risk < 75 else "Very high"
 
 
-def _category_risk(signals: dict, cat: RiskCategory) -> dict[str, Any]:
-    """Beräknad risk 0–100 för en kategori (eller monitoring-status)."""
+_OBSERVED_NOTE_EN = (
+    "Raised by CORROBORATED REPORTING — at least two independent owners "
+    "said it — not by a computed signal. It carries no number and is not "
+    "part of risk_score, which aggregates only categories derived from "
+    "signals. The outlets are named so the basis can be checked or "
+    "dismissed.")
+
+
+def _category_risk(signals: dict, cat: RiskCategory,
+                   observed: dict | None = None) -> dict[str, Any]:
+    """Beräknad risk 0–100 för en kategori — eller observerad, eller
+    monitoring.
+
+    Tre lägen, inte två. En kategori utan drivsignaler kunde tidigare
+    bara vara `monitoring`; en bekräftad nyhetsuppgift som rör den gör
+    den `observed`. Skillnaden mot `computed` är avgörande: observed bär
+    ett BAND och sina utgivare, aldrig ett tal, och räknas aldrig in i
+    risk_score.
+    """
+    rapporter = (observed or {}).get(cat.id) or []
     if not cat.driver_signals:
+        if rapporter:
+            return {"id": cat.id, "label_en": cat.label_en,
+                    "status": "observed", "band_en": "Elevated",
+                    "basis": rapporter, "sources_en": sorted(
+                        {o for r in rapporter for o in r["owners"]}),
+                    "watch_en": cat.watch_en,
+                    "mitigation_en": cat.mitigation_en,
+                    "notis_en": _OBSERVED_NOTE_EN}
         return {"id": cat.id, "label_en": cat.label_en, "status": "monitoring",
                 "watch_en": cat.watch_en, "mitigation_en": cat.mitigation_en,
                 "notis_en": _MONITORING_NOTE_EN}
@@ -155,11 +181,20 @@ def _category_risk(signals: dict, cat: RiskCategory) -> dict[str, Any]:
                 "notis_en": _MONITORING_NOTE_EN}
     risk = int(round(100 * (1 - num / den)))
     parts.sort(key=lambda p: -p["risk_contribution"])
-    return {"id": cat.id, "label_en": cat.label_en, "status": "computed",
-            "risk": risk, "band": _band(risk), "band_en": _band_en(risk),
-            "watch_en": cat.watch_en,
-            "drivers": parts,
-            "mitigation_en": cat.mitigation_en if risk >= 55 else None}
+    ut = {"id": cat.id, "label_en": cat.label_en, "status": "computed",
+          "risk": risk, "band": _band(risk), "band_en": _band_en(risk),
+          "watch_en": cat.watch_en,
+          "drivers": parts,
+          "mitigation_en": cat.mitigation_en if risk >= 55 else None}
+    if rapporter:
+        # En beräknad kategori BEHÅLLER sitt tal. Rapporteringen läggs
+        # bredvid som en notering, aldrig i talet: ett Risk Score som
+        # kunde flyttas av en rubrik vore inte längre härlett.
+        ut["reported_alongside"] = rapporter
+        ut["reported_note_en"] = (
+            "Corroborated reporting touches this category. It is shown "
+            "beside the computed risk and did NOT change it.")
+    return ut
 
 
 # ── Business Signals™ ramverk (signaltyper som data) ─────────────────
@@ -274,6 +309,45 @@ def counterparty_health_framework() -> dict[str, Any]:
     }
 
 
+def _observations(location: Location, market: str, res) -> dict:
+    """Bekräftade nyhetsuppgifter per riskkategori för den här platsen.
+
+    Tomt när nyhetsskörden inte är påslagen — och det är rätt: en
+    kategori utan rapportering ska stå kvar som `monitoring`, inte som
+    lugn.
+    """
+    try:
+        from engine import news as N
+        from engine.markets import MARKETS
+    except Exception:                                   # noqa: BLE001
+        return {}
+    poster = N.all_items(max_age_days=N_MAX_AGE_DAYS)
+    if not poster:
+        return {}
+    regioner = MARKETS[market].regions if market in MARKETS else []
+    kod = _narmaste_region(location, regioner)
+    kluster = N.cluster(poster)
+    for k in kluster:
+        koder = {i.get("region_code", "") for i in k["items"]}
+        k["region_code"] = next((c for c in koder if c), "")
+    return N.observations_for(kluster, region_code=kod)["by_category"]
+
+
+# Nyheter äldre än så här räknas inte som "vad som hänt".
+N_MAX_AGE_DAYS = 7.0
+
+
+def _narmaste_region(location: Location, regioner) -> str:
+    """Vilken region punkten ligger i. Nyheter knyts till region, inte
+    till koordinat — en artikel har ingen position."""
+    bast, bast_kod = None, ""
+    for kod, _namn, lat, lon in regioner:
+        d = (lat - location.lat) ** 2 + (lon - location.lon) ** 2
+        if bast is None or d < bast:
+            bast, bast_kod = d, kod
+    return bast_kod
+
+
 # ── Sammansatt Risk Intelligence ─────────────────────────────────────
 def _recommendations(opportunity: float, categories: list[dict]) -> list[dict]:
     """Data → signal → rekommendation. Konkreta handlingsalternativ."""
@@ -329,7 +403,8 @@ def risk_intelligence(location: Location, vertical_id: str,
                                 "normalized": round(
                                     normalize(CATALOG[sid], sv.value), 3)}
 
-    categories = [_category_risk(signals, c) for c in RISK_CATEGORIES]
+    observed = _observations(location, market, res)
+    categories = [_category_risk(signals, c, observed) for c in RISK_CATEGORIES]
     computed = [(c, cat) for c, cat in zip(categories, RISK_CATEGORIES, strict=False)
                 if c.get("status") == "computed"]
     # Sammanvägd Risk Score – endast beräknade kategorier (ärlig täckning).
@@ -354,6 +429,8 @@ def risk_intelligence(location: Location, vertical_id: str,
                               "with history – not shown as a guessed arrow."},
         "risk_categories": categories,
         "monitoring_categories": monitoring,
+        "observed_categories": [c["id"] for c in categories
+                                if c.get("status") == "observed"],
         "computed_coverage": round(len(computed) / len(RISK_CATEGORIES), 2),
         "business_signals": business_signals_framework(),
         "counterparty_health": counterparty_health_framework(),
