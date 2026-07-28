@@ -2,6 +2,43 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — vad vi kan svara på HÄR
+
+Tredje Tier 1-posten. Hela alt-data-branschen döljer att den är
+enkelkällad; att publicera sin egen täckning är därför en kil och inte en
+svaghet. `engine/coverage.py`, `GET /v1/coverage` — **utan API-nyckel med
+flit**: en kund som måste köpa för att få veta vad talen vilar på har
+redan fått fel produkt.
+
+- **`real_weight`** är talet: hur stor andel av en bransch VIKTADE
+  signalbild som en ansluten källa faktiskt kan svara för på den
+  marknaden. Inte hur många signaler som finns (lika många överallt, och
+  lika intetsägande överallt). För Sverige 0,245. För USA och alla andra
+  34 marknader **0,0**. Det är obekvämt, det är sant, och det ska stå
+  innan någon frågar.
+- **Två olika luckor hålls isär.** En adapter som är skriven men inte
+  ansluten är ett avtal; en adapter som inte NÅR marknaden är en ny
+  integration. Svaret säger vilket, per källa, med antal signaler den
+  skulle öppna.
+- **Ny räckviddsdeklaration:** `DataSource.markets`. SCB-adaptern är
+  kopplad och `/health` säger "ok" — men den kan inte svara för en punkt
+  i Texas, och det stod ingenstans. För US-marknaden var därför varenda
+  signal mock medan statusraden såg lika grön ut som för Sverige.
+- **Anslutningsregeln bodde bara i `api/health`** och var därmed
+  oåtkomlig för motorn. Den ligger nu i `DataSource.connected`, och
+  health läser samma regel — annars hade täckningsytan behövt en kopia,
+  och två kopior av samma regel glider isär. (Första utkastet gissade,
+  och gissningen räknade mock som verklig data: 0,505 för Sverige och
+  0,227 för USA, båda fel.)
+- **Startsidans bevisrader räknas nu.** "0 of 14 source adapters" var
+  handskrivet — sant den dagen, och just den sortens rad som blir falsk i
+  tysthet. Ny rad: plattformens egen täckning, marknad för marknad.
+- **`GET` mappar fältfel till 422 i båda servrarna.** `?market=atlantis`
+  gav "Internal error" med ett request-id i stdlib-servern medan FastAPI
+  svarade 422 med listan över marknader. Två servrar som beter sig olika
+  på samma felstavning är samma drift som en saknad endpoint, bara
+  svårare att upptäcka.
+
 ## [Ej släppt] — ut ur systemet, och igång utan att bli tillfrågad
 
 Två av lägesrapportens tre oblockerade Tier 1-poster. Båda stod som

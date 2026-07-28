@@ -413,7 +413,7 @@ PLAN: tuple[dict, ...] = (
      "blocked_by_en": "nothing",
      "market_en": "The whole alt-data segment hides single-sourcing. "
                   "Publishing coverage is a wedge, not a weakness.",
-     "done_when": None},
+     "done_when": lambda m: _har_beslut(m, "coverage_here")},
 
     # ── Nivå 2: bygger vallgraven ────────────────────────────────────
     {"id": "quixzoom_vision", "tier": 2,

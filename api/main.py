@@ -1080,6 +1080,23 @@ def schedules_run_ep(request: Request, body: dict | None = None):
                              tillatna)
 
 
+@app.get("/v1/coverage")
+def coverage_ep(market: str = ""):
+    """What the platform can actually answer for in a given market."""
+    from engine.coverage import coverage
+    try:
+        return coverage(market)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/coverage/markets")
+def coverage_markets_ep(markets: str = ""):
+    """The same number across markets — the honest answer to 'do you cover X?'."""
+    from engine.coverage import compare_markets
+    return compare_markets([m for m in markets.split(",") if m] or None)
+
+
 @app.get("/v1/export")
 def export_catalog_ep():
     """What can be taken into your own tools — and what cannot."""

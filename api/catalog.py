@@ -383,6 +383,16 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
+        {"id": "coverage", "label_en": "What we can answer where you are",
+         "beskrivning_en": "Publishes the platform's own coverage per "
+                           "market: the share of each industry's weighted "
+                           "signal picture that a connected source can "
+                           "actually answer for, which adapter would open "
+                           "which signals, and which adapters do not reach "
+                           "that market at all. Computed from the source "
+                           "and sensor state, never asserted.",
+         "endpoints": [{"method": "GET", "path": "/v1/coverage"},
+                       {"method": "GET", "path": "/v1/coverage/markets"}]},
         {"id": "scheduler", "label_en": "Run it without being asked",
          "beskrivning_en": "Registers jobs that run on a cadence — order "
                            "field missions for what falls due, recompute a "

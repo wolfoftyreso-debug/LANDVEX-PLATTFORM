@@ -1127,6 +1127,32 @@
         }
       }
     },
+    "/v1/coverage": {
+      "get": {
+        "summary": "Publishes the platform's own coverage per market: the share of each industry's weighted signal picture that a connected source can actually answer for, which adapter would open which signals, and which adapters do not reach that market at all. Computed from the source and sensor state, never asserted.",
+        "tags": [
+          "coverage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/coverage/markets": {
+      "get": {
+        "summary": "Publishes the platform's own coverage per market: the share of each industry's weighted signal picture that a connected source can actually answer for, which adapter would open which signals, and which adapters do not reach that market at all. Computed from the source and sensor state, never asserted.",
+        "tags": [
+          "coverage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/schedules": {
       "get": {
         "summary": "Registers jobs that run on a cadence — order field missions for what falls due, recompute a compliance record, re-run a market sweep and store it, wake the watches. Same cadence vocabulary as monitors. Jobs are claimed in the store so two workers cannot run the same job twice, and a watch woken with no history to compare against says so instead of reporting calm.",

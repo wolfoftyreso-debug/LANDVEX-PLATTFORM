@@ -25,8 +25,10 @@ def source_status(resolver) -> list[dict[str, Any]]:
             out.append({"source": name, "status": "ej_ansluten",
                         "notis_en": "Adapter stub – awaiting data source."})
             continue
-        # Källor som ansluts via en URL (tom base_url ⇒ ej ansluten).
-        if hasattr(inner, "base_url") and not getattr(inner, "base_url", ""):
+        # Anslutningsregeln bor i DataSource.connected. Den låg tidigare
+        # BARA här, så motorn kunde inte läsa den — och en täckningsyta
+        # som gissar 'ansluten' räknar mock som verklig data.
+        if not getattr(inner, "connected", True):
             _notis = {
                 "quixzoom": "quiXzoom missions reach us via AAMOS Core – set "
                             "AAMOS_CORE_URL to connect the field-observation "

@@ -142,6 +142,12 @@ def bevis() -> list[dict]:
         f.read_text(encoding="utf-8") for f in (rot / "tests").glob("*.py")),
         re.M))
 
+    from engine.coverage import compare_markets, coverage
+    from scripts.standing import matning
+    _matt = matning()
+    _tack = coverage("se")          # enda marknaden med en ansluten källa
+    _jam = compare_markets()
+
     return [
         # Formuleringen är medvetet avgränsad till SCORINGLAGRET. Den
         # första versionen sa "no language model sits in the answer path"
@@ -189,12 +195,27 @@ def bevis() -> list[dict]:
                      "simulated data is labelled simulated in the response "
                      "itself — not in a footnote on a slide.",
          "check_en": "GET /v1/provenance"},
+        # Talen RÄKNAS. Den första versionen skrev "0 of 14 source
+        # adapters" för hand — sant den dagen, och exakt den sortens rad
+        # som blir falsk i tysthet så fort en adapter tillkommer. En sida
+        # som bevisar tillförlitlighet har minst råd med det.
         {"claim_en": "It publishes what it has NOT proven.",
-         "proof_en": "0 of 14 source adapters have been verified against a "
-                     "live endpoint from the build environment, and the "
-                     "platform says so in its own status output rather "
-                     "than waiting to be asked.",
+         "proof_en": f"{_matt['sources_verified']} of "
+                     f"{_matt['source_adapters']} source adapters have been "
+                     f"verified against a live endpoint from the build "
+                     f"environment, and the platform says so in its own "
+                     f"status output rather than waiting to be asked.",
          "check_en": "python3 -m scripts.standing"},
+        {"claim_en": "It publishes its own coverage, market by market.",
+         "proof_en": f"For {_tack['market_label_en']}, "
+                     f"{round(_tack['real_weight'] * 100)}% of the weighted "
+                     f"signal picture is answered by a connected source; "
+                     f"{_jam['with_real_data']} of {_jam['count']} markets "
+                     f"have any connected source at all, and the rest run "
+                     f"on a labelled simulation. The whole alt-data segment "
+                     f"hides single-sourcing — this endpoint is open "
+                     f"without an API key.",
+         "check_en": "GET /v1/coverage · GET /v1/coverage/markets"},
         {"claim_en": "A decision is bound to named owners and resolved "
                      "against the actual outcome.",
          "proof_en": "Three roles are required — formal, operational, "

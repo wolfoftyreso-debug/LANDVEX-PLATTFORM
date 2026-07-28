@@ -80,6 +80,7 @@ from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import inspections as insp_engine
 from engine import scheduler
+from engine.coverage import compare_markets, coverage
 from engine.export import catalog as export_catalog, export as export_data
 from api.ticker import start as start_ticker, status as ticker_status
 from engine import monitors as monitors_engine
@@ -249,6 +250,21 @@ class Handler(BaseHTTPRequestHandler):
         self._gated("POST", self._route_post)
 
     def _route_get(self):
+        """Frågesträngen är också indata.
+
+        POST-vägen mappade sedan länge fältfel till 422; GET gjorde det
+        inte, så `?market=atlantis` blev "Internal error" med ett
+        request-id — medan FastAPI-lagret svarade 422 med vilka
+        marknader som finns. Två servrar som beter sig olika på samma
+        felstavning är samma sorts drift som en saknad endpoint, bara
+        svårare att upptäcka.
+        """
+        try:
+            return self._route_get_inner()
+        except (KeyError, ValueError, TypeError) as e:
+            return self._send(422, {"error": _field_error(e)})
+
+    def _route_get_inner(self):
         parsed = urlparse(self.path)
         if parsed.path == "/metrics":
             kallor = source_status(RESOLVER)
@@ -387,6 +403,13 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/exceptions":
             return self._send(200,
                               insp_engine.exception_feed(self._tenant()))
+        if parsed.path == "/v1/coverage/markets":
+            q = parse_qs(parsed.query)
+            marknader = [m for m in q.get("markets", [""])[0].split(",") if m]
+            return self._send(200, compare_markets(marknader or None))
+        if parsed.path == "/v1/coverage":
+            q = parse_qs(parsed.query)
+            return self._send(200, coverage(q.get("market", [""])[0]))
         if parsed.path == "/v1/export":
             return self._send(200, export_catalog())
         if parsed.path == "/v1/schedules":

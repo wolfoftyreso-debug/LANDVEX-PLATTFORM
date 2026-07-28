@@ -86,6 +86,9 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # DATAMÄNGDEN: POST /v1/export kräver samma kapabilitet som den
     # endpoint datamängden kommer ifrån, annars vore exporten en väg runt
     # paketet (köp export, läs allt).
+    # Täckningsytan är publik med flit: den som måste köpa för att
+    # få veta vad talen vilar på har redan fått fel produkt.
+    "/v1/coverage": "core",
     "/v1/export": "core",
     "/v1/assets": "asset_inspections",        # kundens egna objekt
     "/v1/routines": "asset_inspections",      # hur ofta de ska kontrolleras

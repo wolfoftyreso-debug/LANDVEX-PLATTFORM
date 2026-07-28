@@ -64,6 +64,8 @@ def _mission_latlon(m):
 class _NotWiredSource(DataSource):
     """Gemensam bas: returnerar tomt tills adaptern är kopplad."""
 
+    connected = False       # en stubbe är per definition inte ansluten
+
     def fetch(self, location: Location, vertical_id: str,
               signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
         return {}, {}
@@ -79,6 +81,9 @@ class ScbSource(DataSource):
     """
 
     name = "scb"
+    # SCB:s PxWeb är svensk statistik och lokaliseringen sker mot
+    # svenska kommuncentroider. En punkt i Texas får inget svar här.
+    markets = ("se",)
     SIGNALS = ("pop_growth_pct", "income_index", "age_20_45_share",
                "share_65plus", "residential_density", "population_total")
     _QUALITY = {"pop_growth_pct": 0.7, "income_index": 0.7,
@@ -382,6 +387,8 @@ class LivabilitySource(DataSource):
     """
 
     name = "livability"
+    # Kolada är svenska kommuners nyckeltal.
+    markets = ("se",)
     SIGNALS = ("care_supply", "education_outcomes", "crime_index",
                "healthcare_access", "life_satisfaction", "social_trust",
                "housing_affordability")

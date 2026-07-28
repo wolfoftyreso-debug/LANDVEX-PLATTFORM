@@ -44,6 +44,23 @@ DECISIONS: tuple[dict, ...] = (
      "who_en": "Anyone with a number they cannot place.",
      "decides_en": "Whether something is worth reacting to at all.",
      "answered_by": "/v1/benchmark"},
+    # Publik med flit, och gratis med flit: en kund som måste FRÅGA vad
+    # ett tal vilar på har redan fått fel produkt. Hela alt-data-segmentet
+    # döljer att det är enkelkällat — att publicera sin egen täckning är
+    # en kil, inte en svaghet.
+    {"id": "coverage_here", "audience": "researcher", "plan": "free",
+     "status": "built",
+     "question_en": "What can you actually answer where I am?",
+     "who_en": "Anyone about to trust a number — buyers, analysts, "
+               "procurement, auditors.",
+     "decides_en": "Whether the platform has anything real to say about "
+                   "this market yet, and what it would take.",
+     "answered_by": "/v1/coverage",
+     "note_en": "Reports the share of each industry's WEIGHTED signal "
+                "picture that a connected source can answer for in that "
+                "market — not how many signals exist. Today that is 0.0 "
+                "for every market except Sweden, and saying so before "
+                "being asked is the point."},
     {"id": "public_brief", "audience": "citizen", "plan": "free", "status": "built",
      "question_en": "What changed that anyone may know about?",
      "who_en": "Anyone following a region.",

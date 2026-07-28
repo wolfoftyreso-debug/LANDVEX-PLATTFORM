@@ -19,6 +19,35 @@ from ..models import Location, SignalValue
 class DataSource(ABC):
     name: str = "base"
 
+    # Vilka marknader källan FAKTISKT kan svara för. Tom tuple = ingen
+    # geografisk gräns i själva adaptern (en generisk HTTP-källa som
+    # svarar för det som ligger bakom URL:en).
+    #
+    # Det här stod ingenstans, och det var en tyst osanning: SCB-adaptern
+    # är kopplad och /health säger "ok" — men den kan inte svara för en
+    # punkt i Texas, och för US-marknaden var därför varenda signal mock
+    # medan statusraden såg lika grön ut som för Sverige. Fältet gör
+    # räckvidden till data, så engine/coverage.py kan säga vad vi kan
+    # svara på VAR i stället för bara VAD.
+    markets: tuple[str, ...] = ()
+
+    @property
+    def connected(self) -> bool:
+        """Kan källan svara alls just nu?
+
+        Regeln bodde i `api/health.source_status` och ingen annanstans,
+        vilket gjorde den oåtkomlig för motorn: `engine/coverage.py` fick
+        antingen kopiera den — två kopior av samma regel glider isär —
+        eller gissa, och en gissning som säger 'ansluten' om en källa
+        utan URL räknar mock som verklig data.
+
+        Källor som ansluts via en URL är inte anslutna förrän den är
+        satt. Källor utan URL (SCB:s öppna PxWeb) är det direkt.
+        """
+        if hasattr(self, "base_url"):
+            return bool(getattr(self, "base_url", ""))
+        return True
+
     @abstractmethod
     def fetch(self, location: Location, vertical_id: str,
               signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
