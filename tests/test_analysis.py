@@ -170,6 +170,41 @@ def test_a_contradiction_where_both_sides_are_real_still_lands():
     assert all(f["sources"] for f in c["findings"])
 
 
+def test_the_sweep_sees_what_the_harvest_actually_brought_home():
+    """`relationships` fick sin egen resolver; motsägelsesvepet fick den
+    aldrig och föll till scoring-modulens mock-only-resolver.
+
+    Följden såg ut som ett besked om världen: sju skördade amerikanska
+    bygglovsregister låg i lagret, och svepet rapporterade ändå VARENDA
+    region som "allt simulerat". Mätt efter fixen blir samma regioner
+    `skipped_one_sided` — verkligt papper, simulerad mark — vilket är
+    sanningen om underlaget.
+    """
+    import os
+    import time
+
+    from engine import harvest as H
+
+    H.reset()
+    A.reset()
+    os.environ["LANDVEX_PERMITS_ON"] = "1"
+    try:
+        nu = time.time()
+        H.store_rows([
+            {"source": "socrata_permits", "region_code": kod, "market": "us",
+             "signal_id": "building_permits", "value": 48213.0,
+             "lat": lat, "lon": lon, "observed_at": nu}
+            for kod, lat, lon in (("us-newyork", 40.71, -74.01),
+                                  ("us-chicago", 41.88, -87.63))])
+        c = A.contradictions("us", limit=3)      # newyork, losangeles, chicago
+        assert c["skipped_one_sided"] >= 2, (
+            f"svepet såg inte de skördade bygglovsraderna: {c}")
+        assert c["count"] == 0
+    finally:
+        os.environ.pop("LANDVEX_PERMITS_ON", None)
+        H.reset()
+
+
 def test_a_contradiction_needs_no_sample_to_be_real():
     c = A.contradictions("us", limit=1)
     assert "A single region is enough" in c["means_en"]

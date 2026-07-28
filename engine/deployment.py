@@ -260,6 +260,15 @@ ENVIRONMENT: dict[str, dict] = {
         "No news is read, and every risk category that only reporting "
         "could observe stays in 'monitoring'.",
         example="on"),
+    "LANDVEX_PERMITS_ON": _v(
+        "optional", "Switch on US municipal building-permit harvesting "
+                    "(Socrata, no key). The seven city registers are data "
+                    "in engine/harvest._SOCRATA_PERMITS.",
+        "The PLANNED half of the contradiction index stays simulated in "
+        "every market, so /v1/analysis reports no contradictions at all — "
+        "a real observed side compared against simulated paperwork is "
+        "refused, not scored.",
+        example="on"),
     "LANDVEX_OSM_URL": _v(
         "optional", "Overpass endpoint (OpenStreetMap). No key.",
         "Competing supply stays mock in every market — the single "

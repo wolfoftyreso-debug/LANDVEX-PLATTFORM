@@ -264,7 +264,17 @@ def test_every_source_declares_what_it_needs_and_what_it_cannot_do():
         assert s["max_age_days"] > 0, sid
         assert 0 < s["quality"] <= 1.0, sid
         assert len(s["cannot_en"]) > 60, sid
-        assert s["default_url"].startswith(("https://", "feeds://")), sid
+        # En källa har antingen EN adress, eller många som står som data
+        # någon annanstans. I det senare fallet ska sentinelvärdet peka
+        # på en tabell som FINNS och inte är tom — annars ser en
+        # omdöpt tabell ut som en påslagen källa som tyst skördar noll.
+        url = s["default_url"]
+        if "://" in url and not url.startswith("https://"):
+            modul, _, attr = url.split("://", 1)[1].rpartition(".")
+            tabell = getattr(__import__(modul, fromlist=[attr]), attr, None)
+            assert tabell, f"{sid}: {url} pekar på ingenting"
+        else:
+            assert url.startswith("https://"), sid
         # En källa som fyller EN signal ska säga vilken. En som inte
         # fyller någon (nyheter) ska säga varför den ändå finns — annars
         # ser den ut som en glömd rad.
@@ -345,6 +355,114 @@ def test_the_harvest_url_is_form_encoded_the_way_overpass_wants_it():
         assert krop["data"][0].startswith("[out:json]")
     finally:
         _av("LANDVEX_OSM_URL")
+
+
+# ── Socrata: den planerade halvan av kontradiktionsindexet ─────────────
+def _permit_region(kod: str = "us-chicago") -> tuple:
+    from engine.markets import MARKETS
+
+    return next(r for r in MARKETS["us"].regions if r[0] == kod)
+
+
+def test_a_permit_count_asks_for_twelve_months_and_says_whose_it_is():
+    """Signalen heter 'last 12 mo'. Frågar skördaren om ett halvår blir
+    talet hälften så stort utan att någon kan se det."""
+    _pa({"LANDVEX_PERMITS_ON": "1"})
+    sedd = {}
+
+    def t(url, timeout):
+        sedd["url"] = url
+        return b'[{"n": "48213"}]'
+
+    try:
+        rader = H.harvest_region("socrata_permits", _permit_region(), "us",
+                                 transport=t)
+        assert len(rader) == 1
+        r = rader[0]
+        assert r["signal_id"] == "building_permits" and r["value"] == 48213.0
+        assert r["window_days"] == 365
+        # Räckvidden är kommunen, inte metroregionen, och det ska stå
+        # på raden — samma regel som Census delstatstal.
+        assert r["observed_scope"].startswith("municipality:")
+        fraga = urllib.parse.parse_qs(sedd["url"].split("?", 1)[1])
+        assert fraga["$select"] == ["count(1) as n"]
+        assert "issue_date >" in fraga["$where"][0]
+        # ett år tillbaka, inte ett halvt
+        ar = int(fraga["$where"][0].split("'")[1][:4])
+        assert ar == int(time.strftime("%Y", time.gmtime(
+            time.time() - 365 * 86400)))
+    finally:
+        _av("LANDVEX_PERMITS_ON")
+
+
+def test_a_city_without_a_register_gets_nothing_not_an_estimate():
+    """68 av 75 amerikanska regioner har inget öppet register. De ska få
+    tomt — ett skattat bygglovstal är en gissning med en enhet på."""
+    _pa({"LANDVEX_PERMITS_ON": "1"})
+
+    def t(url, timeout):
+        raise AssertionError("ingen adress får kontaktas för en stad "
+                             "utan register")
+
+    try:
+        assert H.harvest_region("socrata_permits", _permit_region("us-boise"),
+                                "us", transport=t) == []
+    finally:
+        _av("LANDVEX_PERMITS_ON")
+
+
+def test_a_register_that_answers_with_nonsense_gives_no_row_not_a_zero():
+    """Noll bygglov är ett besked om staden. Ett oläsbart svar är ett
+    besked om vårt anrop, och de två får inte se likadana ut."""
+    _pa({"LANDVEX_PERMITS_ON": "1"})
+    try:
+        for svar in (b'[{"count_1": "12"}]', b'{"n": "12"}', b'[]',
+                     b'[{"n": "n/a"}]', b'[{"n":"1"},{"n":"2"}]'):
+            def t(url, timeout, _s=svar):
+                return _s
+            assert H.harvest_region("socrata_permits", _permit_region(),
+                                    "us", transport=t) == [], svar
+    finally:
+        _av("LANDVEX_PERMITS_ON")
+
+
+def test_permits_are_a_us_source_and_do_not_answer_for_sweden():
+    """Marknadslistan är inte dekoration: Socratas städer är
+    amerikanska, och en svensk region får inte gå den vägen."""
+    from engine.markets import MARKETS
+
+    _pa({"LANDVEX_PERMITS_ON": "1"})
+    try:
+        assert H.harvest_region("socrata_permits", MARKETS["se"].regions[0],
+                                "se", transport=_transport(b'[{"n":"1"}]')) \
+            == []
+    finally:
+        _av("LANDVEX_PERMITS_ON")
+
+
+def test_every_registered_permit_city_is_a_region_we_actually_have():
+    """En rad för en stad som inte finns i marknaden kan aldrig nås — och
+    ser i registret ut som täckning vi har."""
+    from engine.markets import MARKETS
+
+    koder = {r[0] for r in MARKETS["us"].regions}
+    okanda = set(H._SOCRATA_PERMITS) - koder
+    assert not okanda, f"bygglovsregister för okända regioner: {okanda}"
+    for kod, rad in H._SOCRATA_PERMITS.items():
+        assert rad["host"] and rad["dataset"] and rad["date"], kod
+        assert rad["city_en"], kod
+
+
+def test_the_permit_source_is_keyless_and_rides_the_open_switch():
+    _av("LANDVEX_PERMITS_ON")
+    _pa({"LANDVEX_OPEN_DATA": "on"})
+    try:
+        rad = next(r for r in H.switchable_today()
+                   if r["source"] == "socrata_permits")
+        assert rad["active"] is True and rad["markets"] == ["us"]
+        assert H.url_for("socrata_permits")
+    finally:
+        _av("LANDVEX_OPEN_DATA")
 
 
 def test_coverage_only_counts_what_has_actually_been_harvested():

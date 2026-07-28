@@ -73,6 +73,44 @@ def test_startup_and_revenue_rows_are_sane():
         assert rev > 0, vid
 
 
+def test_every_index_points_at_signals_that_exist():
+    """Samma regel som för branscher, fast för index — och den saknades.
+
+    `indices._PLANNED` bar `permitted_m2` med vikt 0,3 utan att signalen
+    fanns i katalogen. Ingen källa fyllde den, så den bidrog tyst med
+    noll av sin vikt; den dag en källa hade gjort det hade
+    `normalize(CATALOG[sid], ...)` rest KeyError mitt i beräkningen av
+    plattformens signaturanalys.
+    """
+    from engine.indices import INDEX_TYPES, _OBSERVED, _PLANNED
+
+    saknade = {}
+    for idx in INDEX_TYPES.values():
+        for sid, _ in idx.signals:
+            if sid not in CATALOG:
+                saknade.setdefault(idx.id, []).append(sid)
+    for namn, par in (("_PLANNED", _PLANNED), ("_OBSERVED", _OBSERVED)):
+        for sid, _ in par:
+            if sid not in CATALOG:
+                saknade.setdefault(namn, []).append(sid)
+    assert not saknade, f"index pekar utanför signalkatalogen: {saknade}"
+
+
+def test_the_two_sides_of_the_contradiction_normalise_alike():
+    """Kontradiktionsindexet är ett AVSTÅND mellan planerat och
+    observerat. Normaliseras arealsignalerna på olika skalor mäter
+    avståndet skalvalet och inte platsen."""
+    from engine.indices import _OBSERVED, _PLANNED
+
+    for a, b in (("permitted_m2", "development_m2"),):
+        assert {s for s, _ in _PLANNED} & {a}
+        assert {s for s, _ in _OBSERVED} & {b}
+        sa, sb = CATALOG[a], CATALOG[b]
+        assert sa.unit == sb.unit, f"{a} i {sa.unit}, {b} i {sb.unit}"
+        assert (sa.norm, sa.p1, sa.p2) == (sb.norm, sb.p1, sb.p2), \
+            f"{a} och {b} normaliseras olika"
+
+
 def test_every_market_has_regions_and_a_bbox():
     for mid, m in MARKETS.items():
         assert m.regions, f"{mid}: marknad utan regioner"

@@ -88,10 +88,17 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
     planerade = {sid for sid, _ in _PLANNED}
     observerade = {sid for sid, _ in _OBSERVED}
     regioner = MARKETS[market].regions[:limit or None]
+    # `relationships` fick den här raden; sveparen efter motsägelser fick
+    # den aldrig. Utan den föll city_assessment till scoring-modulens
+    # mock-only-resolver, så VARENDA region rapporterades som "allt
+    # simulerat" — även efter att sju amerikanska bygglovsregister låg
+    # skördade i lagret. En sökning som inte ser det vi faktiskt hämtat
+    # hem säger "inget hittat" om sig själv, inte om världen.
+    res = resolver or _default_resolver()
     fynd, prövade, tunna, halva = [], 0, 0, 0
     for kod, namn, lat, lon in regioner:
         prövade += 1
-        bed = city_assessment(kod, market=market, resolver=resolver)
+        bed = city_assessment(kod, market=market, resolver=res)
         # Listan heter `index` i city_assessment. Med fel nyckel gav
         # sökningen tomt varje gång utan att någonsin säga att den inte
         # hittade indexet — en sökning som tyst letar på fel ställe är

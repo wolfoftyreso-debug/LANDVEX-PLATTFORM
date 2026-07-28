@@ -2,6 +2,42 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — bygglov ur öppna register, och sveparen som inte såg dem
+
+Den fjärde blockeraren var inte en blockerare. Jag rapporterade
+"ingen öppen nyckellös bygglovskälla finns" och det var **fel för USA**:
+amerikanska städer publicerar sina bygglov på **Socrata utan nyckel**.
+
+- **`socrata_permits`** (nyckellöst) — sju stadsregister som data
+  (NYC, Chicago, Seattle, Austin, San Francisco, LA, Dallas), ett
+  `count(1)`-anrop per stad och dygn. `/v1/coverage?market=us`:
+  14,5 → **16,8 %**. Räckvidden är KOMMUNEN och står på raden; de 68
+  regioner som saknar register får **tomt, inte en skattning**. Ingen
+  `permitted_m2` hämtas — registren bär ingen area, och att räkna om
+  byggkostnad till kvadratmeter är en gissning med en enhet på.
+- **Rättat: motsägelsesvepet såg inte det skörden hämtat hem.**
+  `relationships` fick sin egen resolver; `contradictions` fick den
+  aldrig och föll till scoring-modulens mock-only-resolver. Med sju
+  bygglovsregister i lagret rapporterade svepet ändå **varenda region som
+  "allt simulerat"** — ett besked om sig själv presenterat som ett besked
+  om världen. Efter fixen blir samma regioner `skipped_one_sided`.
+- **Rättat: `permitted_m2` stod i `indices._PLANNED` med vikt 0,3 utan
+  att finnas i signalkatalogen.** Ingen källa fyllde den, så den bidrog
+  tyst med noll — och den dag en källa gjorde det hade
+  `normalize(CATALOG[sid], …)` rest KeyError mitt i plattformens
+  signaturanalys. Signalen finns nu, med **samma enhet och samma
+  normalisering som `development_m2`**: normaliseras de två sidorna
+  olika mäter "motsägelsen" skalvalet. Ett nytt test i
+  `tests/test_coverage.py` låser att inget index pekar utanför katalogen.
+
+`public_data_alignment` står **fortfarande som `refused`**, och nu av ett
+skarpare skäl än förut: den planerade sidan är verklig i sju amerikanska
+städer, men den **observerade** sidan (`development_m2`,
+`renovation_index`) har ingen öppen nyckellös motsvarighet. Overpass ger
+ett ANTAL byggnader, inte en area, och att lägga ett antal i en signal
+som mäter kvadratmeter är samma enhetslögn som räknas som fel överallt
+annars i den här kodbasen.
+
 ## [Ej släppt] — nyhetsskörden bevisad, och två spärrar som saknades
 
 `independent_verification` gick från vägran till räknad — och på vägen

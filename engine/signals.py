@@ -81,6 +81,14 @@ CATALOG: dict[str, SignalDef] = {s.id: s for s in [
     _s("event_days",        "Event days per year",          "days",   "saturating", 40),
     _s("detail_plans",      "Upcoming zoning plans",        "plans",  "saturating", 8),
     _s("development_m2",    "Development area",             "1000 m²","saturating", 150),
+    # Planerad area, motparten till development_m2. SAMMA enhet och SAMMA
+    # normalisering med flit: kontradiktionsindexet mäter avståndet mellan
+    # de två, och normaliseras de på olika skalor blir "motsägelsen" ett
+    # skalartefakt i stället för ett besked om platsen. Raden stod i
+    # indices._PLANNED utan att finnas här — ingen källa fyllde den, så
+    # den bidrog med noll, och den dag en gjorde det hade CATALOG[sid]
+    # rest KeyError mitt i indexberäkningen.
+    _s("permitted_m2",      "Permitted floor area",         "1000 m²","saturating", 150),
     _s("field_observation_density", "quiXzoom field observations",
        "obs/area", "saturating", 40),
     _s("infra_invest",      "Infrastructure investment",    "M local","saturating", 400),

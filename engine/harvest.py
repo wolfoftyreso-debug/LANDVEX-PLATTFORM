@@ -305,6 +305,84 @@ def _harvest_kolada(region: tuple, source: dict, transport) -> list[dict]:
              "period": senaste[0]}]
 
 
+# ── Socrata: öppna bygglovsregister, nyckellöst ─────────────────────────
+# Den planerade halvan av kontradiktionsindexet — plattformens
+# signaturanalys — har hittills varit ren mock i samtliga marknader.
+#
+# Amerikanska städer publicerar sina bygglov på Socrata utan nyckel. En
+# app-token höjer bara takten; utan den svarar värden ändå, långsammare.
+# Det är den enda öppna nyckellösa bygglovskällan jag hittat som täcker
+# fler än en kommun med samma frågespråk.
+#
+# Kolumnnamnet för datum skiljer sig per stad. Det står därför som DATA
+# per rad i stället för som en gren i koden.
+#
+# Räckvidden är KOMMUNEN, inte metroregionen. Chicagos bygglov är inte
+# Chicagolands, och raden bär `observed_scope` som säger det — samma
+# regel som Census delstatstal.
+_SOCRATA_PERMITS: dict[str, dict] = {
+    "us-newyork": {"host": "data.cityofnewyork.us", "dataset": "ipu4-2q9a",
+                   "date": "issuance_date", "city_en": "New York City"},
+    "us-chicago": {"host": "data.cityofchicago.org", "dataset": "ydr8-5enu",
+                   "date": "issue_date", "city_en": "City of Chicago"},
+    "us-seattle": {"host": "data.seattle.gov", "dataset": "76t5-zqzr",
+                   "date": "issueddate", "city_en": "City of Seattle"},
+    "us-austin": {"host": "data.austintexas.gov", "dataset": "3syk-w9eu",
+                  "date": "issued_date", "city_en": "City of Austin"},
+    "us-sanfrancisco": {"host": "data.sfgov.org", "dataset": "i98e-djp9",
+                        "date": "issued_date", "city_en": "San Francisco"},
+    "us-losangeles": {"host": "data.lacity.org", "dataset": "pi9x-tg5x",
+                      "date": "issue_date", "city_en": "City of Los Angeles"},
+    "us-dallas": {"host": "www.dallasopendata.com", "dataset": "e7gq-4sah",
+                  "date": "issued_date", "city_en": "City of Dallas"},
+}
+
+# Signalen heter "Building permits last 12 mo". Fönstret är därför 365
+# dagar och inget annat — ett halvår räknat in i samma signal hade halverat
+# talet utan att någon kunde se det.
+_PERMIT_WINDOW_DAYS = 365
+
+
+def _harvest_socrata_permits(region: tuple, source: dict,
+                             transport) -> list[dict]:
+    """Antal utfärdade bygglov senaste 12 månaderna. Nyckellöst.
+
+    Svarsform (SoQL med alias): [{"n": "48213"}]
+
+    Ingen `permitted_m2` hämtas. De här registren bär inte area — NYC:s
+    DOB-poster har ingen, Chicago har byggkostnad. Att räkna om kostnad
+    till kvadratmeter hade varit en gissning med en enhet på.
+    """
+    kod = region[0]
+    rad = _SOCRATA_PERMITS.get(kod)
+    if not rad:
+        return []          # ingen registrerad stad → inget påhittat svar
+    sedan = time.strftime("%Y-%m-%dT00:00:00",
+                          time.gmtime(time.time()
+                                      - _PERMIT_WINDOW_DAYS * 86400))
+    url = (f"https://{rad['host']}/resource/{rad['dataset']}.json?"
+           + urllib.parse.urlencode({"$select": "count(1) as n",
+                                     "$where": f"{rad['date']} > '{sedan}'"}))
+    raw = transport(url)
+    if raw is None:
+        return []
+    svar = json.loads(raw.decode("utf-8"))
+    if not isinstance(svar, list) or len(svar) != 1:
+        return []
+    try:
+        varde = float(svar[0]["n"])
+    except (KeyError, TypeError, ValueError):
+        # Ett register som svarar med något annat än ett tal ger INGEN
+        # rad. Noll hade lästs som "inga bygglov", vilket är ett besked
+        # om staden och inte om vårt anrop.
+        return []
+    return [{"source": "socrata_permits", "region_code": kod,
+             "signal_id": "building_permits", "value": varde,
+             "unit": "permits", "lat": region[2], "lon": region[3],
+             "observed_scope": f"municipality:{rad['city_en']}",
+             "window_days": _PERMIT_WINDOW_DAYS}]
+
+
 def _harvest_osm(region: tuple, source: dict, transport) -> list[dict]:
     kod, _namn, lat, lon = region[0], region[1], region[2], region[3]
     verticals = sorted(OSM_TAGS)
@@ -438,6 +516,28 @@ SOURCES: dict[str, dict] = {
             "sharply between offence types and between groups, and the "
             "dark figure is a different size in every municipality — this "
             "is the register's number, not the street's."),
+    },
+    "socrata_permits": {
+        "label_en": "Socrata — municipal building permits (US)",
+        "fills_en": "The PLANNED half of the contradiction index",
+        "signals": ("building_permits",),
+        "env": "LANDVEX_PERMITS_ON",
+        # Sju värdar, en per stad, som data i _SOCRATA_PERMITS. Samma
+        # sentinelform som nyhetsflödena: källan går att slå på utan att
+        # låtsas att det finns EN adress.
+        "default_url": "socrata://engine.harvest._SOCRATA_PERMITS",
+        "keyless": True,
+        "markets": ("us",),
+        "max_age_days": 30,
+        "quality": 0.8,
+        "post": False,
+        "harvest": _harvest_socrata_permits,
+        "cannot_en": (
+            "A permit is paperwork, not a building. It cannot say whether "
+            "anything was built, and the count covers the MUNICIPALITY, "
+            "not the metro area — the row carries its scope. Seven cities "
+            "have a register here; the other 68 US regions get nothing "
+            "rather than an estimate."),
     },
     "open_meteo": {
         "label_en": "Open-Meteo",
