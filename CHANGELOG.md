@@ -2,6 +2,45 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — nyheter som underlag, med grinden före
+
+Nyhetsflöden ska mata den samlade analysen. Det är rätt beslut och också
+det farligaste: ett system som låter en rubrik röra ett tal är en
+ryktesförstärkare med API. `engine/news.py` är byggd runt den risken.
+
+- **Fem tidningar med samma telegram är EN källa.** Syndikering är det
+  som gör "bekräftat av flera medier" värdelöst. Poster klustras på
+  texten och räknas per **ÄGARE**, inte per titel: DN och Di är Bonnier,
+  SvD och Aftonbladet är Schibsted — fyra tidningar, **två** röster.
+  Telegrambyråer (TT, Reuters, AP) märks separat så läsaren kan räkna
+  bort dem. Räkningen använder `corroboration.assess` med `network`,
+  fältet som tillkom tidigare i den här sessionen.
+- **En ensam ägare får aldrig röra en bedömning.** Uppgiften
+  registreras och går att läsa, men `may_inform_analysis` är False —
+  samma tak som gäller allt annat.
+- **Nyheter rör BAND, aldrig värden.** Det som passerar grinden får höja
+  eller sänka ett riskband och namnge utgivarna bakom. Det får aldrig
+  sätta ett numeriskt signalvärde: ett band går att argumentera emot,
+  ett tal ser ut som en mätning.
+- **Samstämmighet mellan utgivare är samstämmighet om en RAPPORT**, inte
+  om världen — tio redaktioner kan upprepa en enda felaktig källa, och
+  måttet kan bara se att de är olika bolag. Det står i svaret.
+- RSS och Atom, nyckellöst. Samma dokumentspärr som ENTSO-E:
+  entitetsdeklarationer avvisas oparsade.
+
+**Uppmärksamhetsindexet: anmält mot publicerat.** Två register om samma
+verklighet som inte behöver stämma överens — myndighetens och
+redaktionernas. Kvoten är artiklar per anmäld händelse, jämförd mot
+medianen för liknande platser, och den vägrar helt under fem jämförbara
+platser: ett tal är varken högt eller lågt i sig självt.
+
+Vad den INTE mäter, och det är hela dess integritet: **inte hur mycket
+som skett**. Anmälningsbenägenheten varierar kraftigt mellan brottstyper
+och grupper, och mörkertalet är olika stort överallt — kvoten är
+publicerat mot ANMÄLT, aldrig publicerat mot inträffat. Låg täckning är
+inte bevis för tystnad, hög är inte bevis för överdrift, och att läsa
+den som ett omdöme om en plats vore att göra ett mått till en anklagelse.
+
 ## [Ej släppt] — leta efter samband och motsägelser, och vägra oftare än man rapporterar
 
 Plattformen kunde redan RÄKNA ett samband (`engine/correlate.py`) och ett
