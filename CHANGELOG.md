@@ -2,6 +2,33 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — referensdata som lyfter USA över grinden
+
+Tre av MRAI:s fyra blockerare, angripna där de faktiskt satt.
+
+- **US Census CBP** (nyckellöst) som skördekälla → arbetsställen per
+  delstat. Mätt mot fixtur, 75 regioner: `/v1/coverage?market=us` gick
+  från **real_weight 0,0 (none) till 14,5 % (thin)** — **över MRAI:s
+  10 %-grind**. Första gången plattformen kan säga något alls om en
+  marknad utanför Sverige utan att gissa. CBP svarar per DELSTAT och inte
+  per metro; talet märks med sin räckvidd i stället för att låtsas vara
+  stadens.
+- **Kolada N07403** (nyckellöst) → anmälda våldsbrott per 100 000, den
+  anmälda halvan av uppmärksamhetsindexet. Sverige: 24,5 → **39,0 %**.
+- **`event_coverage_ratio` bygger nu sina egna rader** ur det som
+  faktiskt är skördat — anmält per 100k, befolkning och publicerade
+  artiklar per region. En rad utan alla tre tas inte med: att skicka in
+  halva rader hade gjort funktionens vägran till en gissning om vad som
+  saknades.
+
+Båda marknaderna vägrar fortfarande på **viktgolvet** — bara 25 % av den
+avsedda vikten går att räkna — och det är rätt svar. Komponenterna visas,
+talet gör det inte.
+
+Kvar för ett publicerbart index: en bygglovskälla (kontradiktionsindexet
+är annars ren mock) och en körd nyhetsskörd. Båda är namngivna i svaret,
+inte bortmedelvärdade.
+
 ## [Ej släppt] — MRAI: index där vi kan se, vägran där vi inte kan
 
 Media Reality Alignment Index per marknad, 0–100, sammansatt av motorer

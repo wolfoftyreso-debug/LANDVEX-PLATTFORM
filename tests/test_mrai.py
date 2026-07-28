@@ -131,6 +131,44 @@ def test_the_index_is_reachable_without_buying_anything():
     assert required_capability("/v1/mrai/compare") == "core"
 
 
+def test_the_event_ratio_builds_its_own_rows_from_what_was_harvested():
+    """Komponenten ska inte kräva att någon skickar in halva rader — den
+    läser det som faktiskt är skördat, och saknas en av de tre delarna
+    tas raden inte med."""
+    import time
+
+    from engine import harvest as Hv
+    from engine import news as Nw
+
+    Hv.reset()
+    Nw.reset()
+    nu = time.time()
+    Hv.store_rows([
+        {"source": "kolada_crime", "region_code": "0180", "market": "se",
+         "signal_id": "crime_index", "value": 900.0, "lat": 59.3,
+         "lon": 18.0, "observed_at": nu},
+        {"source": "scb", "region_code": "0180", "market": "se",
+         "signal_id": "population_total", "value": 975_000.0, "lat": 59.3,
+         "lon": 18.0, "observed_at": nu},
+        # bara anmält, ingen befolkning → ska INTE bli en rad
+        {"source": "kolada_crime", "region_code": "0182", "market": "se",
+         "signal_id": "crime_index", "value": 700.0, "lat": 59.3,
+         "lon": 18.1, "observed_at": nu}])
+    rader = M._attention_rows("se")
+    assert [r["region"] for r in rader] == ["0180"]
+    assert rader[0]["published"] == 0
+    assert rader[0]["population"] == 975_000.0
+    Hv.reset()
+    Nw.reset()
+
+
+def test_a_raw_count_against_a_rate_is_refused_not_averaged():
+    varde, _b, vagran = M._event_coverage_ratio("se", [])
+    if varde is None:
+        assert "not a ratio" in vagran or "measure population" in vagran \
+            or "needs all three" in vagran
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

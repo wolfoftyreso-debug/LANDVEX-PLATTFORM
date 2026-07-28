@@ -178,14 +178,54 @@ def _public_data_alignment(market: str, limit: int) -> tuple[float | None,
     }, ""
 
 
+def _attention_rows(market: str) -> list[dict]:
+    """Bygg raderna ur det som FAKTISKT är skördat.
+
+    Anmält kommer ur Kolada (kvot per 100k), publicerat ur nyhetsposterna
+    per region, befolkningen ur den skördade befolkningssignalen. En rad
+    utan alla tre tas inte med — attention_index vägrar ändå att blanda
+    en kvot med ett antal, men att skicka in halva rader hade gjort dess
+    vägran till en gissning om vad som saknades.
+    """
+    from engine import harvest, news as N
+    from engine.markets import MARKETS
+
+    if market not in MARKETS:
+        return []
+    anmalt, folk = {}, {}
+    for r in harvest.all_rows():
+        if r.get("market") not in ("", market):
+            continue
+        if r.get("signal_id") == "crime_index":
+            anmalt[r["region_code"]] = r.get("value")
+        elif r.get("signal_id") == "population_total":
+            folk[r["region_code"]] = r.get("value")
+    publicerat: dict[str, int] = {}
+    for post in N.all_items(max_age_days=N_WINDOW_DAYS):
+        kod = post.get("region_code")
+        if kod:
+            publicerat[kod] = publicerat.get(kod, 0) + 1
+    ut = []
+    for kod, kvot in anmalt.items():
+        if kod not in folk:
+            continue
+        ut.append({"region": kod, "reported_per_100k": kvot,
+                   "published": publicerat.get(kod, 0),
+                   "population": folk[kod]})
+    return ut
+
+
 def _event_coverage_ratio(market: str, rows: list) -> tuple[float | None,
                                                             dict, str]:
     from engine.news import attention_index
 
+    rows = rows or _attention_rows(market)
     if not rows:
         return None, {"places": 0}, (
-            "No place had both a reported RATE and a published count. The "
-            "ratio needs both sides; one of them alone is not a ratio.")
+            "No place had a reported RATE, a population and a published "
+            "count together. The ratio needs all three: reported per 100k "
+            "against articles per 100k. One side alone is not a ratio, and "
+            "a raw count against a rate would measure population.")
     r = attention_index(rows)
     if not r["count"]:
         return None, {"places": len(rows), "peers": r["peers"]}, \

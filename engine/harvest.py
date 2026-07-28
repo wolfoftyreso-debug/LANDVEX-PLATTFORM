@@ -200,6 +200,111 @@ def _harvest_news(region: tuple, source: dict, transport) -> list[dict]:
     return []
 
 
+# ── US Census CBP: den första riktiga amerikanska referensen ────────────
+# Metroregion → delstatskod. CBP svarar per DELSTAT, inte per metro: en
+# metrosiffra vore mer exakt och kräver en annan tabell. Att använda
+# delstatens tal och SÄGA att det är delstatens är bättre än att låtsas
+# att det är stadens.
+_CENSUS_STATE: dict[str, str] = {
+    "us-newyork": "36", "us-losangeles": "06", "us-chicago": "17",
+    "us-houston": "48", "us-phoenix": "04", "us-philadelphia": "42",
+    "us-sanantonio": "48", "us-sandiego": "06", "us-dallas": "48",
+    "us-austin": "48", "us-jacksonville": "12", "us-columbus": "39",
+    "us-charlotte": "37", "us-indianapolis": "18", "us-seattle": "53",
+    "us-denver": "08", "us-boston": "25", "us-nashville": "47",
+    "us-detroit": "26", "us-portland": "41", "us-lasvegas": "32",
+    "us-memphis": "47", "us-louisville": "21", "us-milwaukee": "55",
+    "us-baltimore": "24", "us-atlanta": "13", "us-miami": "12",
+    "us-minneapolis": "27", "us-tampa": "12", "us-stlouis": "29",
+    "us-sanfrancisco": "06", "us-sanjose": "06", "us-sacramento": "06",
+    "us-orlando": "12", "us-cleveland": "39", "us-pittsburgh": "42",
+    "us-cincinnati": "39", "us-kansascity": "29", "us-neworleans": "22",
+    "us-saltlakecity": "49", "us-raleigh": "37", "us-richmond": "51",
+    "us-buffalo": "36", "us-hartford": "09", "us-providence": "44",
+    "us-tulsa": "40", "us-oklahomacity": "40", "us-omaha": "31",
+    "us-desmoines": "19", "us-boise": "16", "us-spokane": "53",
+    "us-albuquerque": "35", "us-elpaso": "48", "us-tucson": "04",
+    "us-fresno": "06", "us-virginiabeach": "51", "us-grandrapids": "26",
+    "us-birmingham": "01", "us-jackson": "28", "us-littlerock": "05",
+    "us-charleston": "45", "us-charlestonwv": "54", "us-wilmington": "10",
+    "us-newark": "34", "us-manchester": "33", "us-burlington": "50",
+    "us-portlandme": "23", "us-fargo": "38", "us-siouxfalls": "46",
+    "us-billings": "30", "us-cheyenne": "56", "us-anchorage": "02",
+    "us-honolulu": "15", "us-wichita": "20", "us-washington": "11",
+}
+
+
+def _harvest_census(region: tuple, source: dict, transport) -> list[dict]:
+    """Arbetsställen per delstat. Nyckellöst vid låg volym.
+
+    Det här är källan som lyfter USA över MRAI:s täckningsgrind. I dag är
+    varenda signal där mock, och ett index på det underlaget hade mätt vår
+    egen blindhet och lästs som ett omdöme om landets press.
+
+    Svarsform (dokumenterad): [["ESTAB","NAME","state"],
+                               ["123456","Texas","48"]]
+    """
+    kod = region[0]
+    stat = _CENSUS_STATE.get(kod)
+    if not stat:
+        return []          # ingen delstatskod → inget påhittat svar
+    url = (f"{source['url']}/data/2021/cbp?"
+           + urllib.parse.urlencode({"get": "ESTAB,NAME",
+                                     "for": f"state:{stat}"}))
+    raw = transport(url)
+    if raw is None:
+        return []
+    rader = json.loads(raw.decode("utf-8"))
+    if not isinstance(rader, list) or len(rader) < 2:
+        return []
+    rubrik = [str(x).upper() for x in rader[0]]
+    if "ESTAB" not in rubrik:
+        return []
+    varde = float(rader[1][rubrik.index("ESTAB")])
+    return [{"source": "census_cbp", "region_code": kod,
+             "signal_id": "business_density", "value": varde,
+             "unit": "units", "lat": region[2], "lon": region[3],
+             "observed_scope": f"state:{stat}"}]
+
+
+# ── Kolada: den anmälda halvan av uppmärksamhetsindexet ─────────────────
+_KOLADA_KPI = "N07403"     # anmälda våldsbrott PER 100 000 INVÅNARE
+
+
+def _harvest_kolada(region: tuple, source: dict, transport) -> list[dict]:
+    """Svenska kommuners nyckeltal. Nyckellöst.
+
+    N07403 är en KVOT per 100 000, inte ett antal. Att blanda den med ett
+    rått artikelantal hade gjort uppmärksamhetsindexet till en
+    befolkningsmätare — därför normaliserar news.attention_index båda
+    sidor och vägrar när befolkningen saknas.
+
+    Svarsform: {"values": [{"kpi": .., "municipality": "0180",
+    "period": 2024, "values": [{"value": 1234.5, "gender": "T"}]}]}
+    """
+    kod = region[0]
+    if not (kod.isdigit() and len(kod) == 4):
+        return []          # Kolada är svenska kommunkoder, inget annat
+    raw = transport(f"{source['url']}/v2/data/kpi/{_KOLADA_KPI}"
+                    f"/municipality/{kod}")
+    if raw is None:
+        return []
+    poster = (json.loads(raw.decode("utf-8")) or {}).get("values") or []
+    senaste = None
+    for p in poster:
+        for v in p.get("values") or []:
+            if v.get("gender") in ("T", None) and \
+                    isinstance(v.get("value"), (int, float)):
+                if senaste is None or p.get("period", 0) >= senaste[0]:
+                    senaste = (p.get("period", 0), float(v["value"]))
+    if senaste is None:
+        return []
+    return [{"source": "kolada_crime", "region_code": kod,
+             "signal_id": "crime_index", "value": senaste[1],
+             "unit": "per 100k", "lat": region[2], "lon": region[3],
+             "period": senaste[0]}]
+
+
 def _harvest_osm(region: tuple, source: dict, transport) -> list[dict]:
     kod, _namn, lat, lon = region[0], region[1], region[2], region[3]
     verticals = sorted(OSM_TAGS)
@@ -295,6 +400,44 @@ SOURCES: dict[str, dict] = {
             "that could set a number would make this a rumour amplifier "
             "with an API. Items are attached to a region by NAME, which "
             "is a mention and not a subject."),
+    },
+    "census_cbp": {
+        "label_en": "US Census County Business Patterns",
+        "fills_en": "Establishment counts — the first real US reference",
+        "signals": ("business_density",),
+        "env": "LANDVEX_CENSUS_BASE",
+        "default_url": "https://api.census.gov",
+        "keyless": True,
+        "markets": ("us",),
+        "max_age_days": 365,
+        "quality": 0.5,
+        "post": False,
+        "harvest": _harvest_census,
+        "cannot_en": (
+            "CBP answers per STATE, not per metro region: the number is "
+            "the state's and is attached to the metro inside it. A metro "
+            "figure would be more precise and needs a different table — "
+            "saying which is which is better than pretending. It is also "
+            "a year or more old by publication, which is right for "
+            "structure and wrong for change."),
+    },
+    "kolada_crime": {
+        "label_en": "Kolada — reported violent crime per 100k",
+        "fills_en": "The REPORTED half of the attention index",
+        "signals": ("crime_index",),
+        "env": "LANDVEX_KOLADA_URL",
+        "default_url": "https://api.kolada.se",
+        "keyless": True,
+        "markets": ("se",),
+        "max_age_days": 365,
+        "quality": 0.8,
+        "post": False,
+        "harvest": _harvest_kolada,
+        "cannot_en": (
+            "Reported is not occurred. Propensity to report varies "
+            "sharply between offence types and between groups, and the "
+            "dark figure is a different size in every municipality — this "
+            "is the register's number, not the street's."),
     },
     "open_meteo": {
         "label_en": "Open-Meteo",
