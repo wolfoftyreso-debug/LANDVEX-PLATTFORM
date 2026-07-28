@@ -338,6 +338,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/commercial":
+            from engine.commercial import catalog as _kommersiell
+            return self._send(200, _kommersiell())
         if parsed.path == "/v1/offering":
             plan = parse_qs(parsed.query).get("plan", [""])[0]
             try:

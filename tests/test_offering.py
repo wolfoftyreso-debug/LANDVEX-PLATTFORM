@@ -103,7 +103,15 @@ def test_repackaging_by_decision_does_not_erase_how_it_is_charged():
     from api.licensing import PLANS
     for pid, surf in O.PLAN_SURFACE.items():
         assert surf["billing_en"], pid
-    assert "no monthly fee" in O.PLAN_SURFACE["pro"]["billing_en"].lower()
+    # Provisionsfaktumet FLYTTADE till engine/commercial.py när nivån
+    # fick flera paketeringar — en franchise köper per lead, en kommun
+    # kan bara köpa en pilot. Testet håller faktumet, inte meningen: det
+    # var innebörden som skulle skyddas, inte formuleringen.
+    from engine.commercial import for_plan
+    lead = [x for x in for_plan("pro") if x["id"] == "per_lead"]
+    assert lead, "Professional kan inte längre köpas per levererad lead"
+    assert "delivery" in lead[0]["pays_when_en"].lower()
+    assert "opportunity score" in lead[0]["pays_when_en"].lower()
     assert "commission" in O.PLAN_SURFACE["pro"]["billing_en"].lower()
     # samma faktum som licenslagret bär – de får inte glida isär
     assert PLANS["pro"]["pris_manad"] is None

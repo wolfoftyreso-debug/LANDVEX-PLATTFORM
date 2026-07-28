@@ -68,11 +68,13 @@ def hamta(port: int = 8222) -> dict:
     try:
         def g(p):
             return json.loads(op.open(base + p, timeout=30).read())
+        from engine.commercial import catalog as kommersiell
         from engine.entrypoints import ENTRYPOINTS
         from engine.glossary import catalog as ordlista
         from engine.offering import DECISIONS
         return {"surface": g("/v1/surface"), "offering": g("/v1/offering"),
                 "health": g("/health"), "glossary": ordlista(),
+                "commercial": kommersiell(),
                 "audiences": [
                     {**e, "decisions": [d for d in DECISIONS
                                         if d.get("audience") == e["id"]
@@ -256,6 +258,20 @@ def bygg(data: dict) -> str:
       <code class="check">{_e(m['from_en'])}</code>
     </article>"""
 
+    kop = ""
+    c = data.get("commercial", {})
+    for pk in c.get("packagings", []):
+        mark = "" if pk["built"] else '<span class="tag">not deliverable yet</span>'
+        kop += f"""
+    <article class="buy{'' if pk['built'] else ' planned'}">
+      <h3>{_e(pk['name_en'])} {mark}</h3>
+      <p class="buys">{_e(pk['buys_en'])}</p>
+      <p class="when"><strong>You pay:</strong> {_e(pk['pays_when_en'])}</p>
+      <p class="fits"><strong>Fits:</strong> {_e(pk['fits_en'])}</p>
+      <code class="check">unit: {_e(pk['unit_en'])}{
+        ' · ' + _e(pk['depends_on_en']) if pk['depends_on_en'] else ''}</code>
+    </article>"""
+
     bevis_kort = ""
     for b in bevis():
         bevis_kort += f"""
@@ -350,6 +366,12 @@ grows into a feature list.</p>
 <div class="promises">{lofte_kort}
 </div>
 
+<h2>How you buy</h2>
+<p class="section-lede">{_e(c.get('principle_en', ''))}</p>
+<p class="warn-read">{_e(c.get('honesty_en', ''))}</p>
+<div class="buys">{kop}
+</div>
+
 <h2>What you can decide, by tier</h2>
 <p class="section-lede">Packaged by the decisions you can make, not by
 how many rows you are allowed to download. Planned items are shown as
@@ -431,6 +453,14 @@ h2{font-size:.74rem;text-transform:uppercase;letter-spacing:.13em;
 .metric .reads strong{color:var(--ink)}
 .metric .cannot{color:var(--amber)}
 .metric .cannot strong{color:var(--amber)}
+.buys{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,
+  minmax(285px,1fr));margin-bottom:1rem}
+.buy{background:var(--card);border:1px solid var(--line);border-radius:13px;
+  padding:1.1rem 1.2rem}
+.buy.planned{border-color:color-mix(in srgb,var(--amber) 55%,var(--line))}
+.buy h3{font-size:1.02rem;margin-bottom:.4rem}
+.buy p{font-size:.85rem;color:var(--dim);margin-bottom:.4rem}
+.buy .when strong,.buy .fits strong{color:var(--ink)}
 .proofs{display:grid;gap:.7rem;margin-bottom:1rem}
 .proof{background:var(--card);border:1px solid var(--line);
   border-left:3px solid var(--green);border-radius:0 13px 13px 0;

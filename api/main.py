@@ -916,6 +916,13 @@ def surface_ep(detail: bool = False):
     return surface(detail)
 
 
+@app.get("/v1/commercial")
+def commercial_ep():
+    """How a customer buys. Five packagings, because customers differ."""
+    from engine.commercial import catalog as _kommersiell
+    return _kommersiell()
+
+
 @app.get("/v1/offering")
 def offering_ep(plan: str = ""):
     """What each tier lets you decide. Built and planned kept apart."""

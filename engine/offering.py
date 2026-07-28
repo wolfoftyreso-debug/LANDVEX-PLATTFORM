@@ -142,16 +142,24 @@ PLAN_SURFACE: dict[str, dict] = {
              "promise_en": "See what the platform can do, on public "
                            "findings.",
              "billing_en": "Free. Not for commercial use.",
+             "packagings": ("open",),
              "brief_scope": "public"},
     "pro": {"name_en": "Professional",
             "for_en": "Consultants, brokers, operators, municipalities and "
                       "smaller firms.",
             "promise_en": "Find the opportunity or the risk before the "
                           "competition does — in your region and trade.",
-            "billing_en": "No monthly fee. Billed as quiXzoom commission per "
-                          "delivered lead, graded by opportunity score "
-                          "(engine/commission.py). Repackaging the tier by "
-                          "decision does not change how it is charged.",
+            # Tre sätt att köpa samma nivå, för att en franchise, en
+            # kommun och en konsult inte kan köpa på samma villkor. Se
+            # engine/commercial.py — meningen som stod här beskrev bara
+            # ETT av dem och läste därför som en motsägelse mot sajten.
+            "billing_en": "Three ways to buy this tier: commission per "
+                          "delivered lead, per mission, or a three-month "
+                          "pilot that becomes an annual subscription. Which "
+                          "one fits depends on whether you have a purchase "
+                          "order or a budget cycle — see /v1/commercial.",
+            "packagings": ("per_lead", "per_mission",
+                           "pilot_then_subscription"),
             "brief_scope": "region_sector"},
     "enterprise": {"name_en": "Enterprise Intelligence",
                    "for_en": "Larger firms, authorities, insurers, banks, "
@@ -159,8 +167,11 @@ PLAN_SURFACE: dict[str, dict] = {
                    "promise_en": "A standing intelligence capability: your "
                                  "own rules, your own assets, decisions "
                                  "bound to owners.",
-                   "billing_en": "By agreement (quote). No list price is "
-                                 "published, and none is invented here.",
+                   "billing_en": "A capability agreement, or a pilot that "
+                                 "becomes one. By agreement — no list price "
+                                 "is published, and none is invented here.",
+                   "packagings": ("pilot_then_subscription",
+                                  "capability_agreement"),
                    "brief_scope": "own_assets"},
 }
 
