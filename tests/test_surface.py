@@ -295,6 +295,50 @@ def test_the_explore_page_plots_the_measure_the_engine_ranked_by():
         "sidan sorterar om raderna — det påstår en annan rangordning"
 
 
+def test_the_front_door_presents_every_promise_and_every_built_decision():
+    """Fyndet: konsolens intro sa "WHERE TO ESTABLISH" och visade ETT av
+    tretton byggda beslut. Ompaketeringen till fyra löften gjordes i
+    motorn men stannade vid API:t — ingen frontend-yta nämnde ett enda
+    löfte, så en besökare mötte den ursprungliga enfrågeprodukten.
+
+    En ingång som säljer för lite är ett fel; en som säljer för mycket är
+    ett värre. Därför genereras ingången ur motorn, och det här testet
+    håller den mot samma register."""
+    from engine.offering import DECISIONS
+    from engine.surface import PROMISES
+    from scripts.build_front import bygg
+
+    # Bygg sidan ur samma data som endpointsen serverar, utan server.
+    from engine import offering, surface
+    sida = bygg({"surface": surface.surface(),
+                 "offering": offering.offering(),
+                 "health": {"engine_version": "test"}})
+
+    for p in PROMISES:
+        assert p["question_en"] in sida, f"löftet saknas i ingången: {p['id']}"
+    for d in DECISIONS:
+        assert d["question_en"] in sida, f"beslutet saknas: {d['id']}"
+        if d["status"] != "built":
+            # Ett planerat beslut får aldrig se levererat ut.
+            assert "not built" in sida
+
+
+def test_the_front_door_proves_rather_than_asserts():
+    """Ett påstående om tillförlitlighet som inte går att kontrollera är
+    precis vad en gissningsmaskin också skulle skriva."""
+    from scripts.build_front import bevis
+    rader = bevis()
+    assert len(rader) >= 6
+    for b in rader:
+        assert b["claim_en"] and b["proof_en"] and b["check_en"], b
+        # Varje rad ska peka på något körbart eller läsbart.
+        assert any(t in b["check_en"] for t in
+                   ("/v1/", "python3", "make", ".txt", "imports")), b
+    text = " ".join(b["proof_en"] for b in rader)
+    assert "0 LLM SDK imports" in text, "kärnbeviset saknas"
+    assert "0 of 14" in text, "det obevisade ska stå kvar i ingången"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -60,6 +60,9 @@ readiness: ## Hit every endpoint against a running server (BASE=...)
 
 probe: ## Which sources actually answer? (run this first on an open network)
 	@$(PY) -m scripts.probe_all
+
+front: ## Build the entry page from /v1/surface and /v1/offering
+	@$(PY) -m scripts.build_front landvex-front.html
 
 tour: ## Build a clickable tour with real engine responses baked in
 	@$(PY) -m scripts.build_tour landvex-tour.html

@@ -47,7 +47,15 @@
   .tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .layout { display: grid; grid-template-columns: 300px 1fr 400px;
             gap: 0; height: calc(100vh - 51px); }
-  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; height: auto; } }
+  /* Vid 1100px staplas kolumnerna och .layout tappar sin höjd. Utan en
+     egen höjd kollapsar kartcellen då till 0 px: kartan finns i DOM:en,
+     ritas, och syns inte. min-height låg BARA i 640px-brytpunkten, så
+     hela bandet 641–1100 px — exakt bredden på en sidopanel eller en
+     liggande surfplatta — visade en konsol utan karta. */
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+    .karta { min-height: 420px; }
+  }
 
   /* Intro-overlay – hero för nya användare / demokund */
   #intro { position: fixed; inset: 0; z-index: 50; display: none;
