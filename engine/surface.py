@@ -55,7 +55,7 @@ PROMISES: tuple[dict, ...] = (
         "engines": ("ask", "benchmark", "setpoints", "kpi", "lambda",
                     "indices", "claims", "provenance", "sensitive",
                     "worthiness", "strim", "wages", "corrections",
-                    "data_sources", "platform", "coverage"),
+                    "data_sources", "platform", "coverage", "mrai"),
     },
     {
         "id": "is_there_room",

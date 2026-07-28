@@ -383,6 +383,18 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
+        {"id": "mrai", "label_en": "Does the reporting line up with the record",
+         "beskrivning_en": "Media Reality Alignment Index per market, 0-100, "
+                           "composed from source diversity, independent "
+                           "verification (owners, not titles), public-data "
+                           "alignment and event coverage. Every component "
+                           "opens: what it rests on and what it cannot "
+                           "settle. A market below the reference-coverage "
+                           "floor gets NO value rather than a low one, "
+                           "because a low score there would measure our own "
+                           "blindness and be read as that country's press.",
+         "endpoints": [{"method": "GET", "path": "/v1/mrai"},
+                       {"method": "GET", "path": "/v1/mrai/compare"}]},
         {"id": "analysis", "label_en": "Find what disagrees",
          "beskrivning_en": "Sweeps a market for contradictions (official "
                            "paperwork against observed ground) and for "

@@ -1127,6 +1127,32 @@
         }
       }
     },
+    "/v1/mrai": {
+      "get": {
+        "summary": "Media Reality Alignment Index per market, 0-100, composed from source diversity, independent verification (owners, not titles), public-data alignment and event coverage. Every component opens: what it rests on and what it cannot settle. A market below the reference-coverage floor gets NO value rather than a low one, because a low score there would measure our own blindness and be read as that country's press.",
+        "tags": [
+          "mrai"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/mrai/compare": {
+      "get": {
+        "summary": "Media Reality Alignment Index per market, 0-100, composed from source diversity, independent verification (owners, not titles), public-data alignment and event coverage. Every component opens: what it rests on and what it cannot settle. A market below the reference-coverage floor gets NO value rather than a low one, because a low score there would measure our own blindness and be read as that country's press.",
+        "tags": [
+          "mrai"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/analysis": {
       "get": {
         "summary": "Sweeps a market for contradictions (official paperwork against observed ground) and for relationships between signals across regions, and keeps what it found in a register. Never reports a pair where both signals are simulated, states how many pairs were tested on every finding, and never uses a causal word.",

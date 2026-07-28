@@ -81,6 +81,7 @@ from engine import visitor as visitor_engine
 from engine import inspections as insp_engine
 from engine import scheduler
 from engine import analysis as analysis_engine
+from engine import mrai as mrai_engine
 from engine import harvest as harvest_engine
 from engine import news as news_engine
 from engine.coverage import compare_markets, coverage
@@ -411,6 +412,16 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/exceptions":
             return self._send(200,
                               insp_engine.exception_feed(self._tenant()))
+        if parsed.path == "/v1/mrai/compare":
+            q = parse_qs(parsed.query)
+            m = [x for x in q.get("markets", [""])[0].split(",") if x]
+            return self._send(200, mrai_engine.compare(m or None))
+        if parsed.path == "/v1/mrai":
+            q = parse_qs(parsed.query)
+            marknad = q.get("market", [""])[0]
+            if not marknad:
+                return self._send(200, mrai_engine.catalog())
+            return self._send(200, mrai_engine.mrai(marknad))
         if parsed.path == "/v1/analysis":
             q = parse_qs(parsed.query)
             return self._send(200, {

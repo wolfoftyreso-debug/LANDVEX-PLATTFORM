@@ -1086,6 +1086,25 @@ def schedules_run_ep(request: Request, body: dict | None = None):
                              tillatna)
 
 
+@app.get("/v1/mrai")
+def mrai_ep(market: str = ""):
+    """Media Reality Alignment Index — or why there is none."""
+    from engine import mrai as M
+    if not market:
+        return M.catalog()
+    try:
+        return M.mrai(market)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/mrai/compare")
+def mrai_compare_ep(markets: str = ""):
+    """Several markets — with the unscorable listed, not dropped."""
+    from engine import mrai as M
+    return M.compare([m for m in markets.split(",") if m] or None)
+
+
 @app.get("/v1/analysis")
 def analysis_register_ep(kind: str = "", market: str = ""):
     """What the sweep has found — contradictions and relationships."""

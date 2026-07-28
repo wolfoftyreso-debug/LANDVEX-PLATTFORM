@@ -90,6 +90,9 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # få veta vad talen vilar på har redan fått fel produkt.
     # Sökningen är analys, inte katalog — samma paket som svepet.
     "/v1/analysis": "opportunity",
+    # Ett index som bara betalande kan öppna är ett omdöme
+    # med en siffra på. Samma grund som /v1/coverage.
+    "/v1/mrai": "core",
     "/v1/coverage": "core",
     "/v1/export": "core",
     "/v1/assets": "asset_inspections",        # kundens egna objekt

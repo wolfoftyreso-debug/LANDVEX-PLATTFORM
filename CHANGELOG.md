@@ -2,6 +2,49 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — MRAI: index där vi kan se, vägran där vi inte kan
+
+Media Reality Alignment Index per marknad, 0–100, sammansatt av motorer
+som redan finns — `engine/mrai.py`, `GET /v1/mrai`, `GET /v1/mrai/compare`.
+
+**Det finns exakt ett sätt att göra ett sådant här index skadligt: att
+räkna det på underlag vi inte har.** `/v1/coverage` mäter real_weight 0,0
+för 34 av 35 marknader. Ett index på det underlaget ger låg alignment åt
+länder där VI saknar referensdata — inte åt länder där medierna avviker.
+Ett land med svag statistikmyndighet skulle få dåligt betyg för att vi
+inte kan se, och talet läses som ett omdöme om deras press.
+
+Därför två absoluta spärrar:
+
+- **Under 10 % referenstäckning finns inget indexvärde.** Inte ett lågt —
+  inget. `status: "insufficient"`, skälet i klartext, och en lista på
+  vilka källor som skulle öppna det.
+- **Under 50 % av den avsedda vikten publiceras inget sammanvägt tal.**
+  Ett index ur en fjärdedel av sina komponenter ser likadant ut som ett
+  ur alla, och läsaren kan inte se skillnaden utan att öppna det.
+  Komponenterna visas ändå — vägran är inte tystnad.
+
+Fyra viktade komponenter, alla ur befintliga motorer: källdiversitet
+(oberoende nät per sensorklass), oberoende verifiering (ägare, inte
+titlar), överensstämmelse med offentliga register (kontradiktionsindexet)
+och händelsetäckning (publicerat mot anmält per 100k). Referenstäckningen
+är en **grind med vikt noll** — den betygsätter ingenting, den avgör om
+något alls får betygsättas.
+
+Varje komponent går att öppna: vad den vilar på, hur många källor, och
+vad den inte kan avgöra. Vikterna är data och säger själva att de är en
+dokumenterad heuristik.
+
+Jämförelsen behåller de omätbara **i listan**, utan värde, med sitt skäl:
+en ranking som tyst tappar det den inte kan mäta ser fullständig ut och
+är det inte. Och indexet säger rakt ut att det inte är en
+pressfrihetsranking — låg alignment kan betyda avvikande rapportering,
+svaga offentliga register eller tunn referensdata hos oss, och indexet
+kan inte skilja dem åt.
+
+Katalogen kräver bara `core`: ett index som bara betalande kan öppna är
+ett omdöme med en siffra på.
+
 ## [Ej släppt] — nyheterna kopplade till bedömningen
 
 Nyhetsmodulen kunde bedöma men ingen matade den och ingen läste den. Nu
