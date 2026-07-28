@@ -171,6 +171,23 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
     PRIMARY KEY (tenant, id)
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON scheduled_jobs(tenant);
+
+-- Skördad öppen data (migration 9 i SQLite-lagret). Ingen tenant-kolumn
+-- med flit: öppen referensdata är densamma för alla kunder.
+CREATE TABLE IF NOT EXISTS harvested (
+    source      TEXT NOT NULL,
+    region_code TEXT NOT NULL,
+    signal_id   TEXT NOT NULL,
+    market      TEXT NOT NULL DEFAULT '',
+    value       DOUBLE PRECISION,
+    unit        TEXT NOT NULL DEFAULT '',
+    lat         DOUBLE PRECISION,
+    lon         DOUBLE PRECISION,
+    observed_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload     JSONB NOT NULL,
+    PRIMARY KEY (source, region_code, signal_id)
+);
+CREATE INDEX IF NOT EXISTS idx_harvested_src ON harvested(source, observed_at);
 """
 
 
@@ -520,6 +537,35 @@ class PostgresStore(Store):
                 "WHERE id = %s AND tenant = %s AND last_run <= %s",
                 (now, job_id, tenant, now - gap_seconds))
             return cur.rowcount > 0
+
+    # ── Skördad öppen data ───────────────────────────────────────────
+    def save_harvested(self, rows: list[dict[str, Any]]) -> int:
+        import json
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO harvested (source, region_code, signal_id, "
+                "market, value, unit, lat, lon, observed_at, payload) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (source, region_code, signal_id) DO UPDATE SET "
+                "value=EXCLUDED.value, unit=EXCLUDED.unit, "
+                "observed_at=EXCLUDED.observed_at, payload=EXCLUDED.payload",
+                [(r["source"], r["region_code"], r["signal_id"],
+                  r.get("market", ""), r.get("value"), r.get("unit", ""),
+                  r.get("lat"), r.get("lon"),
+                  float(r.get("observed_at") or 0),
+                  json.dumps(r, ensure_ascii=False)) for r in rows])
+        return len(rows)
+
+    def all_harvested(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload, observed_at FROM harvested "
+                        "ORDER BY source, region_code, signal_id")
+            ut = []
+            for payload, observed_at in cur.fetchall():
+                d = dict(payload)
+                d["observed_at"] = observed_at
+                ut.append(d)
+            return ut
 
     def close(self) -> None:
         self._conn.close()

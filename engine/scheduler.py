@@ -114,6 +114,41 @@ def _run_monitors(job: dict, now: float) -> dict:
             "detail_en": f"{len(r['ran'])} watch(es) run, {r['fired']} fired"}
 
 
+def _run_harvest(job: dict, now: float) -> dict:
+    """Läs in en öppen källa för en marknad och lagra den.
+
+    Ett anrop per region och dygn. Att i stället fråga i
+    förfrågningsvägen hade varit långsamt, ovänligt mot en gratistjänst
+    och oreproducerbart.
+    """
+    from engine import harvest
+    from engine.markets import MARKETS
+
+    p = job["params"]
+    kalla = p.get("source", "osm")
+    marknad = p.get("market", "")
+    if kalla not in harvest.SOURCES:
+        raise ValueError(f"unknown harvest source {kalla!r}; choose "
+                         f"{', '.join(sorted(harvest.SOURCES))}")
+    if not harvest.url_for(kalla):
+        return {"harvested": 0, "regions": 0, "skipped": True,
+                "detail_en": (
+                    f"{kalla} is not switched on. Set "
+                    f"{harvest.SOURCES[kalla]['env']}, or "
+                    f"LANDVEX_OPEN_DATA=on for every keyless source at "
+                    f"once. Nothing was fetched and nothing was stored.")}
+    marknader = [marknad] if marknad in MARKETS else list(MARKETS)
+    rader, regioner = 0, 0
+    for mid in marknader:
+        for region in MARKETS[mid].regions[:int(p.get("limit", 0)) or None]:
+            regioner += 1
+            rader += harvest.store_rows(
+                harvest.harvest_region(kalla, region, mid))
+    return {"harvested": rader, "regions": regioner,
+            "detail_en": (f"{rader} row(s) stored from {regioner} region(s) "
+                          f"via {kalla}")}
+
+
 JOB_KINDS: dict[str, dict] = {
     "inspections_dispatch": {
         "label_en": "Order field missions for what falls due",
@@ -137,6 +172,14 @@ JOB_KINDS: dict[str, dict] = {
         "note_en": "This is the job that creates history. Without stored "
                    "results over time there is nothing for a watch to "
                    "compare against, and no outcome data to calibrate on."},
+    "harvest": {
+        "label_en": "Read an open source once and store it",
+        "capability": "core",
+        "params_en": "source, market (optional), limit (optional)",
+        "run": _run_harvest,
+        "note_en": "Open reference data is the same for every customer, "
+                   "so it is stored without a tenant. The request path "
+                   "reads the store and never calls a third party."},
     "monitors": {
         "label_en": "Wake the registered watches",
         "capability": "monitoring",

@@ -140,6 +140,31 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON scheduled_jobs(tenant);
     """),
+    # Skördad öppen data. INGEN tenant-kolumn, med flit: hur många
+    # frisörer OpenStreetMap känner till i Nacka är samma sak för varje
+    # kund, och att skopa raden per kund vore att lagra samma sanning
+    # femtio gånger — och antyda att en kund kan ha en egen. Det skiljer
+    # sig från assets/routines/checks, som ÄR kundens egna objekt.
+    #
+    # `observed_at` är en KOLUMN eftersom åldern avgör om raden får
+    # användas alls: äldre än källans max_age_days läses som frånvarande.
+    (9, """
+    CREATE TABLE IF NOT EXISTS harvested (
+        source      TEXT NOT NULL,
+        region_code TEXT NOT NULL,
+        signal_id   TEXT NOT NULL,
+        market      TEXT NOT NULL DEFAULT '',
+        value       REAL,
+        unit        TEXT NOT NULL DEFAULT '',
+        lat         REAL,
+        lon         REAL,
+        observed_at REAL NOT NULL DEFAULT 0,
+        payload     TEXT NOT NULL,
+        PRIMARY KEY (source, region_code, signal_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_harvested_src
+        ON harvested(source, observed_at);
+    """),
 ]
 
 _DDL = """
@@ -572,6 +597,39 @@ class SqliteStore(Store):
                 "WHERE id = ? AND tenant = ? AND last_run <= ?",
                 (now, job_id, tenant, now - gap_seconds))
             return cur.rowcount > 0
+
+    # ── Skördad öppen data ───────────────────────────────────────────
+    def save_harvested(self, rows: list[dict[str, Any]]) -> int:
+        """Skriv över raden för samma (källa, region, signal).
+
+        En skörd ERSÄTTER föregående i stället för att lägga till: det
+        här är det senaste kända läget, inte en tidsserie. Vill man ha
+        historik är det en annan tabell och ett annat beslut — och att
+        låta den här växa obemärkt vore att fatta det beslutet av misstag.
+        """
+        with self._lock, self._conn:
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO harvested (source, region_code, "
+                "signal_id, market, value, unit, lat, lon, observed_at, "
+                "payload) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                [(r["source"], r["region_code"], r["signal_id"],
+                  r.get("market", ""), r.get("value"), r.get("unit", ""),
+                  r.get("lat"), r.get("lon"),
+                  float(r.get("observed_at") or 0),
+                  json.dumps(r, ensure_ascii=False)) for r in rows])
+        return len(rows)
+
+    def all_harvested(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload, observed_at FROM harvested "
+                "ORDER BY source, region_code, signal_id").fetchall()
+        ut = []
+        for payload, observed_at in rader:
+            d = json.loads(payload)
+            d["observed_at"] = observed_at      # kolumnen är sanningen
+            ut.append(d)
+        return ut
 
     def close(self) -> None:
         with self._lock:

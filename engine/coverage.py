@@ -156,6 +156,28 @@ def _what_would_change_it(lage: dict, sources) -> list[dict]:
     return ut
 
 
+def _switchable(market: str) -> dict:
+    """Nyckellösa källor som skulle höja täckningen här."""
+    from engine.harvest import SOURCES, open_data_on, switchable_today
+
+    rader = [r for r in switchable_today()
+             if not SOURCES[r["source"]]["markets"]
+             or market in SOURCES[r["source"]]["markets"]]
+    av = [r for r in rader if not r["active"]]
+    return {
+        "sources": rader, "count": len(rader),
+        "not_yet_on": [r["source"] for r in av],
+        "switch_en": ("LANDVEX_OPEN_DATA=on turns on every keyless source "
+                      "at once; each also has its own variable. Sources "
+                      "that need a key are never enabled by it."),
+        "open_data_on": open_data_on(),
+        "cannot_en": ("Switching a source on does not make it answer. It "
+                      "has to be harvested (make harvest) before the "
+                      "request path has anything to read, and a harvest "
+                      "that reached nobody stores nothing."),
+    }
+
+
 def coverage(market: str = "", *, sources=None) -> dict:
     """Täckningsytan för en marknad. Publik med flit."""
     mid = (market or DEFAULT_MARKET).lower()
@@ -184,6 +206,10 @@ def coverage(market: str = "", *, sources=None) -> dict:
         "signal_rows": sorted(lage.values(), key=lambda r: r["signal_id"]),
         "by_vertical": vertikaler,
         "what_would_change_it": _what_would_change_it(lage, kallor),
+        # Vad som går att slå på NU, utan att ansöka om någonting. Det är
+        # den fråga hela täckningsytan ställdes för att besvara: inte
+        # bara "vad saknas" utan "vad kan jag göra åt det i dag".
+        "switchable_today": _switchable(mid),
         "sources": kallor,
         "means_en": (
             "real_weight is the share of the WEIGHTED signal picture that "

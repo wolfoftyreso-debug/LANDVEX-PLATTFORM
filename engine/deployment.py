@@ -246,6 +246,25 @@ ENVIRONMENT: dict[str, dict] = {
         "optional", "BarentsWatch client secret.",
         "As above — the credential exchange cannot be made.",
         secret=True),
+    # ── Öppen data: en omställare för allt nyckellöst ────────────────
+    "LANDVEX_OPEN_DATA": _v(
+        "optional", "Switch on every KEYLESS open source at once, using "
+                    "each one's documented default endpoint.",
+        "Nothing is switched on. Sources still work one at a time via "
+        "their own variable — this only saves setting twenty of them. "
+        "Sources that need a key are never enabled by it.",
+        example="on"),
+    "LANDVEX_OSM_URL": _v(
+        "optional", "Overpass endpoint (OpenStreetMap). No key.",
+        "Competing supply stays mock in every market — the single "
+        "largest gap in coverage, since competition carries the supply "
+        "side of every decision card.",
+        example="https://overpass-api.de/api/interpreter"),
+    "LANDVEX_METEO_URL": _v(
+        "optional", "Open-Meteo base. No key.",
+        "Weather is read only where SMHI (SE) or NWS (US) reaches; the "
+        "rest of the world has none.",
+        example="https://api.open-meteo.com"),
     "LANDVEX_ENTSOE_URL": _v(
         "optional", "ENTSO-E Transparency Platform base.",
         "Grid telemetry rests on Svenska kraftnät alone, although the "

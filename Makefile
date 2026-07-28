@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front full-demo seed-checks
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front full-demo seed-checks harvest open-data
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -70,6 +70,15 @@ full-demo: ## The whole thing in one file: console (full matrix) + entry + evide
 	@$(PY) -m scripts.build_demo  .build-konsol.html
 	@$(PY) -m scripts.bundle_demo .build-konsol.html landvex-full-demo.html
 	@rm -f .build-ingang.html .build-bevis.html .build-konsol.html
+
+harvest: ## Read the open keyless sources once and store them
+	@LANDVEX_OPEN_DATA=on $(PY) -m scripts.harvest
+
+open-data: ## Which open sources can be switched on right now, and which need an application
+	@$(PY) -c "import json;from engine import harvest;\
+[print(('  ON  ' if s['active'] else '  off '), s['source'].ljust(12), s['env'].ljust(22), s['fills_en']) for s in harvest.switchable_today()];\
+print();print('  LANDVEX_OPEN_DATA=on switches on every row above.');\
+print('  Sources needing a key are never enabled by it — see docs/aws.md.')"
 
 seed-checks: ## Load the demo customer (flag supplier, Stockholm) into the store
 	@$(PY) -m scripts.seed_inspections --seed

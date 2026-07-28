@@ -167,6 +167,15 @@ class Store(ABC):
     def all_jobs(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    # ── Skördad öppen data (delas av alla kunder) ────────────────────
+    def save_harvested(self, rows: list[dict[str, Any]]):
+        """Skriv skördade rader (idempotent på source+region+signal).
+        Ingen tenant: öppen referensdata är densamma för alla."""
+        return None
+
+    def all_harvested(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def claim_job(self, job_id: str, tenant: str, now: float,
                   gap_seconds: float):
         """Ta jobbet ATOMISKT om det inte körts inom `gap_seconds`.

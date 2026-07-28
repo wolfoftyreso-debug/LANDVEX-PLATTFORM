@@ -166,10 +166,99 @@ class ScbSource(DataSource):
         return signals, extras
 
 
+class HarvestedSource(DataSource):
+    """Skördad öppen data — läser LAGRET, aldrig nätet.
+
+    Det här är den enda källan i kedjan som garanterat inte kan göra ett
+    utgående anrop. Den skillnaden är hela poängen: Overpass svarar på
+    sekunder, svarsbudgeten är 700 ms, och en publik gratistjänst ska
+    inte få samma fråga av varje besökare. Skörden sker på schema
+    (`engine/scheduler.JOB_KINDS["harvest"]`), och frågan läser resultatet.
+
+    Källan svarar bara när raden är BÅDE färsk nog och nära nog. Är den
+    för gammal eller för långt bort returneras ingenting, Resolvern
+    faller vidare till mock, och `data_coverage` sjunker som den ska —
+    i stället för att ett gammalt tal serveras tyst som ett aktuellt.
+    """
+
+    name = "harvested"
+
+    def __init__(self):
+        self._memo: list | None = None
+
+    def _rader(self) -> list:
+        # Läs lagret en gång per instans. Täckningsytan frågar både
+        # `markets` och `connected`, och compare_markets gör det för 35
+        # marknader — utan memo blev det sjuttio läsningar av hela
+        # tabellen för att svara på en fråga.
+        if self._memo is None:
+            from engine import harvest
+            self._memo = harvest.all_rows()
+        return self._memo
+
+    @property
+    def markets(self) -> tuple:
+        """Räckvidden är vad som FAKTISKT är skördat, inte vad som skulle
+        kunna skördas. En källa som är påslagen men aldrig körd kan inte
+        svara, och täckningsytan får inte påstå något annat."""
+        return tuple(sorted({r.get("market", "") for r in self._rader()
+                             if r.get("market")}))
+
+    @property
+    def connected(self) -> bool:
+        return bool(self._rader())
+
+    # Vad skörden kan fylla. Läses av engine/coverage.py; en tom lista
+    # hade gjort källan osynlig i täckningen hur mycket den än svarade.
+    @property
+    def SIGNALS(self) -> tuple:      # noqa: N802 – kontraktet är versalt
+        from engine import harvest
+        return tuple(sorted({sid for s in harvest.SOURCES.values()
+                             for sid in s["signals"]}))
+
+    def fetch(self, location: Location, vertical_id: str,
+              signal_ids: list[str]) -> tuple[dict[str, SignalValue], dict[str, Any]]:
+        from engine import harvest
+
+        ut: dict[str, SignalValue] = {}
+        extras: dict[str, Any] = {}
+        for kalla in harvest.SOURCES:
+            # Konkurrenssignalen är per bransch: nyckeln i lagret bär
+            # vertikalen, annars hade frisörernas antal svarat för
+            # bilverkstäderna.
+            onskade = [f"{s}:{vertical_id}" if s == "competition_pressure"
+                       else s for s in signal_ids]
+            traffar = harvest.read(kalla, location.lat, location.lon, onskade)
+            for nyckel, rad in traffar.items():
+                sid = nyckel.split(":", 1)[0]
+                if sid in ut or rad.get("value") is None:
+                    continue
+                ut[sid] = SignalValue(sid, float(rad["value"]),
+                                      source=kalla,
+                                      quality=float(rad["quality"]))
+                extras.setdefault("harvested", {})[sid] = {
+                    "source": kalla, "region_code": rad["region_code"],
+                    "distance_km": rad["distance_km"],
+                    "age_days": rad["age_days"],
+                    "observed_count": rad.get("observed_count"),
+                    "basis_en": (
+                        f"Harvested from {kalla} "
+                        f"{rad['age_days']:g} day(s) ago, "
+                        f"{rad['distance_km']:g} km from the point. A "
+                        f"reading from the next municipality is a weaker "
+                        f"basis than one from the place itself."),
+                }
+        return ut, extras
+
+
 def production_sources() -> list[DataSource]:
-    """Källkedjan före MockSource i produktion (ordning = prioritet)."""
+    """Källkedjan före MockSource i produktion (ordning = prioritet).
+
+    HarvestedSource ligger SIST bland de riktiga: en direktansluten källa
+    som svarar nu är alltid bättre än ett skördat värde från i går.
+    """
     return [ScbSource(), LivabilitySource(), PermitsSource(), PlacesSource(),
-            MovementSource(), QuixzoomSource()]
+            MovementSource(), QuixzoomSource(), HarvestedSource()]
 
 
 class MovementSource(_NotWiredSource):

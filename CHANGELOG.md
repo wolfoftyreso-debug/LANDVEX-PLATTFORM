@@ -2,6 +2,54 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — öppna källor, skördade i stället för frågade
+
+**`competition_pressure` var mock i alla 35 marknader.** `places.py`
+väntar på att någon ska ställa upp en egen tjänst, och ingen sådan
+finns — samtidigt som signalen bär utbudssidan i beslutskortet och 0,35
+av vikten i obalansformeln. OpenStreetMap fyller precis den luckan,
+nyckellöst och globalt.
+
+**Skördat, inte frågat.** Ett marknadssvep träffar 75 regioner,
+svarsbudgeten är 700 ms och ett Overpass-anrop tar sekunder. Att fråga i
+förfrågningsvägen hade varit tre fel samtidigt: långsamt, ovänligt mot en
+gratistjänst, och oreproducerbart. Källorna läses därför in en gång per
+dygn (ett anrop per region) och lagras; `HarvestedSource` läser lagret
+och kan bevisligen inte göra ett nätanrop — ett test byter ut
+`urllib.request.urlopen` mot något som kastar.
+
+- **`engine/harvest.py`** med `SOURCES` och `OSM_TAGS` som data: en ny
+  källa är en rad, en ny bransch en rad. Nu: OpenStreetMap (Overpass,
+  20 branscher) och Open-Meteo (det enda VÄDERnätet med global räckvidd
+  — SMHI är SE, NWS är US).
+- **Migration 9, `harvested`.** Ingen tenant-kolumn med flit: hur många
+  frisörer OSM känner till i Nacka är samma sak för varje kund, och att
+  skopa raden per kund vore att antyda att en kund kan ha en egen
+  sanning om det.
+- **Tre regler som inte är kosmetiska.** En rad äldre än källans
+  `max_age_days` läses som FRÅNVARANDE, inte som ett värde (OSM 30 dygn,
+  väder 1). En punkt matchas mot närmaste skördade region inom 25 km, och
+  avståndet följer med ut. En kartlagd plats är aldrig en
+  etableringsräkning — `/v1/saturation` vägrar fortfarande där inget
+  företagsregister är anslutet.
+- **`LANDVEX_OPEN_DATA=on`** slår på varje NYCKELLÖS källa på en gång.
+  Källor som kräver nyckel rörs aldrig av den. `make open-data` visar
+  vad som är på; `make harvest` kör en skörd i förgrunden.
+- **`/v1/coverage` får `switchable_today`** — vad som går att slå på nu,
+  utan att ansöka om någonting.
+
+**Mätt effekt, inte påstådd.** Mot en fixtur-Overpass, 75 US-regioner:
+`data_coverage` för ett gym-svep i USA gick från **0,0 till 0,09**,
+rankningen ändrades (mock-konkurrens ersattes av observerad), och
+`/v1/coverage?market=us` gick från `real_weight 0,0 (none)` till
+**0,076 (thin)**. Sverige stod stilla på 0,245, som sig bör — den
+databasen skördades inte.
+
+Fynd: `Breaker.fetch` lägger själv på sin timeout sist, så skördarna
+skickade fyra argument till en transport som tar tre. I produktion hade
+det gett TypeError, tyst tomma skördar och noll lagrade rader — fångat av
+ett test, inte av en användare.
+
 ## [Ej släppt] — ett andra oberoende nät
 
 **En källa kan aldrig bekräfta sig själv.** Sju sensorklasser hade exakt
