@@ -2,6 +2,69 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — ut ur systemet, och igång utan att bli tillfrågad
+
+Två av lägesrapportens tre oblockerade Tier 1-poster. Båda stod som
+`planned` i erbjudandet, och båda är sådant en företagskund frågar om
+innan den frågar om något annat.
+
+**Export (`engine/export.py`, `POST /v1/export`).** Det farliga med
+export är inte formatet — det är att ett Opportunity Score i en CSV-fil
+ser ut som ett mätvärde så fort det lämnat skärmen där täckningsgraden
+och förbehållen stod. Varje format bär därför sin proveniens i själva
+filen: CSV som `#`-kommentarrader (pandas läser dem med `comment="#"`),
+NDJSON som en första `_landvex`-rad, GeoJSON som ett `landvex`-medlems-
+fält. Fem datamängder (svep, obalanser, bristkarta, efterlevnadsregister,
+avvikelseflöde) som data — ny rad, ingen motorändring.
+
+- **PDF, XLSX, Parquet och shapefile vägras vid namn** i stället för att
+  approximeras. En CSV med filändelsen `.xlsx` får Excel att varna för
+  att filen är trasig; shapefile trunkerar kolumnnamn till tio tecken.
+  Skälet står i katalogen, för den som letar efter PDF ska hitta
+  beskedet och inte tystnaden.
+- **Exporten är ingen väg runt paketet.** Datamängden kräver samma
+  kapabilitet som den endpoint den kommer ifrån — en Professional-nyckel
+  får 403 på kontrollregistret, precis som på `/v1/inspections/
+  compliance`. Katalogen (GET) är däremot öppen: man ska kunna se vad
+  som går att få ut innan man köpt något.
+- Kundens egna rader kan inte exporteras utan tenant. Utan den hade
+  filen innehållit allas.
+
+**Schemaläggning (`engine/scheduler.py`, `api/ticker.py`,
+`POST /v1/schedules`).** En bevakningsprodukt som bara svarar när någon
+frågar är en rapport.
+
+- **En kadensdialekt, inte två.** Förfallologiken är `monitors.due` —
+  samma ord, samma epoch-disciplin där tiden skickas in.
+- **Fyra jobbtyper som data:** beställ fältuppdrag för det som förfaller,
+  räkna om efterlevnadsregistret, kör om ett svep **och spara det**,
+  väck bevakningarna.
+- **Gränsen står i klartext på varje körning.** En bevakning som väcks
+  utan historik har ingenting att titta på; att utvärdera en tom serie
+  ger "inget triggat", vilket läses som lugn men betyder blind. Jobbet
+  hoppar därför över med skäl — och pekar på `scan_refresh`, som är det
+  som faktiskt bygger historiken.
+- **Dubbelkörning.** Två processer som kör samma jobb ger kunden två
+  beställda fältuppdrag för samma objekt. Jobbet claimas i lagret med
+  villkoret i UPDATE-satsen (migration 8, `scheduled_jobs`); utan lager
+  gäller spärren bara den egna processen, och körningen säger det i
+  stället för att låtsas vara ett klusterlås.
+- **Tickern är avstängd som standard** (`LANDVEX_SCHEDULER=on`). En
+  bakgrundstråd som startar för att någon importerat en modul, och sedan
+  beställer fältuppdrag åt en kund, är en dyr överraskning. Produktions-
+  vägen är `deploy/aws/scheduler-rule.json`: EventBridge mot
+  `POST /v1/schedules/run`, med rubriknamnet låst mot det `api/security.py`
+  faktiskt läser och kö för döda brev — en tick som tyst slutar komma ser
+  annars ut precis som en tick där ingenting förföll.
+- **Schemaläggning är ingen egen produkt.** Vägen är öppen och jobbtypen
+  grindas: annars kunde flaggleverantören — vars hela behov är "beställ
+  kontrollerna varje vecka utan att jag ber om det" — inte schemalägga
+  det hon just köpt. Ett jobb vars paket upphört pausas med angivet skäl
+  och raderas inte.
+- `scheduled_runs` flyttad från enterprise till pro: Professional-planens
+  egen funktionslista lovade redan "scheduled watches (cron)". Två
+  ställen som säger olika om samma sak är ett prisfel.
+
 ## [Ej släppt] — kontroller som förfaller
 
 **Plattformen kunde svara på frågor om platser, men inte hålla reda på

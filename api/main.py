@@ -73,6 +73,7 @@ from engine import visitor as visitor_engine
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine import inspections as _insp
+from engine import scheduler as _sched
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -199,6 +200,10 @@ set_monitors_store(STORE)
 # bara finns i processminnet är borta vid nästa omstart — precis det
 # register som ska gå att visa ett år senare.
 _insp.set_store(STORE)
+# Schemalagda jobb överlever omstart OCH claimas i lagret — utan det
+# kör två workers samma jobb och kunden får två beställda uppdrag för
+# samma objekt.
+_sched.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -212,6 +217,19 @@ if STORE is not None:
 RESOLVER = Resolver(_sources + [MockSource()])
 from engine.datasources.programs import ProgramsClient
 PROGRAMS = ProgramsClient()   # connected only if LANDVEX_PROGRAMS_URL is set
+
+
+@app.on_event("startup")
+def _start_scheduler() -> None:
+    """Väck schemaläggaren vid uppstart, inte vid import.
+
+    Uvicorn importerar modulen i varje worker. Startade tråden vid import
+    skulle N workers köra samma jobb — jobbet claimas visserligen i lagret,
+    men en tråd per worker som väcks av en modulimport är fel ordning på
+    orsak och verkan. Avstängd om inte LANDVEX_SCHEDULER=on.
+    """
+    from api.ticker import start
+    start()
 
 
 class AnalyzeRequest(BaseModel):
@@ -1016,6 +1034,79 @@ def inspections_exceptions_ep(request: Request):
     """Only what needs someone."""
     from engine import inspections as I
     return I.exception_feed(_tenant(request))
+
+
+@app.get("/v1/schedules")
+def schedules_ep(request: Request):
+    """Registered jobs, what can be scheduled, and whether it is awake."""
+    from api.ticker import status as ticker_status
+    from engine import scheduler
+    return {"jobs": scheduler.all_jobs(_tenant(request)),
+            **scheduler.catalog(), **ticker_status()}
+
+
+@app.post("/v1/schedules")
+def schedules_create_ep(request: Request, body: dict):
+    """Register a job that runs without anyone asking."""
+    from engine import scheduler
+    k = scheduler.JOB_KINDS.get(body.get("kind", ""))
+    p = getattr(request.state, "principal", None)
+    if k and p is not None and k["capability"] not in p.capabilities:
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Scheduling {body['kind']!r} needs the "
+                    f"{k['capability']} package. See /v1/plans."))
+    try:
+        rec = scheduler.job(body["id"], body["kind"],
+                            cadence=body.get("cadence"),
+                            params=body.get("params"),
+                            enabled=bool(body.get("enabled", True)),
+                            tenant=_tenant(request))
+    except (KeyError, scheduler.ScheduleRefused) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    scheduler.save_job(rec)
+    return JSONResponse(status_code=201, content=rec)
+
+
+@app.post("/v1/schedules/run")
+def schedules_run_ep(request: Request, body: dict | None = None):
+    """Run everything due. The path EventBridge or cron points at."""
+    from engine import scheduler
+    p = getattr(request.state, "principal", None)
+    tillatna = None if p is None else {
+        k for k, v in scheduler.JOB_KINDS.items()
+        if v["capability"] in p.capabilities}
+    return scheduler.run_due(_tenant(request), (body or {}).get("now"),
+                             tillatna)
+
+
+@app.get("/v1/export")
+def export_catalog_ep():
+    """What can be taken into your own tools — and what cannot."""
+    from engine.export import catalog
+    return catalog()
+
+
+@app.post("/v1/export")
+def export_ep(request: Request, body: dict):
+    """Export a dataset as CSV, NDJSON or GeoJSON, caveats included."""
+    from engine.export import ExportRefused, catalog, export
+    d = {x["id"]: x for x in catalog()["datasets"]}.get(
+        body.get("dataset", ""))
+    # Datamängdens egen kapabilitet gäller också — annars vore exporten en
+    # väg runt paketet: köp export, läs allt.
+    p = getattr(request.state, "principal", None)
+    if d and p is not None and d["capability"] not in p.capabilities:
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Exporting {d['id']!r} needs the same package as "
+                    f"{d['answers_from']} ({d['capability']}). "
+                    f"See /v1/plans."))
+    try:
+        return export(body.get("dataset", ""), body.get("format", "csv"),
+                      body.get("params") or {}, tenant=_tenant(request))
+    except ExportRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/commercial")

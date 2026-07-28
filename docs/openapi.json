@@ -1127,6 +1127,67 @@
         }
       }
     },
+    "/v1/schedules": {
+      "get": {
+        "summary": "Registers jobs that run on a cadence — order field missions for what falls due, recompute a compliance record, re-run a market sweep and store it, wake the watches. Same cadence vocabulary as monitors. Jobs are claimed in the store so two workers cannot run the same job twice, and a watch woken with no history to compare against says so instead of reporting calm.",
+        "tags": [
+          "scheduler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Registers jobs that run on a cadence — order field missions for what falls due, recompute a compliance record, re-run a market sweep and store it, wake the watches. Same cadence vocabulary as monitors. Jobs are claimed in the store so two workers cannot run the same job twice, and a watch woken with no history to compare against says so instead of reporting calm.",
+        "tags": [
+          "scheduler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/schedules/run": {
+      "post": {
+        "summary": "Registers jobs that run on a cadence — order field missions for what falls due, recompute a compliance record, re-run a market sweep and store it, wake the watches. Same cadence vocabulary as monitors. Jobs are claimed in the store so two workers cannot run the same job twice, and a watch woken with no history to compare against says so instead of reporting calm.",
+        "tags": [
+          "scheduler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/export": {
+      "get": {
+        "summary": "Exports a result as CSV, NDJSON or GeoJSON with its provenance inside the file — engine version, source state and every caveat, as comment lines, a leading _landvex object or a GeoJSON member. PDF, XLSX and Parquet are refused by name rather than approximated. Exporting a dataset requires the same package as the endpoint it came from.",
+        "tags": [
+          "export"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Exports a result as CSV, NDJSON or GeoJSON with its provenance inside the file — engine version, source state and every caveat, as comment lines, a leading _landvex object or a GeoJSON member. PDF, XLSX and Parquet are refused by name rather than approximated. Exporting a dataset requires the same package as the endpoint it came from.",
+        "tags": [
+          "export"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/assets": {
       "get": {
         "summary": "A register of the customer's own physical objects (flagpoles, lifebuoys, ladders, signs, chargers), the routines that say how often each must be checked, what falls due, an order to a quiXzoom field contributor, the verdict, and a compliance record that can be shown to a board or an insurer afterwards. A verdict without evidence is refused, and the photo itself is never stored here — only the verdict and the mission reference.",

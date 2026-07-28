@@ -158,9 +158,22 @@ def test_both_layers_back_the_same_engines_with_the_store():
     for modul in ("outcome", "accountability", "corrections", "monitors"):
         for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
             assert f"set_{modul}_store(STORE)" in src, f"{namn}: {modul}"
-    for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
-        assert re.search(r"\w+\.set_store\(STORE\)", src), \
-            f"{namn} kopplar inte kontrollregistret till lagret"
+    # Modulerna räknas var för sig. Ett test som bara krävde "någon
+    # .set_store(STORE)" var grönt när dev-servern kopplade in
+    # kontrollregistret men inte schemaläggaren — och då låg jobben i
+    # processminnet: en veckorunda slutade tyst köras vid omstart, och
+    # claimet som hindrar dubbelkörning fanns inte.
+    for modul, vad in (("inspections", "kontrollregistret"),
+                       ("scheduler", "schemalagda jobb")):
+        for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
+            # Modulen importeras under olika alias i de två filerna; leta
+            # upp aliaset i stället för att gissa det.
+            alias = re.findall(rf"from engine import {modul} as (\w+)", src)
+            alias += ([modul] if f"from engine import {modul}\n" in src
+                      else [])
+            assert alias, f"{namn} importerar inte engine.{modul}"
+            assert any(f"{a}.set_store(STORE)" in src for a in alias), \
+                f"{namn} kopplar inte {vad} till lagret"
 
 
 if __name__ == "__main__":

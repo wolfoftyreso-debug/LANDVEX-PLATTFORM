@@ -72,7 +72,21 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/entrypoints": "core",                # roll-baserade ingångar (overlay)
     "/v1/admin": "core",                      # administrativt register
     "/v1/monitors": "monitoring",             # bevakningar + cron (styrd API)
+    # Schemaläggning är ingen egen produkt — det är en egenskap hos det
+    # kunden redan köpt. Vägen är därför öppen och JOBBTYPEN grindas:
+    # ett schemalagt svep kräver opportunity, en schemalagd
+    # uppdragsbeställning asset_inspections, en väckt bevakning
+    # monitoring. Låg hela vägen på "monitoring" kunde flaggleverantören
+    # — vars hela behov är "beställ kontrollerna varje vecka utan att
+    # jag ber om det" — inte schemalägga det hon köpt.
+    "/v1/schedules": "core",
     "/v1/inbox": "monitoring",                # händelseroutning per intresse
+    # Katalogen (GET) måste vara läsbar utan att först ha köpt något —
+    # samma skäl som /v1/offering. Skyddet ligger i stället på
+    # DATAMÄNGDEN: POST /v1/export kräver samma kapabilitet som den
+    # endpoint datamängden kommer ifrån, annars vore exporten en väg runt
+    # paketet (köp export, läs allt).
+    "/v1/export": "core",
     "/v1/assets": "asset_inspections",        # kundens egna objekt
     "/v1/routines": "asset_inspections",      # hur ofta de ska kontrolleras
     "/v1/inspections": "asset_inspections",   # förfall, beställning, dom,

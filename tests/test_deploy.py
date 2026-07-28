@@ -636,6 +636,52 @@ def test_the_stamped_engine_version_matches_the_released_one():
     assert ENGINE_VERSION in mf, "Makefile-taggen matchar inte motorn"
 
 
+# ── Schemalagda körningar i AWS ─────────────────────────────────────────
+def _schemaregel() -> dict:
+    import json
+    return json.loads((_ROOT / "deploy" / "aws" / "scheduler-rule.json")
+                      .read_text(encoding="utf-8"))
+
+
+def test_the_schedule_rule_calls_a_path_that_exists():
+    """En regel mot /v1/scheduler/run ser rätt ut i konsolen, körs varje
+    femte minut och ger 404 varje gång."""
+    from api.catalog import API_CATALOG
+    vagar = {(ep["method"], ep["path"]) for e in API_CATALOG["engines"]
+             for ep in e["endpoints"]}
+    r = _schemaregel()
+    slut = r["api_destination"]["InvocationEndpoint"].split("}", 1)[-1]
+    assert (r["api_destination"]["HttpMethod"], slut) in vagar, slut
+
+
+def test_the_schedule_rule_uses_the_header_the_code_actually_reads():
+    """Fel rubriknamn ger 401 på varje tick — och en regel som körs och
+    nekas ser i konsolen ut precis som en regel som fungerar."""
+    r = _schemaregel()
+    namn = r["connection"]["AuthParameters"]["ApiKeyAuthParameters"]["ApiKeyName"]
+    assert namn == "X-API-Key"
+    kall = (_ROOT / "api" / "security.py").read_text(encoding="utf-8")
+    assert namn in kall
+
+
+def test_the_schedule_rule_carries_no_key_of_its_own():
+    """En nyckel i en incheckad fil är läckt i samma sekund."""
+    import json
+    text = json.dumps(_schemaregel())
+    assert "${LANDVEX_SCHEDULER_API_KEY}" in text
+    for misstankt in ("AKIA", "secret", "password"):
+        assert misstankt not in text.lower().replace("secrets manager", "")
+
+
+def test_a_tick_that_stops_coming_is_not_silent():
+    """En utebliven tick ser ut precis som en tick där ingenting förföll.
+    Utan kö för döda brev upptäcks det aldrig."""
+    r = _schemaregel()
+    assert r["schedule"]["Target"]["DeadLetterConfig"]["Arn"]
+    assert r["schedule"]["Target"]["RetryPolicy"][
+        "MaximumEventAgeInSeconds"] <= 900
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

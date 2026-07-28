@@ -383,6 +383,30 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/monitors/evaluate"},
                        {"method": "POST", "path": "/v1/monitors/run"},
                        {"method": "POST", "path": "/v1/monitors/escalate"}]},
+        {"id": "scheduler", "label_en": "Run it without being asked",
+         "beskrivning_en": "Registers jobs that run on a cadence — order "
+                           "field missions for what falls due, recompute a "
+                           "compliance record, re-run a market sweep and "
+                           "store it, wake the watches. Same cadence "
+                           "vocabulary as monitors. Jobs are claimed in the "
+                           "store so two workers cannot run the same job "
+                           "twice, and a watch woken with no history to "
+                           "compare against says so instead of reporting "
+                           "calm.",
+         "endpoints": [{"method": "GET", "path": "/v1/schedules"},
+                       {"method": "POST", "path": "/v1/schedules"},
+                       {"method": "POST", "path": "/v1/schedules/run"}]},
+        {"id": "export", "label_en": "Take it into your own tools",
+         "beskrivning_en": "Exports a result as CSV, NDJSON or GeoJSON with "
+                           "its provenance inside the file — engine "
+                           "version, source state and every caveat, as "
+                           "comment lines, a leading _landvex object or a "
+                           "GeoJSON member. PDF, XLSX and Parquet are "
+                           "refused by name rather than approximated. "
+                           "Exporting a dataset requires the same package "
+                           "as the endpoint it came from.",
+         "endpoints": [{"method": "GET", "path": "/v1/export"},
+                       {"method": "POST", "path": "/v1/export"}]},
         {"id": "inspections", "label_en": "Prove your assets were checked",
          "beskrivning_en": "A register of the customer's own physical objects "
                            "(flagpoles, lifebuoys, ladders, signs, chargers), "

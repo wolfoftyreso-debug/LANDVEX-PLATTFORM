@@ -202,7 +202,11 @@ def kommersiell(m: dict) -> list[dict]:
         ("Tests", m["test_suites"] > 0,
          f"{m['test_suites']} sviter, utan pytest och utan nät"),
         ("Machine access", "machine_access" in byggt, "OpenAPI + nycklar"),
-        ("Export", "export_findings" in byggt, "CSV/Parquet/API ut"),
+        # INTE "CSV/Parquet": Parquet vägras med namngivet skäl
+        # (kolumnbibliotek i kärnan). En bock med fel bevistext bredvid
+        # sig säljer ett format vi inte levererar.
+        ("Export", "export_findings" in byggt,
+         "CSV/NDJSON/GeoJSON via POST /v1/export, förbehållen i filen"),
         ("Scheduling", "scheduled_runs" in byggt, "körningar utan människa"),
         ("Dashboards", "own_dashboards" in byggt, "kundens egna vyer"),
         ("White label", "white_label" in byggt, "rapport under kundens märke"),
@@ -381,8 +385,8 @@ PLAN: tuple[dict, ...] = (
      "done_when": lambda m: m["sources_verified"] > 0},
 
     {"id": "export_findings", "tier": 1,
-     "what_en": "Build the planned export decision: CSV/Parquet out, and an "
-                "API path a customer's own tools can pull.",
+     "what_en": "Build the planned export decision: CSV, NDJSON and "
+                "GeoJSON out, with provenance inside the file.",
      "why_en": "The single most common enterprise objection in this "
                "category. Small work, disproportionate effect.",
      "blocked_by_en": "nothing",

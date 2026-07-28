@@ -79,6 +79,9 @@ from engine.saturation_scan import market_saturation
 from engine import customer as customer_engine
 from engine import visitor as visitor_engine
 from engine import inspections as insp_engine
+from engine import scheduler
+from engine.export import catalog as export_catalog, export as export_data
+from api.ticker import start as start_ticker, status as ticker_status
 from engine import monitors as monitors_engine
 from engine.monitors import set_store as set_monitors_store
 from engine.scenario import project as scenario_project
@@ -143,6 +146,10 @@ set_accountability_store(STORE)
 set_corrections_store(STORE)
 set_monitors_store(STORE)
 insp_engine.set_store(STORE)
+# Schemalagda jobb måste ligga i lagret av två skäl: de ska överleva en
+# omstart (annars slutar en veckorunda tyst att köras), och claimet som
+# hindrar två processer från att köra samma jobb sitter i databasen.
+scheduler.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -199,6 +206,12 @@ class Handler(BaseHTTPRequestHandler):
     def _live_locked(self) -> bool:
         p = getattr(self, "_principal", None)
         return p is not None and "intelligence_map_live" not in p.capabilities
+
+    def _har(self, capability: str) -> bool:
+        """Bär nyckeln kapabiliteten? I öppet läge (ingen auth) finns
+        ingen principal, och då gäller inget paket att bryta mot."""
+        p = getattr(self, "_principal", None)
+        return p is None or capability in p.capabilities
 
     def _gated(self, method: str, route) -> None:
         """Auth → rate limit → routning → metrics + audit."""
@@ -374,6 +387,12 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/exceptions":
             return self._send(200,
                               insp_engine.exception_feed(self._tenant()))
+        if parsed.path == "/v1/export":
+            return self._send(200, export_catalog())
+        if parsed.path == "/v1/schedules":
+            return self._send(200, {
+                "jobs": scheduler.all_jobs(self._tenant()),
+                **scheduler.catalog(), **ticker_status()})
         if parsed.path == "/v1/monitors":
             return self._send(200, monitors_engine.catalog())
         if parsed.path == "/v1/kolada":
@@ -706,6 +725,38 @@ class Handler(BaseHTTPRequestHandler):
                     tenant=self._tenant())
                 insp_engine.save_check(rec)
                 return self._send(201, rec)
+            if self.path == "/v1/schedules":
+                kinds = scheduler.JOB_KINDS
+                k = kinds.get(req.get("kind", ""))
+                if k and not self._har(k["capability"]):
+                    return self._send(403, {"error": (
+                        f"Scheduling {req['kind']!r} needs the "
+                        f"{k['capability']} package. See /v1/plans.")})
+                rec = scheduler.job(
+                    req["id"], req["kind"],
+                    cadence=req.get("cadence"), params=req.get("params"),
+                    enabled=bool(req.get("enabled", True)),
+                    tenant=self._tenant())
+                scheduler.save_job(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/schedules/run":
+                return self._send(200, scheduler.run_due(
+                    self._tenant(), req.get("now"),
+                    {k for k, v in scheduler.JOB_KINDS.items()
+                     if self._har(v["capability"])}))
+            if self.path == "/v1/export":
+                # Datamängdens EGEN kapabilitet gäller också: annars vore
+                # exporten en väg runt paketet — köp export, läs allt.
+                d = {x["id"]: x for x in export_catalog()["datasets"]}.get(
+                    req.get("dataset", ""))
+                if d and not self._har(d["capability"]):
+                    return self._send(403, {"error": (
+                        f"Exporting {d['id']!r} needs the same package as "
+                        f"{d['answers_from']} ({d['capability']}). "
+                        f"See /v1/plans.")})
+                return self._send(200, export_data(
+                    req.get("dataset", ""), req.get("format", "csv"),
+                    req.get("params") or {}, tenant=self._tenant()))
             if self.path == "/v1/inspections/dispatch":
                 from integrations.quixzoom_dispatch import dispatch_due
                 return self._send(200, dispatch_due(self._tenant()))
@@ -1026,6 +1077,11 @@ def main(port: int | None = None) -> None:
     host = os.environ.get("LANDVEX_HOST", "0.0.0.0")
     print(f"Opportunity Engine dev server: http://localhost:{port}")
     _register_with_aamos(port)
+    # Schemaläggaren startas HÄR och inte vid import: en bakgrundstråd som
+    # börjar beställa fältuppdrag bara för att någon importerat modulen är
+    # en dyr överraskning. Avstängd om inte LANDVEX_SCHEDULER=on.
+    if start_ticker():
+        print(f"scheduler: on, every {ticker_status()['scheduler']['interval_s']:.0f}s")
     # Flertrådad + större accept-kö: tål burst-last utan att droppa
     # anslutningar (red-team: 200 samtidiga anrop). Produktionsvägen är
     # uvicorn/FastAPI, men denna server deployas också (systemd).

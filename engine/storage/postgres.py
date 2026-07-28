@@ -157,6 +157,20 @@ CREATE TABLE IF NOT EXISTS checks (
     payload      JSONB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_checks_tenant ON checks(tenant, asset_id);
+
+-- Schemalagda körningar (migration 8 i SQLite-lagret). last_run är en
+-- kolumn eftersom claim_job villkorar på den: två processer som kör samma
+-- jobb ger kunden två beställda fältuppdrag för samma objekt.
+CREATE TABLE IF NOT EXISTS scheduled_jobs (
+    id       TEXT NOT NULL,
+    tenant   TEXT NOT NULL DEFAULT '',
+    kind     TEXT NOT NULL DEFAULT '',
+    enabled  BOOLEAN NOT NULL DEFAULT TRUE,
+    last_run DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload  JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON scheduled_jobs(tenant);
 """
 
 
@@ -467,6 +481,45 @@ class PostgresStore(Store):
             cur.execute("SELECT payload FROM checks "
                         "ORDER BY performed_at, id")
             return [r[0] for r in cur.fetchall()]
+
+    # ── Schemalagda körningar ────────────────────────────────────────
+    def save_job(self, record: dict[str, Any]) -> str:
+        import json
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO scheduled_jobs (id, tenant, kind, enabled, "
+                "last_run, payload) VALUES (%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (tenant, id) DO UPDATE SET kind=EXCLUDED.kind, "
+                "enabled=EXCLUDED.enabled, last_run=EXCLUDED.last_run, "
+                "payload=EXCLUDED.payload",
+                (record["id"], record.get("tenant", ""),
+                 record.get("kind", ""), bool(record.get("enabled", True)),
+                 float(record.get("last_run") or 0.0),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_jobs(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload, last_run FROM scheduled_jobs "
+                        "ORDER BY tenant, id")
+            ut = []
+            for payload, last_run in cur.fetchall():
+                d = dict(payload)
+                d["last_run"] = last_run
+                ut.append(d)
+            return ut
+
+    def claim_job(self, job_id: str, tenant: str, now: float,
+                  gap_seconds: float) -> bool:
+        """Atomiskt i databasen — villkoret ligger i UPDATE-satsen, inte i
+        Python. En läsning följd av en skrivning är ett tidsfönster där två
+        processer båda ser 'inte körd' och båda kör."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "UPDATE scheduled_jobs SET last_run = %s "
+                "WHERE id = %s AND tenant = %s AND last_run <= %s",
+                (now, job_id, tenant, now - gap_seconds))
+            return cur.rowcount > 0
 
     def close(self) -> None:
         self._conn.close()

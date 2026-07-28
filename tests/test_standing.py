@@ -53,14 +53,21 @@ def test_a_finished_item_closes_itself():
     klar och räknas bort."""
     m = standing.matning()
     falsk = dict(m)
-    falsk["decisions_built"] = list(m["decisions_built"]) + ["export_findings"]
+    falsk["decisions_built"] = list(m["decisions_built"]) + ["own_dashboards"]
     p = {x["id"]: x for x in standing.plan(falsk)}
-    assert p["export_findings"]["done"] is True
-    assert "export_findings" not in [
+    assert p["own_dashboards"]["done"] is True
+    assert "own_dashboards" not in [
         x["id"] for x in standing.plan(falsk) if x["done"] is not True]
     # Och med den riktiga mätningen är den fortfarande öppen.
     assert {x["id"] for x in standing.plan(m) if x["done"] is not True} >= {
-        "export_findings"}
+        "own_dashboards"}
+    # Andra hållet, mätt på riktigt: export_findings ÄR byggd nu
+    # (POST /v1/export), och raden ska ha stängt sig själv utan att någon
+    # redigerat planen. Gör den inte det är mekanismen sönder — och då är
+    # listan en minneslapp, inte en mätning.
+    klara = {x["id"]: x for x in standing.plan(m)}
+    assert klara["export_findings"]["done"] is True
+    assert klara["scheduled_runs"]["done"] is True
 
 
 def test_verified_sources_count_both_kinds_of_client():
@@ -140,9 +147,15 @@ def test_commercial_readiness_is_derived_not_ticked_by_hand():
     säljer någon något som inte finns."""
     r = standing.rapport()
     rader = {c["capability"]: c for c in r["commercial"]}
-    # De fyra planerade besluten MÅSTE visa kryss.
-    for namn in ("Export", "Scheduling", "Dashboards", "White label"):
+    # De beslut som fortfarande är planerade MÅSTE visa kryss.
+    for namn in ("Dashboards", "White label"):
         assert rader[namn]["ready"] is False, namn
+    # Och det som byggts måste ha bockat av sig SJÄLVT, ur DECISIONS —
+    # raden är härledd, inte satt för hand. Poängen går åt båda hållen:
+    # ett kryss som blir kvar säljer något som saknas, en bock som aldrig
+    # kommer döljer något som finns.
+    assert rader["Export"]["ready"] is True
+    assert rader["Scheduling"]["ready"] is True
     assert rader["API"]["ready"] is True
     assert rader["Tests"]["ready"] is True
     # Ingen bock får bära en brasklapp om att den inte gäller.

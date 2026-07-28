@@ -158,6 +158,22 @@ class Store(ABC):
     def all_checks(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    # ── Schemalagda körningar ────────────────────────────────────────
+    def save_job(self, record: dict[str, Any]):
+        """Persistera/uppdatera ett schemalagt jobb (idempotent på
+        tenant+id). None = stöds ej → process-minne."""
+        return None
+
+    def all_jobs(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def claim_job(self, job_id: str, tenant: str, now: float,
+                  gap_seconds: float):
+        """Ta jobbet ATOMISKT om det inte körts inom `gap_seconds`.
+        True = det här anropet äger körningen. None = stöds ej, och då
+        gäller anroparens claim bara den egna processen."""
+        return None
+
     def close(self) -> None:   # noqa: B027 – avsiktlig no-op, ej abstrakt
         """Stäng lagret. Medvetet INTE abstrakt: ett lager utan
         resurser att frigöra ska slippa implementera en tom metod,

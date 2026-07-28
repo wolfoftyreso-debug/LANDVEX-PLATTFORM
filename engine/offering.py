@@ -82,13 +82,17 @@ DECISIONS: tuple[dict, ...] = (
      "who_en": "Anyone weighing a spend against an uncertain return.",
      "decides_en": "Go or not — with the break-even probability stated.",
      "answered_by": "/v1/flows/expected-value"},
-    {"id": "export_findings", "audience": "researcher", "plan": "pro", "status": "planned",
+    {"id": "export_findings", "audience": "researcher", "plan": "pro", "status": "built",
      "question_en": "Can I take this into my own tools?",
      "who_en": "Consultants and analysts working in Excel or GIS.",
-     "decides_en": "Nothing yet — not built.",
-     "answered_by": None,
-     "note_en": "PDF, spreadsheet and GIS export are not implemented. "
-                "Listed as planned so nobody sells it as available."},
+     "decides_en": "What to hand on — as CSV, NDJSON or GeoJSON, with the "
+                   "caveats travelling inside the file.",
+     "answered_by": "/v1/export",
+     "note_en": "PDF, XLSX and Parquet are refused by name rather than "
+                "approximated: they need rendering or columnar libraries "
+                "the core does not take, and a CSV renamed .xlsx is a lie "
+                "with an Excel icon on it. Exporting a dataset requires "
+                "the same package as the endpoint it comes from."},
 
     # ── Enterprise Intelligence ──────────────────────────────────────
     {"id": "detect_without_asking", "audience": "investor", "plan": "enterprise", "status": "built",
@@ -123,14 +127,25 @@ DECISIONS: tuple[dict, ...] = (
      "who_en": "Anyone integrating Landvex into their own stack.",
      "decides_en": "Whether to build on it — full API and agent manifest.",
      "answered_by": "/v1/agent-manifest"},
-    {"id": "scheduled_runs", "audience": "researcher", "plan": "enterprise", "status": "planned",
+    # Nivån flyttad från enterprise till pro: Professional-planens egen
+    # funktionslista lovade redan "scheduled watches (cron)". Två ställen
+    # som säger olika om samma sak är ett prisfel, inte en detalj.
+    {"id": "scheduled_runs", "audience": "researcher", "plan": "pro", "status": "built",
      "question_en": "Can it run itself on a schedule?",
      "who_en": "Operations teams.",
-     "decides_en": "Nothing yet — the cron ENTRY POINT exists "
-                   "(/v1/monitors/run) but nothing calls it on a timer.",
-     "answered_by": None,
-     "note_en": "A scheduler is deployment work, not engine work. The "
-                "endpoint is ready for one."},
+     "decides_en": "What happens without anyone asking — missions ordered "
+                   "for what falls due, records recomputed, sweeps re-run "
+                   "and stored.",
+     "answered_by": "/v1/schedules",
+     "note_en": "An in-process ticker (LANDVEX_SCHEDULER=on) or "
+                "EventBridge/cron against POST /v1/schedules/run — both do "
+                "the same work. Jobs are claimed in the store so two "
+                "workers cannot run one job twice. A watch woken with no "
+                "history to compare against skips with a stated reason "
+                "rather than reporting calm. Scheduling is not a product "
+                "of its own: each job kind requires the same package as "
+                "the thing it runs, so an add-on customer can schedule "
+                "what they bought without buying a tier for the timer."},
     {"id": "own_dashboards", "audience": "researcher", "plan": "enterprise", "status": "planned",
      "question_en": "Can we build our own views on it?",
      "who_en": "Larger organisations with internal reporting.",

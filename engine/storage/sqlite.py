@@ -124,6 +124,22 @@ _MIGRATIONS: list[tuple[int, str]] = [
     );
     CREATE INDEX IF NOT EXISTS idx_checks_tenant ON checks(tenant, asset_id);
     """),
+    # Schemalagda körningar. `last_run` är en KOLUMN och inte bara ett
+    # fält i nyttolasten, för det är den som villkoret i claim_job läser:
+    # två processer som kör samma jobb ger kunden två beställda fältuppdrag
+    # för samma objekt.
+    (8, """
+    CREATE TABLE IF NOT EXISTS scheduled_jobs (
+        id       TEXT NOT NULL,
+        tenant   TEXT NOT NULL DEFAULT '',
+        kind     TEXT NOT NULL DEFAULT '',
+        enabled  INTEGER NOT NULL DEFAULT 1,
+        last_run REAL NOT NULL DEFAULT 0,
+        payload  TEXT NOT NULL,
+        PRIMARY KEY (tenant, id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON scheduled_jobs(tenant);
+    """),
 ]
 
 _DDL = """
@@ -513,6 +529,49 @@ class SqliteStore(Store):
                 "SELECT payload FROM checks ORDER BY performed_at, id"
             ).fetchall()
         return [json.loads(r[0]) for r in rows]
+
+    # ── Schemalagda körningar ────────────────────────────────────────
+    def save_job(self, record: dict[str, Any]) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO scheduled_jobs (id, tenant, kind, "
+                "enabled, last_run, payload) VALUES (?,?,?,?,?,?)",
+                (record["id"], record.get("tenant", ""),
+                 record.get("kind", ""),
+                 1 if record.get("enabled", True) else 0,
+                 float(record.get("last_run") or 0.0),
+                 json.dumps(record, ensure_ascii=False)))
+        return record["id"]
+
+    def all_jobs(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload, last_run FROM scheduled_jobs "
+                "ORDER BY tenant, id").fetchall()
+        # last_run läses ur KOLUMNEN, inte ur nyttolasten: det är kolumnen
+        # claim_job uppdaterar, och en nyttolast som hunnit bli gammal
+        # skulle annars säga att jobbet är förfallet igen.
+        ut = []
+        for payload, last_run in rows:
+            d = json.loads(payload)
+            d["last_run"] = last_run
+            ut.append(d)
+        return ut
+
+    def claim_job(self, job_id: str, tenant: str, now: float,
+                  gap_seconds: float) -> bool:
+        """Atomiskt: ta jobbet om det inte körts inom `gap_seconds`.
+
+        Villkoret ligger i UPDATE-satsen, inte i Python: en läsning följd
+        av en skrivning är ett tidsfönster där två processer båda ser
+        'inte körd' och båda kör.
+        """
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "UPDATE scheduled_jobs SET last_run = ? "
+                "WHERE id = ? AND tenant = ? AND last_run <= ?",
+                (now, job_id, tenant, now - gap_seconds))
+            return cur.rowcount > 0
 
     def close(self) -> None:
         with self._lock:

@@ -35,8 +35,7 @@ def test_a_planned_decision_never_claims_to_answer_anything():
 def test_the_things_that_do_not_exist_are_listed_as_planned():
     """Export, dashboards och white-label finns inte – de får inte säljas."""
     planned = {d["id"] for d in O.DECISIONS if d["status"] == "planned"}
-    assert {"export_findings", "own_dashboards", "white_label",
-            "scheduled_runs"} <= planned
+    assert {"own_dashboards", "white_label"} <= planned
 
 
 def test_every_decision_is_a_question_a_person_would_ask():

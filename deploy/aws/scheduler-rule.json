@@ -1,0 +1,91 @@
+{
+  "_comment": [
+    "LANDVEX — schemalagda körningar i AWS.",
+    "",
+    "Två vägar gör samma sak, och valet handlar om antal instanser:",
+    "  1. LANDVEX_SCHEDULER=on i uppgiftsdefinitionen — en tråd i varje",
+    "     process. Jobbet claimas i lagret, så flera workers kör det inte",
+    "     två gånger, men N processer som alla vaknar varje minut för att",
+    "     upptäcka att någon annan redan tagit jobbet är slöseri.",
+    "  2. Den här regeln — EN utlösare utifrån, oavsett hur många",
+    "     instanser som kör bakom lastbalanseraren. Det är valet för",
+    "     produktion, och då ska LANDVEX_SCHEDULER lämnas osatt.",
+    "",
+    "Anropet går mot POST /v1/schedules/run, som kräver kapabiliteten",
+    "monitoring. Nyckeln hämtas ur Secrets Manager av API-destinationens",
+    "connection — den står ALDRIG i den här filen.",
+    "",
+    "Kadensen nedan (var 5:e minut) är TICKEN, inte schemat. Hur ofta ett",
+    "jobb faktiskt körs står i jobbets egen cadence; ticken avgör bara hur",
+    "snabbt ett förfallet jobb upptäcks. Sätt den tätare än det tätaste",
+    "jobbet, inte tätare än så.",
+    "",
+    "Placeholders i ${...} fylls av deploypipelinen.",
+    "Skapa med:",
+    "  aws events create-connection --cli-input-json file://<connection-delen>",
+    "  aws events create-api-destination --cli-input-json file://<destination-delen>",
+    "  aws scheduler create-schedule --cli-input-json file://<schedule-delen>"
+  ],
+
+  "connection": {
+    "Name": "landvex-api",
+    "Description": "API key for calling the Landvex API from EventBridge.",
+    "AuthorizationType": "API_KEY",
+    "AuthParameters": {
+      "ApiKeyAuthParameters": {
+        "ApiKeyName": "X-API-Key",
+        "ApiKeyValue": "${LANDVEX_SCHEDULER_API_KEY}"
+      }
+    },
+    "_comment": [
+      "Rubriknamnet MÅSTE vara X-API-Key — det är headern api/security.py",
+      "läser. Ett annat namn ger 401 på varje tick, och regeln ser ut att",
+      "fungera i konsolen.",
+      "Nyckeln ska bära en tenant och planen growth eller enterprise:",
+      "  nyckel:<tenant>:analyst:growth",
+      "Kapabiliteten som krävs är monitoring."
+    ]
+  },
+
+  "api_destination": {
+    "Name": "landvex-schedules-run",
+    "ConnectionArn": "${LANDVEX_CONNECTION_ARN}",
+    "InvocationEndpoint": "${LANDVEX_BASE_URL}/v1/schedules/run",
+    "HttpMethod": "POST",
+    "InvocationRateLimitPerSecond": 1
+  },
+
+  "schedule": {
+    "Name": "landvex-scheduler-tick",
+    "Description": "Runs every scheduled Landvex job that has fallen due.",
+    "ScheduleExpression": "rate(5 minutes)",
+    "FlexibleTimeWindow": { "Mode": "OFF" },
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "${LANDVEX_API_DESTINATION_ARN}",
+      "RoleArn": "${LANDVEX_SCHEDULER_ROLE_ARN}",
+      "Input": "{}",
+      "RetryPolicy": {
+        "MaximumRetryAttempts": 2,
+        "MaximumEventAgeInSeconds": 300
+      },
+      "DeadLetterConfig": { "Arn": "${LANDVEX_DLQ_ARN}" }
+    },
+    "_comment": [
+      "MaximumEventAgeInSeconds är kort med flit: en tick som legat i kö i",
+      "en timme och sedan körs beställer fältuppdrag som redan är",
+      "beställda. Hellre en missad tick än en sen.",
+      "Ett omförsök är ofarligt — jobbet claimas i lagret och körs ändå",
+      "bara en gång per kadens.",
+      "Kön för döda brev är inte kosmetik: en tick som tyst slutar komma",
+      "ser exakt ut som en tick där ingenting förföll."
+    ]
+  },
+
+  "verify": [
+    "curl -sS -X POST -H \"X-API-Key: $KEY\" ${LANDVEX_BASE_URL}/v1/schedules/run",
+    "curl -sS -H \"X-API-Key: $KEY\" ${LANDVEX_BASE_URL}/v1/schedules",
+    "Det andra anropet visar last_run per jobb. Står last_run kvar på 0",
+    "efter en tick har regeln inte nått fram — kontrollera rubriknamnet."
+  ]
+}

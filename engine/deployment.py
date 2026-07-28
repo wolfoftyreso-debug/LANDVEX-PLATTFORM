@@ -283,6 +283,20 @@ ENVIRONMENT: dict[str, dict] = {
         "entirely unless LANDVEX_QUIXZOOM_URL is set — no mission id is "
         "ever invented.",
         example="/api/missions"),
+    "LANDVEX_SCHEDULER": _v(
+        "optional", "Turn on the in-process ticker that runs due scheduled "
+                    "jobs (POST /v1/schedules/run does the same work).",
+        "Off. Nothing runs unattended: a background thread that starts "
+        "because a module was imported, and then orders field missions "
+        "for a customer, is an expensive surprise. Point EventBridge or "
+        "cron at the endpoint instead when running more than one "
+        "instance.",
+        example="on"),
+    "LANDVEX_SCHEDULER_INTERVAL_S": _v(
+        "optional", "Seconds between ticks when the scheduler is on.",
+        "60 seconds. Values below 5 are raised to 5 — the cadence lives "
+        "in the job, not in the tick.",
+        example="60"),
     "LANDVEX_QUIXZOOM_AUTH_HEADER": _v(
         "optional", "Header name for the quiXzoom key.",
         "The documented default header is used."),
