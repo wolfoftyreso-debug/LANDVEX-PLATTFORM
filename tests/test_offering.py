@@ -143,6 +143,48 @@ def test_the_headline_of_a_tier_is_not_inherited_from_the_one_below():
             f"{by_id[did]['plan']} — det är ärvt, inte nytt")
 
 
+def test_every_decision_names_the_kind_of_actor_it_serves():
+    """Fyndet: konsolen släppte in en elektriker i Tyresö och delstaten
+    Texas genom samma fråga — "välj din bransch". Skalan är hela
+    skillnaden: en ort och fem år mot tusentals objekt kontinuerligt.
+    Utan publik på beslutet går det inte att bygga rätt dörr."""
+    from engine.offering import AUDIENCES, DECISIONS
+    kanda = {a["id"] for a in AUDIENCES}
+    for d in DECISIONS:
+        assert d.get("audience"), f"{d['id']} saknar publik"
+        assert d["audience"] in kanda, (d["id"], d["audience"])
+
+
+def test_no_door_leads_nowhere():
+    """En publik utan ett enda byggt beslut är en dörr som öppnas till en
+    tom vägg. Rådgivaren hade exakt det innan publikerna fick ärva."""
+    from engine.offering import audiences
+    for a in audiences():
+        assert a["decisions"], (
+            f"'{a['label_en']}' har noll byggda beslut — dörren leder "
+            f"ingenstans")
+
+
+def test_an_audience_says_what_scale_it_operates_at():
+    """Det var skalan som saknades, inte etiketten."""
+    from engine.offering import AUDIENCES
+    for a in AUDIENCES:
+        for f in ("label_en", "you_are_en", "scale_en",
+                  "opening_question_en"):
+            assert a[f], (a["id"], f)
+        assert a["opening_question_en"].endswith("?"), a["id"]
+
+
+def test_the_widest_audience_can_reach_the_narrowest_decisions():
+    """En portföljägare ska kunna ställa ortsfrågan också; motsatsen får
+    inte gälla, annars är arvet bara dekoration."""
+    from engine.offering import audiences
+    per = {a["id"]: {d["id"] for d in a["decisions"]} for a in audiences()}
+    assert per["resident"] <= per["portfolio"]
+    assert per["resident"] <= per["operator"] <= per["advisor"]
+    assert "detect_without_asking" not in per["resident"]
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

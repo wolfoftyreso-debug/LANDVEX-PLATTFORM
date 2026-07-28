@@ -68,8 +68,11 @@ def hamta(port: int = 8222) -> dict:
     try:
         def g(p):
             return json.loads(op.open(base + p, timeout=30).read())
+        from engine.glossary import catalog as ordlista
+        from engine.offering import audiences
         return {"surface": g("/v1/surface"), "offering": g("/v1/offering"),
-                "health": g("/health")}
+                "health": g("/health"), "audiences": audiences(),
+                "glossary": ordlista()}
     finally:
         proc.terminate()
         proc.wait(timeout=10)
@@ -196,6 +199,37 @@ def bygg(data: dict) -> str:
     alla = {d["id"]: d for p in planer for d in p["decisions_you_can_make"]}
     planerade = {d["id"]: d for p in planer for d in p["not_built_yet"]}
 
+    dorrar = ""
+    for a in data.get("audiences", []):
+        rader = "".join(
+            f'<li><span class="q">{_e(d["question_en"])}</span>'
+            f'<code>{_e(d["answered_by"])}</code></li>'
+            for d in a["decisions"])
+        dorrar += f"""
+    <article class="door">
+      <h3>{_e(a['label_en'])}</h3>
+      <p class="youare">{_e(a['you_are_en'])}</p>
+      <p class="scale"><strong>Scale:</strong> {_e(a['scale_en'])}</p>
+      <p class="opening">{_e(a['opening_question_en'])}</p>
+      <details><summary>{len(a['decisions'])} decision{
+        '' if len(a['decisions']) == 1 else 's'} open to you{
+        f" · {len(a['planned'])} planned" if a['planned'] else ''}</summary>
+        <ul class="dlist">{rader}</ul>
+      </details>
+    </article>"""
+
+    ordbok = ""
+    g = data.get("glossary", {})
+    for m in (g.get("metrics") or {}).values():
+        ordbok += f"""
+    <article class="metric">
+      <h3>{_e(m['label_en'])} <span class="skala">{_e(m['scale'])}</span></h3>
+      <p>{_e(m['means_en'])}</p>
+      <p class="reads"><strong>How to read it.</strong> {_e(m['reads_en'])}</p>
+      <p class="cannot"><strong>What it does NOT tell you.</strong> {_e(m['cannot_en'])}</p>
+      <code class="check">{_e(m['from_en'])}</code>
+    </article>"""
+
     bevis_kort = ""
     for b in bevis():
         bevis_kort += f"""
@@ -260,6 +294,21 @@ def bygg(data: dict) -> str:
      <strong>{len(planerade)}</strong> planned and marked as such</p>
 </header>
 
+<h2>Which door is yours</h2>
+<p class="section-lede">An electrician asking whether one town supports
+five more electricians for five years, and a state authority asking for
+deviations across thousands of assets, are not the same question at any
+point — not the scale, not the horizon, not the words. Pick the sentence
+that describes you.</p>
+<div class="doors">{dorrar}
+</div>
+
+<h2>Every number, and what it does not tell you</h2>
+<p class="section-lede">{_e(g.get('principle_en', ''))}</p>
+<p class="warn-read">{_e(g.get('reading_the_card_en', ''))}</p>
+<div class="metrics">{ordbok}
+</div>
+
 <h2>Why this is an instrument, not a guess</h2>
 <p class="section-lede">Every claim below was computed from the
 repository when this page was built, and every one names the thing you
@@ -321,6 +370,38 @@ h2{font-size:.74rem;text-transform:uppercase;letter-spacing:.13em;
   padding-bottom:.4rem;border-bottom:1px solid var(--line)}
 .section-lede{color:var(--dim);font-size:.9rem;margin-bottom:1.2rem;
   max-width:64ch}
+.doors{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,
+  minmax(285px,1fr));margin-bottom:1rem}
+.door{background:var(--card);border:1px solid var(--line);border-radius:13px;
+  padding:1.1rem 1.2rem}
+.door h3{font-size:1.02rem;letter-spacing:-.01em;margin-bottom:.35rem}
+.youare{font-size:.85rem;color:var(--dim);margin-bottom:.45rem}
+.scale{font-size:.8rem;color:var(--dim);margin-bottom:.45rem}
+.scale strong{color:var(--ink)}
+.opening{font-size:.92rem;color:var(--blue);font-weight:600;
+  margin-bottom:.6rem}
+.door details summary{cursor:pointer;font-size:.76rem;color:var(--dim);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.dlist{list-style:none;margin-top:.5rem}
+.dlist li{display:flex;justify-content:space-between;gap:.6rem;
+  padding:.35rem 0;border-top:1px solid var(--line);font-size:.83rem;
+  align-items:baseline;flex-wrap:wrap}
+.dlist code{font-size:.68rem;background:var(--code);padding:.1rem .35rem;
+  border-radius:4px;color:var(--dim);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.warn-read{background:color-mix(in srgb,var(--amber) 12%,transparent);
+  border-left:3px solid var(--amber);border-radius:0 8px 8px 0;
+  padding:.7rem .9rem;font-size:.86rem;margin-bottom:1rem}
+.metrics{display:grid;gap:.7rem;margin-bottom:1rem}
+.metric{background:var(--card);border:1px solid var(--line);
+  border-radius:13px;padding:1rem 1.2rem}
+.metric h3{font-size:.98rem;margin-bottom:.4rem}
+.skala{font-size:.7rem;color:var(--faint);font-weight:400;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.metric p{font-size:.86rem;color:var(--dim);margin-bottom:.4rem}
+.metric .reads strong{color:var(--ink)}
+.metric .cannot{color:var(--amber)}
+.metric .cannot strong{color:var(--amber)}
 .proofs{display:grid;gap:.7rem;margin-bottom:1rem}
 .proof{background:var(--card);border:1px solid var(--line);
   border-left:3px solid var(--green);border-radius:0 13px 13px 0;

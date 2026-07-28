@@ -339,6 +339,49 @@ def test_the_front_door_proves_rather_than_asserts():
     assert "0 of 14" in text, "det obevisade ska stå kvar i ingången"
 
 
+def test_every_number_the_surface_shows_can_explain_itself():
+    """Fyndet: motorn bar 173 förklaringsfält på klarspråk och konsolen
+    visade noll. Ett beslutskort visade sex tal utan enhet, utan skala och
+    utan besked om vilket håll som är bra — "Confidence 20", bra eller
+    dåligt? Ett tal utan tolkning är inte data, det är en Rorschach-plätt:
+    läsaren fyller i betydelsen själv, och fyller i fel."""
+    import re
+    from engine.glossary import METRICS
+    rot = __import__("pathlib").Path(__file__).resolve().parent.parent
+    kort = (rot / "frontend" / "index.html").read_text(encoding="utf-8")
+    # Etiketterna som beslutskortet faktiskt renderar.
+    visade = set(re.findall(r"<span>(Confidence|Risk index|Momentum|"
+                            r"Supply gap|Time window|Rank)", kort))
+    nyckel = {"Confidence": "confidence", "Risk index": "risk_index",
+              "Momentum": "momentum", "Supply gap": "supply_gap",
+              "Time window": "time_window", "Rank": "rank_score"}
+    for etikett in visade:
+        assert nyckel[etikett] in METRICS, (
+            f"ytan visar '{etikett}' men ingen post förklarar det")
+
+
+def test_the_most_dangerous_misreading_is_written_out():
+    """`cannot_en` är inte en brasklapp. Confidence mäter datatäckning,
+    inte sannolikhet att lyckas — och den förväxlingen får någon att
+    satsa pengar på fel grund."""
+    from engine.glossary import METRICS, READING_THE_CARD_EN
+    for mid, m in METRICS.items():
+        for f in ("label_en", "means_en", "reads_en", "cannot_en", "from_en"):
+            assert m[f], (mid, f)
+        assert len(m["cannot_en"]) > 40, f"{mid}: cannot_en är för tunn"
+    assert "probability of success" in METRICS["confidence"]["cannot_en"]
+    assert "nothing was measured" in METRICS["momentum"]["cannot_en"]
+    assert "confidence" in READING_THE_CARD_EN
+
+
+def test_a_metric_names_where_it_is_computed():
+    """En förklaring som inte går att spåra till koden blir en gissning
+    om koden."""
+    from engine.glossary import METRICS
+    spårbara = [m for m in METRICS.values() if "engine/" in m["from_en"]]
+    assert len(spårbara) >= 6, "de flesta mått ska peka på sin egen fil"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

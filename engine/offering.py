@@ -24,57 +24,121 @@ from __future__ import annotations
 
 # status: built  = finns och kan användas idag
 #         planned = beskriven, inte byggd. Får aldrig säljas som byggd.
+# Vem du är avgör vilken dörr som är rätt, och skalan är hela skillnaden:
+# en elektriker frågar om EN ort och fem år framåt; en delstat frågar om
+# avvikelser över tusentals objekt. Konsolen släppte in båda genom samma
+# fråga — "välj din bransch" — vilket betjänar operatören och ingen annan.
+# Publiken är därför data, inte en kodgren: en ny aktörstyp är en rad här.
+AUDIENCES: tuple[dict, ...] = (
+    {"id": "resident", "includes": (), "order": 1,
+     "label_en": "I want to understand a place",
+     "you_are_en": "A resident, a student, a journalist — someone who "
+                   "heard a claim and wants to know if it holds.",
+     "scale_en": "One place, right now.",
+     "opening_question_en": "What is this place actually like?"},
+    {"id": "operator", "includes": ("resident",), "order": 2,
+     "label_en": "I run or am starting a business",
+     "you_are_en": "An operator, a founder, a franchise looking for the "
+                   "next site.",
+     "scale_en": "One trade, a handful of places, a horizon of years.",
+     "opening_question_en": "Where does THIS business have the best "
+                            "chance — and is there room?"},
+    {"id": "advisor", "includes": ("resident", "operator"), "order": 3,
+     "label_en": "I advise others for a living",
+     "you_are_en": "A consultant, broker or analyst who has to defend the "
+                   "recommendation afterwards.",
+     "scale_en": "Many clients, many places, and your name on the advice.",
+     "opening_question_en": "Can I take this into my own tools and stand "
+                            "behind it?"},
+    {"id": "authority", "includes": ("resident",), "order": 4,
+     "label_en": "I am responsible for a place or a service",
+     "you_are_en": "A municipality, a region, an employer or a training "
+                   "provider planning capacity.",
+     "scale_en": "A whole jurisdiction, and years before the shortage "
+                 "arrives.",
+     "opening_question_en": "What will this place be short of, and who "
+                            "carries the decision?"},
+    {"id": "portfolio", "includes": ("resident", "authority"), "order": 5,
+     "label_en": "I carry a portfolio of assets or exposure",
+     "you_are_en": "An insurer, bank, utility, grid or infrastructure "
+                   "owner — thousands of objects, none of which you can "
+                   "watch by hand.",
+     "scale_en": "Everything you own at once, continuously.",
+     "opening_question_en": "What should we know that nobody asked "
+                            "about — on OUR thresholds?"},
+    {"id": "integrator", "includes": (), "order": 6,
+     "label_en": "I am building on top of it",
+     "you_are_en": "An engineer putting Landvex inside another system.",
+     "scale_en": "Machine to machine.",
+     "opening_question_en": "Can our systems consume this directly?"},
+)
+
+
+def audiences() -> list[dict]:
+    """Publikerna med de beslut var och en faktiskt kan fatta."""
+    ut = []
+    for a in sorted(AUDIENCES, key=lambda x: x["order"]):
+        # En publik ärver de andras beslut, precis som plannivåerna gör.
+        # Utan det fick rådgivaren noll byggda beslut — en dörr som leder
+        # ingenstans — trots att hen använder operatörens varje dag.
+        egna = {a["id"], *a["includes"]}
+        mina = [d for d in DECISIONS if d.get("audience") in egna]
+        ut.append({**a,
+                   "decisions": [d for d in mina if d["status"] == "built"],
+                   "planned": [d for d in mina if d["status"] != "built"]})
+    return ut
+
 DECISIONS: tuple[dict, ...] = (
     # ── Explorer ─────────────────────────────────────────────────────
-    {"id": "understand_place", "plan": "free", "status": "built",
+    {"id": "understand_place", "audience": "resident", "plan": "free", "status": "built",
      "question_en": "What is this place actually like?",
      "who_en": "Anyone curious about somewhere — a resident, a student.",
      "decides_en": "Whether a claim you heard about an area holds up.",
      "answered_by": "/v1/indices/assess"},
-    {"id": "check_a_claim", "plan": "free", "status": "built",
+    {"id": "check_a_claim", "audience": "resident", "plan": "free", "status": "built",
      "question_en": "Is this figure unusual, or normal?",
      "who_en": "Anyone with a number they cannot place.",
      "decides_en": "Whether something is worth reacting to at all.",
      "answered_by": "/v1/benchmark"},
-    {"id": "public_brief", "plan": "free", "status": "built",
+    {"id": "public_brief", "audience": "resident", "plan": "free", "status": "built",
      "question_en": "What changed that anyone may know about?",
      "who_en": "Anyone following a region.",
      "decides_en": "Whether to look closer. Public findings only.",
      "answered_by": "/v1/brief"},
 
     # ── Professional ─────────────────────────────────────────────────
-    {"id": "where_to_establish", "plan": "pro", "status": "built",
+    {"id": "where_to_establish", "audience": "operator", "plan": "pro", "status": "built",
      "question_en": "Where does THIS business have the best chance?",
      "who_en": "Operators, consultants, brokers.",
      "decides_en": "Where to put your own money and years.",
      "answered_by": "/v1/report"},
-    {"id": "is_the_market_full", "plan": "pro", "status": "built",
+    {"id": "is_the_market_full", "audience": "operator", "plan": "pro", "status": "built",
      "question_en": "How saturated is this trade here?",
      "who_en": "Anyone entering a local market.",
      "decides_en": "Whether there is room, measured against comparable "
                    "places.",
      "answered_by": "/v1/saturation"},
-    {"id": "what_will_be_needed", "plan": "pro", "status": "built",
+    {"id": "what_will_be_needed", "audience": "authority", "plan": "pro", "status": "built",
      "question_en": "What will this place be short of?",
      "who_en": "Municipalities, employers, training providers.",
      "decides_en": "What capacity to build before the shortage arrives.",
      "answered_by": "/v1/workforce/forecast"},
-    {"id": "watch_my_interest", "plan": "pro", "status": "built",
+    {"id": "watch_my_interest", "audience": "authority", "plan": "pro", "status": "built",
      "question_en": "Has anything I have a stake in moved?",
      "who_en": "Anyone with a stake in a place, trade or decision.",
      "decides_en": "When to look again — routed by what you have at stake.",
      "answered_by": "/v1/inbox/route"},
-    {"id": "regional_brief", "plan": "pro", "status": "built",
+    {"id": "regional_brief", "audience": "operator", "plan": "pro", "status": "built",
      "question_en": "What changed in my region and sector?",
      "who_en": "Anyone operating somewhere specific.",
      "decides_en": "What to examine this week, ranked by decision value.",
      "answered_by": "/v1/brief"},
-    {"id": "worth_the_cost", "plan": "pro", "status": "built",
+    {"id": "worth_the_cost", "audience": "operator", "plan": "pro", "status": "built",
      "question_en": "Is this worth what it costs?",
      "who_en": "Anyone weighing a spend against an uncertain return.",
      "decides_en": "Go or not — with the break-even probability stated.",
      "answered_by": "/v1/flows/expected-value"},
-    {"id": "export_findings", "plan": "pro", "status": "planned",
+    {"id": "export_findings", "audience": "advisor", "plan": "pro", "status": "planned",
      "question_en": "Can I take this into my own tools?",
      "who_en": "Consultants and analysts working in Excel or GIS.",
      "decides_en": "Nothing yet — not built.",
@@ -83,29 +147,29 @@ DECISIONS: tuple[dict, ...] = (
                 "Listed as planned so nobody sells it as available."},
 
     # ── Enterprise Intelligence ──────────────────────────────────────
-    {"id": "detect_without_asking", "plan": "enterprise", "status": "built",
+    {"id": "detect_without_asking", "audience": "portfolio", "plan": "enterprise", "status": "built",
      "question_en": "What should we know that nobody asked about?",
      "who_en": "Insurers, banks, utilities, infrastructure owners.",
      "decides_en": "Where to direct attention across a whole portfolio.",
      "answered_by": "/v1/brief"},
-    {"id": "own_detection_rules", "plan": "enterprise", "status": "built",
+    {"id": "own_detection_rules", "audience": "portfolio", "plan": "enterprise", "status": "built",
      "question_en": "Can we watch what matters to US, on our thresholds?",
      "who_en": "Organisations with their own risk definitions.",
      "decides_en": "What counts as an exception here — rules are data, so "
                    "new ones need no engine change.",
      "answered_by": "/v1/monitors"},
-    {"id": "bind_decision_to_owner", "plan": "enterprise", "status": "built",
+    {"id": "bind_decision_to_owner", "audience": "authority", "plan": "enterprise", "status": "built",
      "question_en": "Who carries this decision, and did it work?",
      "who_en": "Boards, auditors, public bodies.",
      "decides_en": "Accountability — a commitment resolved against the "
                    "actual outcome.",
      "answered_by": "/v1/decisions/commit"},
-    {"id": "machine_access", "plan": "enterprise", "status": "built",
+    {"id": "machine_access", "audience": "integrator", "plan": "enterprise", "status": "built",
      "question_en": "Can our systems consume this directly?",
      "who_en": "Anyone integrating Landvex into their own stack.",
      "decides_en": "Whether to build on it — full API and agent manifest.",
      "answered_by": "/v1/agent-manifest"},
-    {"id": "scheduled_runs", "plan": "enterprise", "status": "planned",
+    {"id": "scheduled_runs", "audience": "integrator", "plan": "enterprise", "status": "planned",
      "question_en": "Can it run itself on a schedule?",
      "who_en": "Operations teams.",
      "decides_en": "Nothing yet — the cron ENTRY POINT exists "
@@ -113,14 +177,14 @@ DECISIONS: tuple[dict, ...] = (
      "answered_by": None,
      "note_en": "A scheduler is deployment work, not engine work. The "
                 "endpoint is ready for one."},
-    {"id": "own_dashboards", "plan": "enterprise", "status": "planned",
+    {"id": "own_dashboards", "audience": "integrator", "plan": "enterprise", "status": "planned",
      "question_en": "Can we build our own views on it?",
      "who_en": "Larger organisations with internal reporting.",
      "decides_en": "Nothing yet — not built.",
      "answered_by": None,
      "note_en": "No dashboard builder exists. The API is what a dashboard "
                 "would be built on."},
-    {"id": "white_label", "plan": "enterprise", "status": "planned",
+    {"id": "white_label", "audience": "advisor", "plan": "enterprise", "status": "planned",
      "question_en": "Can reports carry our own brand?",
      "who_en": "Advisors reselling analysis.",
      "decides_en": "Nothing yet — not built.",
