@@ -1,20 +1,29 @@
 # Baltic Bridge — Sandbox
 
 One command spins up a fully populated sandbox: Postgres 16 + MinIO, all
-migrations, the LT→SE requirement catalogue, ten demo suppliers in every
-verification state, buyers, RFQs across the pipeline, offers with frozen
-snapshots and a recorded deal.
+migrations, the LT→SE and PL→SE requirement catalogues, ten demo suppliers
+in every verification state, the 46-company researched catalog (LT/LV/EE/PL
+with certifications and awards), buyers, RFQs across the pipeline, offers
+with frozen snapshots and a recorded deal.
+
+## Prerequisites
+
+- **Node.js 20+** — https://nodejs.org
+- **Docker Desktop** (running) — https://docker.com/products/docker-desktop
+- **Git**
 
 ## Start
 
 ```sh
-git clone <repo> && cd <repo>
+git clone https://github.com/wolfoftyreso-debug/konditori-joy.git
+cd konditori-joy
+git checkout claude/baltic-bridge-platform-vision-cx09a8
 npm install
 cp .env.example .env.local
-npm run sandbox        # docker compose up + migrate + seed + demo data + dev server
+npm run sandbox        # docker compose up + migrate + all seeds + dev server
 ```
 
-Open http://localhost:3000/sv (or `/en`, `/lt`).
+Open **http://localhost:3000/sv** (or `/en`, `/lt`, `/lv`, `/et`, `/pl`).
 
 Without Docker: point `DATABASE_URL` at any Postgres 16 and run
 `npm run db:migrate && npm run db:seed && npm run db:seed-demo && npm run dev`.

@@ -14,7 +14,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed-demo": "tsx src/db/seed-demo.ts",
-    "sandbox": "docker compose up -d && npm run db:migrate && npm run db:seed && npm run db:seed-demo && next dev"
+    "sandbox": "docker compose up -d && npm run db:migrate && npm run db:seed && npm run db:seed-demo && npm run db:seed-catalog && next dev",
+    "db:seed-catalog": "tsx src/db/seed-catalog.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.4",
