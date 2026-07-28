@@ -531,6 +531,12 @@ def main(argv: list[str]) -> int:
                 "initial-scale=1\">" + sida.split("</style>")[0] +
                 "</style></head><body>" +
                 sida.split("</style>", 1)[1] + "</body></html>")
+    if "--scoped" in argv:
+        # Fristående sida → inbäddningsbar yta. Utan detta vinner det
+        # sist inlästa stilblocket och två av tre ytor går sönder.
+        from scripts.htmlscope import scope, strip_title
+        cid = argv[argv.index("--scoped") + 1]
+        sida = strip_title(scope(sida, cid))
     ut.write_text(sida, encoding="utf-8")
     n = len({d["id"] for p in data["offering"]["plans"]
              for d in p["decisions_you_can_make"]})

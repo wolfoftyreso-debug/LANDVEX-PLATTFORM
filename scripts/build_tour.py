@@ -418,6 +418,12 @@ def main(argv: list[str]) -> int:
     print("Fångar riktiga svar från en egen server …")
     steg, halsa = fanga()
     sida = bygg(steg, halsa)
+    if "--scoped" in argv:
+        # Fristående sida → inbäddningsbar yta. Utan detta vinner det
+        # sist inlästa stilblocket och två av tre ytor går sönder.
+        from scripts.htmlscope import scope, strip_title
+        cid = argv[argv.index("--scoped") + 1]
+        sida = strip_title(scope(sida, cid))
     ut.write_text(sida, encoding="utf-8")
     vagran = sum(1 for s in steg if s["status"] >= 400)
     print(f"\n{ut} ({len(sida) // 1024} kB) · {len(steg)} steg · "

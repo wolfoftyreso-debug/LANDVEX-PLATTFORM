@@ -3,7 +3,7 @@
 PY ?= python3
 IMAGE ?= landvex/opportunity-engine:1.1.0
 
-.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front
+.PHONY: help test lint demo measure measure-live run dev build up prod down logs check readiness smoke deploy preflight env-template standing handover probe tour front full-demo
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -63,6 +63,13 @@ probe: ## Which sources actually answer? (run this first on an open network)
 
 front: ## Build the entry page from /v1/surface and /v1/offering
 	@$(PY) -m scripts.build_front landvex-front.html
+
+full-demo: ## The whole thing in one file: console (full matrix) + entry + evidence
+	@$(PY) -m scripts.build_front .build-ingang.html --fragment --scoped ytaIngang
+	@$(PY) -m scripts.build_tour  .build-bevis.html  --fragment --scoped ytaBevis
+	@$(PY) -m scripts.build_demo  .build-konsol.html
+	@$(PY) -m scripts.bundle_demo .build-konsol.html landvex-full-demo.html
+	@rm -f .build-ingang.html .build-bevis.html .build-konsol.html
 
 tour: ## Build a clickable tour with real engine responses baked in
 	@$(PY) -m scripts.build_tour landvex-tour.html

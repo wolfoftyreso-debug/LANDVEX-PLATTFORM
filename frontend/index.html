@@ -55,6 +55,16 @@
   @media (max-width: 1100px) {
     .layout { grid-template-columns: 1fr; height: auto; }
     .karta { min-height: 420px; }
+    /* Flikraden radbryts i stället för att skjuta ut dokumentet. Den
+       blev rullbar först under 640 px, så i hela bandet 641–1100 px
+       spillde knapparna utanför fönstret och hela sidan fick
+       horisontell scroll — desto tydligare ju fler flikar som läggs
+       till. Radbrytning behåller alla flikar synliga; rullning hade
+       gömt dem bakom en gest ingen ser. */
+    /* INGEN justify-content här: under 640 px är raden en horisontell
+       rullyta, och flex-end sköt då de första flikarna utanför vänster
+       kant där de inte gick att nå. */
+    #tabs { flex-wrap: wrap; row-gap: 6px; margin-left: 0; }
   }
 
   /* Intro-overlay – hero för nya användare / demokund */

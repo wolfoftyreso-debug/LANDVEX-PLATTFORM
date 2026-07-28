@@ -32,3 +32,7 @@ NULAGE.md
 # Genererad rundtur (`make tour`) — byggs om ur motorn, checkas inte in.
 landvex-tour.html
 landvex-front.html
+
+# Genererad fulldemo och dess mellansteg (`make full-demo`).
+landvex-full-demo.html
+.build-*.html
