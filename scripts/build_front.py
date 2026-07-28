@@ -141,12 +141,24 @@ def bevis() -> list[dict]:
         re.M))
 
     return [
-        {"claim_en": "No language model sits in the answer path.",
-         "proof_en": f"{len(llm)} LLM SDK imports across engine/ and api/. "
-                     f"The entire dependency list is "
-                     f"{len(krav)} packages — {', '.join(k.split('>')[0].split('[')[0] for k in krav)} "
-                     f"— and none of them generates text. Same version plus "
-                     f"same inputs returns the same number, every time.",
+        # Formuleringen är medvetet avgränsad till SCORINGLAGRET. Den
+        # första versionen sa "no language model sits in the answer path"
+        # rakt av, vilket läses som ett påstående om hela produkten — och
+        # Landvex använder AI där perception krävs: för att läsa
+        # inskickad fältmedia, och som andra modell som utmanar
+        # slutsatsen. Ett bevis som motsäger företagets egen positionering
+        # är sämre än inget bevis, hur sant det än är om just den här
+        # katalogen.
+        {"claim_en": "The scoring layer is deterministic — no model "
+                     "guesses the numbers.",
+         "proof_en": f"{len(llm)} LLM SDK imports across engine/ and api/; "
+                     f"the entire dependency list is {len(krav)} packages "
+                     f"({', '.join(k.split('>')[0].split('[')[0] for k in krav)}), "
+                     f"none of which generates text. Same version plus same "
+                     f"inputs returns the same number, byte for byte. AI "
+                     f"belongs where perception is needed — reading field "
+                     f"observations, and challenging a conclusion before it "
+                     f"ships — not where the arithmetic happens.",
          "check_en": "requirements.txt · engine/ imports"},
         {"claim_en": "The decision engine runs on the standard library.",
          "proof_en": f"engine/ pulls in {len(tredje)} non-stdlib module"

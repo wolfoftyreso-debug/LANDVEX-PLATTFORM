@@ -129,3 +129,74 @@ scenarier, setpoints, gap-analys, merit.
    byggt beslut, och planerade beslut måste märkas planerade.
 4. Ingången (`make front`) och lägesrapporten (`make standing`) plockar
    upp allt automatiskt — de läser registret, de beskriver det inte.
+
+---
+
+# TILLÄGG 2026-07-28 — efter landvex.com
+
+Sajtens innehåll blev tillgängligt (jag kommer inte åt den härifrån, 403).
+Det ändrar genomgången ovan materiellt, och skapar fem konflikter mellan
+vad koden säger och vad företaget säger publikt.
+
+## Det som ändrar prioriteringen helt
+
+**Contradiction Engine är flaggskeppet — och dess observerade sida är
+omatad.**
+
+```
+engine/indices.py:200
+  PLANNED  = building_permits 0.5 · detail_plans 0.5     riktiga källor
+  OBSERVED = development_m2 0.7 · renovation_index 0.3
+             development_m2 finns BARA i engine/datasources/mock.py
+```
+
+quiXzoom-adaptern levererar `field_observation_density` (antal uppdrag i
+närheten), inte `development_m2`. Konflikten mellan officiell berättelse
+och observerad verklighet — det företaget säljer — beräknas alltså med
+simulerad data på precis den sida som utgör hela argumentet.
+
+Det gör Vision-ledet till **prioritet noll**, inte nivå två som jag
+tidigare skrev. Ingenting annat i backloggen ändrar vad produkten ÄR.
+
+## Fem konflikter att lösa
+
+| # | Koden säger | Sajten säger | Vad som gäller |
+|---|---|---|---|
+| 1 | Professional: ingen månadsavgift, quiXzoom-provision per levererad lead | Enterprise-prissättning, 3 mån pilot → årlig prenumeration | Två olika affärsmodeller publicerade samtidigt |
+| 2 | 35 marknader, 364 regioner, US-first | 20+ länder, stadsprofiler live: Stockholm, Berlin, Milano | Olika enheter och olika löften om täckning |
+| 3 | Inget uppdragsflöde alls | Leverans 24–72 h från uppdragsstart | Ingen SLA finns implementerad eller mätt |
+| 4 | `tests/test_redteam.py` = motståndartester i sviten | AI Red Team utmanar varje slutsats före leverans | Körtidsledet finns inte |
+| 5 | STRIM-entitetsgraf + monitors | Kunskapsgraf över kundens tillgångar | Ingen tillgångsgraf per kund |
+
+## Rättat direkt
+
+Ingången påstod *"No language model sits in the answer path"* som bevis
+mot AI-wrapper-anklagelsen. Sant om den här katalogen — men läses som ett
+påstående om hela produkten, och Landvex använder AI där perception
+krävs. Ett bevis som motsäger företagets egen positionering är sämre än
+inget bevis, hur sant det än är.
+
+Omformulerat till **"The scoring layer is deterministic — no model
+guesses the numbers"**, med tillägget att AI hör hemma där perception
+behövs: att läsa fältobservationer, och att utmana en slutsats innan den
+levereras. Det är den arkitektur sajten beskriver, och den är ett
+starkare argument än det jag hade.
+
+## Vad tabell A ovan missar
+
+Genomgången utgick från motorerna i det här repot. Sajtens produkt bygger
+på en LOOP som repot inte implementerar:
+
+    kund definierar beslut → uppdrag skickas till verifierade fält-
+    bidragsgivare på exakt de platser beslutet beror på → GPS/IMU/
+    kompass/tidsstämpel per bildruta → AI analyserar → strukturerad
+    intelligens (0–100, rankning, flaggor, kunskapsgraf) → AI Red Team
+    utmanar → leverans inom 24–72 h
+
+Av den loopen finns i repot: beslutsregistret, scoringlagret, flaggorna
+och ansvarskortet. Det som saknas: uppdragsdispatch, medieinsamlingen med
+bevarad sensormetadata, Vision-analysen, red team-ledet och SLA-mätningen.
+
+De 22 föreslagna besluten i tabell A står kvar — de är verkliga och
+osålda. Men de är **påbyggnad på en motor vars kärnslinga inte är
+sluten**, och det bör stå först i vilken plan som helst.

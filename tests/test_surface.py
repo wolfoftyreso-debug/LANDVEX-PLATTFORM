@@ -336,6 +336,10 @@ def test_the_front_door_proves_rather_than_asserts():
                    ("/v1/", "python3", "make", ".txt", "imports")), b
     text = " ".join(b["proof_en"] for b in rader)
     assert "0 LLM SDK imports" in text, "kärnbeviset saknas"
+    assert "deterministic" in " ".join(b["claim_en"] for b in rader), (
+        "beviset måste avgränsas till scoringlagret — Landvex använder AI "
+        "för perception, och ett bevis som motsäger den egna sajten är "
+        "sämre än inget bevis")
     assert "0 of 14" in text, "det obevisade ska stå kvar i ingången"
 
 
