@@ -68,11 +68,19 @@ def hamta(port: int = 8222) -> dict:
     try:
         def g(p):
             return json.loads(op.open(base + p, timeout=30).read())
+        from engine.entrypoints import ENTRYPOINTS
         from engine.glossary import catalog as ordlista
-        from engine.offering import audiences
+        from engine.offering import DECISIONS
         return {"surface": g("/v1/surface"), "offering": g("/v1/offering"),
-                "health": g("/health"), "audiences": audiences(),
-                "glossary": ordlista()}
+                "health": g("/health"), "glossary": ordlista(),
+                "audiences": [
+                    {**e, "decisions": [d for d in DECISIONS
+                                        if d.get("audience") == e["id"]
+                                        and d["status"] == "built"],
+                     "planned": [d for d in DECISIONS
+                                 if d.get("audience") == e["id"]
+                                 and d["status"] != "built"]}
+                    for e in ENTRYPOINTS]}
     finally:
         proc.terminate()
         proc.wait(timeout=10)
@@ -208,13 +216,19 @@ def bygg(data: dict) -> str:
         dorrar += f"""
     <article class="door">
       <h3>{_e(a['label_en'])}</h3>
-      <p class="youare">{_e(a['you_are_en'])}</p>
-      <p class="scale"><strong>Scale:</strong> {_e(a['scale_en'])}</p>
-      <p class="opening">{_e(a['opening_question_en'])}</p>
+      <p class="youare">{_e(a['visitor_en'])}</p>
+      <p class="scale"><strong>What brings you:</strong> {_e(a['trigger_en'])}</p>
+      <p class="opening">{_e(a['question_en'])}</p>
+      <p class="scale"><strong>You leave with:</strong> {_e(a['deliverable_en'])}</p>
+      <p class="scale"><strong>It worked when:</strong> {_e(a['success_en'])}</p>
       <details><summary>{len(a['decisions'])} decision{
         '' if len(a['decisions']) == 1 else 's'} open to you{
         f" · {len(a['planned'])} planned" if a['planned'] else ''}</summary>
         <ul class="dlist">{rader}</ul>
+        <p class="tools"><strong>Evidence layer:</strong> {
+          " · ".join(_e(x) for x in a["tools"])}</p>
+        <p class="tools"><strong>Watches for you:</strong> {
+          ", ".join(_e(x) for x in a["event_feeds"])}</p>
       </details>
     </article>"""
 
@@ -389,6 +403,9 @@ h2{font-size:.74rem;text-transform:uppercase;letter-spacing:.13em;
 .dlist code{font-size:.68rem;background:var(--code);padding:.1rem .35rem;
   border-radius:4px;color:var(--dim);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tools{font-size:.72rem;color:var(--faint);margin-top:.5rem;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.5}
+.tools strong{color:var(--dim);font-family:-apple-system,sans-serif}
 .warn-read{background:color-mix(in srgb,var(--amber) 12%,transparent);
   border-left:3px solid var(--amber);border-radius:0 8px 8px 0;
   padding:.7rem .9rem;font-size:.86rem;margin-bottom:1rem}
