@@ -31,14 +31,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .signals import CATALOG, normalize
 from .verticals import VERTICALS
 from .workforce import OCCUPATIONS, forecast
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 BASE_YEAR = 2026
 _EVENTS_PER_TECH_YEAR = 400.0   # servicetillfällen per tekniker/år (schablon)
@@ -197,16 +196,29 @@ def _needed_signals() -> list[str]:
     return sorted(need)
 
 
-def _resolve_market(market: str, resolver: Resolver | None) -> dict[str, dict]:
-    res = resolver or _DEFAULT_RESOLVER
+def _resolve_market(market: str, resolver: Resolver | None
+                    ) -> tuple[dict[str, dict], dict[str, float]]:
+    """({region: {signal: värde}}, {region: data_coverage}).
+
+    Täckningen räknas HÄR, där källan fortfarande är synlig — en rad
+    längre ned är den bortkastad. Installerad bas är kedjemultiplikation
+    (bestånd × ålder × tillväxt), och simulerade faktorer ger ett
+    simulerat servicebehov oavsett hur många decimaler svaret bär.
+    """
+    res = resolver or default_resolver()
     needed = _needed_signals()
-    out = {}
+    varden: dict[str, dict] = {}
+    tackning: dict[str, float] = {}
     for code, name, lat, lon in get_market(market).regions:
         values, _ = res.resolve(Location(lat, lon, address=name),
                                 "installed_base", needed)
-        out[code] = {sid: sv.value for sid, sv in values.items()
-                     if sv.value is not None}
-    return out
+        varden[code] = {sid: sv.value for sid, sv in values.items()
+                        if sv.value is not None}
+        akta = [sv for sv in values.values() if sv.value is not None]
+        tackning[code] = (round(sum(1 for sv in akta
+                                    if sv.source != "mock") / len(akta), 2)
+                          if akta else 0.0)
+    return varden, tackning
 
 
 def _base_units(p: ProductType, sig: dict) -> float:
@@ -282,7 +294,7 @@ def service_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
     """Servicebehovsprofil för en region: alla produkttyper."""
     mkt = get_market(market)
     kod, namn, *_ = get_region(market, kommun_kod)
-    data = _resolve_market(market, resolver)
+    data, tackning = _resolve_market(market, resolver)
     sig = data[kod]
     horizon = target_year - BASE_YEAR
     if not 1 <= horizon <= 20:
@@ -311,6 +323,7 @@ def service_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
             "market": mkt.id, "market_label_en": mkt.label_en,
             "basar": BASE_YEAR, "malar": target_year,
             "produkter": rows,
+            "data_coverage": tackning.get(kod, 0.0),
             "sammanfattning_en": (
                 f"Largest upcoming service wave in {namn}: "
                 f"{topp['label_en'].lower()} – about "
@@ -334,7 +347,7 @@ def service_demand_map(product_id: str, market: str = DEFAULT_MARKET,
     if not 1 <= horizon <= 20:
         raise ValueError(f"Target year must be between {BASE_YEAR + 1} "
                          f"and {BASE_YEAR + 20}.")
-    data = _resolve_market(market, resolver)
+    data, tackning = _resolve_market(market, resolver)
 
     rows = []
     for code, name, lat, lon in mkt.regions:
@@ -342,6 +355,7 @@ def service_demand_map(product_id: str, market: str = DEFAULT_MARKET,
         tek = _tech_status(p, code, market, target_year, resolver)
         rows.append({"kommun": name, "kommun_kod": code,
                      "lat": lat, "lon": lon, **r,
+                     "data_coverage": tackning.get(code, 0.0),
                      "teknikerlage": tek,
                      "mismatch": tek.get("status") == "brist" and
                                  r["installerad_bas"] > 0})

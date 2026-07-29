@@ -26,12 +26,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .signals import CATALOG, normalize
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 @dataclass(frozen=True)
@@ -249,6 +248,21 @@ def index_catalog() -> list[dict[str, Any]]:
     return out
 
 
+def _coverage(drivare: list[dict]) -> float:
+    """Andel drivare ur en verklig källa — samma aritmetik som
+    scoring/risk/workforce räknar sin data_coverage med.
+
+    Revisionens fynd: indexmotorn var den enda konsumenten av Resolver-
+    kedjan som INTE satte ett täckningstal på svaret. Källan stod per
+    rad (`kalla`), men huvudtalet bar ingenting — och ett index på 100 %
+    mock såg identiskt ut med ett på riktiga källor.
+    """
+    if not drivare:
+        return 0.0
+    return round(sum(1 for d in drivare
+                     if d.get("kalla") not in ("mock", None)) / len(drivare), 2)
+
+
 def _region_indices(values: dict) -> list[dict[str, Any]]:
     rows = []
     for idx in INDEX_TYPES.values():
@@ -260,6 +274,7 @@ def _region_indices(values: dict) -> list[dict[str, Any]]:
                      "varde": value, "band": band,
                      "band_en": BAND_SV[band],
                      "drivare": drivare,
+                     "data_coverage": _coverage(drivare),
                      "narrativ_en": f"{idx.label_en}: {value}/100 "
                                     f"({BAND_SV[band].lower()})."})
     # Kontradiktionsindexet.
@@ -275,6 +290,17 @@ def _region_indices(values: dict) -> list[dict[str, Any]]:
         "kontradiktion_upptackt": detected,
         "drivare": [{**r, "roll": "officiellt_planerat"} for r in prow] +
                    [{**r, "roll": "observerat"} for r in orow],
+        "data_coverage": _coverage(prow + orow),
+        # Ett avstånd är bara ett fynd om BÅDA sidorna är verkliga —
+        # regeln bodde i analysis.py (svepet) medan indexraden själv
+        # inte sa vilken sida som bar den. Sanningen flyttar in i raden:
+        # den som öppnar indexet ser direkt om "motsägelsen" jämför
+        # papper mot mark eller simulering mot simulering.
+        "sides_real": {
+            "planned": any(r.get("kalla") not in ("mock", None)
+                           for r in prow),
+            "observed": any(r.get("kalla") not in ("mock", None)
+                            for r in orow)},
         "narrativ_en": (
             f"Contradiction detected ({div}/100): officially planned and "
             f"observed activity point in different directions – dig "
@@ -309,7 +335,7 @@ def city_assessment(kommun_kod: str, market: str = DEFAULT_MARKET,
     """Alla index för en stad – 'click any city'-vyn."""
     mkt = get_market(market)
     kod, namn, lat, lon = get_region(market, kommun_kod)
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     values, _ = res.resolve(Location(lat, lon, address=namn),
                             "indices", _needed_signals())
     rows = _region_indices(values)
@@ -317,6 +343,14 @@ def city_assessment(kommun_kod: str, market: str = DEFAULT_MARKET,
     return {"kommun": namn, "kommun_kod": kod,
             "market": mkt.id, "market_label_en": mkt.label_en,
             "index": rows,
+            # Samma tal som scoring/risk/workforce sätter på sina svar:
+            # andel upplösta signaler ur verklig källa. 0.0 betyder "allt
+            # du ser är simulerat" — och det ska stå på svaret, inte
+            # kräva att läsaren öppnar varje drivarrad.
+            "data_coverage": round(
+                sum(1 for v in values.values()
+                    if v.source != "mock") / len(values), 2) if values
+            else 0.0,
             "sammanfattning_en": (
                 f"{namn}: " + " · ".join(
                     f"{r['label_en']} {r['varde']}" for r in rows[:5]) +
@@ -334,7 +368,7 @@ def index_map(index_id: str, market: str = DEFAULT_MARKET,
         raise ValueError(f"Unknown index: {index_id}. "
                          f"Available: {', '.join(sorted(giltiga))}")
     mkt = get_market(market)
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     needed = _needed_signals()
     regioner = []
     for code, name, lat, lon in mkt.regions:

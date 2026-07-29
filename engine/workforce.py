@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .markets import (DEFAULT_MARKET, GROUP_BBOX, GROUP_LABEL_SV, MARKET_GROUPS,
                       get_market, get_region)
 from .models import Location
@@ -41,7 +41,6 @@ from .signals import CATALOG, normalize
 BASE_YEAR = 2026            # prognosens basår (dokumenterat antagande)
 MAX_HORIZON_YEARS = 20
 COMPLETION_RATE = 0.85      # examensgrad, schablon
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 @dataclass(frozen=True)
@@ -130,7 +129,7 @@ def _needed_signals(occ_ids: list[str]) -> list[str]:
 def _resolve(region_kod: str, occ_ids: list[str],
              resolver: Resolver | None, market: str) -> tuple[dict, dict, tuple]:
     reg = get_region(market, region_kod)
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     values, extras = res.resolve(Location(reg[2], reg[3], address=reg[1]),
                                  "workforce", _needed_signals(occ_ids))
     return values, extras, reg
@@ -376,7 +375,7 @@ def national_map(occupation_id: str, target_year: int = 2035,
                          f"and {BASE_YEAR + MAX_HORIZON_YEARS}.")
     mkt = get_market(market)
     occ = OCCUPATIONS[occupation_id]
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     needed = _needed_signals([occupation_id])
     kommuner = []
     for code, name, lat, lon in mkt.regions:

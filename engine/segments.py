@@ -20,12 +20,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .markets import DEFAULT_MARKET, get_market, get_region
 from .models import Location
 from .verticals import VERTICALS
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 @dataclass(frozen=True)
@@ -95,17 +94,36 @@ def _needed_signals() -> list[str]:
 
 
 def _resolve_market(market: str, resolver: Resolver | None
-                    ) -> dict[str, dict[str, float]]:
-    """{region_kod: {signal: värde}} för hela marknaden (för snitt)."""
-    res = resolver or _DEFAULT_RESOLVER
+                    ) -> tuple[dict[str, dict[str, float]],
+                               dict[str, dict[str, str]]]:
+    """({region: {signal: värde}}, {region: {signal: källa}}).
+
+    Källan följde tidigare INTE med — `sv.source` kastades bort på den
+    här raden, och därmed kunde inget nedströms säga om en skattad
+    huvudräkning kom ur register eller ur simulering. Ett tal utan källa
+    är inte spårbart, och ospårbart är exakt vad plattformen lovar att
+    aldrig vara.
+    """
+    res = resolver or default_resolver()
     needed = _needed_signals()
-    out: dict[str, dict[str, float]] = {}
+    varden: dict[str, dict[str, float]] = {}
+    kallor: dict[str, dict[str, str]] = {}
     for code, name, lat, lon in get_market(market).regions:
         values, _ = res.resolve(Location(lat, lon, address=name),
                                 "segments", needed)
-        out[code] = {sid: sv.value for sid, sv in values.items()
-                     if sv.value is not None}
-    return out
+        varden[code] = {sid: sv.value for sid, sv in values.items()
+                        if sv.value is not None}
+        kallor[code] = {sid: sv.source for sid, sv in values.items()
+                        if sv.value is not None}
+    return varden, kallor
+
+
+def _coverage(kallor: dict[str, str]) -> float:
+    """Andel signaler ur verklig källa — scoring-motorns aritmetik."""
+    if not kallor:
+        return 0.0
+    return round(sum(1 for k in kallor.values() if k != "mock")
+                 / len(kallor), 2)
 
 
 def _estimate(seg: SegmentDef, value: float, pop: float) -> int | None:
@@ -138,8 +156,9 @@ def segment_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
     """Målgruppsprofil för en region: alla segment med antal och index."""
     mkt = get_market(market)
     kod, namn, *_ = get_region(market, kommun_kod)
-    data = _resolve_market(market, resolver)
+    data, kallor = _resolve_market(market, resolver)
     region = data[kod]
+    region_kallor = kallor.get(kod, {})
     pop = region.get("population_total", 0.0)
 
     rows = []
@@ -155,6 +174,10 @@ def segment_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
             "antal_uppskattat": _estimate(seg, value, pop),
             "enhet_en": seg.enhet_en,
             "varde": value,
+            # Skattningen är signal × befolkning. Är signalen simulerad
+            # är huvudräkningen det också — och det ska stå PÅ raden,
+            # inte kräva att läsaren vet hur motorn räknar.
+            "kalla": region_kallor.get(seg.signal, "mock"),
             "index_mot_marknadssnitt": index,
             "band": _index_band(index),
             "narrativ_en": f"{seg.label_en}: {_BAND_SV[_index_band(index)]} "
@@ -170,6 +193,7 @@ def segment_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
         "market": mkt.id, "market_label_en": mkt.label_en,
         "befolkning": int(pop),
         "segment": rows,
+        "data_coverage": _coverage(region_kallor),
         "sammanfattning_en": (
             f"Most distinctive target group in {namn}: "
             f"{topp['label_en'].lower()} (index "
@@ -178,6 +202,9 @@ def segment_analysis(kommun_kod: str, market: str = DEFAULT_MARKET,
             "Counts are estimates derived from signal values × population "
             "– not registers. The index compares against the average of "
             "the market's analyzed regions.",
+            "Each row names its source; data_coverage is the share of "
+            "signals resolved from a real source. At 0.0 every count on "
+            "this page is simulation arithmetic, not a population.",
         ],
     }
 
@@ -191,7 +218,7 @@ def segment_map(segment_id: str, market: str = DEFAULT_MARKET,
         raise ValueError(f"Unknown segment: {segment_id}. "
                          f"Available: {', '.join(sorted(SEGMENTS))}")
     mkt = get_market(market)
-    data = _resolve_market(market, resolver)
+    data, kallor = _resolve_market(market, resolver)
     vals = [d[seg.signal] for d in data.values() if seg.signal in d]
     avg = sum(vals) / len(vals) if vals else 1.0
 
@@ -207,6 +234,7 @@ def segment_map(segment_id: str, market: str = DEFAULT_MARKET,
                      "lat": lat, "lon": lon,
                      "antal_uppskattat": _estimate(
                          seg, value, d.get("population_total", 0.0)),
+                     "kalla": kallor.get(code, {}).get(seg.signal, "mock"),
                      "varde": value, "index": index, "band": band})
     nyckel = ("antal_uppskattat" if seg.mode != "index" else "index")
     rows.sort(key=lambda r: -(r[nyckel] or 0))
@@ -217,6 +245,9 @@ def segment_map(segment_id: str, market: str = DEFAULT_MARKET,
         "market": mkt.id, "market_label_en": mkt.label_en,
         "bbox": list(mkt.bbox),
         "regioner": rows,
+        "data_coverage": (round(sum(1 for r in rows
+                                    if r["kalla"] != "mock") / len(rows), 2)
+                          if rows else 0.0),
         "heatmap": [{"kommun": r["kommun"], "kommun_kod": r["kommun_kod"],
                      "lat": r["lat"], "lon": r["lon"], "score": r["index"],
                      "band": ("gron" if r["index"] >= 110 else

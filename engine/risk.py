@@ -17,12 +17,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .models import Location
 from .signals import CATALOG, normalize
 from .verticals import VERTICALS
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 @dataclass(frozen=True)
@@ -81,7 +80,7 @@ def assess(location: Location, vertical_id: str,
     if vertical_id not in VERTICALS:
         raise ValueError(f"Unknown vertical: {vertical_id}. "
                          f"Available: {', '.join(sorted(VERTICALS))}")
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     values, _ = res.resolve(location, vertical_id, required_signals())
 
     dims = []

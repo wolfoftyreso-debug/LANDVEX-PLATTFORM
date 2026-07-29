@@ -94,6 +94,22 @@ def test_ask_service_intents_and_answers():
     assert d["certifiering"] and d["motivering_en"]
 
 
+def test_a_simulated_service_wave_carries_its_coverage():
+    """Installerad bas är kedjemultiplikation (bestånd × ålder ×
+    tillväxt): är faktorerna simulerade är servicebehovet det också,
+    oavsett decimaler. Mätt före fixen bar svaret ingen data_coverage."""
+    from engine.datasources.base import Resolver
+    from engine.datasources.mock import MockSource
+    from engine.installed_base import service_analysis, service_demand_map
+
+    res = service_analysis("0180", market="se",
+                           resolver=Resolver([MockSource()]))
+    assert res["data_coverage"] == 0.0
+    karta = service_demand_map(next(iter(PRODUCT_TYPES)), market="se",
+                               resolver=Resolver([MockSource()]))
+    assert all(r["data_coverage"] == 0.0 for r in karta["regioner"])
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

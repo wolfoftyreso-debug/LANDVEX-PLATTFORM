@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 from .markets import DEFAULT_MARKET, get_market
 from .models import Location
 from .scoring import analyze
@@ -40,7 +40,6 @@ from .signals import CATALOG, normalize
 from .specialization import specialization_boost
 from .verticals import VERTICALS
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 # ── Risk-kategorier (tio) ────────────────────────────────────────────
@@ -383,7 +382,7 @@ def risk_intelligence(location: Location, vertical_id: str,
         raise ValueError(f"Unknown vertical: {vertical_id}. "
                          f"Available: {', '.join(sorted(VERTICALS))}")
     mkt = get_market(market)
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     boost = specialization_boost(vertical_id, specialization)
     report = analyze(location, vertical_id, resolver=res, factor_boost=boost)
 

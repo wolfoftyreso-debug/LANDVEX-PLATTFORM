@@ -80,6 +80,28 @@ def test_ask_segment_intents_and_answers():
     assert ask("Var i Sverige finns flest djurägare?") == res  # determinism
 
 
+def test_an_estimated_headcount_names_its_source_and_coverage():
+    """Revisionens fynd: `_resolve_market` kastade bort `sv.source` på
+    vägen, så en skattad huvudräkning (signal × befolkning) kunde inte
+    säga om den kom ur register eller simulering. Caveaten sa "estimates,
+    not registers" — men aldrig "simulated". Mätt före fixen: ingen
+    `kalla` på raderna, ingen `data_coverage` på svaret."""
+    from engine.datasources.base import Resolver
+    from engine.datasources.mock import MockSource
+
+    res = segment_analysis("0180", market="se",
+                           resolver=Resolver([MockSource()]))
+    assert res["data_coverage"] == 0.0
+    for rad in res["segment"]:
+        assert rad["kalla"] == "mock", rad["segment_id"]
+    assert any("data_coverage" in c for c in res["caveats_en"])
+
+    karta = segment_map(next(iter(SEGMENTS)), market="se",
+                        resolver=Resolver([MockSource()]))
+    assert karta["data_coverage"] == 0.0
+    assert all(r["kalla"] == "mock" for r in karta["regioner"])
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

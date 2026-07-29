@@ -17,9 +17,8 @@ from .version import ENGINE_VERSION
 from .signals import CATALOG, normalize
 from .verticals import RISK_SIGNALS, VERTICALS
 from .datasources.base import Resolver
-from .datasources.mock import MockSource
+from .datasources.defaults import default_resolver
 
-_DEFAULT_RESOLVER = Resolver([MockSource()])
 
 
 def required_signals(vertical_id: str) -> list[str]:
@@ -73,7 +72,7 @@ def analyze(location: Location, vertical_id: str,
         raise ValueError(f"Unknown vertical: {vertical_id}. "
                          f"Available: {', '.join(sorted(VERTICALS))}")
     prof = VERTICALS[vertical_id]
-    res = resolver or _DEFAULT_RESOLVER
+    res = resolver or default_resolver()
     boost = factor_boost or {}
 
     values, extras = res.resolve(location, vertical_id, required_signals(vertical_id))

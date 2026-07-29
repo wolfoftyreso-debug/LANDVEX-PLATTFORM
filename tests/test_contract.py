@@ -166,6 +166,50 @@ def test_catalog_declares_the_method_each_endpoint_actually_answers():
                 f"båda servrarna på"
 
 
+def test_both_layers_hand_every_market_engine_the_real_resolver():
+    """Motorernas default är numera produktionskedjan, men API-lagren
+    ska ändå skicka SIN resolver uttryckligen: den bär cache-lagret
+    (CachedSource), och en handler som glömmer argumentet ger rätt
+    källor utan cache — långsammare för varje kund, synligt för ingen.
+    Källskanning: varje anrop av marknadsmotorerna i båda lagren bär
+    resolver=RESOLVER."""
+    def _anrop(src: str, fn: str) -> list[str]:
+        """Varje fullständigt `fn(...)`-anrop, avgränsat med
+        parentesräkning — ett teckenfönster hade kunnat 'låna' nästa
+        anrops resolver-argument och godkänna ett anrop utan eget."""
+        ut = []
+        i = 0
+        while True:
+            i = src.find(f"{fn}(", i)
+            if i < 0:
+                return ut
+            radstart = src.rfind("\n", 0, i) + 1
+            if "import" in src[radstart:src.find("\n", i)]:
+                i += 1
+                continue
+            djup, j = 0, i + len(fn)
+            while j < len(src):
+                if src[j] == "(":
+                    djup += 1
+                elif src[j] == ")":
+                    djup -= 1
+                    if djup == 0:
+                        break
+                j += 1
+            ut.append(src[i:j + 1])
+            i = j
+
+    fapi = (_ROOT / "main.py").read_text(encoding="utf-8")
+    dev = (_ROOT / "dev_server.py").read_text(encoding="utf-8")
+    for fn in ("city_assessment", "index_map", "segment_analysis",
+               "segment_map", "service_analysis", "service_demand_map"):
+        for namn, src in (("main.py", fapi), ("dev_server.py", dev)):
+            anrop = _anrop(src, fn)
+            assert anrop, f"{namn}: {fn} anropas aldrig"
+            for a in anrop:
+                assert "resolver=RESOLVER" in a, f"{namn}: {a[:120]}"
+
+
 def test_both_layers_back_the_same_engines_with_the_store():
     """Samma yta räcker inte om bara den ena servern persisterar.
 

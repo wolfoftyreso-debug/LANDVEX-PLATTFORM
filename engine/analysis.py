@@ -59,14 +59,14 @@ def _default_resolver():
     — varje par blir mock mot mock och hoppas över. Den skulle rapportera
     'inga fynd' och se korrekt ut, vilket är precis den sortens tysta
     nedgradering doktrinen förbjuder.
+
+    Invändningen som stod här — "INTE scoring._DEFAULT_RESOLVER: den är
+    mock-only" — har upphört att gälla: revisionen gjorde exakt den här
+    kedjan till ALLA motorers default (engine/datasources/defaults.py),
+    så mönstret som var ett lokalt undantag är numera regeln.
     """
-    from engine.datasources.adapters import production_sources
-    from engine.datasources.base import Resolver
-    from engine.datasources.mock import MockSource
-    # INTE scoring._DEFAULT_RESOLVER: den är mock-only, och en sökning
-    # som kör på bara mock hoppar över varenda par och rapporterar
-    # "inga fynd" — ett svar som ser korrekt ut och betyder blind.
-    return Resolver(production_sources() + [MockSource()])
+    from engine.datasources.defaults import default_resolver
+    return default_resolver()
 
 
 # ── Motsägelser ─────────────────────────────────────────────────────────
@@ -79,14 +79,11 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
     renoveringsindex). Ingen ny formel; det här är sökningen, inte
     måttet.
     """
-    from engine.indices import (CONTRADICTION_THRESHOLD, _OBSERVED, _PLANNED,
-                                city_assessment)
+    from engine.indices import CONTRADICTION_THRESHOLD, city_assessment
     from engine.markets import MARKETS
 
     if market not in MARKETS:
         raise ValueError(f"Unknown market: {market}")
-    planerade = {sid for sid, _ in _PLANNED}
-    observerade = {sid for sid, _ in _OBSERVED}
     regioner = MARKETS[market].regions[:limit or None]
     # `relationships` fick den här raden; sveparen efter motsägelser fick
     # den aldrig. Utan den föll city_assessment till scoring-modulens
@@ -121,13 +118,16 @@ def contradictions(market: str, *, resolver=None, limit: int = 0,
         # mellan två sidor; är den ena sidan simulerad mäter avståndet
         # vår generator, inte platsen. Mätt: med bara den observerade
         # sidan verklig rapporterades Solna som en kontradiktion på 36
-        # med `sources: ["mock", "osm"]` — ett fynd om världen som helt
-        # kom ur mockdata. Spärren måste därför gälla PER SIDA, och den
-        # blir aktuell i samma stund som den första riktiga bygglovs-
-        # källan kopplas in.
-        akta = {d["signal_id"] for d in drivare
-                if d.get("kalla") not in ("mock", None)}
-        if not (akta & planerade) or not (akta & observerade):
+        # med `sources: ["mock", "osm"]`. Regeln bodde först här i
+        # svepet; numera bär indexraden själv `sides_real`, och svepet
+        # läser samma sanning som varje annan läsare av raden ser.
+        sidor = rad.get("sides_real")
+        if sidor is None:
+            raise ValueError(
+                f"contradiction index for {kod} carries no sides_real; "
+                f"the sweep will not re-derive the rule and risk the two "
+                f"drifting apart")
+        if not (sidor["planned"] and sidor["observed"]):
             halva += 1
             continue
         if rad["varde"] < CONTRADICTION_THRESHOLD:
