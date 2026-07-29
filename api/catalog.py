@@ -450,6 +450,17 @@ API_CATALOG: dict = {
                            "as the endpoint it came from.",
          "endpoints": [{"method": "GET", "path": "/v1/export"},
                        {"method": "POST", "path": "/v1/export"}]},
+        {"id": "pushes", "label_en": "Generate your own delivery",
+         "beskrivning_en": "The push generator: pick a dataset, a media "
+                           "format and a webhook target, preview the "
+                           "exact payload, then save the subscription as "
+                           "a scheduled job (kind 'push'). Delivery "
+                           "results are written on the job — a failed "
+                           "POST never looks like a delivered one. "
+                           "Targets are validated at creation: https "
+                           "only, no private or loopback addresses.",
+         "endpoints": [{"method": "GET", "path": "/v1/pushes"},
+                       {"method": "POST", "path": "/v1/pushes/preview"}]},
         {"id": "inspections", "label_en": "Prove your assets were checked",
          "beskrivning_en": "A register of the customer's own physical objects "
                            "(flagpoles, lifebuoys, ladders, signs, chargers), "

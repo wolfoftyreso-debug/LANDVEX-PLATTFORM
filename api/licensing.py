@@ -93,6 +93,10 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # Ett index som bara betalande kan öppna är ett omdöme
     # med en siffra på. Samma grund som /v1/coverage.
     "/v1/mrai": "core",
+    "/v1/pushes": "core",                     # generatorns valrymd + preview
+                                              # — datamängdens EGEN
+                                              # kapabilitet prövas därtill
+                                              # i handlern, som för export
     "/v1/integrity": "core",                  # självrevisionen — den som
                                               # ska lita på plattformen får
                                               # se granskningen utan att

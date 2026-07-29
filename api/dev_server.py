@@ -447,6 +447,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/pushes":
+            from engine.pushes import catalog as pushes_catalog
+            return self._send(200, pushes_catalog())
         if parsed.path == "/v1/commercial":
             from engine.commercial import catalog as _kommersiell
             return self._send(200, _kommersiell())
@@ -860,6 +863,17 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(403, {"error": (
                         f"Scheduling {req['kind']!r} needs the "
                         f"{k['capability']} package. See /v1/plans.")})
+                if req.get("kind") == "push":
+                    # Datamängdens egen kapabilitet — samma grind som
+                    # /v1/export, annars är pushen en väg runt paketet.
+                    d = {x["id"]: x for x in
+                         export_catalog()["datasets"]}.get(
+                        (req.get("params") or {}).get("dataset", ""))
+                    if d and not self._har(d["capability"]):
+                        return self._send(403, {"error": (
+                            f"Pushing {d['id']!r} needs the same package "
+                            f"as {d['answers_from']} ({d['capability']}). "
+                            f"See /v1/plans.")})
                 rec = scheduler.job(
                     req["id"], req["kind"],
                     cadence=req.get("cadence"), params=req.get("params"),
@@ -872,6 +886,24 @@ class Handler(BaseHTTPRequestHandler):
                     self._tenant(), req.get("now"),
                     {k for k, v in scheduler.JOB_KINDS.items()
                      if self._har(v["capability"])}))
+            if self.path == "/v1/pushes/preview":
+                from engine.pushes import PushRefused, preview
+                d = {x["id"]: x for x in
+                     export_catalog()["datasets"]}.get(
+                    req.get("dataset", ""))
+                # Samma grind som /v1/export: förhandsvisningen får inte
+                # bli en väg runt paketet.
+                if d and not self._har(d["capability"]):
+                    return self._send(403, {"error": (
+                        f"Previewing {d['id']!r} needs the same package "
+                        f"as its engine ({d['capability']}). "
+                        f"See /v1/plans.")})
+                try:
+                    return self._send(200, preview(
+                        req.get("dataset", ""), req.get("format", "csv"),
+                        req.get("params") or {}, tenant=self._tenant()))
+                except PushRefused as e:
+                    return self._send(422, {"error": str(e)})
             if self.path == "/v1/export":
                 # Datamängdens EGEN kapabilitet gäller också: annars vore
                 # exporten en väg runt paketet — köp export, läs allt.

@@ -1073,6 +1073,18 @@ def schedules_create_ep(request: Request, body: dict):
             status_code=403,
             detail=(f"Scheduling {body['kind']!r} needs the "
                     f"{k['capability']} package. See /v1/plans."))
+    if body.get("kind") == "push" and p is not None:
+        # Pushens DATAMÄNGD bär sin egen kapabilitet — samma grind som
+        # /v1/export, annars vore en schemalagd push en väg runt paketet.
+        from engine.export import catalog as _exkat
+        d = {x["id"]: x for x in _exkat()["datasets"]}.get(
+            (body.get("params") or {}).get("dataset", ""))
+        if d and d["capability"] not in p.capabilities:
+            raise HTTPException(
+                status_code=403,
+                detail=(f"Pushing {d['id']!r} needs the same package as "
+                        f"{d['answers_from']} ({d['capability']}). "
+                        f"See /v1/plans."))
     try:
         rec = scheduler.job(body["id"], body["kind"],
                             cadence=body.get("cadence"),
@@ -1188,6 +1200,37 @@ def export_ep(request: Request, body: dict):
         return export(body.get("dataset", ""), body.get("format", "csv"),
                       body.get("params") or {}, tenant=_tenant(request))
     except ExportRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/pushes")
+def pushes_catalog_ep():
+    """The push generator's option space: datasets × formats × rules."""
+    from engine.pushes import catalog
+    return catalog()
+
+
+@app.post("/v1/pushes/preview")
+def pushes_preview_ep(request: Request, body: dict):
+    """Exactly what WOULD be delivered — nothing is sent."""
+    from engine.export import catalog as _exkat
+    from engine.pushes import PushRefused, preview
+    d = {x["id"]: x for x in _exkat()["datasets"]}.get(
+        body.get("dataset", ""))
+    # Samma grind som /v1/export: datamängdens kapabilitet gäller —
+    # annars vore förhandsvisningen en väg runt paketet.
+    p = getattr(request.state, "principal", None)
+    if d and p is not None and d["capability"] not in p.capabilities:
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Previewing {d['id']!r} needs the same package as "
+                    f"its engine ({d['capability']}). See /v1/plans."))
+    try:
+        return preview(body.get("dataset", ""),
+                       body.get("format", "csv"),
+                       body.get("params") or {},
+                       tenant=_tenant(request))
+    except PushRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

@@ -93,6 +93,18 @@ def _run_scan(job: dict, now: float) -> dict:
                           f"history is being built")}
 
 
+def _run_push(job: dict, now: float) -> dict:
+    """Leverera prenumerationens datamängd till kundens webhook."""
+    from engine.pushes import PushRefused, deliver
+
+    try:
+        return deliver(job)
+    except PushRefused as e:
+        # Vägran är ett körningsresultat, inte en krasch: skälet ska
+        # stå i jobbregistret där någon faktiskt tittar.
+        return {"delivered": False, "status": None, "why_en": str(e)}
+
+
 def _run_monitors(job: dict, now: float) -> dict:
     """Väck bevakningarna — och säg vad de faktiskt hade att titta på."""
     from engine import monitors as M
@@ -204,6 +216,18 @@ JOB_KINDS: dict[str, dict] = {
         "note_en": "Never reports a pair where both signals are "
                    "simulated: two mock series correlate exactly as the "
                    "generator built them."},
+    "push": {
+        "label_en": "Deliver a dataset to a customer webhook",
+        "capability": "core",
+        "params_en": "dataset, format, target_url, dataset_params "
+                     "(optional)",
+        "run": _run_push,
+        "note_en": "The delivery result is written on the job — "
+                   "delivered/failed with the receiver's own answer. A "
+                   "failed POST never looks like a delivered one, and "
+                   "the dataset's own capability is enforced when the "
+                   "subscription is created, so a push cannot become a "
+                   "way around the packaging."},
     "monitors": {
         "label_en": "Wake the registered watches",
         "capability": "monitoring",
@@ -226,6 +250,14 @@ def job(id: str, kind: str, *, cadence: dict | None = None,
             f"unknown job kind {kind!r}; choose {', '.join(sorted(JOB_KINDS))}")
     kad = dict(cadence or {"every": "daily"})
     cadence_minutes(kad)                      # validerar tidigt, samma dialekt
+    if kind == "push":
+        # Mål, datamängd och format prövas när prenumerationen skapas —
+        # inte i en obevakad nattkörning månader senare.
+        from engine.pushes import PushRefused, validate_subscription
+        try:
+            validate_subscription(params or {})
+        except PushRefused as e:
+            raise ScheduleRefused(str(e)) from e
     if not tenant:
         raise ScheduleRefused(
             f"job {id!r} has no tenant. A scheduled run acts on a "
