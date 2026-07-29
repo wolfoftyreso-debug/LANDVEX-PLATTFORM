@@ -338,6 +338,155 @@ def test_both_stores_offer_the_inspection_contract():
         "postgres skriver över fel kunds objekt vid id-krock"
 
 
+class _FejkCursor:
+    """Loggar exekverad SQL och svarar på versionsfrågan — mer behövs
+    inte för att bevisa kedjelogiken utan psycopg."""
+
+    def __init__(self, versioner: list[int], logg: list):
+        self._versioner, self._logg = versioner, logg
+        self._svar = None
+
+    def execute(self, sql, params=None):
+        self._logg.append((sql.strip(), params))
+        if "SELECT MAX(version)" in sql:
+            self._svar = (max(self._versioner) if self._versioner else None,)
+        elif "INSERT INTO schema_meta" in sql:
+            self._versioner.append(params[0])
+
+    def fetchone(self):
+        return self._svar
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class _FejkConn:
+    def __init__(self, versioner: list[int] | None = None):
+        self.versioner = list(versioner or [])
+        self.logg: list = []
+
+    def cursor(self):
+        return _FejkCursor(self.versioner, self.logg)
+
+
+def test_a_fresh_postgres_schema_is_stamped_at_the_sqlite_baseline():
+    """Mätt före fixen: postgres hade INGEN schema_meta, ingen _migrate,
+    ingen schema_version — bara platt CREATE TABLE IF NOT EXISTS vid
+    varje start. Det lägger aldrig en kolumn på en befintlig tabell, så
+    nästa schemaändring hade tyst uteblivit i produktion medan sqlite
+    fick den via sin kedja. Färskt schema ska stämplas på sqlite-kedjans
+    max, så att de två liggarna talar samma nummer."""
+    from engine.storage.postgres import _baseline_version, _migrate
+    from engine.storage.sqlite import _MIGRATIONS as SQ
+
+    conn = _FejkConn()
+    _migrate(conn)
+    assert conn.versioner == [max(v for v, _ in SQ)]
+    assert _baseline_version() == max(v for v, _ in SQ)
+    # sqlite-referensen ska rapportera samma tal ur sin riktiga databas
+    s = SqliteStore(":memory:")
+    assert s.schema_version() == _baseline_version()
+    s.close()
+
+
+def test_pending_postgres_migrations_run_in_order_and_stamp_each_step():
+    from engine.storage import postgres as P
+
+    orig = P._MIGRATIONS
+    P._MIGRATIONS = [(11, "ALTER TABLE reports ADD COLUMN a TEXT"),
+                     (12, "ALTER TABLE reports ADD COLUMN b TEXT")]
+    try:
+        conn = _FejkConn(versioner=[10])
+        P._migrate(conn)
+        assert conn.versioner == [10, 11, 12]
+        ddl = [sql for sql, _ in conn.logg if sql.startswith("ALTER")]
+        assert ddl == ["ALTER TABLE reports ADD COLUMN a TEXT",
+                       "ALTER TABLE reports ADD COLUMN b TEXT"]
+        # redan ikapp → ingenting körs igen
+        conn2 = _FejkConn(versioner=[12])
+        P._migrate(conn2)
+        assert not [s for s, _ in conn2.logg if s.startswith("ALTER")]
+    finally:
+        P._MIGRATIONS = orig
+
+
+def test_the_two_stores_describe_the_same_tables_and_columns():
+    """Drifttestet revisionen saknade: sqlite är den testade referensen,
+    postgres är vad produktionen kör, och INGET jämförde dem. Sqlite
+    läses ur en riktig databas (PRAGMA), postgres ur DDL-texten —
+    kolumnNAMN jämförs, aldrig typer (REAL↔DOUBLE PRECISION är samma
+    beslut i två dialekter). Undantagen är datarader med skäl, inte
+    tysta hål."""
+    import re
+
+    from engine.storage import postgres as P
+
+    # geometrin är ett medvetet representationsval, inte drift
+    UNDANTAG = {"reports": {"sqlite_only": {"lat", "lon"},
+                            "postgres_only": {"geom"}}}
+    NYCKELORD = {"PRIMARY", "UNIQUE", "CHECK", "FOREIGN", "CONSTRAINT"}
+
+    s = SqliteStore(":memory:")
+    sq_tabeller = {r[0] for r in s._conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    sq_kolumner = {t: {r[1] for r in
+                       s._conn.execute(f"PRAGMA table_info({t})").fetchall()}
+                   for t in sq_tabeller}
+    s.close()
+
+    pg_ddl = P._DDL + "".join(ddl for _, ddl in P._MIGRATIONS)
+    pg_kolumner: dict[str, set] = {}
+    for tabell, kropp in re.findall(
+            r"CREATE TABLE IF NOT EXISTS (\w+)\s*\((.*?)\);", pg_ddl,
+            re.DOTALL):
+        kol = set()
+        for rad in kropp.split("\n"):
+            m = re.match(r"\s*([a-z_]\w*)\s", rad)
+            if m and m.group(1).upper() not in NYCKELORD:
+                kol.add(m.group(1))
+        pg_kolumner[tabell] = kol
+    for tabell, kolumn in re.findall(
+            r"ALTER TABLE (\w+) ADD COLUMN(?: IF NOT EXISTS)? (\w+)",
+            pg_ddl):
+        pg_kolumner.setdefault(tabell, set()).add(kolumn)
+
+    assert set(sq_kolumner) == set(pg_kolumner), (
+        f"tabellmängderna skiljer: bara sqlite "
+        f"{sorted(set(sq_kolumner) - set(pg_kolumner))}, bara postgres "
+        f"{sorted(set(pg_kolumner) - set(sq_kolumner))}")
+    for tabell in sorted(sq_kolumner):
+        u = UNDANTAG.get(tabell, {})
+        sq = sq_kolumner[tabell] - u.get("sqlite_only", set())
+        pg = pg_kolumner[tabell] - u.get("postgres_only", set())
+        assert sq == pg, (
+            f"{tabell}: bara sqlite {sorted(sq - pg)}, "
+            f"bara postgres {sorted(pg - sq)}")
+
+
+def test_the_selftest_honours_the_tenant_contract_it_runs_under():
+    """Mätt före fixen: selftest() anropade save_report/get_report UTAN
+    tenant= — TypeError vid första raden, så driftsättningsverifieringen
+    har ALDRIG kunnat köras mot en riktig databas. Ett självtest som
+    inte kan starta ser i en runbook ut som ett självtest som inte
+    behövdes. Källskanning i stället för körning: psycopg finns inte
+    här, och ett test som kräver produktionsdriver för att upptäcka en
+    TypeError hade aldrig körts det heller."""
+    import inspect
+    import re
+
+    from engine.storage.postgres import PostgresStore
+
+    src = inspect.getsource(PostgresStore.selftest)
+    anrop = re.findall(r"self\.(?:save_report|get_report)\((?:[^()]|\([^)]*\))*\)",
+                       src, re.DOTALL)
+    assert len(anrop) >= 2, "selftest anropar inte längre rapportvägen"
+    for a in anrop:
+        assert "tenant=" in a, a
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

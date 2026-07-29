@@ -23,6 +23,11 @@ from .base import Store
 _DDL = """
 CREATE EXTENSION IF NOT EXISTS postgis;
 
+CREATE TABLE IF NOT EXISTS schema_meta (
+    version    INTEGER NOT NULL,
+    applied_at DOUBLE PRECISION NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS reports (
     id                TEXT PRIMARY KEY,
     created_at        DOUBLE PRECISION NOT NULL,
@@ -207,6 +212,58 @@ CREATE TABLE IF NOT EXISTS news_items (
 CREATE INDEX IF NOT EXISTS idx_news_region ON news_items(region_code, harvested_at);
 """
 
+# ── Migrationskedjan ────────────────────────────────────────────────────
+# Samma regel som sqlite.py: ändra ALDRIG en utrullad migration — lägg en
+# ny. Sqlite och postgres delar versionsnummer, så nästa schemaändring
+# får nummer max+1 och läggs i BÅDA kedjorna.
+#
+# Varför den här kedjan fanns i sqlite men inte här: revisionen fann att
+# postgres bara körde platt CREATE TABLE IF NOT EXISTS vid varje start.
+# Det lägger aldrig en kolumn på en tabell som redan finns — sqlite fick
+# reports.tenant/profiles.tenant via ALTER i migration 6, och en
+# postgres-databas provisionerad före den ändringen hade stått kvar utan
+# dem om inte ALTER-raderna i _DDL ovan (idempotenta, "migration 6
+# inbakad i baslinjen") råkat täcka just det fallet. Nästa ändring hade
+# inte haft den turen: utan liggare finns ingen plats att lägga den på.
+_MIGRATIONS: list[tuple[int, str]] = []
+
+# Baslinjen härleds ur sqlite-kedjan i stället för att skrivas som en
+# siffra här: _DDL ovan skapar allt till och med sqlite-migration 10,
+# och de två liggarna ska tala samma nummer. Lägger någon sqlite-
+# migration 11 utan postgres-motsvarighet flyttar baslinjen med — och
+# det statiska drifttestet i tests/test_storage.py faller tills
+# postgres-DDL:en hunnit ikapp. Ett tal som inte kan driftas behöver
+# inte bevakas.
+def _baseline_version() -> int:
+    from .sqlite import _MIGRATIONS as _SQLITE_MIGRATIONS
+    return max(v for v, _ in _SQLITE_MIGRATIONS)
+
+
+def _migrate(conn) -> None:
+    """Kör migrationer > aktuell version, stämpla var och en.
+
+    Ren funktion över en psycopg-lik förbindelse (cursor() som
+    kontexthanterare, execute/fetchone) — så att kedjelogiken kan
+    bevisas med en fejkad förbindelse i en miljö utan psycopg.
+    """
+    import time
+    with conn.cursor() as cur:
+        cur.execute("SELECT MAX(version) FROM schema_meta")
+        rad = cur.fetchone()
+        aktuell = (rad[0] if rad else None) or 0
+        if aktuell == 0:
+            # Färskt schema: _DDL har just skapat ALLT — stämpla
+            # baslinjen i stället för att köra migrationer mot tabeller
+            # som redan har slutformen.
+            cur.execute("INSERT INTO schema_meta VALUES (%s, %s)",
+                        (_baseline_version(), time.time()))
+            return
+        for version, ddl in _MIGRATIONS:
+            if version > aktuell:
+                cur.execute(ddl)
+                cur.execute("INSERT INTO schema_meta VALUES (%s, %s)",
+                            (version, time.time()))
+
 
 class PostgresStore(Store):
 
@@ -215,6 +272,13 @@ class PostgresStore(Store):
         self._conn = psycopg.connect(dsn, autocommit=True)
         with self._conn.cursor() as cur:
             cur.execute(_DDL)
+        _migrate(self._conn)
+
+    def schema_version(self) -> int:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT MAX(version) FROM schema_meta")
+            rad = cur.fetchone()
+        return (rad[0] if rad else None) or 0
 
     def save_report(self, report: dict[str, Any], created_at: float, *,
                     tenant: str) -> str:
@@ -622,15 +686,20 @@ class PostgresStore(Store):
     def selftest(self) -> None:
         """Minimal rundtur mot riktig databas – kör vid driftsättning."""
         import time
+        # tenant= är keyword-only UTAN default (tenancy-doktrinen). Utan
+        # argumentet kraschade själva självtestet med TypeError — vilket
+        # betyder att driftsättningsverifieringen ALDRIG har kunnat köras
+        # mot en riktig databas. Ett självtest som inte kan starta ser i
+        # en runbook ut som ett självtest som inte behövdes.
         rid = self.save_report(
             {"vertical_id": "frisor", "opportunity_score": 50.0,
              "data_coverage": 0.0,
              "location": {"lat": 59.33, "lon": 18.06, "address": "selftest"}},
-            created_at=time.time())
+            created_at=time.time(), tenant="selftest")
         # assert stryks av `python -O`: självtestet hade då "passerat"
         # utan att kontrollera någonting. En kontroll som kan optimeras
         # bort är ingen kontroll.
-        if self.get_report(rid) is None:
+        if self.get_report(rid, tenant="selftest") is None:
             raise RuntimeError("selftest: saved report could not be read back")
         self.put_cached_signals("scb", "selftest", {"income_index": (100.0, 0.7)}, time.time())
         if "income_index" not in self.get_cached_signals("scb", "selftest"):
