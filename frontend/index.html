@@ -68,7 +68,9 @@
   }
 
   /* Intro-overlay – hero för nya användare / demokund */
-  #intro { position: fixed; inset: 0; z-index: 50; display: none;
+  /* Över bottennaven (60) och arket (71): introt äger hela skärmen,
+     annars täcker naven dess Skip-knapp på mobil. */
+  #intro { position: fixed; inset: 0; z-index: 80; display: none;
            align-items: center; justify-content: center; padding: 24px;
            background:
              radial-gradient(1200px 600px at 50% -10%, rgba(0,122,255,.22), transparent 60%),
@@ -253,14 +255,65 @@
            opacity .25s var(--fjader); }
   button:active, .tab:active, .chip:active { transform: scale(.97); }
 
+  /* ‹ ›: historiken är systemets, inte bara webbläsarens. */
+  #navPilar { display: flex; gap: 6px; }
+  #navPilar button { width: 30px; height: 30px; border-radius: 50%;
+    background: var(--panel2); color: var(--muted); cursor: pointer;
+    border: 1px solid var(--line); font-size: 17px; line-height: 1;
+    padding: 0 0 2px; }
+  #navPilar button:hover { color: var(--text); }
+
+  /* Materialnavigeringen: dold på desktop, appkänsla på mobil. */
+  #bottenNav { display: none; }
+  #merScrim { position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 70; }
+  #merScrim.on { opacity: 1; pointer-events: auto; }
+  #merSheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 71;
+    background: var(--panel2); border: 1px solid var(--line);
+    border-bottom: none; border-radius: 22px 22px 0 0;
+    transform: translateY(105%); transition: transform .3s var(--fjader);
+    max-height: 72vh; overflow-y: auto;
+    padding: 6px 12px calc(18px + env(safe-area-inset-bottom)); }
+  #merSheet.on { transform: none; }
+  .merHandtag { width: 36px; height: 4px; border-radius: 2px;
+    background: var(--line); margin: 6px auto 10px; }
+  .merRad { display: grid; grid-template-columns: 34px 1fr; gap: 10px;
+    align-items: center; width: 100%; text-align: left; padding: 10px 8px;
+    background: none; border: none; border-radius: 14px; cursor: pointer;
+    color: var(--text); }
+  .merRad:active { background: var(--accent-tint); }
+  .merIk { width: 34px; height: 34px; border-radius: 50%;
+    background: var(--panel); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; }
+  .merIk .ikon { width: 16px; height: 16px; }
+  .merNamn { display: block; font-size: 14px; font-weight: 600; }
+  .merBesk { display: block; font-size: 11px; color: var(--muted); }
+
   /* Mobil-först: kompakt layout under 640px. */
   @media (max-width: 640px) {
     header { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
-    #tabs { margin-left: 0; width: 100%; overflow-x: auto;
-            flex-wrap: nowrap; -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; padding-bottom: 2px; }
-    #tabs::-webkit-scrollbar { display: none; }
-    .tab { flex: none; white-space: nowrap; }
+    #navPilar { margin-left: auto; }
+    /* Flikraden ersätts av bottennaven — en avklippt rad utan
+       rullningsaffordans gömde nio av tretton destinationer. */
+    #tabs { display: none; }
+    #bottenNav { position: fixed; left: 0; right: 0; bottom: 0;
+      display: flex; z-index: 60; background: var(--panel);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-top: 1px solid var(--line);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+    .bnItem { flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 2px; background: none; border: none;
+      color: var(--muted); font-size: 10.5px; cursor: pointer;
+      padding: 2px 0; }
+    .bnIk { display: flex; align-items: center; justify-content: center;
+      width: 52px; height: 26px; border-radius: 999px;
+      transition: background .25s var(--fjader); }
+    .bnIk .ikon { width: 19px; height: 19px; }
+    .bnItem.on { color: var(--accent); }
+    /* Pillerindikatorn bakom ikonen — Compose NavigationBar-mönstret. */
+    .bnItem.on .bnIk { background: var(--accent-tint); }
+    body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
     .layout { grid-template-columns: 1fr; height: auto; }
     .profil { border-right: none; border-bottom: 1px solid var(--line); }
     .resultat { border-left: none; border-top: 1px solid var(--line); }
@@ -320,6 +373,10 @@
     <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>LANDVEX</h1><span id="undertitel">What the data supports — and where it runs out</span>
+  <div id="navPilar" aria-label="History">
+    <button id="navBak" title="Back" aria-label="Back">‹</button>
+    <button id="navFram" title="Forward" aria-label="Forward">›</button>
+  </div>
   <nav id="tabs">
     <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
     <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Ask</button>
@@ -336,6 +393,20 @@
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
 </header>
+
+<!-- Materialnavigeringen (mobil): fem platser + destinationsark. -->
+<nav id="bottenNav" aria-label="Primary">
+  <button class="bnItem on" data-mode="guide"><span class="bnIk"><svg class="ikon"><use href="#i-kompass"/></svg></span><span>Guide</span></button>
+  <button class="bnItem" data-mode="fraga"><span class="bnIk"><svg class="ikon"><use href="#i-fraga"/></svg></span><span>Ask</span></button>
+  <button class="bnItem" data-mode="analys"><span class="bnIk"><svg class="ikon"><use href="#i-kompass"/></svg></span><span>Analyze</span></button>
+  <button class="bnItem" data-mode="kontroll"><span class="bnIk"><svg class="ikon"><use href="#i-bock"/></svg></span><span>Checks</span></button>
+  <button class="bnItem" data-mode="mer" id="bnMer"><span class="bnIk"><svg class="ikon"><use href="#i-lager"/></svg></span><span>More</span></button>
+</nav>
+<div id="merScrim"></div>
+<div id="merSheet" role="dialog" aria-modal="true" aria-label="All destinations">
+  <div class="merHandtag" aria-hidden="true"></div>
+  <div id="merLista"></div>
+</div>
 
 <div class="layout">
   <aside class="profil">
@@ -1235,10 +1306,21 @@ const LAGEN = {
              status: "Campaigns, budget caps, k-floored statistics and " +
                      "exactly what the zoomer sees." },
 };
-document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
-  MODE = t.dataset.mode;
+// Lägesbytet är EN funktion och EN sanning: flikraden, bottennaven,
+// Material-arket och webbläsarhistoriken går alla genom bytLage. Varje
+// byte blir ett hash-steg, så telefonens bakåtgest och ‹ ›-pilarna
+// navigerar I systemet i stället för att lämna det.
+const BN_PRIMARA = new Set(["guide", "fraga", "analys", "kontroll"]);
+
+function bytLage(m, franHistorik) {
+  if (!LAGEN[m]) m = "guide";
+  MODE = m;
   document.querySelectorAll(".tab").forEach(x =>
-    x.classList.toggle("on", x === t));
+    x.classList.toggle("on", x.dataset.mode === m));
+  document.querySelectorAll(".bnItem").forEach(x =>
+    x.classList.toggle("on", x.dataset.mode === m ||
+      (x.dataset.mode === "mer" && !BN_PRIMARA.has(m))));
+  merStang();
   $("vyGuide").style.display = MODE === "guide" ? "" : "none";
   $("vyFraga").style.display = MODE === "fraga" ? "" : "none";
   $("vyEtab").style.display = MODE === "etab" ? "" : "none";
@@ -1274,7 +1356,48 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   if (MODE === "watch") visaWatch();
   if (MODE === "kontroll") { visaKontroll(); visaFarskhet();
                              kontrollProduktInit(); }
+  if (!franHistorik && location.hash !== "#" + m) location.hash = m;
+}
+document.querySelectorAll(".tab").forEach(t =>
+  t.onclick = () => bytLage(t.dataset.mode));
+// Hashen ÄR historiken: att sätta den ovan skapar steget, och gesten/
+// pilarna spolar den. Egen sättning blir en no-op här (m === MODE).
+window.addEventListener("hashchange", () => {
+  const m = (location.hash || "#guide").slice(1);
+  if (m !== MODE) bytLage(m, true);
 });
+$("navBak").onclick = () => history.back();
+$("navFram").onclick = () => history.forward();
+
+// ── Materialmenyn: bottennav + destinationsark (Compose-mönstret) ──────
+function merStang() {
+  $("merSheet").classList.remove("on");
+  $("merScrim").classList.remove("on");
+}
+function merVisa() {
+  $("merSheet").classList.add("on");
+  $("merScrim").classList.add("on");
+}
+// Arket byggs ur flikraden — EN sanning om vilka destinationer som
+// finns; en ny flik dyker upp i arket utan en andra lista att glömma.
+$("merLista").innerHTML = [...document.querySelectorAll("#tabs .tab")]
+  .map(t => {
+    const m = t.dataset.mode;
+    const ik = t.querySelector("use").getAttribute("href");
+    return `<button class="merRad" data-mode="${m}">` +
+      `<span class="merIk"><svg class="ikon"><use href="${ik}"/></svg>` +
+      `</span><span><span class="merNamn">${t.textContent}</span>` +
+      `<span class="merBesk">${LAGEN[m].titel}</span></span></button>`;
+  }).join("");
+document.querySelectorAll(".merRad").forEach(b =>
+  b.onclick = () => bytLage(b.dataset.mode));
+document.querySelectorAll(".bnItem").forEach(b =>
+  b.onclick = b.dataset.mode === "mer" ? merVisa
+            : () => bytLage(b.dataset.mode));
+$("merScrim").onclick = merStang;
+// Djuplänk: #kontroll öppnar Checks direkt — även i den statiska demon.
+if (location.hash && location.hash !== "#guide")
+  bytLage(location.hash.slice(1), true);
 
 // ---- Intelligence Console (skördade lager: λ-index + KPI-motor) ----------
 const CAXES = ["ECON","HEALTH","LABOR","EDUC","SOCIAL","CLIMATE","GOV","DEMO"];
