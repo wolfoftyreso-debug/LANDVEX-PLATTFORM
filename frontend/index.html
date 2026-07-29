@@ -419,7 +419,7 @@
     <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <h1>LANDVEX</h1><span id="undertitel">What the data supports — and where it runs out</span>
+  <h1>LANDVEX</h1><span id="undertitel">From observation to decision</span>
   <div id="navPilar" aria-label="History">
     <button id="navBak" title="Back" aria-label="Back">‹</button>
     <button id="navFram" title="Forward" aria-label="Forward">›</button>
@@ -468,6 +468,7 @@
         <button id="guideNasta">Continue ›</button>
       </div>
       <button id="guideOm" class="chip exempel" style="border:1px solid var(--line);margin-top:8px"><svg class="ikon"><use href="#i-om"/></svg> Restart the guide</button>
+      <button id="guideVadArAnnorlunda" class="chip exempel" style="border:1px solid var(--line);margin-top:8px;margin-left:6px"><svg class="ikon"><use href="#i-info"/></svg> What makes Landvex different</button>
     </div>
     <div id="vyFraga" style="display:none">
       <h2>Ask Landvex</h2>
@@ -1405,7 +1406,7 @@ const LAGEN = {
   intel: { rubrik: "Intelligence", titel: "Media & political intelligence",
            status: "Alignment, contradictions, corroboration and "
                    + "accountability — with refusals shown as answers." },
-  guide: { rubrik: "Guide", titel: "What the data supports — and where it runs out",
+  guide: { rubrik: "Guide", titel: "From observation to decision",
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
              status: "Defaults are saved locally in your browser." },
@@ -2130,6 +2131,11 @@ $("guideOm").onclick = () => {
   $("caveats").innerHTML = "";
   guideRita();
 };
+// Introt visas bara automatiskt en gång (landvex_intro_v1 i
+// localStorage) — den här knappen är den permanenta vägen tillbaka
+// till samma innehåll för alla som redan sett/stängt det, inte bara
+// förstagångsbesökaren.
+$("guideVadArAnnorlunda").onclick = introVisa;
 $("instSpara").onclick = () => {
   INSTALL.marknad = $("instMarknad").value;
   INSTALL.malar = $("instMalar").value;
