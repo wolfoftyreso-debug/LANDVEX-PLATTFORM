@@ -282,6 +282,83 @@ def test_completions_survive_a_restart_and_stay_per_tenant():
             SP.reset()
 
 
+def test_ordering_is_the_only_way_the_budget_moves_and_the_cap_bites():
+    """Beställ tills taket säger nej: ordered/spent räknas upp GENOM
+    grinden, och vägran vid taket är svaret — inte ett fel att retry:a."""
+    SP.reset()
+    try:
+        SP.save_campaign(_kampanj(budget=200.0,
+                                  rewards=({"kind": "cash",
+                                            "amount": 75.0},)))
+        forsta = SP.order_mission("garmin-trail", tenant="t1",
+                                  region_code="0180")
+        assert forsta["ordered"] == 1
+        assert forsta["committed"] == 75.0
+        assert forsta["budget"]["committed"] == 75.0
+        assert forsta["mission"]["sponsor_visible_en"] == "Garmin Nordic AB"
+        SP.order_mission("garmin-trail", tenant="t1")
+        try:
+            SP.order_mission("garmin-trail", tenant="t1")
+        except SP.SponsorshipRefused as e:
+            assert "cap" in str(e) and "150.00" in str(e)
+        else:
+            raise AssertionError("tredje uppdraget gick förbi taket "
+                                 "(150 + 75 > 200)")
+        kvar = next(k for k in SP.all_campaigns("t1")
+                    if k["id"] == "garmin-trail")
+        assert kvar["ordered"] == 2 and kvar["spent"] == 150.0
+    finally:
+        SP.reset()
+
+
+def test_another_tenants_campaign_cannot_be_ordered_against():
+    SP.reset()
+    try:
+        SP.save_campaign(_kampanj())
+        try:
+            SP.order_mission("garmin-trail", tenant="t2")
+        except SP.SponsorshipRefused as e:
+            assert "unknown campaign" in str(e)
+        else:
+            raise AssertionError("t2 beställde mot t1:s budget")
+    finally:
+        SP.reset()
+
+
+def test_paused_campaigns_refuse_orders_and_closed_stays_closed():
+    """Övergångarna är data: pausad kampanj beställer inte, återupptagen
+    gör det, och en stängd kampanjs siffror är dess facit."""
+    SP.reset()
+    try:
+        SP.save_campaign(_kampanj())
+        SP.set_status("garmin-trail", "paused", tenant="t1")
+        try:
+            SP.order_mission("garmin-trail", tenant="t1")
+        except SP.SponsorshipRefused as e:
+            assert "paused" in str(e)
+        else:
+            raise AssertionError("pausad kampanj beställde")
+        SP.set_status("garmin-trail", "active", tenant="t1")
+        assert SP.order_mission("garmin-trail", tenant="t1")["ordered"] == 1
+        SP.set_status("garmin-trail", "closed", tenant="t1")
+        for mal in ("active", "paused"):
+            try:
+                SP.set_status("garmin-trail", mal, tenant="t1")
+            except SP.SponsorshipRefused as e:
+                assert "record" in str(e)
+            else:
+                raise AssertionError(f"closed → {mal} tilläts — facit "
+                                     f"skrevs om")
+        try:
+            SP.set_status("garmin-trail", "avslutad", tenant="t1")
+        except SP.SponsorshipRefused as e:
+            assert "unknown status" in str(e)
+        else:
+            raise AssertionError("okänd status tilläts")
+    finally:
+        SP.reset()
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

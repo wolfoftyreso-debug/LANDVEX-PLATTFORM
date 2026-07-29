@@ -1026,6 +1026,31 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(422, {"error": str(e)})
                 SP.save_completion(rec)
                 return self._send(201, rec)
+            if self.path == "/v1/sponsorship/order":
+                from engine import sponsorship as SP
+                if not any(k["id"] == req.get("campaign_id")
+                           for k in SP.all_campaigns(self._tenant())):
+                    return self._send(404, {"error": (
+                        f"unknown campaign {req.get('campaign_id')!r}")})
+                try:
+                    # 409, inte 422: kampanjen finns men grinden säger
+                    # nej — budgettaket eller pacingen ÄR svaret.
+                    return self._send(201, SP.order_mission(
+                        req.get("campaign_id", ""),
+                        tenant=self._tenant(),
+                        region_code=req.get("region_code", ""),
+                        lat=req.get("lat"), lon=req.get("lon"),
+                        today_count=int(req.get("today_count", 0))))
+                except SP.SponsorshipRefused as e:
+                    return self._send(409, {"error": str(e)})
+            if self.path == "/v1/sponsorship/status":
+                from engine import sponsorship as SP
+                try:
+                    return self._send(200, SP.set_status(
+                        req.get("campaign_id", ""),
+                        req.get("status", ""), tenant=self._tenant()))
+                except SP.SponsorshipRefused as e:
+                    return self._send(422, {"error": str(e)})
             if self.path == "/v1/pushes/preview":
                 from engine.pushes import PushRefused, preview
                 d = {x["id"]: x for x in

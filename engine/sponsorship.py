@@ -214,6 +214,79 @@ def mission_body(kamp: dict, *, region_code: str = "",
     }
 
 
+# ── Beställningen: budgeten arbetas upp GENOM grinden ──────────────────
+import threading as _threading
+
+_ORDER_LOCK = _threading.Lock()
+
+# Övergångar som data. `closed` är terminal med flit: kampanjens siffror
+# är dess facit, och en återöppnad kampanj skriver om det.
+STATUS_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "active": ("paused", "closed"),
+    "paused": ("active", "closed"),
+    "closed": (),
+}
+
+
+def order_mission(campaign_id: str, *, tenant: str, region_code: str = "",
+                  lat: float | None = None, lon: float | None = None,
+                  today_count: int = 0) -> dict:
+    """Beställ ETT uppdrag och arbeta upp budgeten — genom grinden.
+
+    Det här är den enda vägen som räknar upp `ordered` och `spent`: en
+    beställning utanför `can_order` vore ett uppdrag utanför taket, och
+    taket är ett tak. Låset gäller processen; fleras processer mot samma
+    databas kräver ett villkorat lager-skriv (uppföljning, redovisad —
+    inte gömd i en kommentar någon hittar efteråt).
+    """
+    with _ORDER_LOCK:
+        kamp = next((k for k in all_campaigns(tenant)
+                     if k["id"] == campaign_id), None)
+        if kamp is None:
+            raise SponsorshipRefused(
+                f"unknown campaign {campaign_id!r} for this tenant")
+        grind = can_order(kamp, today_count=today_count)
+        if not grind["allowed"]:
+            raise SponsorshipRefused(grind["why_en"])
+        kamp = dict(kamp)
+        kamp["ordered"] = int(kamp.get("ordered", 0)) + 1
+        kamp["spent"] = float(kamp.get("spent", 0.0)) + grind["cost"]
+        save_campaign(kamp)
+    return {"mission": mission_body(kamp, region_code=region_code,
+                                    lat=lat, lon=lon),
+            "committed": grind["cost"],
+            "budget": {"cap": kamp["budget"], "committed": kamp["spent"],
+                       "currency": kamp["currency"]},
+            "ordered": kamp["ordered"],
+            "means_en": ("The mission body is what goes to quiXzoom, and "
+                         "the budget is committed NOW — ordering is the "
+                         "only way these numbers move.")}
+
+
+def set_status(campaign_id: str, status: str, *, tenant: str) -> dict:
+    """Pausa, återuppta eller stäng — övergångarna är data, inte grenar."""
+    kamp = next((k for k in all_campaigns(tenant)
+                 if k["id"] == campaign_id), None)
+    if kamp is None:
+        raise SponsorshipRefused(
+            f"unknown campaign {campaign_id!r} for this tenant")
+    fran = kamp.get("status", "active")
+    if status not in STATUS_TRANSITIONS:
+        raise SponsorshipRefused(
+            f"unknown status {status!r}; choose "
+            f"{', '.join(sorted(STATUS_TRANSITIONS))}")
+    if status not in STATUS_TRANSITIONS[fran]:
+        raise SponsorshipRefused(
+            f"cannot go {fran!r} → {status!r}: a closed campaign's "
+            f"numbers are its record, and reopening would rewrite it"
+            if fran == "closed" else
+            f"cannot go {fran!r} → {status!r}")
+    kamp = dict(kamp)
+    kamp["status"] = status
+    save_campaign(kamp)
+    return kamp
+
+
 # ── Fullbordanden: dom och region — aldrig person ──────────────────────
 _FORBIDDEN_COMPLETION_FIELDS = ("zoomer_id", "zoomer", "user_id", "name",
                                 "email", "phone", "device_id", "account")

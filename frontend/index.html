@@ -2707,10 +2707,24 @@ async function visaSponsor() {
         `Co-sponsors: ` + k.co_sponsors.map(c =>
           `${esc(c.name_en)} ${Math.round((c.share || 0) * 100)}%`).join(" · ") +
         `</span>` : "") +
+      `<span class="motiv" style="display:block">Status: ` +
+      `<b>${esc(k.status || "active")}</b></span>` +
       `<button class="spStats" data-id="${esc(k.id)}" style="margin-top:5px;` +
       `font-size:11px">Statistics (k-floored)</button> ` +
       `<button class="spMission" data-id="${esc(k.id)}" style="font-size:11px">` +
-      `Preview mission — what the zoomer sees</button>` +
+      `Preview mission — what the zoomer sees</button> ` +
+      (k.status !== "closed"
+        ? `<button class="spOrder" data-id="${esc(k.id)}" ` +
+          `style="font-size:11px;background:var(--accent);border:none;` +
+          `color:#fff">Order mission — commits budget</button> ` +
+          `<button class="spStatus" data-id="${esc(k.id)}" ` +
+          `data-till="${k.status === "paused" ? "active" : "paused"}" ` +
+          `style="font-size:11px">` +
+          `${k.status === "paused" ? "Resume" : "Pause"}</button> ` +
+          `<button class="spStatus" data-id="${esc(k.id)}" ` +
+          `data-till="closed" style="font-size:11px">Close — the ` +
+          `numbers become the record</button>`
+        : ``) +
       `<div class="motiv spDetalj" id="spDetalj-${esc(k.id)}"></div></div>`;
   });
   html += `<p class="motiv" style="margin-top:8px;font-size:11px">` +
@@ -2720,6 +2734,41 @@ async function visaSponsor() {
     () => sponsorStats(b.dataset.id));
   ut.querySelectorAll(".spMission").forEach(b => b.onclick =
     () => sponsorMission(b.dataset.id));
+  ut.querySelectorAll(".spOrder").forEach(b => b.onclick =
+    () => sponsorOrder(b.dataset.id));
+  ut.querySelectorAll(".spStatus").forEach(b => b.onclick =
+    () => sponsorStatus(b.dataset.id, b.dataset.till));
+}
+
+async function sponsorOrder(id) {
+  const d = $(`spDetalj-${id}`);
+  d.innerHTML = "Ordering through the gate …";
+  try {
+    const r = await api("/v1/sponsorship/order", {campaign_id: id});
+    await visaSponsor();   // budgetraden först — kvittot i färska diven
+    $(`spDetalj-${id}`).innerHTML =
+      `✓ Mission ordered — <b>${r.committed}</b> committed, ` +
+      `${r.budget.committed.toFixed(0)} of ${r.budget.cap} ` +
+      `${esc(r.budget.currency)} now spoken for (${r.ordered} ordered).` +
+      `<br><i>${esc(r.mission.what_this_means_en)}</i>` +
+      `<br><span style="font-size:10.5px">${esc(r.means_en)}</span>`;
+  } catch (e) {
+    // Taket och pacingen svarar med skälet — det ÄR rapporten.
+    d.innerHTML = `<span style="color:#c90">${esc(e.message)}</span>`;
+  }
+}
+
+async function sponsorStatus(id, till) {
+  const d = $(`spDetalj-${id}`);
+  try {
+    const r = await api("/v1/sponsorship/status",
+                        {campaign_id: id, status: till});
+    await visaSponsor();
+    $(`spDetalj-${id}`).innerHTML =
+      `Campaign is now <b>${esc(r.status)}</b>.` +
+      (till === "closed" ? ` Its numbers are its record — closed is ` +
+        `terminal, and reopening is refused.` : ``);
+  } catch (e) { d.innerHTML = `Refused: ${esc(e.message)}`; }
 }
 
 async function sponsorStats(id) {

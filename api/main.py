@@ -1376,6 +1376,41 @@ def sponsorship_completion_ep(request: Request, body: dict):
     return JSONResponse(status_code=201, content=rec)
 
 
+@app.post("/v1/sponsorship/order")
+def sponsorship_order_ep(request: Request, body: dict):
+    """Order ONE mission and commit its cost — through the gate.
+
+    Ordering is the only way `ordered` and `spent` move; a refusal from
+    the budget cap or the pacing is the answer, not an error to retry.
+    """
+    from engine import sponsorship as SP
+    if not any(k["id"] == body.get("campaign_id")
+               for k in SP.all_campaigns(_tenant(request))):
+        raise HTTPException(status_code=404,
+                            detail=f"unknown campaign "
+                                   f"{body.get('campaign_id')!r}")
+    try:
+        return JSONResponse(status_code=201, content=SP.order_mission(
+            body.get("campaign_id", ""), tenant=_tenant(request),
+            region_code=body.get("region_code", ""),
+            lat=body.get("lat"), lon=body.get("lon"),
+            today_count=int(body.get("today_count", 0))))
+    except SP.SponsorshipRefused as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+
+
+@app.post("/v1/sponsorship/status")
+def sponsorship_status_ep(request: Request, body: dict):
+    """Pause, resume or close a campaign — transitions are data."""
+    from engine import sponsorship as SP
+    try:
+        return SP.set_status(body.get("campaign_id", ""),
+                             body.get("status", ""),
+                             tenant=_tenant(request))
+    except SP.SponsorshipRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
 @app.get("/v1/sponsorship/stats")
 def sponsorship_stats_ep(request: Request, campaign_id: str = ""):
     """Aggregates only — cells under the k-floor are suppressed and counted."""
