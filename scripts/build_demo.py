@@ -402,8 +402,17 @@ async function api(path, body) {
   }
   if (path === "/v1/inspections/compliance") return D.inspections.compliance;
   if (path === "/v1/inspections/exceptions") return D.inspections.exceptions;
-  if (path === "/v1/routines") return D.inspections.routines;
-  if (path === "/v1/assets") return D.inspections.assets;
+  if (path === "/v1/routines") {
+    // LÄSNINGAR svaras ur fixturen. En SKRIVNING (body) får aldrig se
+    // lagrad ut i demon — "✓ stored" utan lager är exakt den sortens
+    // falska kvitto plattformen vägrar ge någon annanstans.
+    if (body) throw new Error(DEMOFEL);
+    return D.inspections.routines;
+  }
+  if (path === "/v1/assets") {
+    if (body) throw new Error(DEMOFEL);
+    return D.inspections.assets;
+  }
   if (path === "/v1/plans") return D.plans_catalog;
   if (path === "/health") return D.health;
   if (path === "/v1/catalog") return D.catalog;

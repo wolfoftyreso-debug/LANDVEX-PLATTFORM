@@ -435,6 +435,31 @@
       <p class="motiv">Your own objects, how often each must be seen, what
         falls due, and what can be shown afterwards. The verdict and a
         mission reference are stored here — never the photograph.</p>
+      <button id="cpArm" style="background:var(--accent);border:none;color:#fff;font-weight:600;margin-top:8px">➕ Add control point on map</button>
+      <div id="cpStatus" class="motiv" style="margin-top:6px"></div>
+      <div id="cpForm" style="display:none;margin-top:8px">
+        <div class="falt"><label>Label</label>
+          <input id="cpLabel" placeholder="e.g. Rental car lot, Gate B"></div>
+        <div class="falt"><label>Kind</label>
+          <input id="cpKind" placeholder="e.g. rental_car, storefront, flagpole"></div>
+        <div class="falt"><label>Checks (comma-separated — what counts as pass)</label>
+          <input id="cpChecks" placeholder="exterior, interior, signage visible"></div>
+        <div class="falt"><label>Every N days</label>
+          <select id="cpDagar"><option>1</option><option selected>7</option><option>14</option><option>30</option></select></div>
+        <div class="falt"><label>Who may take the mission</label>
+          <select id="cpPublik"><option value="open">Open quiXzoom pool</option>
+            <option value="named">Named zoomers (own staff)</option></select></div>
+        <div class="falt" id="cpZoomersFalt" style="display:none">
+          <label>quiXzoom account refs (comma-separated — never names/emails)</label>
+          <input id="cpZoomers" placeholder="qz-staff-001, qz-staff-002"></div>
+        <div class="falt"><label>Order missions automatically</label>
+          <select id="cpCron"><option value="daily">Daily sweep (order what falls due)</option>
+            <option value="weekly">Weekly sweep</option>
+            <option value="">No schedule — order manually</option></select></div>
+        <button id="cpSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Create point, routine & schedule</button>
+        <button id="cpAvbryt" style="margin-left:6px">Cancel</button>
+      </div>
+      <div id="cpUt" class="motiv" style="margin-top:8px"></div>
       <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
     </div>
     <div id="vyInstall" style="display:none">
@@ -2143,6 +2168,7 @@ $("ritaIndex").onclick = async () => {
 
 (async () => {
   initKarta();
+  cpInit();
   guideRita();
   const chips = $("exempelChips");
   for (const f of EXEMPEL) {
@@ -2264,6 +2290,102 @@ async function introRoller() {
       `<div class="intro-roll"><b>${r.label_en}</b>` +
       `<span>${r.question_en}</span></div>`).join("");
   } catch (e) { el.innerHTML = ""; }
+}
+
+// ── Kontrollpunkter på kartan: peka, beskriv, schemalägg ───────────────
+// Inversen av px/py — kartklickets pixel tillbaka till lat/lon.
+function kartaLatLon(e) {
+  const svg = $("karta");
+  const rect = svg.getBoundingClientRect();
+  const x = vb.x + (e.clientX - rect.left) / rect.width * vb.w;
+  const y = vb.y + (e.clientY - rect.top) / rect.height * vb.h;
+  return {lat: PROJ.box[1] - (y - PROJ.oy) / PROJ.k,
+          lon: PROJ.box[2] + (x - PROJ.ox) / PROJ.k};
+}
+
+let CP_ARMED = false, CP_PUNKT = null;
+
+function cpInit() {
+  $("cpArm").onclick = () => {
+    CP_ARMED = true;
+    $("cpStatus").textContent =
+      "Click the map where the control point sits.";
+  };
+  $("cpPublik").onchange = () =>
+    $("cpZoomersFalt").style.display =
+      $("cpPublik").value === "named" ? "" : "none";
+  $("cpAvbryt").onclick = () => {
+    CP_ARMED = false; CP_PUNKT = null;
+    $("cpForm").style.display = "none";
+    $("cpStatus").textContent = "";
+  };
+  $("karta").addEventListener("click", e => {
+    if (MODE !== "kontroll" || !CP_ARMED) return;
+    CP_PUNKT = kartaLatLon(e);
+    CP_ARMED = false;
+    laggPunkt(CP_PUNKT.lat, CP_PUNKT.lon, "gul", 2.2,
+              "New control point", null, null);
+    $("cpStatus").textContent =
+      `Point at ${CP_PUNKT.lat.toFixed(4)}, ${CP_PUNKT.lon.toFixed(4)} — ` +
+      `describe it below.`;
+    $("cpForm").style.display = "";
+  });
+  $("cpSpara").onclick = cpSpara;
+}
+
+async function cpSpara() {
+  if (!CP_PUNKT) return;
+  const namn = $("cpLabel").value.trim() || "Control point";
+  const id = "cp-" + namn.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "").slice(0, 24);
+  const checks = $("cpChecks").value.split(",").map(s => s.trim())
+    .filter(Boolean);
+  const publik = $("cpPublik").value === "named"
+    ? {pool: "named", zoomer_ids: $("cpZoomers").value.split(",")
+        .map(s => s.trim()).filter(Boolean)}
+    : undefined;
+  const objekt = {id, kind: $("cpKind").value.trim() || "asset",
+                  label_en: namn, lat: CP_PUNKT.lat, lon: CP_PUNKT.lon};
+  const rutin = {id: id + "-rutin", label_en: namn + " check",
+                 applies_to: objekt.kind,
+                 every_days: parseInt($("cpDagar").value, 10),
+                 checks, audience: publik};
+  const cron = $("cpCron").value;
+  const schema = cron ? {id: id + "-svep", kind: "inspections_dispatch",
+                         cadence: {every: cron}} : null;
+  const ut = [];
+  try {
+    await api("/v1/assets", objekt);
+    ut.push(`✓ Object <b>${id}</b> stored at the point you clicked.`);
+    await api("/v1/routines", rutin);
+    ut.push(`✓ Routine every ${rutin.every_days} day(s)` +
+      (publik ? `, targeted to ${publik.zoomer_ids.length} named ` +
+                `zoomer account(s)` : ", open quiXzoom pool") + ".");
+    if (schema) {
+      await api("/v1/schedules", schema);
+      ut.push(`✓ ${cron} dispatch sweep scheduled — missions are ` +
+        `ordered for whatever falls due, and a run that orders ` +
+        `nothing says why.`);
+    }
+    ut.push(`<span style="opacity:.7">The photograph never lands here: ` +
+      `the verdict and a mission reference do.</span>`);
+    $("cpForm").style.display = "none";
+    CP_PUNKT = null;
+    visaKontroll();
+  } catch (e) {
+    // Demon lagrar ingenting och beställer ingenting — och säger det,
+    // tillsammans med exakt de anrop live-API:t skulle ha fått.
+    ut.push(`<b>Not stored:</b> ${e.message}`);
+    ut.push(`<details><summary style="cursor:pointer;font-size:11px">` +
+      `The exact requests the live API would receive</summary>` +
+      `<pre style="font-size:10.5px;white-space:pre-wrap">` +
+      `POST /v1/assets\n${JSON.stringify(objekt, null, 1)}\n\n` +
+      `POST /v1/routines\n${JSON.stringify(rutin, null, 1)}` +
+      (schema ? `\n\nPOST /v1/schedules\n` +
+                `${JSON.stringify(schema, null, 1)}` : "") +
+      `</pre></details>`);
+  }
+  $("cpUt").innerHTML = ut.join("<br>");
 }
 
 // ── Analyze: motorerna som DATA — nästa analys är en rad, inte en vy ──
