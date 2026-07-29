@@ -34,7 +34,9 @@ from engine.accountability import ledger as accountability_ledger
 from engine.analysis import register as analysis_register
 from engine.corroboration import catalog as corroboration_cat
 from engine.entrypoints import entrypoints
+from engine.coverage import coverage
 from engine.mrai import mrai
+from engine.wages import wage
 from scripts.seed_inspections import payload as inspections_payload
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
@@ -98,6 +100,44 @@ def _strip(f: dict) -> dict:
     return f
 
 
+# Analyze-flikens regionval — samma tre per marknad som frontend visar.
+_ANALYS_REGIONER = {"se": ("0180", "1480", "1280"),
+                    "us": ("us-newyork", "us-losangeles", "us-chicago")}
+
+
+def _bake_saturation(marknader, vertikaler) -> dict:
+    from engine.saturation_scan import market_saturation
+    ut = {}
+    for m in marknader:
+        for vid in vertikaler:
+            for kod in _ANALYS_REGIONER.get(m, ()):
+                ut[f"{vid}:{kod}:{m}"] = market_saturation(
+                    vid, kod, market=m)
+    return ut
+
+
+def _bake_merit(marknader) -> dict:
+    from engine.merit_scan import market_merit, region_merit
+    ut = {}
+    for m in marknader:
+        ut[m] = market_merit(m, top_n=10)
+        for kod in _ANALYS_REGIONER.get(m, ()):
+            ut[f"{m}:{kod}"] = region_merit(kod, market=m)
+    return ut
+
+
+def _bake_livability(marknader, yrken) -> dict:
+    from engine.livability_scan import livability_ranking
+    hushall = ("single", "couple_children", "senior")
+    ut = {}
+    for m in marknader:
+        for occ in yrken:
+            for hh in hushall:
+                ut[f"{occ}:{hh}:{m}"] = livability_ranking(
+                    occ, hh, markets=[m], top_n=8)
+    return ut
+
+
 def build(out_path: str, lite: bool = False,
           fragment: bool = False) -> None:
     from engine.verticals import VERTICALS
@@ -143,6 +183,15 @@ def build(out_path: str, lite: bool = False,
         # utan körd sökning SKA vara tomt med sitt quiet_en — demon
         # visar det ärliga läget, inte ett friserat.
         "entrypoints": entrypoints(),
+        # Analyze-fliken: motorerna som inte syns någon annanstans.
+        # Nycklarna speglar flikens val (tre regioner per marknad) —
+        # allt annat svarar DEMOFEL och hänvisar till live-API:t.
+        "analyze_saturation": _bake_saturation(marknader, vertikaler),
+        "analyze_merit": _bake_merit(marknader),
+        "analyze_livability": _bake_livability(marknader, yrken),
+        "analyze_wages": {f"{o}:{m}": wage(o, m)
+                          for m in marknader for o in yrken},
+        "analyze_coverage": {m: coverage(m) for m in ("se", "us", "de")},
         "mrai": {m: mrai(m) for m in ("se", "us", "de")},
         "analysis": {m: analysis_register(market=m)
                      for m in ("se", "us", "de")},
@@ -240,6 +289,32 @@ async function api(path, body) {
   }
   if (path === "/v1/corroboration") return D.corroboration;
   if (path === "/v1/decisions/ledger") return D.ledger;
+  if (path === "/v1/saturation") {
+    const r = D.analyze_saturation[`${body.vertical}:${body.region}:${body.market || "se"}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/merit") {
+    const r = body.region ? D.analyze_merit[`${body.market || "se"}:${body.region}`]
+                          : D.analyze_merit[body.market || "se"];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/livability") {
+    const r = D.analyze_livability[`${body.occupation}:${body.household || "single"}:${(body.markets || ["se"])[0]}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/wages/lookup") {
+    const r = D.analyze_wages[`${body.occupation}:${body.market || "se"}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path.startsWith("/v1/coverage")) {
+    const r = D.analyze_coverage[qp(path, "market") || "se"];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
   if (path === "/v1/ask") {
     const q = (body.question || "").trim();
     const svar = D.ask[q];

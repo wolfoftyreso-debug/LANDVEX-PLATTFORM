@@ -326,6 +326,7 @@
     <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Establish</button>
     <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Workforce</button>
     <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
+    <button class="tab" data-mode="analys"><svg class="ikon"><use href="#i-kompass"/></svg>Analyze</button>
     <button class="tab" data-mode="intel"><svg class="ikon"><use href="#i-lager"/></svg>Intelligence</button>
     <button class="tab" data-mode="console"><svg class="ikon"><use href="#i-puls"/></svg>Console</button>
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
@@ -392,6 +393,18 @@
       <p class="motiv">Three plan tiers plus product modules as add-ons –
         the API enforces entitlements, live layers and rate limits per
         plan automatically.</p>
+    </div>
+    <div id="vyAnalys" style="display:none">
+      <h2>Analyze</h2>
+      <p class="motiv">The engines behind the tabs, one by one. Every
+        answer shows its basis and what it cannot settle — and when the
+        data does not carry the question, the refusal IS the answer.</p>
+      <div class="falt" style="margin-top:12px"><label>Analysis</label>
+        <select id="analysVal"></select></div>
+      <div id="analysBeskrivning" class="motiv" style="margin:6px 0"></div>
+      <div id="analysParams"></div>
+      <button id="analysKor" style="background:var(--accent);border:none;color:#fff;font-weight:600;margin-top:6px">Run analysis</button>
+      <div id="analysUt" class="motiv" style="margin-top:12px"></div>
     </div>
     <div id="vyIntel" style="display:none">
       <h2>Media &amp; political intelligence</h2>
@@ -1089,6 +1102,12 @@ const LAGEN = {
            status: "List prices – configured per contract and market." },
   watch: { rubrik: "Watch", titel: "Platform watch – engines, sources, alerts, agents",
            status: "Live status of the Landvex + AAMOS platform." },
+  analys: { rubrik: "Analyses", titel: "Analyze · every engine, its basis "
+            + "and its limits", status: "Pick an analysis and run it — "
+            + "refusals are answers here." },
+  intel: { rubrik: "Intelligence", titel: "Media & political intelligence",
+           status: "Alignment, contradictions, corroboration and "
+                   + "accountability — with refusals shown as answers." },
   guide: { rubrik: "Guide", titel: "What the data supports — and where it runs out",
            status: "Answer the questions – the guide runs the analyses for you." },
   install: { rubrik: "System", titel: "Landvex · Settings",
@@ -1110,6 +1129,8 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyConsole").style.display = MODE === "console" ? "" : "none";
   $("vyIntel").style.display = MODE === "intel" ? "" : "none";
   if (MODE === "intel") visaIntel();
+  $("vyAnalys").style.display = MODE === "analys" ? "" : "none";
+  if (MODE === "analys") analysInit();
   $("vyPaket").style.display = MODE === "paket" ? "" : "none";
   $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
@@ -2243,6 +2264,190 @@ async function introRoller() {
       `<div class="intro-roll"><b>${r.label_en}</b>` +
       `<span>${r.question_en}</span></div>`).join("");
   } catch (e) { el.innerHTML = ""; }
+}
+
+// ── Analyze: motorerna som DATA — nästa analys är en rad, inte en vy ──
+// Regionvalen speglar det som är förberäknat i demon; live svarar
+// API:t för vilken region som helst i samma marknader.
+const ANALYS_REGIONER = {
+  se: [["0180", "Stockholm"], ["1480", "Gothenburg"], ["1280", "Malmö"]],
+  us: [["us-newyork", "New York"], ["us-losangeles", "Los Angeles"],
+       ["us-chicago", "Chicago"]],
+};
+const ANALYS_HUSHALL = [["single", "Single"],
+                        ["couple_children", "Couple w/ children"],
+                        ["senior", "Senior"]];
+const ANALYSER = [
+  {id: "saturation", label: "Market saturation",
+   desc: "How saturated is X in Y — and it refuses to invent an " +
+         "establishment count where no business register is connected.",
+   path: "/v1/saturation", metod: "POST",
+   params: ["market", "vertical", "region"],
+   kropp: v => ({vertical: v.vertical, region: v.region, market: v.market})},
+  {id: "gaps", label: "Gap analysis",
+   desc: "Where demand is high, supply low and the trend rising — " +
+         "imbalance, not a promise.",
+   path: "/v1/gaps", metod: "POST", params: ["market", "vertical"],
+   kropp: v => ({vertical: v.vertical, market: v.market, top_n: 5})},
+  {id: "merit", label: "Merit — where it measurably goes well",
+   desc: "Documented outcomes, on stated grounds. Choose a whole " +
+         "market or a single region.",
+   path: "/v1/merit", metod: "POST", params: ["market", "region_valfri"],
+   kropp: v => v.region ? {region: v.region, market: v.market}
+                        : {market: v.market, top_n: 10}},
+  {id: "livability", label: "Livability — where can I build a good life?",
+   desc: "Household-weighted living conditions for an occupation, " +
+         "ranked. Wages against costs, per household type.",
+   path: "/v1/livability", metod: "POST",
+   params: ["market", "occupation", "household"],
+   kropp: v => ({occupation: v.occupation, household: v.household,
+                 markets: [v.market], top_n: 8})},
+  {id: "wages", label: "Wages — the standard wage, sourced",
+   desc: "Standard wage for a standard occupation, per market, with " +
+         "provenance.",
+   path: "/v1/wages/lookup", metod: "POST",
+   params: ["market", "occupation"],
+   kropp: v => ({occupation: v.occupation, market: v.market})},
+  {id: "coverage", label: "Coverage — what we can answer HERE",
+   desc: "The platform's own reach in a market: how much of the " +
+         "signal picture rests on real sources. The number that keeps " +
+         "every other number honest.",
+   path: "/v1/coverage", metod: "GET", params: ["market"],
+   url: v => `/v1/coverage?market=${v.market}`},
+];
+
+// Valen hämtas via api() — SAMMA väg i demo (bakade svar) och live.
+let ANALYS_VAL = null;
+async function analysHamtaVal() {
+  if (ANALYS_VAL) return ANALYS_VAL;
+  const [opts, yrken] = await Promise.all([
+    api("/v1/profile-options"), api("/v1/workforce/occupations")]);
+  ANALYS_VAL = {verticals: opts.vertical_id || [], occupations: yrken};
+  return ANALYS_VAL;
+}
+
+function analysFalt(typ) {
+  if (typ === "market")
+    return `<div class="falt"><label>Market</label>
+      <select data-p="market"><option value="se">Sweden</option>
+      <option value="us">USA</option></select></div>`;
+  if (typ === "vertical")
+    return `<div class="falt"><label>Industry</label>
+      <select data-p="vertical">` + ANALYS_VAL.verticals.map(o =>
+        `<option value="${o.id}">${o.label_en}</option>`).join("") +
+      `</select></div>`;
+  if (typ === "region" || typ === "region_valfri")
+    return `<div class="falt"><label>Region${typ === "region_valfri"
+        ? " (optional — empty = whole market)" : ""}</label>
+      <select data-p="region"></select></div>`;
+  if (typ === "occupation")
+    return `<div class="falt"><label>Occupation</label>
+      <select data-p="occupation">` + ANALYS_VAL.occupations.map(o =>
+        `<option value="${o.id}">${o.label_en || o.id}</option>`).join("") +
+      `</select></div>`;
+  if (typ === "household")
+    return `<div class="falt"><label>Household</label>
+      <select data-p="household">` + ANALYS_HUSHALL.map(([id, l]) =>
+        `<option value="${id}">${l}</option>`).join("") + `</select></div>`;
+  return "";
+}
+
+function analysRegionFyll(valfri) {
+  const m = document.querySelector('#analysParams [data-p="market"]');
+  const r = document.querySelector('#analysParams [data-p="region"]');
+  if (!r) return;
+  const rader = ANALYS_REGIONER[(m && m.value) || "se"] || [];
+  r.innerHTML = (valfri ? `<option value="">— whole market —</option>` : "")
+    + rader.map(([kod, namn]) =>
+        `<option value="${kod}">${namn}</option>`).join("");
+}
+
+// Det ärliga kortet: vägran och förbehåll FÖRST, sedan talen, sedan
+// hela svaret oavkortat. En generisk renderare kan inte förstå varje
+// motor — men den kan vägra att gömma det motorn själv flaggar.
+function arligKort(svar) {
+  const bitar = [];
+  const ARLIGA = ["refusal_en", "cannot_en", "caveats_en", "quiet_en",
+                  "basis_en", "notis_en"];
+  for (const f of ARLIGA) {
+    const v = svar[f];
+    if (!v) continue;
+    const text = Array.isArray(v) ? v.join(" ") : v;
+    bitar.push(`<div style="font-size:12px;border-left:3px solid var(--accent);` +
+      `padding:4px 8px;margin-bottom:6px;opacity:.85"><b>${f.replace("_en", "")}` +
+      `</b>: ${text}</div>`);
+  }
+  if ("data_coverage" in svar)
+    bitar.push(`<div style="font-size:12px;margin-bottom:6px">data_coverage: ` +
+      `<b>${svar.data_coverage}</b>${svar.data_coverage === 0
+        ? " — everything below is simulation, and says so" : ""}</div>`);
+  const skalar = [];
+  for (const [k, v] of Object.entries(svar)) {
+    if (ARLIGA.includes(k) || k === "data_coverage") continue;
+    if (typeof v === "number" || typeof v === "boolean" ||
+        (typeof v === "string" && v.length <= 60))
+      skalar.push(`<div style="display:flex;justify-content:space-between;` +
+        `font-size:12.5px;gap:12px"><span style="opacity:.7">${k}</span>` +
+        `<b>${v}</b></div>`);
+  }
+  if (skalar.length) bitar.push(skalar.join(""));
+  for (const [k, v] of Object.entries(svar)) {
+    if (!Array.isArray(v) || !v.length || typeof v[0] !== "object") continue;
+    const rader = v.slice(0, 6).map(rad => {
+      const namn = rad.label_en || rad.kommun || rad.region || rad.id || "";
+      const tal = rad.score ?? rad.varde ?? rad.value ?? rad.index ??
+                  rad.net_monthly ?? "";
+      const band = rad.band_en || rad.band || rad.status || "";
+      return `<div style="display:flex;justify-content:space-between;` +
+        `font-size:12px;gap:10px"><span>${namn}</span>` +
+        `<span><b>${tal}</b> <span style="opacity:.6">${band}</span></span></div>`;
+    }).join("");
+    bitar.push(`<div style="margin-top:8px"><b style="font-size:12px">${k}` +
+      ` (${v.length})</b>${rader}</div>`);
+  }
+  bitar.push(`<details style="margin-top:10px"><summary style="font-size:11px;` +
+    `cursor:pointer;opacity:.6">Full answer, unabridged</summary>` +
+    `<pre style="font-size:10.5px;white-space:pre-wrap;max-height:340px;` +
+    `overflow:auto">${JSON.stringify(svar, null, 1)
+      .replace(/</g, "&lt;")}</pre></details>`);
+  return bitar.join("");
+}
+
+let ANALYS_INITIERAD = false;
+async function analysInit() {
+  if (ANALYS_INITIERAD) return;
+  ANALYS_INITIERAD = true;
+  await analysHamtaVal();
+  const val = $("analysVal");
+  val.innerHTML = ANALYSER.map(a =>
+    `<option value="${a.id}">${a.label}</option>`).join("");
+  const rita = () => {
+    const a = ANALYSER.find(x => x.id === val.value);
+    $("analysBeskrivning").textContent = a.desc;
+    $("analysParams").innerHTML = a.params.map(analysFalt).join("");
+    analysRegionFyll(a.params.includes("region_valfri"));
+    const m = document.querySelector('#analysParams [data-p="market"]');
+    if (m) m.onchange = () =>
+      analysRegionFyll(a.params.includes("region_valfri"));
+    $("analysUt").innerHTML = "";
+  };
+  val.onchange = rita;
+  rita();
+  $("analysKor").onclick = async () => {
+    const a = ANALYSER.find(x => x.id === val.value);
+    const v = {};
+    document.querySelectorAll("#analysParams [data-p]").forEach(el =>
+      v[el.dataset.p] = el.value);
+    $("analysUt").innerHTML = "Running …";
+    try {
+      const svar = a.metod === "GET"
+        ? await api(a.url(v)) : await api(a.path, a.kropp(v));
+      $("analysUt").innerHTML = arligKort(svar);
+    } catch (e) {
+      $("analysUt").innerHTML =
+        `<div style="font-size:12.5px">${e.message}</div>`;
+    }
+  };
 }
 
 // ── Media & political intelligence ─────────────────────────────────────
