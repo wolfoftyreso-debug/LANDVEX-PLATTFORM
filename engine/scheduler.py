@@ -31,6 +31,7 @@ Rent stdlib.
 """
 from __future__ import annotations
 
+import datetime as _dt
 import threading as _threading
 import time as _time
 from typing import Any
@@ -103,6 +104,99 @@ def _run_push(job: dict, now: float) -> dict:
         # Vägran är ett körningsresultat, inte en krasch: skälet ska
         # stå i jobbregistret där någon faktiskt tittar.
         return {"delivered": False, "status": None, "why_en": str(e)}
+
+
+def _run_infra_dispatch(job: dict, now: float) -> dict:
+    """Beställ verifieringsuppdrag för infrastrukturobjekt som förfallit.
+
+    Sista länken i uppdragsloopen: färskheten avgör VAD som ska ses
+    (`infrastructure.due`), vädertriggern kan lägga till EXTRA objekt
+    (verifiera efter regn), och beställningen går genom exakt samma
+    MissionDispatcher som fotokontrollerna — samma vägransregler, aldrig
+    ett påhittat uppdrags-id. En körning som beställde noll för att
+    URL:en saknas säger det, i stället för att se ut som en lugn dag.
+    """
+    from engine import infrastructure as INF
+    from engine import inspections as I
+    from integrations.quixzoom_dispatch import (DispatchRefused,
+                                                MissionDispatcher)
+
+    p = job.get("params") or {}
+    tenant = job["tenant"]
+    slag = p.get("kinds") or list(INF.OBJECT_TYPES)
+    objekt = [a for a in I.all_assets(tenant)
+              if a.get("kind") in INF.OBJECT_TYPES
+              and a.get("kind") in slag]
+    obs = I.all_observations(tenant)
+    lage = INF.due(objekt, obs, now=now)
+    mal = {r["object_id"] for r in lage["due"]} | \
+          {r["object_id"] for r in lage["never_verified"]}
+
+    # after_weather LÄGGER TILL objekt (verifiera efter regn) — den
+    # gater aldrig bort förfall. after_event vägras med namngivet skäl:
+    # kundens kalender finns inte här, och en trigger som inte kan
+    # utvärderas får inte låtsas ha gjort det.
+    extra_vader, trigger_vagran = [], []
+    vaderlagda: set = set()
+    for t in p.get("triggers") or []:
+        if t.get("kind") == "after_event":
+            trigger_vagran.append({
+                "trigger": "after_event",
+                "why_en": "the event calendar is the customer's and is "
+                          "not connected here — the trigger cannot be "
+                          "evaluated and must not pretend it was"})
+            continue
+        if t.get("kind") == "after_weather":
+            for o in objekt:
+                if o["id"] in mal:
+                    continue
+                v = INF.weather_trigger_met(t, o.get("lat"), o.get("lon"),
+                                            now=now)
+                if v["met"]:
+                    mal.add(o["id"])
+                    vaderlagda.add(o["id"])
+                    extra_vader.append({"object_id": o["id"],
+                                        "why_en": v["why_en"]})
+
+    tak = int(p.get("max_per_run", 0))
+    ordnade = sorted(mal)
+    kapade = 0
+    if tak and len(ordnade) > tak:
+        kapade = len(ordnade) - tak
+        ordnade = ordnade[:tak]
+
+    publik = p.get("audience")
+    d = MissionDispatcher()
+    per_objekt = {o["id"]: o for o in objekt}
+    bestallda, vagrade = [], []
+    due_at = _dt.datetime.fromtimestamp(
+        now, tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for oid in ordnade:
+        o = per_objekt[oid]
+        try:
+            spec = INF.mission_spec(
+                o, obs, audience=publik,
+                weather_invalidated=oid in vaderlagda, now=now)
+            bestallda.append(d.dispatch(o, spec, due_at))
+        except (DispatchRefused, INF.ObservationRefused) as e:
+            vagrade.append({"object_id": oid, "why_en": str(e)})
+
+    return {
+        "ordered": len(bestallda), "refused": len(vagrade),
+        "refusals": vagrade, "trigger_refusals": trigger_vagran,
+        "extra_from_weather": extra_vader,
+        "due_count": lage["due_count"], "never_count": lage["never_count"],
+        "skipped_over_cap": kapade,
+        "detail_en": (
+            f"{len(bestallda)} mission(s) ordered, {len(vagrade)} "
+            f"refused with reasons"
+            + (f", {kapade} due object(s) held over the max_per_run cap "
+               f"— named work left undone, not hidden work" if kapade
+               else "")
+            + ("." if d.connected else
+               ". LANDVEX_QUIXZOOM_URL is unset, so every order was "
+               "refused — this run must not read as a quiet day.")),
+    }
 
 
 def _run_monitors(job: dict, now: float) -> dict:
@@ -216,6 +310,20 @@ JOB_KINDS: dict[str, dict] = {
         "note_en": "Never reports a pair where both signals are "
                    "simulated: two mock series correlate exactly as the "
                    "generator built them."},
+    "infrastructure_dispatch": {
+        "label_en": "Order verification missions for objects past their "
+                    "freshness window",
+        "capability": "asset_inspections",
+        "params_en": "kinds (optional), max_per_run (optional), audience "
+                     "(optional — open pool or named zoomers), triggers "
+                     "(optional; after_weather reads harvested weather, "
+                     "after_event is refused with its reason)",
+        "run": _run_infra_dispatch,
+        "note_en": "The freshness window decides WHAT is looked at; the "
+                   "weather trigger can ADD objects but never gates due "
+                   "ones away. Orders go through the same dispatcher as "
+                   "the photo checks — refusals are counted with "
+                   "reasons, and no mission id is ever invented."},
     "push": {
         "label_en": "Deliver a dataset to a customer webhook",
         "capability": "core",
@@ -250,6 +358,28 @@ def job(id: str, kind: str, *, cadence: dict | None = None,
             f"unknown job kind {kind!r}; choose {', '.join(sorted(JOB_KINDS))}")
     kad = dict(cadence or {"every": "daily"})
     cadence_minutes(kad)                      # validerar tidigt, samma dialekt
+    if kind == "infrastructure_dispatch":
+        # Publik, objekttyper och triggers prövas när jobbet skapas —
+        # inte i en obevakad nattkörning månader senare.
+        from engine import infrastructure as INF
+        from engine.inspections import RoutineError, audience
+        p = params or {}
+        if p.get("audience") is not None:
+            try:
+                audience(**p["audience"])
+            except (RoutineError, TypeError) as e:
+                raise ScheduleRefused(str(e)) from e
+        okanda_slag = set(p.get("kinds") or ()) - set(INF.OBJECT_TYPES)
+        if okanda_slag:
+            raise ScheduleRefused(
+                f"unknown object kind(s) {sorted(okanda_slag)}; choose "
+                f"{', '.join(sorted(INF.OBJECT_TYPES))}")
+        okanda_trig = [t.get("kind") for t in p.get("triggers") or ()
+                       if t.get("kind") not in INF.TRIGGERS]
+        if okanda_trig:
+            raise ScheduleRefused(
+                f"unknown trigger kind(s) {okanda_trig}; choose "
+                f"{', '.join(sorted(INF.TRIGGERS))}")
     if kind == "push":
         # Mål, datamängd och format prövas när prenumerationen skapas —
         # inte i en obevakad nattkörning månader senare.

@@ -259,6 +259,180 @@ def test_the_tick_interval_has_a_floor():
             os.environ["LANDVEX_SCHEDULER_INTERVAL_S"] = gammal
 
 
+# ── Uppdragsloopen för infrastruktur ───────────────────────────────────
+def _infra_setup(*, stale: bool = True):
+    """Ett bilparkeringsobjekt med en observation — gammal eller färsk."""
+    from engine import infrastructure as INF
+    from engine import inspections as I
+
+    S.reset()
+    I.reset()
+    I.save_asset(I.asset("p-1", "car_parking", label_en="Garage Nord",
+                         lat=59.33, lon=18.06, tenant="flaggab"))
+    alder = 300 if stale else 1
+    I.save_observation(INF.observe(
+        "p-1", "car_parking", {"free_spaces": 4}, mission_id="m-0",
+        tenant="flaggab", observed_at=_NU - alder * 60))
+
+
+class _StubDispatcher:
+    """Fångar beställningarna utan nät — samma yta som MissionDispatcher."""
+
+    skickade: list = []
+    connected = True
+
+    def __init__(self, *a, **kw):
+        pass
+
+    def dispatch(self, asset, rut, due_at, **kw):
+        _StubDispatcher.skickade.append({"asset": asset, "rut": rut,
+                                         "due_at": due_at})
+        return {"mission_id": f"m-{len(_StubDispatcher.skickade)}"}
+
+
+def test_the_infra_job_orders_for_expired_fields_with_the_audience():
+    """Slutlänken: förfallet fält → beställt uppdrag, genom SAMMA
+    beställningsväg som fotokontrollerna, med publiken ordagrant."""
+    import integrations.quixzoom_dispatch as QD
+
+    _infra_setup(stale=True)
+    _StubDispatcher.skickade = []
+    orig = QD.MissionDispatcher
+    QD.MissionDispatcher = _StubDispatcher
+    try:
+        S.save_job(_jobb(id="infra", kind="infrastructure_dispatch",
+                         params={"audience": {
+                             "pool": "named",
+                             "zoomer_ids": ("qz-staff-001",)}}))
+        r = S.run_due("flaggab", _NU)["ran"][0]
+        assert r["ordered"] == 1 and r["refused"] == 0
+        sedd = _StubDispatcher.skickade[0]
+        assert sedd["asset"]["id"] == "p-1"
+        assert "Free spaces" in sedd["rut"]["checks"]
+        assert sedd["rut"]["audience"]["zoomer_ids"] == ("qz-staff-001",)
+        assert sedd["due_at"].endswith("Z")
+    finally:
+        QD.MissionDispatcher = orig
+        S.reset()
+
+
+def test_without_the_endpoint_every_order_is_a_counted_refusal():
+    """Aldrig ett påhittat uppdrags-id — och körningen får inte läsas
+    som en lugn dag."""
+    _infra_setup(stale=True)
+    S.save_job(_jobb(id="infra", kind="infrastructure_dispatch"))
+    r = S.run_due("flaggab", _NU)["ran"][0]
+    assert r["ordered"] == 0 and r["refused"] == 1
+    assert "no mission id exists" in r["refusals"][0]["why_en"]
+    assert "must not read as a quiet day" in r["detail_en"]
+    S.reset()
+
+
+def test_the_weather_trigger_adds_objects_and_after_event_is_refused():
+    """after_weather LÄGGER TILL (verifiera efter regn); after_event kan
+    inte utvärderas här och säger det i stället för att låtsas."""
+    import integrations.quixzoom_dispatch as QD
+
+    from engine import harvest as H
+    from engine import inspections as I
+
+    from engine import infrastructure as INF
+
+    # ALLA fält färska: objektet är inte förfallet — bara vädret kan
+    # lägga till det, och då ska de VÄDERKÄNSLIGA fälten verifieras om
+    # trots att avläsningen är minuter gammal (händelsen, inte klockan,
+    # ogiltigförklarade dem).
+    S.reset()
+    I.reset()
+    I.save_asset(I.asset("p-1", "car_parking", label_en="Garage Nord",
+                         lat=59.33, lon=18.06, tenant="flaggab"))
+    I.save_observation(INF.observe(
+        "p-1", "car_parking",
+        {"free_spaces": 4, "occupancy": 0.5, "blocked_spaces": 0,
+         "accessible_spaces_free": 1, "ev_charger_works": True,
+         "payment_machine_works": True, "signage_correct": "good",
+         "snow_or_obstruction": "good"},
+        mission_id="m-0", tenant="flaggab", observed_at=_NU - 60))
+    H.reset()
+    H.store_rows([{"source": "open_meteo", "region_code": "0180",
+                   "market": "se", "signal_id": "precipitation_mm",
+                   "value": 15.0, "lat": 59.33, "lon": 18.06,
+                   "observed_at": _NU - 600}])
+    _StubDispatcher.skickade = []
+    orig = QD.MissionDispatcher
+    QD.MissionDispatcher = _StubDispatcher
+    try:
+        S.save_job(_jobb(id="infra", kind="infrastructure_dispatch",
+                         params={"triggers": [
+                             {"kind": "after_weather",
+                              "params": {"kind": "rain", "threshold": 5}},
+                             {"kind": "after_event",
+                              "params": {"event_ref": "x"}}]}))
+        r = S.run_due("flaggab", _NU)["ran"][0]
+        assert r["extra_from_weather"] and \
+            r["extra_from_weather"][0]["object_id"] == "p-1"
+        assert r["ordered"] == 1
+        # uppdraget ber om det VÄDERKÄNSLIGA fältet trots färsk avläsning
+        assert "Snow or obstruction" in \
+            _StubDispatcher.skickade[0]["rut"]["checks"]
+        assert r["trigger_refusals"][0]["trigger"] == "after_event"
+        assert "cannot be evaluated" in \
+            r["trigger_refusals"][0]["why_en"]
+    finally:
+        QD.MissionDispatcher = orig
+        H.reset()
+        S.reset()
+
+
+def test_the_cap_names_what_it_left_undone():
+    import integrations.quixzoom_dispatch as QD
+
+    from engine import infrastructure as INF
+    from engine import inspections as I
+
+    S.reset()
+    I.reset()
+    for i in range(3):
+        I.save_asset(I.asset(f"p-{i}", "car_parking", lat=59.3, lon=18.0,
+                             tenant="flaggab"))
+        I.save_observation(INF.observe(
+            f"p-{i}", "car_parking", {"free_spaces": 1}, mission_id="m",
+            tenant="flaggab", observed_at=_NU - 300 * 60))
+    _StubDispatcher.skickade = []
+    orig = QD.MissionDispatcher
+    QD.MissionDispatcher = _StubDispatcher
+    try:
+        S.save_job(_jobb(id="infra", kind="infrastructure_dispatch",
+                         params={"max_per_run": 2}))
+        r = S.run_due("flaggab", _NU)["ran"][0]
+        assert r["ordered"] == 2 and r["skipped_over_cap"] == 1
+        assert "named work left undone" in r["detail_en"]
+    finally:
+        QD.MissionDispatcher = orig
+        S.reset()
+        I.reset()
+
+
+def test_the_infra_job_is_validated_when_created_not_at_3am():
+    for fel in ({"audience": {"pool": "named"}},
+                {"audience": {"pool": "named",
+                              "zoomer_ids": ("anna@butiken.se",)}},
+                {"kinds": ["rymdstation"]},
+                {"triggers": [{"kind": "efter_fullmåne"}]}):
+        try:
+            S.job("j", "infrastructure_dispatch", tenant="t1", params=fel)
+        except S.ScheduleRefused:
+            continue
+        raise AssertionError(f"{fel} borde ha vägrats vid skapandet")
+    ok = S.job("j", "infrastructure_dispatch", tenant="t1",
+               params={"kinds": ["car_parking"],
+                       "triggers": [{"kind": "after_weather",
+                                     "params": {"threshold": 5}}]})
+    assert ok["kind"] == "infrastructure_dispatch"
+    assert S.JOB_KINDS["infrastructure_dispatch"]["capability"] == \
+        "asset_inspections"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

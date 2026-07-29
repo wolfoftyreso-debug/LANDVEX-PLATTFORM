@@ -60,10 +60,15 @@ CONDITION_BANDS = ("good", "acceptable", "poor", "unusable")
 
 
 def _o(id: str, label_en: str, kind: str, fresh_minutes: float,
-       stale_minutes: float, cannot_en: str) -> dict:
+       stale_minutes: float, cannot_en: str, *,
+       weather_sensitive: bool = False) -> dict:
+    """`weather_sensitive`: regn eller snöfall OGILTIGFÖRKLARAR fältet
+    genom händelsen, inte genom klockan — en färsk snöavläsning från i
+    morse är värdelös efter ett skyfall, hur ung den än är."""
     return {"id": id, "label_en": label_en, "kind": kind,
             "fresh_minutes": fresh_minutes,
-            "stale_minutes": stale_minutes, "cannot_en": cannot_en}
+            "stale_minutes": stale_minutes, "cannot_en": cannot_en,
+            "weather_sensitive": weather_sensitive}
 
 
 # Beläggning åldras på minuter. Skador åldras på veckor. Skillnaden är
@@ -99,7 +104,8 @@ OBJECT_TYPES: dict[str, dict] = {
             _o("litter", "Litter", "condition", _DAGSFARSK, 2880.0,
                "Litter is a band set by eye, and eyes differ. The band "
                "is comparable over time at the SAME site, less so "
-               "between sites."),
+               "between sites.",
+               weather_sensitive=True),
         )},
     "car_parking": {
         "label_en": "Car parking",
@@ -134,7 +140,8 @@ OBJECT_TYPES: dict[str, dict] = {
             _o("snow_or_obstruction", "Snow or obstruction",
                "condition", _DAGSFARSK, 1440.0,
                "Winter conditions change within hours; a clear reading "
-               "from the morning says nothing about the afternoon."),
+               "from the morning says nothing about the afternoon.",
+               weather_sensitive=True),
         )},
     "bus_stop": {
         "label_en": "Bus stop",
@@ -153,7 +160,8 @@ OBJECT_TYPES: dict[str, dict] = {
             _o("snow_or_obstruction", "Snow or obstruction",
                "condition", _DAGSFARSK, 1440.0,
                "Winter conditions change within hours; a clear reading "
-               "this morning says nothing about this afternoon."),
+               "this morning says nothing about this afternoon.",
+               weather_sensitive=True),
         )},
     "playground": {
         "label_en": "Playground",
@@ -199,7 +207,8 @@ OBJECT_TYPES: dict[str, dict] = {
             _o("snow_or_obstruction", "Snow or obstruction",
                "condition", _DAGSFARSK, 1440.0,
                "Winter conditions change within hours; a clear reading "
-               "this morning says nothing about this afternoon."),
+               "this morning says nothing about this afternoon.",
+               weather_sensitive=True),
         )},
     "bike_pump": {
         "label_en": "Public bicycle pump",
@@ -242,7 +251,8 @@ OBJECT_TYPES: dict[str, dict] = {
         "label_en": "Public beach",
         "observations": (
             _o("crowding", "Crowding", "condition", _FLYKTIG, 180.0,
-               "A band set by eye at one moment on one stretch."),
+               "A band set by eye at one moment on one stretch.",
+               weather_sensitive=True),
             _o("litter", "Litter", "condition", _DAGSFARSK, 2880.0,
                "A band set by eye on one stretch of shore — a clean "
                "reading says nothing about the next bay."),
@@ -600,6 +610,105 @@ def sla_report(objects: list[dict], observations: list[dict], *,
                       "perfectly met SLA on a single observer network "
                       "still leaves every field at the 'weak' band."),
     }
+
+
+def fields_to_verify(object_id: str, kind: str,
+                     observations: list[dict], *,
+                     now: float = 0.0) -> list[dict]:
+    """Fälten vars färskhetsfönster passerat (eller aldrig setts) —
+    det uppdraget ska be zoomern titta på."""
+    s = status(object_id, kind, observations, now=now)
+    ut = []
+    for f in s["fields"]:
+        if f["freshness"] == "never" or (
+                f["age_minutes"] is not None
+                and f["age_minutes"] > f.get("fresh_for_minutes", 0)):
+            ut.append({"id": f["observation_id"],
+                       "label_en": f["label_en"]})
+    return ut
+
+
+def mission_spec(obj: dict, observations: list[dict], *,
+                 audience: dict | None = None,
+                 weather_invalidated: bool = False,
+                 now: float = 0.0) -> dict:
+    """Rut-formad specifikation för quixzoom_dispatch.dispatch().
+
+    ÅTERBRUK, inte ny transportkod: MissionDispatcher läser `label_en`,
+    `checks` och `audience` ur en rutin-dict — den här bygger samma form
+    ur objektets förfallna fält, så uppdragsloopen går genom exakt samma
+    beställningsväg (och samma vägransregler) som fotokontrollerna.
+
+    `weather_invalidated`: regn/snöfall ogiltigförklarar de
+    väderkänsliga fälten genom HÄNDELSEN, inte klockan — de tas med i
+    uppdraget även om deras avläsning är minuter gammal.
+    """
+    kind = obj.get("kind", "")
+    if kind not in OBJECT_TYPES:
+        raise ObservationRefused(f"unknown object type {kind!r}")
+    falt = fields_to_verify(obj["id"], kind, observations, now=now)
+    if weather_invalidated:
+        redan = {f["id"] for f in falt}
+        falt += [{"id": o["id"], "label_en": o["label_en"]}
+                 for o in OBJECT_TYPES[kind]["observations"]
+                 if o.get("weather_sensitive") and o["id"] not in redan]
+    if not falt:
+        raise ObservationRefused(
+            f"nothing on {obj['id']} needs verifying — every field is "
+            f"inside its freshness window, and ordering a mission "
+            f"anyway would bill the customer for looking at nothing")
+    return {"id": f"infra-{obj['id']}",
+            "label_en": f"Verify {OBJECT_TYPES[kind]['label_en'].lower()}",
+            "checks": tuple(f["label_en"] for f in falt),
+            "audience": audience or {"pool": "open"}}
+
+
+def weather_trigger_met(trigger: dict, lat: float | None,
+                        lon: float | None, *, now: float = 0.0) -> dict:
+    """Utvärdera `after_weather` mot SKÖRDAT väder — aldrig ett anrop.
+
+    Utan en skördad väderrad inom räckhåll utlöses triggern INTE, med
+    skälet: en blind trigger får inte avfyra, och vår tystnad är inte
+    ett väder. Snö är ett NÄRMEVÄRDE (nederbörd vid ≤ 0 °C) och sägs
+    vara det.
+    """
+    from engine import harvest
+
+    p = trigger.get("params") or {}
+    slag = p.get("kind", "rain")
+    troskel = float(p.get("threshold", 5.0))
+    if lat is None or lon is None:
+        return {"met": False,
+                "why_en": "the object has no coordinates, so no weather "
+                          "reading can be matched to it"}
+    rader = harvest.read("open_meteo", lat, lon,
+                         ["precipitation_mm", "air_temperature_c"],
+                         now=now)
+    nederbord = rader.get("precipitation_mm")
+    if nederbord is None:
+        return {"met": False,
+                "why_en": "no harvested weather within reach of this "
+                          "object — a blind trigger must not fire, and "
+                          "our silence is not weather"}
+    mm = float(nederbord.get("value") or 0)
+    if slag == "snow":
+        temp = rader.get("air_temperature_c")
+        if temp is None:
+            return {"met": False,
+                    "why_en": "snow needs a temperature reading beside "
+                              "the precipitation, and none is harvested "
+                              "within reach"}
+        kallt = float(temp.get("value") or 99) <= 0.0
+        return {"met": mm >= troskel and kallt,
+                "why_en": (f"{mm} mm precipitation at "
+                           f"{temp.get('value')} °C — snow here is a "
+                           f"PROXY (precipitation at or below zero), "
+                           f"not an observed snowfall.")}
+    return {"met": mm >= troskel,
+            "why_en": f"{mm} mm harvested precipitation against the "
+                      f"{troskel} mm threshold "
+                      f"({nederbord.get('age_days')} day(s) old, "
+                      f"{nederbord.get('distance_km')} km away)."}
 
 
 def catalog() -> dict:

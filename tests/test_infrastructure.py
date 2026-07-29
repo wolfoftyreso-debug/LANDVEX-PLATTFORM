@@ -297,6 +297,97 @@ def test_freshness_uses_wall_clock_when_no_time_is_given():
     assert rad["freshness"] == "current"
 
 
+# ── Uppdragsloopen: förfall → beställning ──────────────────────────────
+def test_the_mission_spec_carries_exactly_the_expired_fields():
+    """Zoomern ska bes titta på det som GÅTT UT — inte på allt, och
+    inte på ingenting."""
+    o = _obs(60, {"free_spaces": 3, "signage_correct": "good"})
+    spec = I.mission_spec({"id": "p-1", "kind": "car_parking"}, [o],
+                          now=NU)
+    assert "Free spaces" in spec["checks"]          # 60 min > 20-fönstret
+    assert "Signage correct" not in spec["checks"]  # inom sitt fönster
+    assert spec["audience"] == {"pool": "open"}
+    assert spec["label_en"].startswith("Verify car parking")
+
+
+def test_a_fully_fresh_object_refuses_a_mission_rather_than_billing():
+    o = _obs(1, {"free_spaces": 3, "occupancy": 0.5,
+                 "accessible_spaces_free": 1, "signage_correct": "good",
+                 "ev_charger_works": True, "payment_machine_works": True,
+                 "blocked_spaces": 0, "snow_or_obstruction": "good"})
+    try:
+        I.mission_spec({"id": "p-1", "kind": "car_parking"}, [o], now=NU)
+    except I.ObservationRefused as e:
+        assert "looking at nothing" in str(e)
+    else:
+        raise AssertionError("färskt objekt skulle ha vägrat uppdrag")
+
+
+def test_the_weather_trigger_never_fires_blind():
+    """Utan skördad väderrad inom räckhåll utlöses INTE triggern — vår
+    tystnad är inte ett väder."""
+    from engine import harvest as H
+
+    H.reset()
+    t = {"kind": "after_weather", "params": {"kind": "rain",
+                                             "threshold": 5.0}}
+    v = I.weather_trigger_met(t, 59.33, 18.06, now=NU)
+    assert v["met"] is False
+    assert "blind trigger must not fire" in v["why_en"]
+    # utan koordinater: samma vägran, annat skäl
+    v2 = I.weather_trigger_met(t, None, None, now=NU)
+    assert v2["met"] is False and "no coordinates" in v2["why_en"]
+
+
+def test_the_weather_trigger_fires_only_above_the_threshold():
+    from engine import harvest as H
+
+    H.reset()
+    try:
+        H.store_rows([{"source": "open_meteo", "region_code": "0180",
+                       "market": "se", "signal_id": "precipitation_mm",
+                       "value": 12.0, "lat": 59.33, "lon": 18.06,
+                       "observed_at": NU - 3600}])
+        t = {"kind": "after_weather",
+             "params": {"kind": "rain", "threshold": 5.0}}
+        traff = I.weather_trigger_met(t, 59.33, 18.06, now=NU)
+        assert traff["met"] is True and "12.0 mm" in traff["why_en"]
+        t["params"]["threshold"] = 20.0
+        assert I.weather_trigger_met(t, 59.33, 18.06, now=NU)["met"] \
+            is False
+        # snö utan temperatur: vägran med skäl, inte en gissning
+        sno = I.weather_trigger_met(
+            {"kind": "after_weather",
+             "params": {"kind": "snow", "threshold": 5.0}},
+            59.33, 18.06, now=NU)
+        assert sno["met"] is False and "temperature" in sno["why_en"]
+    finally:
+        H.reset()
+
+
+def test_snow_is_a_proxy_and_says_so():
+    from engine import harvest as H
+
+    H.reset()
+    try:
+        nu = NU
+        H.store_rows([
+            {"source": "open_meteo", "region_code": "0180", "market": "se",
+             "signal_id": "precipitation_mm", "value": 8.0,
+             "lat": 59.33, "lon": 18.06, "observed_at": nu - 600},
+            {"source": "open_meteo", "region_code": "0180", "market": "se",
+             "signal_id": "air_temperature_c", "value": -2.0,
+             "lat": 59.33, "lon": 18.06, "observed_at": nu - 600}])
+        v = I.weather_trigger_met(
+            {"kind": "after_weather",
+             "params": {"kind": "snow", "threshold": 5.0}},
+            59.33, 18.06, now=nu)
+        assert v["met"] is True
+        assert "PROXY" in v["why_en"]
+    finally:
+        H.reset()
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
