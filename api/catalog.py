@@ -483,6 +483,22 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/staff/invite"},
                        {"method": "POST", "path": "/v1/staff/claim"},
                        {"method": "POST", "path": "/v1/staff/remove"}]},
+        {"id": "deliveries", "label_en": "The outbound audit log",
+         "beskrivning_en": "Every outbound delivery attempt — pushes, "
+                           "credentials, filed exceptions — logged with "
+                           "the receiver's actual answer. Every POST "
+                           "carries an idempotency id, an HMAC signature "
+                           "over the body (the tenant's server secret) "
+                           "and a schema version to build transforms "
+                           "against. The receiving system can verify any "
+                           "delivery id against the body it received. "
+                           "The log never stores the body itself, and "
+                           "'delivered' is the receiver's word — a row's "
+                           "existence means the attempt happened, not "
+                           "that it succeeded.",
+         "endpoints": [{"method": "GET", "path": "/v1/deliveries"},
+                       {"method": "POST",
+                        "path": "/v1/deliveries/verify"}]},
         {"id": "connections", "label_en": "Your own integrations",
          "beskrivning_en": "Bring your own language-model key (Anthropic, "
                            "OpenAI) or team webhook (Slack, Teams). Keys "

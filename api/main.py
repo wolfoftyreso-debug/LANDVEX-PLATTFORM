@@ -79,6 +79,7 @@ from engine import news as _news
 from engine import company as _company
 from engine import connections as _connections
 from engine import credentials as _credentials
+from engine import deliveries as _deliveries
 from engine import sponsorship as _sponsorship
 from engine import staff as _staff
 from engine.scenario import project as scenario_project
@@ -231,6 +232,7 @@ _connections.set_store(STORE)
 _company.set_store(STORE)
 _credentials.set_store(STORE)
 _staff.set_store(STORE)
+_deliveries.set_store(STORE)
 
 
 def _med_credential(rec: dict, kind: str, subject: dict, *,
@@ -1507,6 +1509,22 @@ def exceptions_report_ep(request: Request, body: dict):
 def credentials_catalog_ep():
     """What a credential certifies — and what it cannot."""
     return _credentials.catalog()
+
+
+@app.get("/v1/deliveries")
+def deliveries_list_ep(request: Request, limit: int = 100):
+    """The outbound audit log — attempts and answers, never bodies."""
+    return {**_deliveries.catalog(),
+            "deliveries": _deliveries.all_deliveries(_tenant(request),
+                                                     limit=limit)}
+
+
+@app.post("/v1/deliveries/verify")
+def deliveries_verify_ep(request: Request, body: dict):
+    """Does this delivery id belong to this body? The log answers."""
+    return _deliveries.verify_delivery(body.get("delivery_id", ""),
+                                       body.get("body_sha256", ""),
+                                       tenant=_tenant(request))
 
 
 @app.post("/v1/credentials/verify")

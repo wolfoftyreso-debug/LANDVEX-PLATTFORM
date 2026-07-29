@@ -644,6 +644,14 @@
         real server answers a probe.</p>
       <div id="knKatalog"></div>
 
+      <h2 style="margin-top:18px">Outbound deliveries</h2>
+      <p class="motiv">Every delivery attempt — pushes, credentials,
+        filed exceptions — with the receiver's actual answer. Each POST
+        carries an idempotency id, an HMAC signature and a schema
+        version; your system can verify any delivery against
+        /v1/deliveries/verify. The log never stores the body.</p>
+      <div id="levLogg" class="motiv"></div>
+
       <h2 style="margin-top:18px">Your own zoomers</h2>
       <p class="motiv">Link employees' quiXzoom accounts by reference,
         or create an invite code they redeem during quiXzoom
@@ -2297,7 +2305,9 @@ async function visaKontroll() {
         `${a.of_total} objects need someone.</p>`
       : `<p class="motiv">${esc(a.quiet_en || "Nothing needs anyone.")}</p>`) +
       `<button id="avvArende" style="margin-top:6px;font-size:12px">` +
-      `File these in your own system</button>` +
+      `File these in your own system</button> ` +
+      `<button id="avvNatt" style="margin-top:6px;font-size:12px">` +
+      `File nightly (schedule)</button>` +
       `<span id="avvArendeUt" class="motiv" style="display:block;` +
       `margin-top:4px;font-size:11.5px"></span>`);
   }
@@ -2325,6 +2335,18 @@ async function visaKontroll() {
       d.textContent = `${r.sent} filed, ${r.failed} failed, of ` +
         `${r.of}. ${r.why_en || ""}`;
     } catch (e) { d.textContent = e.message; }
+  };
+  const natt = $("avvNatt");
+  if (natt) natt.onclick = async () => {
+    const d = $("avvArendeUt");
+    try {
+      const rec = await api("/v1/schedules", {
+        id: "exception-report-daily", kind: "exception_report",
+        cadence: {every: "daily"}, params: {}});
+      d.textContent = `✓ Scheduled: ${rec.id} — files the feed nightly ` +
+        `into your connected system; every run's counts land in the ` +
+        `job registry and the delivery log.`;
+    } catch (e) { d.textContent = `Refused: ${e.message}`; }
   };
   ritaKontrollKarta(c.rows || []);
   const k = (window.DEMO && window.DEMO.inspections) || null;
@@ -3044,6 +3066,7 @@ async function kryptInInit() {
   } catch (e) {}
   visaKopplingar();
   visaPersonal();
+  visaLeveranser();
   $("stKoppla").onclick = async () => {
     try {
       await api("/v1/staff", {zoomer_ref: $("stRef").value,
@@ -3061,6 +3084,27 @@ async function kryptInInit() {
       visaPersonal();
     } catch (e) { $("stUt").textContent = `Refused: ${e.message}`; }
   };
+}
+
+async function visaLeveranser() {
+  const ut = $("levLogg");
+  try {
+    const s = await api("/v1/deliveries?limit=25");
+    const rader = s.deliveries || [];
+    ut.innerHTML = rader.length ? rader.map(r =>
+      `<div style="display:flex;gap:8px;align-items:baseline;` +
+      `padding:3px 0;font-size:11.5px;border-bottom:1px solid ` +
+      `var(--line)">` +
+      `<span style="color:${r.delivered ? "var(--accent)" : "#c33"}">` +
+      `${r.delivered ? "✓" : "✗"}</span>` +
+      `<b>${esc(r.kind)}</b> → ${esc(r.provider)} · ` +
+      `${esc(String(r.status))} · ${r.bytes} B · ` +
+      `<span style="opacity:.6">${esc(r.id)}</span>` +
+      `${r.delivered ? "" : ` · <span style="color:#c33">` +
+        `${esc(r.why_en || "not delivered")}</span>`}</div>`).join("")
+      : `<span style="font-size:11.5px">Nothing has left the system ` +
+        `yet — an empty log is a state, not an error.</span>`;
+  } catch (e) { ut.textContent = e.message; }
 }
 
 async function visaPersonal() {

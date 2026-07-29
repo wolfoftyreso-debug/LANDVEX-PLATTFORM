@@ -112,6 +112,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/credentials": "core",                # kvittona och verifieringen
     "/v1/staff": "asset_inspections",         # egna zoomers riktar fotouppdrag
                                               # — samma paket som kontrollerna
+    "/v1/deliveries": "core",                 # utgångens revisionslogg
     "/v1/pushes": "core",                     # generatorns valrymd + preview
                                               # — datamängdens EGEN
                                               # kapabilitet prövas därtill

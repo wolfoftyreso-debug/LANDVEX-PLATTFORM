@@ -109,6 +109,11 @@ LAYER_SEAMS: tuple[dict, ...] = (
      "imports": "integrations.quixzoom_dispatch",
      "why_en": "The dispatch job kind orders field missions; lazy import "
                "inside the job runner, never at engine import time."},
+    {"site": "engine/scheduler.py",
+     "imports": "integrations.feedback",
+     "why_en": "The exception_report job kind files tickets in the "
+               "customer's system; lazy import inside the job runner, "
+               "never at engine import time."},
     {"site": "engine/surface.py", "imports": "api.catalog",
      "why_en": "The surface counts endpoints per promise; API_CATALOG is "
                "data about the API, read lazily. No engine number "

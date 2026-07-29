@@ -179,19 +179,36 @@ def deliver(job: dict, *, transport: Callable | None = None,
     inneh = preview(p.get("dataset", ""), p.get("format", "csv"),
                     p.get("dataset_params") or {},
                     tenant=job.get("tenant", ""))
+    kropp = inneh["content"].encode("utf-8")
+    # Signerad utgång + leveranslogg: idempotens-id, HMAC och schema-
+    # version på varje POST, och försöket bokförs vad det än blev.
+    from engine import deliveries as DL
+    extra = DL.outbound_headers(job.get("tenant", ""), kropp,
+                                f"push.{inneh['dataset']}")
     huvud = {"Content-Type": inneh["media_type"],
              "User-Agent": "landvex-push/1.0",
              "X-Landvex-Dataset": inneh["dataset"],
+             **extra,
              **{k: v for k, v in extra_huvud.items()
                 if k != "content-type"}}
+    leverantor = p.get("connection") or "webhook"
+
+    def _bokfor(ok: bool, status: object, why: str = "") -> None:
+        DL.record(tenant=job.get("tenant", ""),
+                  kind=f"push.{inneh['dataset']}", provider=leverantor,
+                  body=kropp,
+                  delivery_id=extra["X-Landvex-Delivery-Id"],
+                  delivered=ok, status=status, why_en=why)
+
     t = transport or _http_post
     try:
-        status, _svar = t(mal, inneh["content"].encode("utf-8"), huvud,
-                          timeout)
+        status, _svar = t(mal, kropp, huvud, timeout)
     except OUR_BUGS:
         raise
     except Exception as e:                                  # noqa: BLE001
+        _bokfor(False, type(e).__name__, "never got there")
         return {"delivered": False, "status": None,
+                "delivery_id": extra["X-Landvex-Delivery-Id"],
                 "why_en": (f"never got there: {type(e).__name__}: {e} — "
                            f"the network stopped the call"
                            if unreachable(e) else
@@ -199,7 +216,9 @@ def deliver(job: dict, *, transport: Callable | None = None,
                 "dataset": inneh["dataset"], "format": inneh["format"],
                 "bytes": inneh["bytes"]}
     ok = 200 <= status < 300
+    _bokfor(ok, status)
     return {"delivered": ok, "status": status,
+            "delivery_id": extra["X-Landvex-Delivery-Id"],
             "why_en": "" if ok else f"receiver answered HTTP {status} — "
                                     f"that is their word, and it stands",
             "dataset": inneh["dataset"], "format": inneh["format"],

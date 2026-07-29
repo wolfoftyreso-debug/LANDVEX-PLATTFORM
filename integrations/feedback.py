@@ -34,26 +34,41 @@ def forward(credential: dict, connection: dict | None, *,
                            "(POST /v1/connections: feedback_webhook, "
                            "sap, servicenow, dynamics365 or salesforce) "
                            "and the loop closes.")}
+    from engine import deliveries as DL
     from engine.connections import headers_for, target_url_of
     url = target_url_of(connection)
+    kropp = json.dumps(credential, ensure_ascii=False).encode("utf-8")
+    tenant = credential.get("tenant", "")
+    # Signerad utgång: idempotens-id, HMAC över kroppen och schema-
+    # version — det mottagarens integrationslag bygger sin tillit mot.
+    extra = DL.outbound_headers(tenant, kropp, "credential")
     sand = transport or _http
     try:
-        status, _ = sand(url, headers_for(connection),
-                         json.dumps(credential,
-                                    ensure_ascii=False).encode("utf-8"),
-                         _TIMEOUT)
+        status, _ = sand(url, {**headers_for(connection), **extra},
+                         kropp, _TIMEOUT)
     except OUR_BUGS:
         raise
     except Exception as e:  # noqa: BLE001 — nätranden: felet ÄR
         # resultatet, och det får aldrig se ut som en leverans.
+        DL.record(tenant=tenant, kind="credential",
+                  provider=connection.get("provider", ""), body=kropp,
+                  delivery_id=extra["X-Landvex-Delivery-Id"],
+                  delivered=False, status=type(e).__name__,
+                  why_en="never got there")
         return {"delivered": False,
+                "delivery_id": extra["X-Landvex-Delivery-Id"],
                 "why_en": (f"never got there ({type(e).__name__}) — "
                            f"the credential was issued and remains "
                            f"verifiable, but the customer's system has "
                            f"not seen it. Nothing is reported as "
                            f"delivered.")}
     ok = 200 <= status < 300
+    DL.record(tenant=tenant, kind="credential",
+              provider=connection.get("provider", ""), body=kropp,
+              delivery_id=extra["X-Landvex-Delivery-Id"],
+              delivered=ok, status=status)
     return {"delivered": ok, "status": status,
+            "delivery_id": extra["X-Landvex-Delivery-Id"],
             "why_en": ("the customer's system answered — the receipt "
                        "is theirs now." if ok else
                        f"the customer's system answered HTTP {status} "
@@ -70,6 +85,7 @@ def report_exceptions(feed: dict, connection: dict | None, *,
     summeringen ljuger aldrig — sent + failed = antalet avvikelser,
     alltid.
     """
+    from engine import deliveries as DL
     from engine.connections import headers_for, target_url_of
     from engine.inspections import incident_payload
 
@@ -89,23 +105,29 @@ def report_exceptions(feed: dict, connection: dict | None, *,
     huvud = headers_for(connection)
     sand = transport or _http
     skickade, misslyckade, detaljer = 0, 0, []
+    tenant = connection.get("tenant", "")
     for rad in rader:
         arende = incident_payload(rad, as_of=feed.get("as_of", ""))
+        kropp = json.dumps(arende, ensure_ascii=False).encode("utf-8")
+        extra = DL.outbound_headers(tenant, kropp,
+                                    "inspection_exception")
         try:
-            status, _ = sand(url, huvud,
-                             json.dumps(arende,
-                                        ensure_ascii=False).encode(
-                                 "utf-8"), _TIMEOUT)
+            status, _ = sand(url, {**huvud, **extra}, kropp, _TIMEOUT)
             ok = 200 <= status < 300
         except OUR_BUGS:
             raise
         except Exception as e:  # noqa: BLE001 — nätranden: raden
             # räknas som misslyckad med skälet, aldrig som tyst borta.
             ok, status = False, f"{type(e).__name__}"
+        DL.record(tenant=tenant, kind="inspection_exception",
+                  provider=connection.get("provider", ""), body=kropp,
+                  delivery_id=extra["X-Landvex-Delivery-Id"],
+                  delivered=ok, status=status)
         skickade += ok
         misslyckade += (not ok)
         detaljer.append({"asset_id": arende["asset_id"],
-                         "filed": ok, "status": status})
+                         "filed": ok, "status": status,
+                         "delivery_id": extra["X-Landvex-Delivery-Id"]})
     return {"sent": skickade, "failed": misslyckade, "of": len(rader),
             "rows": detaljer,
             "why_en": ("" if misslyckade == 0 else

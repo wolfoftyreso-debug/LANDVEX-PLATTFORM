@@ -106,6 +106,29 @@ def _run_push(job: dict, now: float) -> dict:
         return {"delivered": False, "status": None, "why_en": str(e)}
 
 
+def _run_exception_report(job: dict, now: float) -> dict:
+    """Arkivera avvikelseflödet som ärenden i kundens system — nattligt.
+
+    Samma ärliga räkning som den manuella knappen: sent + failed = of,
+    tomt flöde skickar inget och säger det, saknad koppling är en
+    redovisad vägran i jobbregistret — aldrig en tyst natt.
+    """
+    from engine import connections as CN
+    from engine import inspections as I
+    from integrations.feedback import report_exceptions
+
+    tenant = job.get("tenant", "")
+    p = job.get("params") or {}
+    if p.get("connection"):
+        try:
+            kopp = CN.get_connection(p["connection"], tenant=tenant)
+        except CN.ConnectionRefused as e:
+            return {"sent": 0, "failed": 0, "of": 0, "why_en": str(e)}
+    else:
+        kopp = CN.feedback_target(tenant)
+    return report_exceptions(I.exception_feed(tenant), kopp)
+
+
 def _run_infra_dispatch(job: dict, now: float) -> dict:
     """Beställ verifieringsuppdrag för infrastrukturobjekt som förfallit.
 
@@ -324,6 +347,21 @@ JOB_KINDS: dict[str, dict] = {
                    "ones away. Orders go through the same dispatcher as "
                    "the photo checks — refusals are counted with "
                    "reasons, and no mission id is ever invented."},
+    "exception_report": {
+        "label_en": "File the exception feed as tickets in the "
+                    "customer's own system",
+        "capability": "asset_inspections",
+        "params_en": "connection (optional — a provider from the "
+                     "customer's own integrations; defaults to the "
+                     "feedback target: feedback_webhook first, else "
+                     "the first enterprise system)",
+        "run": _run_exception_report,
+        "note_en": "One ticket per exception, honestly counted: "
+                   "sent + failed = of, an empty feed sends nothing "
+                   "and says so, and a missing connection is a "
+                   "recorded refusal in the job registry — never a "
+                   "quiet night.",
+    },
     "push": {
         "label_en": "Deliver a dataset to a customer webhook",
         "capability": "core",
@@ -387,6 +425,17 @@ def job(id: str, kind: str, *, cadence: dict | None = None,
         try:
             validate_subscription(params or {}, tenant=tenant)
         except PushRefused as e:
+            raise ScheduleRefused(str(e)) from e
+    if kind == "exception_report" and (params or {}).get("connection"):
+        # En namngiven koppling ska FINNAS när jobbet skapas — utan
+        # namn används feedback-målet vid varje körning, vilket är
+        # rätt: kopplingen kan bytas utan att jobbet rörs.
+        from engine.connections import (ConnectionRefused,
+                                        get_connection, target_url_of)
+        try:
+            target_url_of(get_connection(params["connection"],
+                                         tenant=tenant))
+        except ConnectionRefused as e:
             raise ScheduleRefused(str(e)) from e
     if not tenant:
         raise ScheduleRefused(

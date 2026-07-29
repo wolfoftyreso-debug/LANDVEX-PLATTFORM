@@ -87,6 +87,7 @@ from engine import news as news_engine
 from engine import company as company_engine
 from engine import connections as connections_engine
 from engine import credentials as credentials_engine
+from engine import deliveries as deliveries_engine
 from engine import sponsorship as sponsorship_engine
 from engine import staff as staff_engine
 from engine.coverage import compare_markets, coverage
@@ -173,6 +174,7 @@ connections_engine.set_store(STORE)
 company_engine.set_store(STORE)
 credentials_engine.set_store(STORE)
 staff_engine.set_store(STORE)
+deliveries_engine.set_store(STORE)
 
 
 def _med_credential(rec: dict, kind: str, subject: dict, *,
@@ -517,6 +519,13 @@ class Handler(BaseHTTPRequestHandler):
                 "staff": staff_engine.all_staff(self._tenant())})
         if parsed.path == "/v1/credentials":
             return self._send(200, credentials_engine.catalog())
+        if parsed.path == "/v1/deliveries":
+            q = parse_qs(parsed.query)
+            return self._send(200, {
+                **deliveries_engine.catalog(),
+                "deliveries": deliveries_engine.all_deliveries(
+                    self._tenant(),
+                    limit=int(q.get("limit", ["100"])[0]))})
         if parsed.path == "/v1/connections":
             from engine import connections as CN
             return self._send(200, {
@@ -1180,6 +1189,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/credentials/verify":
                 return self._send(200, credentials_engine.verify(
                     req.get("credential") or {}, tenant=self._tenant()))
+            if self.path == "/v1/deliveries/verify":
+                return self._send(200, deliveries_engine.verify_delivery(
+                    req.get("delivery_id", ""),
+                    req.get("body_sha256", ""),
+                    tenant=self._tenant()))
             if self.path == "/v1/connections":
                 from engine import connections as CN
                 try:

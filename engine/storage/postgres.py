@@ -269,6 +269,16 @@ CREATE TABLE IF NOT EXISTS staff (
     payload  JSONB NOT NULL,
     PRIMARY KEY (tenant, id)
 );
+
+CREATE TABLE IF NOT EXISTS deliveries (
+    id         TEXT PRIMARY KEY,
+    tenant     TEXT NOT NULL DEFAULT '',
+    kind       TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_deliveries
+    ON deliveries(tenant, created_at);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -353,6 +363,17 @@ CREATE TABLE IF NOT EXISTS staff (
     payload  JSONB NOT NULL,
     PRIMARY KEY (tenant, id)
 );
+"""),
+    (16, """
+CREATE TABLE IF NOT EXISTS deliveries (
+    id         TEXT PRIMARY KEY,
+    tenant     TEXT NOT NULL DEFAULT '',
+    kind       TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_deliveries
+    ON deliveries(tenant, created_at);
 """),
 ]
 
@@ -976,6 +997,28 @@ class PostgresStore(Store):
             antal = cur.rowcount
         self._conn.commit()
         return antal > 0
+
+    # ── Leveransloggen ──────────────────────────────────────────────
+    def save_delivery(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO deliveries (id, tenant, kind, created_at, "
+                "payload) VALUES (%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET "
+                "payload = EXCLUDED.payload",
+                (rec["id"], rec.get("tenant", ""), rec.get("kind", ""),
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["id"]
+
+    def all_deliveries(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM deliveries "
+                        "ORDER BY created_at DESC, id LIMIT 2000")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
 
     def close(self) -> None:
         self._conn.close()

@@ -276,6 +276,19 @@ _MIGRATIONS: list[tuple[int, str]] = [
         PRIMARY KEY (tenant, id)
     );
     """),
+    # Leveransloggen: varje utgående försök med mottagarens svar.
+    # payload bär loggposten — kroppens SHA-256, ALDRIG kroppen själv.
+    (16, """
+    CREATE TABLE IF NOT EXISTS deliveries (
+        id         TEXT PRIMARY KEY,
+        tenant     TEXT NOT NULL DEFAULT '',
+        kind       TEXT NOT NULL DEFAULT '',
+        created_at REAL NOT NULL DEFAULT 0,
+        payload    TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_deliveries
+        ON deliveries(tenant, created_at);
+    """),
 ]
 
 _DDL = """
@@ -913,6 +926,25 @@ class SqliteStore(Store):
                 "DELETE FROM staff WHERE tenant = ? AND id = ?",
                 (tenant, row_id))
         return cur.rowcount > 0
+
+    # ── Leveransloggen ──────────────────────────────────────────────
+    def save_delivery(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO deliveries "
+                "(id, tenant, kind, created_at, payload) "
+                "VALUES (?,?,?,?,?)",
+                (rec["id"], rec.get("tenant", ""), rec.get("kind", ""),
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_deliveries(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM deliveries "
+                "ORDER BY created_at DESC, id LIMIT 2000").fetchall()
+        return [json.loads(r[0]) for r in rader]
 
     def close(self) -> None:
         with self._lock:

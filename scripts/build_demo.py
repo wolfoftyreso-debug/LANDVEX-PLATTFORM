@@ -163,12 +163,14 @@ def _bake_krypin() -> dict:
     from engine import company as CO
     from engine import connections as CN
     from engine import credentials as CR
+    from engine import deliveries as DL
     from engine import staff as ST
     return {
         "connections": {**CN.catalog(), "connections": []},
         "company": {**CO.catalog(), "profile": None},
         "staff": {**ST.catalog(), "staff": []},
         "credentials": CR.catalog(),
+        "deliveries": {**DL.catalog(), "deliveries": []},
     }
 
 
@@ -555,6 +557,7 @@ async function api(path, body) {
   if (path === "/v1/company" && !body) return D.krypin.company;
   if (path === "/v1/staff" && !body) return D.krypin.staff;
   if (path === "/v1/credentials") return D.krypin.credentials;
+  if (path.startsWith("/v1/deliveries") && !body) return D.krypin.deliveries;
   if (path === "/v1/pushes") return D.pushes_catalog;
   if (path === "/v1/pushes/preview") {
     const r = D.pushes_preview[`${(body || {}).dataset}:${(body || {}).format}`];
