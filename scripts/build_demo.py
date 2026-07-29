@@ -111,6 +111,51 @@ _ANALYS_REGIONER = {"se": ("0180", "1480", "1280"),
                     "us": ("us-newyork", "us-losangeles", "us-chicago")}
 
 
+def _bake_sponsorship() -> dict:
+    """Sponsorportalen: katalog, EN exempelkampanj, k-golvad statistik
+    och uppdragsförhandsvisning — allt ur motorn vid bygget, inget ur
+    något lager. Fullbordandena är simulerade och regionerna VALDA så
+    att k-golvet syns i demon: en cell över golvet visas, resten
+    undertrycks och räknas — det är poängen med ytan.
+    """
+    from engine import sponsorship as SP
+
+    SP.reset()
+    kamp = SP.campaign(
+        "garmin-trail-2026", "Garmin Nordic", "content",
+        "Photograph your Garmin watch on a trail run in daylight",
+        budget=25000.0, currency="SEK",
+        rewards=({"kind": "gift_card", "amount": 250},
+                 {"kind": "loyalty_points", "points": 500}),
+        market="se", max_per_day=40,
+        rights_agreement_ref="QZ-RIGHTS-2026-018",
+        co_sponsors=({"name_en": "Garmin Nordic", "share": 0.7},
+                     {"name_en": "Runners' World SE", "share": 0.3}),
+        tenant="demo")
+    kamp["ordered"] = 32
+    kamp["spent"] = 8000.0
+    SP.save_campaign(kamp)
+    t0 = 1753700000.0  # fast simulerad tidsaxel — demon är fryst ändå
+    fördelning = (("0180", 14), ("1480", 6), ("1280", 3), ("1880", 2))
+    i = 0
+    for region, antal in fördelning:
+        for _ in range(antal):
+            i += 1
+            SP.save_completion(SP.completion(
+                kamp["id"], f"qz-demo-{i:03d}", region_code=region,
+                quality_band="good" if i % 4 else "acceptable",
+                settlement_ref=f"qz-settle-{i:03d}", tenant="demo",
+                completed_at=t0 + i * 86400 / 4))
+    ut = {
+        "overview": {**SP.catalog(), "campaigns": [kamp]},
+        "stats": {kamp["id"]: SP.stats(kamp["id"], tenant="demo")},
+        "mission": {kamp["id"]: SP.mission_body(kamp,
+                                                region_code="0180")},
+    }
+    SP.reset()
+    return ut
+
+
 def _bake_pushes() -> dict:
     """Pushgeneratorns previews för dataset × format.
 
@@ -214,6 +259,8 @@ def build(out_path: str, lite: bool = False,
         # Frysta vid bygget — precis som allt annat i demon.
         "pushes_catalog": pushes_catalog(),
         "pushes_preview": _bake_pushes(),
+        # Sponsorportalen: exempelkampanjen och dess k-golvade statistik.
+        "sponsorship": _bake_sponsorship(),
         # Medie- & politikintelligensen. Vägran bakas som den är: MRAI
         # utan skördad referensdata SKA säga insufficient, registret
         # utan körd sökning SKA vara tomt med sitt quiet_en — demon
@@ -466,6 +513,17 @@ async function api(path, body) {
     return r;
   }
   if (path === "/v1/infrastructure/due") return D.inspections.infra_due;
+  if (path.startsWith("/v1/sponsorship/stats")) {
+    const r = D.sponsorship.stats[qp(path, "campaign_id")];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/sponsorship") return D.sponsorship.overview;
+  if (path === "/v1/sponsorship/mission") {
+    const r = D.sponsorship.mission[(body || {}).campaign_id];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
   if (path === "/v1/pushes") return D.pushes_catalog;
   if (path === "/v1/pushes/preview") {
     const r = D.pushes_preview[`${(body || {}).dataset}:${(body || {}).format}`];

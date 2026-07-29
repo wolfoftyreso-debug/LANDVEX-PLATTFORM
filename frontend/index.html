@@ -332,6 +332,7 @@
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
     <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
     <button class="tab" data-mode="kontroll"><svg class="ikon"><use href="#i-bock"/></svg>Checks</button>
+    <button class="tab" data-mode="sponsor"><svg class="ikon"><use href="#i-paket"/></svg>Sponsor</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
 </header>
@@ -462,6 +463,40 @@
       <div id="cpUt" class="motiv" style="margin-top:8px"></div>
       <div id="infraTavla" style="margin-top:14px"></div>
       <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
+    </div>
+    <div id="vySponsor" style="display:none">
+      <h2>Sponsored missions</h2>
+      <p class="motiv">Brands fund verification or authentic-content
+        missions. The funder is a required, zoomer-visible field — a
+        mission whose funder is hidden is refused at creation. Sponsors
+        see k-floored aggregates; the wallet, the payout, the media and
+        every per-person record live with quiXzoom.</p>
+      <div id="spKampanjer" style="margin-top:10px"></div>
+      <h2 style="margin-top:16px">Create campaign</h2>
+      <div class="falt"><label>Campaign id</label>
+        <input id="spId" placeholder="e.g. garmin-trail-2026"></div>
+      <div class="falt"><label>Sponsor (visible to every zoomer)</label>
+        <input id="spSponsor" placeholder="e.g. Garmin Nordic"></div>
+      <div class="falt"><label>Mission class</label>
+        <select id="spKlass"></select></div>
+      <div id="spKlassInfo" class="motiv"></div>
+      <div class="falt"><label>Brief (what the zoomer is asked to DO)</label>
+        <input id="spBrief" placeholder="e.g. Photograph your watch on a trail run in daylight"></div>
+      <div class="falt" id="spRightsFalt" style="display:none">
+        <label>Rights agreement ref (required for content — the agreement lives with quiXzoom)</label>
+        <input id="spRights" placeholder="e.g. QZ-RIGHTS-2026-018"></div>
+      <div class="falt"><label>Budget (the cap is a cap)</label>
+        <input id="spBudget" type="number" placeholder="25000" style="max-width:140px">
+        <select id="spValuta" style="max-width:90px"><option>SEK</option><option>USD</option><option>EUR</option></select></div>
+      <div class="falt"><label>Max missions per day (0 = no pacing)</label>
+        <input id="spPacing" type="number" value="0" style="max-width:90px"></div>
+      <div class="falt"><label>Reward offer</label>
+        <select id="spBelKind"></select>
+        <input id="spBelBelopp" type="number" placeholder="amount" style="max-width:110px"></div>
+      <div class="falt"><label>Co-sponsors (optional: Name=share, shares sum to 1.0)</label>
+        <input id="spCo" placeholder="e.g. Garmin Nordic=0.6, Runners World=0.4"></div>
+      <button id="spSkapa" style="background:var(--accent);border:none;color:#fff;font-weight:600">Create campaign</button>
+      <div id="spUt" class="motiv" style="margin-top:8px"></div>
     </div>
     <div id="vyInstall" style="display:none">
       <h2>Settings</h2>
@@ -1155,6 +1190,9 @@ const LAGEN = {
              status: "λ computed live from /v1/lambda · KPI status is deterministic." },
   kontroll: { rubrik: "Compliance", titel: "Recurring checks · your own objects",
               status: "Register, routines, what falls due and what failed." },
+  sponsor: { rubrik: "Sponsorship", titel: "Sponsored missions · funded, visible, k-floored",
+             status: "Campaigns, budget caps, k-floored statistics and " +
+                     "exactly what the zoomer sees." },
 };
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   MODE = t.dataset.mode;
@@ -1174,6 +1212,8 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
   $("vyKontroll").style.display = MODE === "kontroll" ? "" : "none";
+  $("vySponsor").style.display = MODE === "sponsor" ? "" : "none";
+  if (MODE === "sponsor") visaSponsor();
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendIndex").style.display = MODE === "index" ? "" : "none";
@@ -2517,6 +2557,134 @@ async function pushInit() {
         `failed POST never looks delivered.`;
     } catch (e) { $("pushUt").innerHTML = `Refused: ${e.message}`; }
   };
+}
+
+// ── Sponsorportalen: finansiärer, tak och k-golvade aggregat ───────────
+let SPONSOR_KATALOG = null;
+
+async function visaSponsor() {
+  const ut = $("spKampanjer");
+  ut.innerHTML = "<p class='motiv'>Loading campaigns …</p>";
+  let kat;
+  try { kat = await api("/v1/sponsorship"); }
+  catch (e) { ut.innerHTML = `<p class="motiv">${e.message}</p>`; return; }
+  if (!SPONSOR_KATALOG) {
+    SPONSOR_KATALOG = kat;
+    $("spKlass").innerHTML = Object.entries(kat.mission_classes).map(
+      ([id, k]) => `<option value="${id}">${k.label_en}</option>`).join("");
+    $("spBelKind").innerHTML = Object.entries(kat.reward_kinds).map(
+      ([id, k]) => `<option value="${id}">${k.label_en}</option>`).join("");
+    const klassInfo = () => {
+      const k = kat.mission_classes[$("spKlass").value] || {};
+      $("spRightsFalt").style.display = k.needs_rights_ref ? "" : "none";
+      $("spKlassInfo").textContent = (k.examples_en || []).join(" · ");
+    };
+    $("spKlass").onchange = klassInfo; klassInfo();
+    $("spSkapa").onclick = sponsorSkapa;
+  }
+  let html = `<p class="motiv" style="font-size:11.5px">` +
+    `${esc(kat.transparency_en || "")} k-floor: <b>${kat.k_floor}</b> — ` +
+    `below it, no cell is shown at all.</p>`;
+  const kampanjer = kat.campaigns || [];
+  if (!kampanjer.length) {
+    html += `<p class="motiv">No campaigns yet for this tenant — create ` +
+      `one below. An empty list is a state, not an error.</p>`;
+  }
+  kampanjer.forEach(k => {
+    const kvar = (k.budget - (k.spent || 0)).toFixed(0);
+    html += `<div style="padding:9px 0;border-bottom:1px solid var(--line)">` +
+      `<b>${esc(k.sponsor_visible_en)}</b> · ${esc(k.mission_class)}` +
+      `<span class="motiv" style="display:block">${esc(k.brief_en)}</span>` +
+      `<span class="motiv" style="display:block">Budget ${k.budget} ` +
+      `${esc(k.currency)} · committed ${(k.spent || 0).toFixed(0)} · ` +
+      `${kvar} left · ${k.ordered || 0} ordered` +
+      (k.max_per_day ? ` · pacing ${k.max_per_day}/day` : "") + `</span>` +
+      (k.rights_agreement_ref ? `<span class="motiv" style="display:block">` +
+        `Rights: ${esc(k.rights_agreement_ref)}</span>` : "") +
+      ((k.co_sponsors || []).length ? `<span class="motiv" style="display:block">` +
+        `Co-sponsors: ` + k.co_sponsors.map(c =>
+          `${esc(c.name_en)} ${Math.round((c.share || 0) * 100)}%`).join(" · ") +
+        `</span>` : "") +
+      `<button class="spStats" data-id="${esc(k.id)}" style="margin-top:5px;` +
+      `font-size:11px">Statistics (k-floored)</button> ` +
+      `<button class="spMission" data-id="${esc(k.id)}" style="font-size:11px">` +
+      `Preview mission — what the zoomer sees</button>` +
+      `<div class="motiv spDetalj" id="spDetalj-${esc(k.id)}"></div></div>`;
+  });
+  html += `<p class="motiv" style="margin-top:8px;font-size:11px">` +
+    `${esc(kat.cannot_en || "")}</p>`;
+  ut.innerHTML = html;
+  ut.querySelectorAll(".spStats").forEach(b => b.onclick =
+    () => sponsorStats(b.dataset.id));
+  ut.querySelectorAll(".spMission").forEach(b => b.onclick =
+    () => sponsorMission(b.dataset.id));
+}
+
+async function sponsorStats(id) {
+  const d = $(`spDetalj-${id}`);
+  d.innerHTML = "Computing k-floored aggregates …";
+  try {
+    const s = await api(`/v1/sponsorship/stats?campaign_id=${encodeURIComponent(id)}`);
+    const regioner = Object.entries(s.regions || {});
+    d.innerHTML =
+      `<b>${s.completed}</b> completed of ${s.ordered} ordered` +
+      (s.completion_rate !== null && s.completion_rate !== undefined
+        ? ` (${Math.round(s.completion_rate * 100)}%)` : "") +
+      ` · budget ${s.budget.committed.toFixed(0)} of ${s.budget.cap} ` +
+      `${esc(s.budget.currency)} committed<br>` +
+      (regioner.length
+        ? `Regions: ` + regioner.map(([r, n]) => `${esc(r)}: ${n}`).join(" · ")
+        : `No region cell reached the k-floor.`) + `<br>` +
+      `<span style="color:#c90">${esc(s.suppressed_note_en)}</span><br>` +
+      (Object.keys(s.quality_bands || {}).length
+        ? `Quality: ` + Object.entries(s.quality_bands).map(([b, n]) =>
+            `${esc(b)} ${n}`).join(" · ") + `<br>` : "") +
+      `<span style="font-size:10.5px">${esc(s.roi_basis_en)}</span><br>` +
+      `<span style="font-size:10.5px"><b>Cannot:</b> ${esc(s.cannot_en)}</span>`;
+  } catch (e) { d.textContent = e.message; }
+}
+
+async function sponsorMission(id) {
+  const d = $(`spDetalj-${id}`);
+  d.innerHTML = "Building the mission body …";
+  try {
+    const m = await api("/v1/sponsorship/mission", {campaign_id: id});
+    d.innerHTML = `<b>${esc(m.title)}</b><br>` +
+      `Funded by: <b>${esc(m.sponsor_visible_en)}</b> — shown before accept.<br>` +
+      `<i>${esc(m.what_this_means_en)}</i><br>` +
+      `Rewards: ` + (m.rewards_offered || []).map(r =>
+        `${esc(r.kind)}${r.amount ? " " + r.amount : ""}`).join(" · ") +
+      (m.rights_agreement_ref
+        ? `<br>Rights agreement: ${esc(m.rights_agreement_ref)}` : "");
+  } catch (e) {
+    // 409 är budget/pacing-grinden som SÄGER varför — det är ett svar.
+    d.innerHTML = `<span style="color:#c90">${e.message}</span>`;
+  }
+}
+
+async function sponsorSkapa() {
+  const ut = $("spUt");
+  const bel = {kind: $("spBelKind").value};
+  if ($("spBelBelopp").value) bel.amount = Number($("spBelBelopp").value);
+  const co = $("spCo").value.trim() ? $("spCo").value.split(",").map(s => {
+    const [namn, andel] = s.split("=");
+    return {name_en: (namn || "").trim(), share: Number(andel || 0)};
+  }) : [];
+  try {
+    const rec = await api("/v1/sponsorship/campaigns", {
+      id: $("spId").value.trim(),
+      sponsor_visible_en: $("spSponsor").value.trim(),
+      mission_class: $("spKlass").value,
+      brief_en: $("spBrief").value.trim(),
+      budget: Number($("spBudget").value || 0),
+      currency: $("spValuta").value,
+      max_per_day: Number($("spPacing").value || 0),
+      rights_agreement_ref: $("spRights").value.trim(),
+      rewards: [bel], co_sponsors: co});
+    ut.innerHTML = `✓ Campaign <b>${esc(rec.id)}</b> created — the funder ` +
+      `is a visible field on every mission it orders.`;
+    visaSponsor();
+  } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
 }
 
 // ── Analyze: motorerna som DATA — nästa analys är en rad, inte en vy ──
