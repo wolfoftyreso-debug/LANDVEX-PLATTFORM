@@ -461,6 +461,32 @@ API_CATALOG: dict = {
                            "only, no private or loopback addresses.",
          "endpoints": [{"method": "GET", "path": "/v1/pushes"},
                        {"method": "POST", "path": "/v1/pushes/preview"}]},
+        {"id": "infrastructure", "label_en": "Is it actually free right now?",
+         "beskrivning_en": "Recurring verification of physical objects — "
+                           "bicycle and car parking, stops, playgrounds, "
+                           "recycling stations, berths, beaches — by "
+                           "field observation. Freshness is a "
+                           "first-class property: every value states how "
+                           "long that KIND of value stays current, and "
+                           "an expired perishable is served as history "
+                           "under 'last_known' rather than as status, so "
+                           "an integration cannot read a three-hour-old "
+                           "space count as now. Nothing is estimated "
+                           "between visits, and confidence is a band "
+                           "rather than a score. SLA compliance is "
+                           "computed from the observation history, "
+                           "never read from the contract.",
+         "endpoints": [{"method": "GET", "path": "/v1/infrastructure"},
+                       {"method": "GET",
+                        "path": "/v1/infrastructure/due"},
+                       {"method": "POST",
+                        "path": "/v1/infrastructure/observe"},
+                       {"method": "POST",
+                        "path": "/v1/infrastructure/status"},
+                       {"method": "POST",
+                        "path": "/v1/infrastructure/freshness"},
+                       {"method": "POST",
+                        "path": "/v1/infrastructure/sla"}]},
         {"id": "land", "label_en": "What the ground here is worth — "
                                    "relative to the ground next to it",
          "beskrivning_en": "Land-value POSITION across five weighted "

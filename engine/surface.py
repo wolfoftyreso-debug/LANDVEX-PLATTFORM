@@ -113,7 +113,8 @@ PROMISES: tuple[dict, ...] = (
         # och vad plattformen därmed är skyldig dig.
         "engines": ("accountability", "decision", "outcomes", "offering",
                     "surface", "customer", "visitor", "admin",
-                    "inspections", "export", "pushes", "sponsorship"),
+                    "inspections", "export", "pushes", "sponsorship",
+                    "infrastructure"),
     },
 )
 

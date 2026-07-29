@@ -215,6 +215,23 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_sponsor_completions
         ON sponsor_completions(tenant, campaign_id, completed_at);
     """),
+    # Infrastrukturobservationer. Egen tabell och inte `checks`: en
+    # kontroll är en DOM (godkänd/underkänd), en observation är MÄTTA
+    # VÄRDEN med färskhet. Att trycka in värden i en domtabell hade
+    # krävt en dom som inte fanns — och åldersregeln hade gällt fel sak.
+    (12, """
+    CREATE TABLE IF NOT EXISTS observations (
+        id           TEXT PRIMARY KEY,
+        tenant       TEXT NOT NULL DEFAULT '',
+        object_id    TEXT NOT NULL,
+        kind         TEXT NOT NULL DEFAULT '',
+        mission_id   TEXT NOT NULL DEFAULT '',
+        observed_at  REAL NOT NULL DEFAULT 0,
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_observations
+        ON observations(tenant, object_id, observed_at);
+    """),
 ]
 
 _DDL = """
@@ -708,6 +725,26 @@ class SqliteStore(Store):
             d["harvested_at"] = harvested_at
             ut.append(d)
         return ut
+
+    # ── Infrastrukturobservationer ──────────────────────────────────
+    def save_observation(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO observations (id, tenant, "
+                "object_id, kind, mission_id, observed_at, payload) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (rec["id"], rec.get("tenant", ""), rec["object_id"],
+                 rec.get("kind", ""), rec.get("mission_id", ""),
+                 float(rec.get("observed_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_observations(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM observations "
+                "ORDER BY observed_at DESC, id").fetchall()
+        return [json.loads(r[0]) for r in rader]
 
     # ── Sponsrade uppdrag ───────────────────────────────────────────
     def save_campaign(self, rec: dict) -> str:

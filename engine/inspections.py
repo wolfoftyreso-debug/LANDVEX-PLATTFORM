@@ -392,6 +392,25 @@ def save_routine(rec: dict) -> str:
     return _spara(_ROUTINES, rec, "save_routine", "id")
 
 
+_OBSERVATIONER: list[dict] = []
+
+
+def save_observation(rec: dict) -> str:
+    """Infrastrukturobservation. Delar lager med kontrollerna: samma
+    objekt, samma kund, samma spärr mot att bilden lagras här."""
+    if _STORE is not None and getattr(_STORE, "save_observation", None):
+        return _STORE.save_observation(rec)
+    _OBSERVATIONER.append(dict(rec))
+    return rec["id"]
+
+
+def all_observations(tenant: str | None = None) -> list[dict]:
+    rader = (_STORE.all_observations() if _STORE is not None
+             and getattr(_STORE, "all_observations", None)
+             else list(_OBSERVATIONER))
+    return [r for r in rader if tenant is None or r.get("tenant") == tenant]
+
+
 def save_check(rec: dict) -> str:
     with _LOCK:
         _CHECKS.append(rec)
@@ -426,6 +445,7 @@ def reset() -> None:
         _ASSETS.clear()
         _ROUTINES.clear()
         _CHECKS.clear()
+        _OBSERVATIONER.clear()
 
 
 def asset(id: str, kind: str, *, label_en: str = "", lat: float | None = None,

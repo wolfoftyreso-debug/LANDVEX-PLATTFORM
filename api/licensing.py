@@ -96,6 +96,10 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # Sponsorportalen: annonsörens egen yta. Egen kapabilitet, för det
     # är en annan KUND än den som köper beslutsstöd — och statistiken
     # är k-golvad oavsett paket.
+    # Infrastrukturövervakningen säljs till parkeringsoperatörer,
+    # kommuner och fastighetsägare — samma kundtyp som kontrollerna,
+    # samma paket.
+    "/v1/infrastructure": "asset_inspections",
     "/v1/land": "opportunity",                # markvärdesläget hör till
                                               # etableringsbeslutet — samma
                                               # paket som /v1/plan och

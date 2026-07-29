@@ -452,6 +452,15 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/infrastructure":
+            from engine.infrastructure import catalog as infra_catalog
+            return self._send(200, infra_catalog())
+        if parsed.path == "/v1/infrastructure/due":
+            from engine import infrastructure as I
+            t = self._tenant()
+            return self._send(200, I.due(
+                insp_engine.all_assets(t),
+                insp_engine.all_observations(t)))
         if parsed.path == "/v1/land":
             from engine.land import catalog as land_catalog
             return self._send(200, land_catalog())
@@ -907,6 +916,48 @@ class Handler(BaseHTTPRequestHandler):
                     self._tenant(), req.get("now"),
                     {k for k, v in scheduler.JOB_KINDS.items()
                      if self._har(v["capability"])}))
+            if self.path == "/v1/infrastructure/observe":
+                from engine import infrastructure as I
+                try:
+                    rec = I.observe(
+                        req.get("object_id", ""), req.get("kind", ""),
+                        req.get("values") or {},
+                        mission_id=req.get("mission_id", ""),
+                        observer_network=req.get("observer_network",
+                                                 "quixzoom"),
+                        tenant=self._tenant())
+                except I.ObservationRefused as e:
+                    return self._send(422, {"error": str(e)})
+                insp_engine.save_observation(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/infrastructure/status":
+                from engine import infrastructure as I
+                try:
+                    return self._send(200, I.status(
+                        req.get("object_id", ""), req.get("kind", ""),
+                        insp_engine.all_observations(self._tenant())))
+                except I.ObservationRefused as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/infrastructure/freshness":
+                from engine import infrastructure as I
+                try:
+                    return self._send(200, I.freshness_record(
+                        req.get("object_id", ""), req.get("kind", ""),
+                        insp_engine.all_observations(self._tenant())))
+                except I.ObservationRefused as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/infrastructure/sla":
+                from engine import infrastructure as I
+                t = self._tenant()
+                try:
+                    return self._send(200, I.sla_report(
+                        insp_engine.all_assets(t),
+                        insp_engine.all_observations(t),
+                        promised_minutes=float(
+                            req.get("promised_minutes", 0)),
+                        window_hours=float(req.get("window_hours", 168))))
+                except (I.ObservationRefused, ValueError) as e:
+                    return self._send(422, {"error": str(e)})
             if self.path == "/v1/land/assess":
                 from engine.land import assess as land_assess
                 try:

@@ -184,6 +184,14 @@ class Store(ABC):
     def all_news(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    def save_observation(self, rec: dict[str, Any]):
+        """Infrastrukturobservation: värden, färskhet och uppdrags-
+        referens. Aldrig bilden — den bor hos quiXzoom."""
+        return None
+
+    def all_observations(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def save_campaign(self, rec: dict[str, Any]):
         """Sponsrad kampanj. Kundens egen (tenant-kolumn); motorn
         filtrerar, lagret lagrar — samma mönster som assets."""

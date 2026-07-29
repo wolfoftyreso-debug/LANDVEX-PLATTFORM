@@ -230,6 +230,18 @@ CREATE TABLE IF NOT EXISTS sponsor_completions (
 );
 CREATE INDEX IF NOT EXISTS idx_sponsor_completions
     ON sponsor_completions(tenant, campaign_id, completed_at);
+
+CREATE TABLE IF NOT EXISTS observations (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    object_id    TEXT NOT NULL,
+    kind         TEXT NOT NULL DEFAULT '',
+    mission_id   TEXT NOT NULL DEFAULT '',
+    observed_at  DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_observations
+    ON observations(tenant, object_id, observed_at);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -271,6 +283,19 @@ CREATE TABLE IF NOT EXISTS sponsor_completions (
 );
 CREATE INDEX IF NOT EXISTS idx_sponsor_completions
     ON sponsor_completions(tenant, campaign_id, completed_at);
+"""),
+    (12, """
+CREATE TABLE IF NOT EXISTS observations (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    object_id    TEXT NOT NULL,
+    kind         TEXT NOT NULL DEFAULT '',
+    mission_id   TEXT NOT NULL DEFAULT '',
+    observed_at  DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_observations
+    ON observations(tenant, object_id, observed_at);
 """),
 ]
 
@@ -726,6 +751,28 @@ class PostgresStore(Store):
                 d["harvested_at"] = harvested_at
                 ut.append(d)
             return ut
+
+    # ── Infrastrukturobservationer ──────────────────────────────────
+    def save_observation(self, rec: dict[str, Any]) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO observations (id, tenant, object_id, kind, "
+                "mission_id, observed_at, payload) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO NOTHING",
+                (rec["id"], rec.get("tenant", ""), rec["object_id"],
+                 rec.get("kind", ""), rec.get("mission_id", ""),
+                 float(rec.get("observed_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_observations(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM observations "
+                        "ORDER BY observed_at DESC, id")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
 
     # ── Sponsrade uppdrag ───────────────────────────────────────────
     def save_campaign(self, rec: dict[str, Any]) -> str:

@@ -1206,6 +1206,80 @@ def export_ep(request: Request, body: dict):
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
+@app.get("/v1/infrastructure")
+def infrastructure_catalog_ep():
+    """Object types, what each observation means, and how fast it ages."""
+    from engine.infrastructure import catalog
+    return catalog()
+
+
+@app.post("/v1/infrastructure/observe")
+def infrastructure_observe_ep(request: Request, body: dict):
+    """Record a verified field observation."""
+    from engine import infrastructure as I
+    from engine import inspections as INS
+    try:
+        rec = I.observe(body.get("object_id", ""), body.get("kind", ""),
+                        body.get("values") or {},
+                        mission_id=body.get("mission_id", ""),
+                        observer_network=body.get("observer_network",
+                                                  "quixzoom"),
+                        tenant=_tenant(request))
+    except I.ObservationRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    INS.save_observation(rec)
+    return JSONResponse(status_code=201, content=rec)
+
+
+@app.post("/v1/infrastructure/status")
+def infrastructure_status_ep(request: Request, body: dict):
+    """State field by field — an expired perishable is history, not status."""
+    from engine import infrastructure as I
+    from engine import inspections as INS
+    try:
+        return I.status(body.get("object_id", ""), body.get("kind", ""),
+                        INS.all_observations(_tenant(request)))
+    except I.ObservationRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/infrastructure/freshness")
+def infrastructure_freshness_ep(request: Request, body: dict):
+    """Reality Freshness for one object."""
+    from engine import infrastructure as I
+    from engine import inspections as INS
+    try:
+        return I.freshness_record(body.get("object_id", ""),
+                                  body.get("kind", ""),
+                                  INS.all_observations(_tenant(request)))
+    except I.ObservationRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/infrastructure/due")
+def infrastructure_due_ep(request: Request):
+    """What needs seeing again — driven by the fastest-perishing field."""
+    from engine import infrastructure as I
+    from engine import inspections as INS
+    t = _tenant(request)
+    return I.due(INS.all_assets(t), INS.all_observations(t))
+
+
+@app.post("/v1/infrastructure/sla")
+def infrastructure_sla_ep(request: Request, body: dict):
+    """Did the promised verification frequency hold? From history."""
+    from engine import infrastructure as I
+    from engine import inspections as INS
+    t = _tenant(request)
+    try:
+        return I.sla_report(
+            INS.all_assets(t), INS.all_observations(t),
+            promised_minutes=float(body.get("promised_minutes", 0)),
+            window_hours=float(body.get("window_hours", 168)))
+    except (I.ObservationRefused, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
 @app.get("/v1/land")
 def land_catalog_ep():
     """What drives the land-value position, and what it is not."""
