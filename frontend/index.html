@@ -193,6 +193,15 @@
   .chip.exempel { display: block; width: 100%; border-radius: 10px;
                   padding: 8px 10px; line-height: 1.35; }
   .s-orange { color: var(--orange); }
+  .guide-ovrigt { margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+                 background: var(--panel, rgba(255,255,255,.05));
+                 border: 1px solid var(--kant, rgba(127,127,127,.25));
+                 font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .guide-ovrigt b { color: var(--text); display: block; margin-bottom: 4px; }
+  .guide-ovrigt-lank { display: inline-block; margin: 2px 8px 2px 0;
+                       color: var(--accent); text-decoration: none;
+                       font-weight: 600; }
+  .guide-ovrigt-lank:hover { text-decoration: underline; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
           cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
@@ -1970,6 +1979,20 @@ const GUIDE_FALT = {
 };
 
 let guide = { flode: null, steg: -1, svar: {} };
+let KEDJA = null;              // /v1/chain, hämtad en gång, cachad
+// Guiden själv guidar bara Decision Intelligence-uppdrag (välj bransch,
+// kör en analys). De andra tre avsikterna finns i plattformen men i
+// ANDRA flikar — utan en pekare från landningssidan till dem ser
+// förstaintrycket ut som ett analysverktyg oavsett hur tydlig introt
+// eller underrubriken är. Manuell koppling (flikarna är ett gränssnitts-
+// begrepp motorn inte känner till), men vänsterledet (kategori-id) är
+// samma id:n som /v1/chain svarar med, så en ändrad kategori upptäcks
+// här — den kan bara peka fel, aldrig tyst försvinna.
+const KATEGORI_TILL_FLIK = {
+  control_intelligence: { flik: "kontroll", tabb: "Checks" },
+  data_collection: { flik: "sponsor", tabb: "Sponsor" },
+  activation: { flik: "install", tabb: "Settings" },
+};
 
 function guideStegLista() {
   return guide.flode ? GUIDE_FLOWS.steg[guide.flode] : [];
@@ -1993,6 +2016,24 @@ function guideRita() {
         <div class="plats" style="font-size:13.5px">${ikon(v.ikon)} ${v.label}</div>
         <p class="motiv">${v.info}</p>
       </div>`).join("");
+    // Den här guiden planerar och analyserar — det är EN av fyra saker
+    // plattformen gör. En pekare till de andra tre, direkt på
+    // landningssidan, i stället för att gömma dem bakom en knapp
+    // användaren måste veta finns.
+    if (KEDJA) {
+      const ovriga = KEDJA.categories.filter(c => KATEGORI_TILL_FLIK[c.id]);
+      s.innerHTML += `<div class="guide-ovrigt">
+        <b>This guide plans and decides.</b> Landvex also:
+        ${ovriga.map(c => {
+          const m = KATEGORI_TILL_FLIK[c.id];
+          return `<a href="#" class="guide-ovrigt-lank" data-flik="${m.flik}">` +
+            `${esc(c.label_en)} → ${esc(m.tabb)}</a>`;
+        }).join("")}
+      </div>`;
+      s.querySelectorAll(".guide-ovrigt-lank").forEach(a => a.onclick = (e) => {
+        e.preventDefault(); bytLage(a.dataset.flik);
+      });
+    }
     // Tap a mission → jump straight into its first question (no extra Next).
     s.querySelectorAll(".guideval").forEach(k => k.onclick = () => {
       guide.flode = k.dataset.val; guide.steg = 0; guideRita();
@@ -2680,6 +2721,13 @@ async function introSurface() {
       `<b>${esc(cat.label_en)}</b><span>${esc(cat.intent_en)}</span></div>`
     ).join("");
     annorlunda.textContent = c.chains.converge_on_en;
+    // Cachad för guiden också: dess landningsskärm pekar med samma
+    // fyra avsikter till de tre flikar som inte är Guide. Kommer
+    // /v1/chain fram efter att guiden redan hunnit rita sin första
+    // skärm (kapplöpning vid sidladdning) ritas den om — annars visas
+    // aldrig pekarna för den som landar direkt på Guide.
+    KEDJA = c;
+    if (MODE === "guide" && guide.steg < 0) guideRita();
   } catch (e) { stats.innerHTML = ""; kort.innerHTML = ""; annorlunda.textContent = ""; }
 }
 
