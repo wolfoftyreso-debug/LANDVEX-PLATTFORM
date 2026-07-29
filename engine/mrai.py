@@ -186,8 +186,15 @@ def _public_data_alignment(market: str, limit: int) -> tuple[float | None,
             "one. Where everything was simulated, our own generator "
             "contradicting itself says nothing about this country; where "
             "only one side was real, the distance measures the simulation. "
-            "This component stays refused until an open permits or "
-            "detail-plan source is connected.")
+            "What is missing is named, not vague: the PLANNED side is now "
+            "real in seven US cities (open permit registers), and the "
+            "OBSERVED side is simulated everywhere. Open data does exist "
+            "for buildings — but it is the wrong KIND. Permits are a FLOW "
+            "over twelve months; open building data is a STOCK, and "
+            "OpenStreetMap gives a COUNT of buildings rather than an "
+            "area. Comparing a stock to a flow, or a count to square "
+            "metres, would produce a number that looks like a "
+            "contradiction and is an artefact of the mismatch.")
     # Hög alignment = FÅ motsägelser bland de granskade.
     return 1.0 - (c["count"] / granskade), {
         "regions_examined": c["regions_examined"],
