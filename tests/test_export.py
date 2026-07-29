@@ -166,6 +166,42 @@ def test_an_unknown_dataset_says_which_ones_exist():
         raise AssertionError("okänd datamängd tilläts")
 
 
+def test_freshness_export_never_ships_an_expired_value_as_current():
+    """Exportfilen ärver modulens avgörande val: ett utgånget värde står
+    under last_known med value TOMT. En integration som läser value-
+    kolumnen kan därmed inte råka visa en färskvara som nuläge."""
+    import time as _t
+
+    from engine import infrastructure as INF
+    from engine import inspections as I
+
+    I.reset()
+    I.save_asset(I.asset("cp1", "bike_parking", label_en="Cykel",
+                         lat=59.3, lon=18.0, tenant="t"))
+    spec = next(s for s in INF.OBJECT_TYPES["bike_parking"]["observations"]
+                if s["id"] == "occupancy")
+    I.save_observation(INF.observe(
+        "cp1", "bike_parking", {"occupancy": 0.5, "misparked": 2},
+        mission_id="m1", tenant="t",
+        observed_at=_t.time() - (spec["stale_minutes"] + 10) * 60))
+    rader = _utan_kommentarer(E.export(
+        "infrastructure_freshness", "csv", {}, tenant="t")["content"])
+    occ = next(r for r in rader if r["field"] == "occupancy")
+    assert occ["freshness"] == "stale"
+    assert occ["value"] == "" and occ["last_known"] == "0.5"
+    aldrig = [r for r in rader if r["freshness"] == "never"]
+    assert aldrig, "objektet har osedda fält — de ska stå med som never"
+    assert all(r["value"] == "" and r["last_known"] == "" for r in aldrig)
+    # Utan tenant vägras filen — samma grind som kundregistret.
+    try:
+        E.export("infrastructure_freshness", "csv", {})
+    except E.ExportRefused as e:
+        assert "tenant" in str(e)
+    else:
+        raise AssertionError("färskheten exporterades utan tenant")
+    I.reset()
+
+
 def test_the_same_export_twice_is_the_same_file():
     """Determinism gäller även på vägen ut — bortsett från tidsstämpeln,
     som är det enda som får skilja."""

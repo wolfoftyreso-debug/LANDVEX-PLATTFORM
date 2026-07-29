@@ -462,6 +462,47 @@
       </div>
       <div id="cpUt" class="motiv" style="margin-top:8px"></div>
       <div id="infraTavla" style="margin-top:14px"></div>
+      <div id="slaBlock" style="margin-top:14px">
+        <h2>Did we look often enough?</h2>
+        <p class="motiv">SLA computed from the actual observation
+          history — the worst gap between verifications, including the
+          open gap up to now. Never read from the contract.</p>
+        <div class="falt"><label>Promised: at most N minutes between verifications</label>
+          <input id="slaMin" type="number" value="240" style="max-width:100px">
+          <select id="slaFonster" style="max-width:150px">
+            <option value="24">last 24 h</option>
+            <option value="168" selected>last 7 days</option>
+            <option value="720">last 30 days</option></select>
+          <button id="slaKor" style="background:var(--accent);border:none;color:#fff;font-weight:600">Compute SLA</button></div>
+        <div id="slaUt" class="motiv"></div>
+      </div>
+      <div id="dispatchBlock" style="margin-top:14px">
+        <h2>Standing order — missions when reality expires</h2>
+        <p class="motiv">A sweep that orders quiXzoom missions for every
+          object whose fastest-perishing field has expired. Weather can
+          ADD objects — rain invalidates weather-sensitive fields by
+          event, not by clock — but never gates due ones away.</p>
+        <div class="falt"><label>Object kinds (comma-separated, empty = all)</label>
+          <input id="disKinds" placeholder="bike_parking, car_parking"></div>
+        <div class="falt"><label>Cadence</label>
+          <select id="disCadence"><option value="daily">Daily</option>
+            <option value="weekly">Weekly</option></select></div>
+        <div class="falt"><label>Who may take the missions</label>
+          <select id="disPublik"><option value="open">Open quiXzoom pool</option>
+            <option value="named">Named zoomers (own staff)</option></select></div>
+        <div class="falt" id="disZoomFalt" style="display:none">
+          <label>quiXzoom account refs (comma-separated — never names/emails)</label>
+          <input id="disZoomers" placeholder="qz-staff-001, qz-staff-002"></div>
+        <div class="falt"><label>Weather trigger (adds objects after the event)</label>
+          <select id="disVader" style="max-width:230px"><option value="">None</option>
+            <option value="rain">After rain ≥ threshold mm</option>
+            <option value="snow">After snow (precip at ≤ 0 °C — a proxy, and it says so)</option></select>
+          <input id="disTroskel" type="number" value="5" style="max-width:70px" title="mm threshold"></div>
+        <div class="falt"><label>Max missions per run (0 = no cap — a cap names what it left undone)</label>
+          <input id="disTak" type="number" value="0" style="max-width:90px"></div>
+        <button id="disSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Save standing order</button>
+        <div id="disUt" class="motiv" style="margin-top:6px"></div>
+      </div>
       <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
     </div>
     <div id="vySponsor" style="display:none">
@@ -1231,7 +1272,8 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
     "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
   if (MODE === "watch") visaWatch();
-  if (MODE === "kontroll") { visaKontroll(); visaFarskhet(); }
+  if (MODE === "kontroll") { visaKontroll(); visaFarskhet();
+                             kontrollProduktInit(); }
 });
 
 // ---- Intelligence Console (skördade lager: λ-index + KPI-motor) ----------
@@ -2514,6 +2556,66 @@ async function visaFarskhet() {
   } catch (e) {
     ut.innerHTML = `<p class="motiv">${e.message}</p>`;
   }
+}
+
+// ── SLA + stående beställning: infrastrukturen som produkt ─────────────
+let KONTROLL_PRODUKT_INITIERAD = false;
+function kontrollProduktInit() {
+  if (KONTROLL_PRODUKT_INITIERAD) return;
+  KONTROLL_PRODUKT_INITIERAD = true;
+  $("slaKor").onclick = async () => {
+    $("slaUt").innerHTML = "Computing from the observation history …";
+    try {
+      const r = await api("/v1/infrastructure/sla", {
+        promised_minutes: Number($("slaMin").value || 0),
+        window_hours: Number($("slaFonster").value)});
+      $("slaUt").innerHTML =
+        `<b style="color:${r.met ? "var(--accent)" : "#c33"}">` +
+        `${r.met ? "SLA met" : `${r.breaches} breach(es)`}</b> — ` +
+        `${r.objects} object(s), promised ≤ ${r.promised_minutes} min, ` +
+        `window ${r.window_hours} h<br>` +
+        (r.rows || []).slice(0, 6).map(x =>
+          `${esc(x.object_id)}: worst gap ` +
+          `${Math.round(x.worst_gap_minutes)} min ` +
+          `(${x.verifications} verification(s))` +
+          (x.met ? "" : ` <span style="color:#c33">breached</span>`))
+          .join("<br>") +
+        `<br><span style="font-size:10.5px">${esc(r.measured_en)}</span>` +
+        `<br><span style="font-size:10.5px"><b>Cannot:</b> ` +
+        `${esc(r.cannot_en)}</span>`;
+    } catch (e) { $("slaUt").textContent = e.message; }
+  };
+  $("disPublik").onchange = () =>
+    $("disZoomFalt").style.display =
+      $("disPublik").value === "named" ? "" : "none";
+  $("disSpara").onclick = async () => {
+    const params = {};
+    const kinds = $("disKinds").value.split(",").map(s => s.trim())
+      .filter(Boolean);
+    if (kinds.length) params.kinds = kinds;
+    const tak = Number($("disTak").value || 0);
+    if (tak) params.max_per_run = tak;
+    if ($("disPublik").value === "named") {
+      params.audience = {pool: "named",
+        zoomer_ids: $("disZoomers").value.split(",").map(s => s.trim())
+          .filter(Boolean),
+        label_en: "Own staff"};
+    }
+    if ($("disVader").value) {
+      params.triggers = [{kind: "after_weather",
+        params: {kind: $("disVader").value,
+                 threshold: Number($("disTroskel").value || 5)}}];
+    }
+    try {
+      const rec = await api("/v1/schedules", {
+        id: "infra-dispatch-" + $("disCadence").value,
+        kind: "infrastructure_dispatch",
+        cadence: {every: $("disCadence").value}, params});
+      $("disUt").innerHTML = `✓ Standing order <b>${esc(rec.id)}</b> ` +
+        `saved — each run orders what has expired and counts every ` +
+        `refusal; a run that orders nothing says why.`;
+    } catch (e) { $("disUt").innerHTML = `Refused: ${esc(e.message)}`; }
+  };
 }
 
 // ── Pushgeneratorn i Settings ──────────────────────────────────────────

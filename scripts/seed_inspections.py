@@ -219,6 +219,10 @@ def payload(today: str = "") -> dict:
         "infra_status": {x["id"]: INF.status(x["id"], x["kind"], obs)
                          for x in infra},
         "infra_due": INF.due(infra, obs),
+        # SLA-exemplet för demons standardval (240 min / 7 dygn) — andra
+        # kombinationer hänvisar ärligt till live-API:t.
+        "infra_sla": INF.sla_report(infra, obs, promised_minutes=240.0,
+                                    window_hours=168.0),
     }
 
 

@@ -175,6 +175,43 @@ def _rader_exceptions(p: dict, tenant: str) -> tuple[list[dict], dict]:
                    "caveats_en": []}
 
 
+def _rader_freshness(p: dict, tenant: str) -> tuple[list[dict], dict]:
+    from engine import infrastructure as INF
+    from engine import inspections as I
+
+    obs = I.all_observations(tenant)
+    rader = []
+    for a in I.all_assets(tenant):
+        if a.get("kind") not in INF.OBJECT_TYPES:
+            continue
+        s = INF.status(a["id"], a["kind"], obs)
+        for f in s["fields"]:
+            rader.append({
+                "object_id": a["id"], "object": a.get("label_en", ""),
+                "kind": a["kind"], "address": a.get("address", ""),
+                "lat": a.get("lat"), "lon": a.get("lon"),
+                "field": f["observation_id"],
+                "field_label": f["label_en"],
+                "freshness": f["freshness"],
+                # Tomt value för stale är POÄNGEN, inte ett hål i filen:
+                # det utgångna värdet står under last_known som historik.
+                "value": f["value"] if f["value"] is not None else "",
+                "last_known": f.get("last_known", ""),
+                "age_minutes": (f["age_minutes"]
+                                if f["age_minutes"] is not None else ""),
+                "fresh_for_minutes": f.get("fresh_for_minutes", ""),
+                "confidence_band": f["confidence"]["band"],
+                "why": f["why_en"],
+            })
+    return rader, {"caveats_en": [
+        "value is empty for stale and never-verified fields on purpose: "
+        "an expired reading is history under last_known, never current "
+        "state, and nothing is estimated between observations.",
+        "Confidence is a band, never a score — a single observer "
+        "network stays at 'weak' however often it looks.",
+    ]}
+
+
 DATASETS: tuple[dict, ...] = (
     {"id": "hotspots", "label_en": "Market sweep — ranked locations",
      "capability": "opportunity", "answers_from": "/v1/scan",
@@ -211,6 +248,15 @@ DATASETS: tuple[dict, ...] = (
      "rows": _rader_exceptions,
      "columns": _kol(("asset_id", "Object"), ("status", "Status"),
                      ("days_overdue", "Days overdue"))},
+    {"id": "infrastructure_freshness",
+     "label_en": "Reality freshness — field by field, with its age",
+     "capability": "asset_inspections",
+     "answers_from": "/v1/infrastructure/status",
+     "params_en": "none (tenant-scoped)", "tenant_scoped": True,
+     "rows": _rader_freshness,
+     "columns": _kol(("object_id", "Object"), ("field", "Field"),
+                     ("freshness", "Freshness"), ("value", "Value"),
+                     ("last_known", "Last known (history)"))},
 )
 
 _BY_ID = {d["id"]: d for d in DATASETS}

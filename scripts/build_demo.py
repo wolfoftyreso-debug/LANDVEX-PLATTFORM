@@ -513,6 +513,14 @@ async function api(path, body) {
     return r;
   }
   if (path === "/v1/infrastructure/due") return D.inspections.infra_due;
+  if (path === "/v1/infrastructure/sla") {
+    // Endast demons standardkombination är bakad; frysta åldrar gör
+    // varje annan kombination till en gissning — som vägras.
+    const b = body || {};
+    if (b.promised_minutes !== 240 || b.window_hours !== 168)
+      throw new Error(DEMOFEL);
+    return D.inspections.infra_sla;
+  }
   if (path.startsWith("/v1/sponsorship/stats")) {
     const r = D.sponsorship.stats[qp(path, "campaign_id")];
     if (!r) throw new Error(DEMOFEL);
