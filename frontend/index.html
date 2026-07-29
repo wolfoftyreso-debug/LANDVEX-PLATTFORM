@@ -33,20 +33,62 @@
   body { background: var(--bg); color: var(--text);
          font: 14px/1.45 -apple-system, "SF Pro Text", "SF Pro Display",
            "Helvetica Neue", system-ui, sans-serif; }
-  header { display: flex; align-items: center; gap: 12px;
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+           row-gap: 8px;
            padding: 10px 20px; border-bottom: 1px solid var(--line);
            background: var(--panel);
            backdrop-filter: saturate(180%) blur(20px);
            -webkit-backdrop-filter: saturate(180%) blur(20px); }
   header h1 { font-size: 17px; letter-spacing: 2px; }
   header span { color: var(--muted); font-size: 12px; }
-  #tabs { margin-left: auto; display: flex; gap: 6px; }
+  /* Spotlight: den PRIMÄRA ingången. En sökruta som gissar — frågor,
+     branscher, verktyg — i stället för att kräva att användaren redan
+     vet vilken av tretton flikar som svarar. */
+  #spotWrap { position: relative; margin-left: auto; width: min(420px, 40vw); }
+  #spotIn { width: 100%; padding: 8px 12px 8px 34px; border-radius: 999px;
+            border: 1px solid var(--line); background: var(--panel2);
+            color: var(--text); font-size: 13.5px; }
+  #spotIn:focus { outline: none; border-color: var(--accent); }
+  .spotIkon { position: absolute; left: 11px; top: 50%; translate: 0 -50%;
+              width: 15px; height: 15px; fill: none; stroke: var(--muted);
+              stroke-width: 2; pointer-events: none; }
+  #spotDrop { display: none; position: absolute; top: calc(100% + 6px);
+              left: 0; right: 0; background: var(--panel2);
+              border: 1px solid var(--line); border-radius: 12px;
+              box-shadow: 0 12px 32px rgba(0,0,0,.18); overflow: hidden;
+              z-index: 90; max-height: 60vh; overflow-y: auto; }
+  #spotDrop.on { display: block; }
+  .spotRad { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+             cursor: pointer; font-size: 13px; }
+  .spotRad:hover, .spotRad.sel { background: var(--accent-tint); }
+  .spotRad .spotSlag { flex: none; font-size: 10px; text-transform: uppercase;
+                       letter-spacing: .05em; color: var(--muted);
+                       width: 52px; }
+  .spotRad .spotTxt { color: var(--text); flex: 1; }
+  .spotRad .spotTxt b { color: var(--accent); font-weight: 700; }
+  .spotTom { padding: 12px; font-size: 12.5px; color: var(--muted); }
+  /* Flikraden: en egen rullyta, ALDRIG sidans egen scroll (se HTML-
+     kommentaren ovanför #tabsBar). overflow-x:auto här räcker inte om
+     ett barn ändå kan tvinga fram en bredare innehållslåda, så
+     min-width:0 håller #tabsBar inom sin grid-cell. */
+  #tabsBar { padding: 8px 20px; border-bottom: 1px solid var(--line);
+             overflow-x: auto; min-width: 0; }
+  #tabs { display: flex; gap: 6px; width: max-content; }
   .tab { width: auto; padding: 7px 16px; border-radius: 999px; cursor: pointer;
          background: var(--panel2); color: var(--muted);
          border: 1px solid var(--line); font-size: 13px; }
   .tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* 51px header + ~46px #tabsBar (den nya flikremsan, egen rullyta,
+     ligger under headern nu i stället för i den — se HTML-kommentaren
+     vid #tabsBar). Ett magiskt tal precis som förut, mätt om för den
+     nya höjden i stället för uträknat, men samma mönster som redan
+     fanns här. */
   .layout { display: grid; grid-template-columns: 300px 1fr 400px;
-            gap: 0; height: calc(100vh - 51px); }
+            gap: 0; height: calc(100vh - 97px); }
+  .layout.ingen-karta { grid-template-columns: 300px 1fr; }
+  .layout.ingen-karta .karta { display: none; }
+  .layout.solopanel { grid-template-columns: 1fr; }
+  .layout.solopanel .karta, .layout.solopanel .resultat { display: none; }
   /* Vid 1100px staplas kolumnerna och .layout tappar sin höjd. Utan en
      egen höjd kollapsar kartcellen då till 0 px: kartan finns i DOM:en,
      ritas, och syns inte. min-height låg BARA i 640px-brytpunkten, så
@@ -55,16 +97,7 @@
   @media (max-width: 1100px) {
     .layout { grid-template-columns: 1fr; height: auto; }
     .karta { min-height: 420px; }
-    /* Flikraden radbryts i stället för att skjuta ut dokumentet. Den
-       blev rullbar först under 640 px, så i hela bandet 641–1100 px
-       spillde knapparna utanför fönstret och hela sidan fick
-       horisontell scroll — desto tydligare ju fler flikar som läggs
-       till. Radbrytning behåller alla flikar synliga; rullning hade
-       gömt dem bakom en gest ingen ser. */
-    /* INGEN justify-content här: under 640 px är raden en horisontell
-       rullyta, och flex-end sköt då de första flikarna utanför vänster
-       kant där de inte gick att nå. */
-    #tabs { flex-wrap: wrap; row-gap: 6px; margin-left: 0; }
+    #spotWrap { width: 100%; margin-left: 0; order: 10; flex-basis: 100%; }
   }
 
   /* Intro-overlay – hero för nya användare / demokund */
@@ -341,9 +374,12 @@
   @media (max-width: 640px) {
     header { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
     #navPilar { margin-left: auto; }
+    /* Sökrutan får en egen hel rad under logotypraden — den primära
+       ingången ska synas FÖRST, inte kräva att man redan hittat en flik. */
+    #spotWrap { width: 100%; margin-left: 0; order: 5; flex-basis: 100%; }
     /* Flikraden ersätts av bottennaven — en avklippt rad utan
        rullningsaffordans gömde nio av tretton destinationer. */
-    #tabs { display: none; }
+    #tabsBar { display: none; }
     #bottenNav { position: fixed; left: 0; right: 0; bottom: 0;
       display: flex; z-index: 60; background: var(--panel);
       backdrop-filter: saturate(180%) blur(20px);
@@ -433,6 +469,22 @@
     <button id="navBak" title="Back" aria-label="Back">‹</button>
     <button id="navFram" title="Forward" aria-label="Forward">›</button>
   </div>
+  <div id="spotWrap">
+    <svg class="spotIkon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="spotIn" type="text" autocomplete="off" spellcheck="false"
+           placeholder="Ask, or jump to an industry or a tool …"
+           aria-label="Search Landvex" aria-expanded="false" role="combobox">
+    <div id="spotDrop" role="listbox"></div>
+  </div>
+</header>
+<!-- Flikraden: en EGEN horisontell rullyta. Den drog tidigare med sig
+     HELA sidan i sidled så fort en flik nära högerkanten klickades på
+     bredder över 1100px (13 flikar + ikoner passar inte på en rad, och
+     utan egen overflow bad webbläsaren scrolla DOKUMENTET för att visa
+     den klickade knappen — vänsterpanelen försvann ur synfältet). Sökrutan
+     ovan är nu den primära ingången; flikraden är kvar som en sekundär,
+     alltid-nåbar lista, aldrig fångad i sidans egen scroll. -->
+<div id="tabsBar">
   <nav id="tabs">
     <button class="tab on" data-mode="guide"><svg class="ikon"><use href="#i-kompass"/></svg>Guide</button>
     <button class="tab" data-mode="fraga"><svg class="ikon"><use href="#i-fraga"/></svg>Ask</button>
@@ -448,7 +500,8 @@
     <button class="tab" data-mode="sponsor"><svg class="ikon"><use href="#i-paket"/></svg>Sponsor</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
-</header>
+</div>
+
 
 <!-- Materialnavigeringen (mobil): fem platser + destinationsark. -->
 <nav id="bottenNav" aria-label="Primary">
@@ -1432,6 +1485,19 @@ const LAGEN = {
 // byte blir ett hash-steg, så telefonens bakåtgest och ‹ ›-pilarna
 // navigerar I systemet i stället för att lämna det.
 const BN_PRIMARA = new Set(["guide", "fraga", "analys", "kontroll"]);
+// Bekräftat genom att spåra VARJE $("hotspots")-skrivning i filen till
+// sitt läge (inte en gissning): ritaSvar (fraga) och visaPaket (paket)
+// skriver BARA in i #hotspots (.resultat) — aldrig i kartan. Kartan är
+// därför ren dödyta för dem; .resultat behålls och får breda ut sig.
+// (visaKontroll/visaWatch/index/komp/guide använder också #hotspots,
+// men de använder kartan lika mycket — därför rörda i det här passet.)
+const INGEN_KARTA = new Set(["fraga", "paket"]);
+// analys och install är de ENDA två av tretton lägen vars
+// $("hotspots") ALDRIG förekommer i hela filen — resultatet går i
+// stället till ett helt eget element i vänsterpanelen (analysUt,
+// installationens formulär). Vänsterpanelen får då hela bredden i
+// stället för att dela den med två tomma kolumner.
+const SOLOPANEL = new Set(["install", "analys"]);
 
 function bytLage(m, franHistorik) {
   if (!LAGEN[m]) m = "guide";
@@ -1466,6 +1532,13 @@ function bytLage(m, franHistorik) {
   $("karta").style.display = konsol ? "none" : "";
   $("consoleStage").style.display = konsol ? "" : "none";
   if (konsol) visaConsole(); else stoppaConsole();
+  // Kartan (och för tre lägen även resultatkolumnen) är ren dödyta där
+  // svaret aldrig ritas dit — se INGEN_KARTA/SOLOPANEL ovan för vilket
+  // lägets egen kod faktiskt skriver till.
+  document.querySelector(".layout").classList.toggle(
+    "ingen-karta", INGEN_KARTA.has(MODE));
+  document.querySelector(".layout").classList.toggle(
+    "solopanel", SOLOPANEL.has(MODE));
   if (MODE === "paket") visaPaket();
   if (MODE === "guide") guideRita();
   if (MODE === "install") { visaOmSystemet(); pushInit(); kryptInInit(); }
@@ -2585,6 +2658,7 @@ $("ritaIndex").onclick = async () => {
   try {
     OPTIONS = await api("/v1/profile-options");
     byggFormular();
+    initSpotlight();
     for (const o of await api("/v1/workforce/occupations"))
       $("yrke").add(new Option(o.label_en, o.id));
     for (const m of await api("/v1/markets")) {
@@ -2695,6 +2769,98 @@ async function introRoller() {
       `<div class="intro-roll"><b>${r.label_en}</b>` +
       `<span>${r.question_en}</span></div>`).join("");
   } catch (e) { el.innerHTML = ""; }
+}
+
+// ── Spotlight: sök, och systemet gissar vart du ska ────────────────────
+// Tre sorters träffar, alla ur RIKTIG data plattformen redan har laddad
+// — inga påhittade förslag: verktyg (flikarnas egna namn, LAGEN),
+// branscher (OPTIONS.vertical_id, samma lista Guide/Establish använder)
+// och exempelfrågor (EXEMPEL, samma lista Ask-fliken visar). Att skriva
+// och se en lista krympa till rätt svar är Google/Spotlight-känslan
+// användaren efterfrågade — byggd på data, inte en gissad AI-textruta.
+let SPOT_POST = [], spotVald = -1;
+
+function initSpotlight() {
+  SPOT_POST = [
+    ...Object.entries(LAGEN).map(([id, l]) => ({
+      slag: "tool", id, text: l.rubrik, sub: l.titel })),
+    ...(OPTIONS?.vertical_id || []).map(v => ({
+      slag: "industry", id: v.id, text: v.label_en })),
+    ...EXEMPEL.map(f => ({ slag: "ask", text: f })),
+  ];
+  const in_ = $("spotIn"), drop = $("spotDrop");
+  const rita = () => {
+    const q = in_.value.trim().toLowerCase();
+    if (!q) { drop.classList.remove("on"); in_.setAttribute("aria-expanded", "false"); return; }
+    const traff = SPOT_POST.filter(p =>
+      p.text.toLowerCase().includes(q) ||
+      (p.sub && p.sub.toLowerCase().includes(q))).slice(0, 8);
+    spotVald = -1;
+    if (!traff.length) {
+      drop.innerHTML = `<div class="spotTom">Nothing matches "${esc(in_.value.trim())}" — ` +
+        `press Enter to ask it directly.</div>`;
+    } else {
+      const ETIKETT = { tool: "Tool", industry: "Industry", ask: "Question" };
+      drop.innerHTML = traff.map((p, i) => `
+        <div class="spotRad" data-i="${i}">
+          <span class="spotSlag">${ETIKETT[p.slag]}</span>
+          <span class="spotTxt">${markera(p.text, q)}</span>
+        </div>`).join("");
+      drop.querySelectorAll(".spotRad").forEach(el => {
+        el.onclick = () => spotValj(traff[+el.dataset.i]);
+        el.onmouseenter = () => spotMarkera(+el.dataset.i, traff);
+      });
+    }
+    drop.classList.add("on"); in_.setAttribute("aria-expanded", "true");
+    drop.dataset.senasteTraffar = JSON.stringify(traff);
+  };
+  in_.addEventListener("input", rita);
+  in_.addEventListener("focus", () => { if (in_.value.trim()) rita(); });
+  in_.addEventListener("keydown", (e) => {
+    const traff = JSON.parse(drop.dataset.senasteTraffar || "[]");
+    if (e.key === "ArrowDown") { e.preventDefault();
+      spotMarkera(Math.min(spotVald + 1, traff.length - 1), traff); }
+    else if (e.key === "ArrowUp") { e.preventDefault();
+      spotMarkera(Math.max(spotVald - 1, 0), traff); }
+    else if (e.key === "Enter") { e.preventDefault();
+      if (spotVald >= 0 && traff[spotVald]) spotValj(traff[spotVald]);
+      else if (in_.value.trim()) spotValj({ slag: "ask", text: in_.value.trim() });
+    } else if (e.key === "Escape") { drop.classList.remove("on"); in_.blur(); }
+  });
+  document.addEventListener("click", (e) => {
+    if (!$("spotWrap").contains(e.target)) drop.classList.remove("on");
+  });
+}
+function markera(text, q) {
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return esc(text);
+  return esc(text.slice(0, i)) + "<b>" + esc(text.slice(i, i + q.length)) +
+    "</b>" + esc(text.slice(i + q.length));
+}
+function spotMarkera(i, traff) {
+  spotVald = i;
+  $("spotDrop").querySelectorAll(".spotRad").forEach((el, j) =>
+    el.classList.toggle("sel", j === i));
+}
+function spotValj(post) {
+  $("spotDrop").classList.remove("on");
+  $("spotIn").value = ""; $("spotIn").blur();
+  if (post.slag === "tool") { bytLage(post.id); return; }
+  if (post.slag === "industry") {
+    bytLage("etab");
+    // byggFormular() har redan körts vid sidladdning (samma ställe som
+    // fyller OPTIONS) — fältet finns, bara oval att sätta.
+    const sel = $("f_vertical_id");
+    // byggFormular() lagrar valets värde som JSON.stringify(id) — se
+    // dess egen new Option(...)-rad — inte den råa id-strängen.
+    if (sel) sel.value = JSON.stringify(post.id);
+    return;
+  }
+  // slag === "ask": hoppa till Ask-fliken och ställ frågan direkt —
+  // gissningen ÄR frågan, inte ett extra klicksteg.
+  bytLage("fraga");
+  $("fragaText").value = post.text;
+  stallFraga();
 }
 
 async function introSurface() {
