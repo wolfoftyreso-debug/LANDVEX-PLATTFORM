@@ -1096,6 +1096,14 @@ def schedules_run_ep(request: Request, body: dict | None = None):
                              tillatna)
 
 
+@app.get("/v1/integrity/audit")
+def integrity_audit_ep():
+    """The platform auditing its own guardrails, on demand."""
+    from api.surface_scan import selfaudit_context
+    from engine.selfaudit import run_audit
+    return run_audit(selfaudit_context())
+
+
 @app.get("/v1/mrai")
 def mrai_ep(market: str = ""):
     """Media Reality Alignment Index — or why there is none."""

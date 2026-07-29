@@ -395,6 +395,16 @@ API_CATALOG: dict = {
                            "blindness and be read as that country's press.",
          "endpoints": [{"method": "GET", "path": "/v1/mrai"},
                        {"method": "GET", "path": "/v1/mrai/compare"}]},
+        {"id": "selfaudit", "label_en": "The platform audits itself",
+         "beskrivning_en": "Runs the 2026 revision's measurements as a "
+                           "standing surface: ungated endpoints, tenant "
+                           "contract, fault doctrine, sqlite/postgres "
+                           "parity, layer boundaries, the zero-dependency "
+                           "promise, honesty fields, test presence. Every "
+                           "check carries what it proves and what it "
+                           "cannot — a static scan shows structure, never "
+                           "behaviour.",
+         "endpoints": [{"method": "GET", "path": "/v1/integrity/audit"}]},
         {"id": "analysis", "label_en": "Find what disagrees",
          "beskrivning_en": "Sweeps a market for contradictions (official "
                            "paperwork against observed ground) and for "

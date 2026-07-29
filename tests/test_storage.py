@@ -418,52 +418,17 @@ def test_the_two_stores_describe_the_same_tables_and_columns():
     postgres är vad produktionen kör, och INGET jämförde dem. Sqlite
     läses ur en riktig databas (PRAGMA), postgres ur DDL-texten —
     kolumnNAMN jämförs, aldrig typer (REAL↔DOUBLE PRECISION är samma
-    beslut i två dialekter). Undantagen är datarader med skäl, inte
-    tysta hål."""
-    import re
+    beslut i två dialekter). Undantagen är datarader med skäl.
 
-    from engine.storage import postgres as P
+    Implementationen bor i engine/selfaudit och konsumeras av BÅDE det
+    här testet och /v1/integrity/audit — en jämförare, två läsare. Att
+    den biter är bevisat i tests/test_selfaudit och via mutation
+    (news_items bortdöpt → tabellen namnges)."""
+    from engine.selfaudit import SCHEMA_EXCEPTIONS, store_schema_drift
 
-    # geometrin är ett medvetet representationsval, inte drift
-    UNDANTAG = {"reports": {"sqlite_only": {"lat", "lon"},
-                            "postgres_only": {"geom"}}}
-    NYCKELORD = {"PRIMARY", "UNIQUE", "CHECK", "FOREIGN", "CONSTRAINT"}
-
-    s = SqliteStore(":memory:")
-    sq_tabeller = {r[0] for r in s._conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-    sq_kolumner = {t: {r[1] for r in
-                       s._conn.execute(f"PRAGMA table_info({t})").fetchall()}
-                   for t in sq_tabeller}
-    s.close()
-
-    pg_ddl = P._DDL + "".join(ddl for _, ddl in P._MIGRATIONS)
-    pg_kolumner: dict[str, set] = {}
-    for tabell, kropp in re.findall(
-            r"CREATE TABLE IF NOT EXISTS (\w+)\s*\((.*?)\);", pg_ddl,
-            re.DOTALL):
-        kol = set()
-        for rad in kropp.split("\n"):
-            m = re.match(r"\s*([a-z_]\w*)\s", rad)
-            if m and m.group(1).upper() not in NYCKELORD:
-                kol.add(m.group(1))
-        pg_kolumner[tabell] = kol
-    for tabell, kolumn in re.findall(
-            r"ALTER TABLE (\w+) ADD COLUMN(?: IF NOT EXISTS)? (\w+)",
-            pg_ddl):
-        pg_kolumner.setdefault(tabell, set()).add(kolumn)
-
-    assert set(sq_kolumner) == set(pg_kolumner), (
-        f"tabellmängderna skiljer: bara sqlite "
-        f"{sorted(set(sq_kolumner) - set(pg_kolumner))}, bara postgres "
-        f"{sorted(set(pg_kolumner) - set(sq_kolumner))}")
-    for tabell in sorted(sq_kolumner):
-        u = UNDANTAG.get(tabell, {})
-        sq = sq_kolumner[tabell] - u.get("sqlite_only", set())
-        pg = pg_kolumner[tabell] - u.get("postgres_only", set())
-        assert sq == pg, (
-            f"{tabell}: bara sqlite {sorted(sq - pg)}, "
-            f"bara postgres {sorted(pg - sq)}")
+    assert store_schema_drift() == []
+    for tabell, u in SCHEMA_EXCEPTIONS.items():
+        assert u.get("why_en"), f"{tabell}: undantag utan skäl"
 
 
 def test_the_selftest_honours_the_tenant_contract_it_runs_under():

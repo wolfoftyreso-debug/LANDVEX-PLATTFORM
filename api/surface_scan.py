@@ -85,6 +85,17 @@ def open_paths(layer: str) -> set[str]:
     return set(re.findall(r'"([^"]+)"', m.group(1)))
 
 
+def selfaudit_context() -> dict:
+    """Kontexten självrevisionens grindkontroll behöver — byggd HÄR,
+    för motorn importerar aldrig api/. En körning utan den här
+    kontexten redovisar grindkontrollen som refused."""
+    from api.licensing import required_capability
+
+    return {"pairs": fastapi_pairs() | devserver_pairs(),
+            "open_paths": open_paths("main.py") | open_paths("dev_server.py"),
+            "required_capability": required_capability}
+
+
 def unparseable_verbs() -> list[str]:
     """Verb i main.py som dev-parsern inte kan känna igen.
 

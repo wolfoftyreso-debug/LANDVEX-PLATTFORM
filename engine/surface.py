@@ -52,10 +52,15 @@ PROMISES: tuple[dict, ...] = (
         "refusal_en": "When the basis is too thin, this is the promise that "
                       "says so instead of producing a number.",
         "entry": "/v1/benchmark",
+        # `selfaudit` hör hit av samma skäl som `provenance`: frågan
+        # "stämmer det där?" gäller även plattformen själv, och den som
+        # ska lita på ett svar måste kunna se granskningen av apparaten
+        # som gav det.
         "engines": ("ask", "benchmark", "setpoints", "kpi", "lambda",
                     "indices", "claims", "provenance", "sensitive",
                     "worthiness", "strim", "wages", "corrections",
-                    "data_sources", "platform", "coverage", "mrai"),
+                    "data_sources", "platform", "coverage", "mrai",
+                    "selfaudit"),
     },
     {
         "id": "is_there_room",

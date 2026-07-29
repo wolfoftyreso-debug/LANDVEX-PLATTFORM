@@ -93,6 +93,14 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # Ett index som bara betalande kan öppna är ett omdöme
     # med en siffra på. Samma grund som /v1/coverage.
     "/v1/mrai": "core",
+    "/v1/integrity": "core",                  # självrevisionen — den som
+                                              # ska lita på plattformen får
+                                              # se granskningen utan att
+                                              # köpa något; /v1/audit
+                                              # (säkerhetsloggen) är en
+                                              # annan yta och förblir
+                                              # platform_ops
+
     "/v1/coverage": "core",
     "/v1/export": "core",
     "/v1/assets": "asset_inspections",        # kundens egna objekt

@@ -491,6 +491,10 @@ class Handler(BaseHTTPRequestHandler):
             if not marknad:
                 return self._send(200, mrai_engine.catalog())
             return self._send(200, mrai_engine.mrai(marknad))
+        if parsed.path == "/v1/integrity/audit":
+            from api.surface_scan import selfaudit_context
+            from engine.selfaudit import run_audit
+            return self._send(200, run_audit(selfaudit_context()))
         if parsed.path == "/v1/analysis":
             q = parse_qs(parsed.query)
             return self._send(200, {
