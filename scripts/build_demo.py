@@ -555,6 +555,10 @@ async function api(path, body) {
   }
   if (path === "/v1/connections" && !body) return D.krypin.connections;
   if (path === "/v1/company" && !body) return D.krypin.company;
+  // Ingen logga bakad i demon — ärligt tom i stället för hittepå.
+  // Uppladdning/borttagning är SKRIVNINGAR och faller igenom till
+  // DEMOFEL, samma regel som routines/assets ovan.
+  if (path === "/v1/company/logo" && !body) return { logo: null };
   if (path === "/v1/staff" && !body) return D.krypin.staff;
   if (path === "/v1/credentials") return D.krypin.credentials;
   // Leveransloggen är ärligt tom i den statiska demon (kundens egna

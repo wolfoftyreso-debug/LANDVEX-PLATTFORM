@@ -279,6 +279,12 @@ CREATE TABLE IF NOT EXISTS deliveries (
 );
 CREATE INDEX IF NOT EXISTS idx_deliveries
     ON deliveries(tenant, created_at);
+
+CREATE TABLE IF NOT EXISTS company_logos (
+    tenant      TEXT PRIMARY KEY,
+    uploaded_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload     JSONB NOT NULL
+);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -374,6 +380,13 @@ CREATE TABLE IF NOT EXISTS deliveries (
 );
 CREATE INDEX IF NOT EXISTS idx_deliveries
     ON deliveries(tenant, created_at);
+"""),
+    (17, """
+CREATE TABLE IF NOT EXISTS company_logos (
+    tenant      TEXT PRIMARY KEY,
+    uploaded_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload     JSONB NOT NULL
+);
 """),
 ]
 
@@ -950,6 +963,36 @@ class PostgresStore(Store):
         if not rad:
             return None
         return rad[0] if isinstance(rad[0], dict) else json.loads(rad[0])
+
+    def save_company_logo(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO company_logos (tenant, uploaded_at, "
+                "payload) VALUES (%s,%s,%s) "
+                "ON CONFLICT (tenant) DO UPDATE SET "
+                "uploaded_at = EXCLUDED.uploaded_at, "
+                "payload = EXCLUDED.payload",
+                (rec["tenant"], float(rec.get("uploaded_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["tenant"]
+
+    def get_company_logo(self, tenant: str) -> dict | None:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM company_logos "
+                        "WHERE tenant = %s", (tenant,))
+            rad = cur.fetchone()
+        if not rad:
+            return None
+        return rad[0] if isinstance(rad[0], dict) else json.loads(rad[0])
+
+    def delete_company_logo(self, tenant: str) -> bool:
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM company_logos WHERE tenant = %s",
+                        (tenant,))
+            antal = cur.rowcount
+        self._conn.commit()
+        return antal > 0
 
     def credential_secret(self, tenant: str) -> bytes:
         import secrets as _s

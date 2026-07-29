@@ -289,6 +289,17 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_deliveries
         ON deliveries(tenant, created_at);
     """),
+    # Uppladdade logotyper: en per tenant (samma mönster som
+    # company_profiles). Byten själva ligger base64:ade INUTI payload —
+    # ingen egen BLOB-kolumn behövs, samma "allt är payload"-form som
+    # varenda annan tabell här.
+    (17, """
+    CREATE TABLE IF NOT EXISTS company_logos (
+        tenant      TEXT PRIMARY KEY,
+        uploaded_at REAL NOT NULL DEFAULT 0,
+        payload     TEXT NOT NULL
+    );
+    """),
 ]
 
 _DDL = """
@@ -883,6 +894,28 @@ class SqliteStore(Store):
                 "SELECT payload FROM company_profiles WHERE tenant = ?",
                 (tenant,)).fetchone()
         return json.loads(rad[0]) if rad else None
+
+    def save_company_logo(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO company_logos "
+                "(tenant, uploaded_at, payload) VALUES (?,?,?)",
+                (rec["tenant"], float(rec.get("uploaded_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["tenant"]
+
+    def get_company_logo(self, tenant: str) -> dict | None:
+        with self._lock:
+            rad = self._conn.execute(
+                "SELECT payload FROM company_logos WHERE tenant = ?",
+                (tenant,)).fetchone()
+        return json.loads(rad[0]) if rad else None
+
+    def delete_company_logo(self, tenant: str) -> bool:
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "DELETE FROM company_logos WHERE tenant = ?", (tenant,))
+        return cur.rowcount > 0
 
     def credential_secret(self, tenant: str) -> bytes:
         """Hämta-eller-skapa: hemligheten genereras första gången den

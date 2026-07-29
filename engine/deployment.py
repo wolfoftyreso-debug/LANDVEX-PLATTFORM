@@ -52,6 +52,15 @@ ENVIRONMENT: dict[str, dict] = {
         "frontend is served from the same origin; breaks a separate "
         "frontend domain.",
         example="https://app.landvex.io"),
+    "LANDVEX_PUBLIC_BASE_URL": _v(
+        "optional", "This deployment's own public https base URL, used "
+                    "to build a fetchable logo_url for an UPLOADED "
+                    "company logo (GET /v1/company/logo/raw).",
+        "An uploaded logo stays stored but is never advertised on a "
+        "mission body — the platform never claims a reachability it "
+        "cannot back. An externally-hosted logo_url still works "
+        "either way.",
+        example="https://api.landvex.io"),
 
     # ── Persistens ───────────────────────────────────────────────────
     "LANDVEX_DB": _v(

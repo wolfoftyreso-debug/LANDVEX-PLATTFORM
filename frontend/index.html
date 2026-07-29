@@ -630,6 +630,15 @@
         <input id="coOm" placeholder="What you do, in one sentence"></div>
       <div class="falt"><label>Logo URL (public https)</label>
         <input id="coLogo" placeholder="https://cdn.example.com/logo.png"></div>
+      <div class="falt"><label>Or upload a logo file</label>
+        <input id="coLogoDatei" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg" style="max-width:220px">
+        <button id="coLogoUppladda" style="font-size:12px">Upload</button>
+        <button id="coLogoTaBort" style="font-size:12px;display:none">Remove uploaded logo</button></div>
+      <div id="coLogoForhandsvisningRad" style="display:none;align-items:center;gap:10px;margin:4px 0 10px">
+        <img id="coLogoForhandsvisning" alt="Logo preview" style="width:56px;height:56px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff2">
+        <span id="coLogoMeta" class="motiv" style="font-size:11px"></span>
+      </div>
+      <div id="coLogoUt" class="motiv" style="margin-top:2px"></div>
       <div class="falt"><label>Website</label>
         <input id="coWebb" placeholder="https://example.com"></div>
       <div class="falt"><label>Brand colour (#hex)</label>
@@ -3045,6 +3054,35 @@ async function sponsorSkapa() {
 }
 
 // ── Kryp-in: företagsprofilen + kundens egna kopplingar ────────────────
+function arrayBufferTillBase64(buf) {
+  let binart = "";
+  const bytes = new Uint8Array(buf);
+  const bit = 0x8000;
+  for (let i = 0; i < bytes.length; i += bit)
+    binart += String.fromCharCode.apply(null, bytes.subarray(i, i + bit));
+  return btoa(binart);
+}
+
+async function coLogoVisa() {
+  const rad = $("coLogoForhandsvisningRad"), img = $("coLogoForhandsvisning"),
+    meta = $("coLogoMeta"), taBort = $("coLogoTaBort");
+  try {
+    const svar = await api("/v1/company/logo");
+    if (!svar.logo) { rad.style.display = "none"; taBort.style.display = "none"; return; }
+    const l = svar.logo;
+    const anpassat = l.adapted_from ?
+      ` (adapted from ${esc(l.adapted_from.toUpperCase())})` : "";
+    meta.textContent = l.width ?
+      `${l.format.toUpperCase()} · ${l.width}×${l.height}px${anpassat}` :
+      `${l.format.toUpperCase()}${anpassat}`;
+    const bild = await fetch(
+      `/v1/company/logo/raw?tenant=${encodeURIComponent(l.tenant)}`);
+    if (bild.ok) img.src = URL.createObjectURL(await bild.blob());
+    rad.style.display = "flex";
+    taBort.style.display = "";
+  } catch (e) { rad.style.display = "none"; taBort.style.display = "none"; }
+}
+
 let KRYPIN_INITIERAD = false;
 async function kryptInInit() {
   if (!KRYPIN_INITIERAD) {
@@ -3059,6 +3097,35 @@ async function kryptInInit() {
           `mission you order.`;
       } catch (e) { $("coUt").innerHTML = `Refused: ${esc(e.message)}`; }
     };
+    $("coLogoUppladda").onclick = async () => {
+      const dator = $("coLogoDatei");
+      const fil = dator.files && dator.files[0];
+      if (!fil) {
+        $("coLogoUt").innerHTML = `Pick a file first.`;
+        return;
+      }
+      $("coLogoUt").innerHTML = `Uploading…`;
+      try {
+        const buf = await fil.arrayBuffer();
+        const svar = await api("/v1/company/logo", {
+          filename: fil.name,
+          content_b64: arrayBufferTillBase64(buf)});
+        const anpassat = svar.adapted_from ?
+          ` — adapted from ${esc(svar.adapted_from.toUpperCase())} to ` +
+          `${esc(svar.format.toUpperCase())} automatically` : "";
+        $("coLogoUt").innerHTML = `✓ Stored as ${esc(svar.format.toUpperCase())}` +
+          `${svar.width ? `, ${svar.width}×${svar.height}px` : ""}${anpassat}.`;
+        dator.value = "";
+        coLogoVisa();
+      } catch (e) { $("coLogoUt").innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("coLogoTaBort").onclick = async () => {
+      try {
+        await api("/v1/company/logo/remove", {});
+        $("coLogoUt").innerHTML = `✓ Removed.`;
+        coLogoVisa();
+      } catch (e) { $("coLogoUt").innerHTML = `Refused: ${esc(e.message)}`; }
+    };
   }
   try {
     const co = await api("/v1/company");
@@ -3070,6 +3137,7 @@ async function kryptInInit() {
       $("coFarg").value = co.profile.brand_color || "";
     }
   } catch (e) {}
+  coLogoVisa();
   visaKopplingar();
   visaPersonal();
   visaLeveranser();

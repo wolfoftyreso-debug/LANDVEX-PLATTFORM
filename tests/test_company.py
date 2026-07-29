@@ -208,7 +208,8 @@ def test_both_stores_offer_the_company_contract():
 
     for st in (SqliteStore, PostgresStore):
         for metod in ("save_company_profile", "get_company_profile",
-                      "credential_secret"):
+                      "credential_secret", "save_company_logo",
+                      "get_company_logo", "delete_company_logo"):
             assert callable(getattr(st, metod, None)), f"{st.__name__}.{metod}"
 
 

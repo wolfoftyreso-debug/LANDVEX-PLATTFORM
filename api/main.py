@@ -126,7 +126,8 @@ if _CORS:
                                       "Authorization"])
 
 _OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html", "/sandbox",
-               "/health", "/docs", "/openapi.json", "/v1/plans")
+               "/health", "/docs", "/openapi.json", "/v1/plans",
+               "/v1/company/logo/raw")
 
 
 @app.middleware("http")
@@ -1485,6 +1486,48 @@ def company_save_ep(request: Request, body: dict):
         raise HTTPException(status_code=422, detail=str(e)) from e
     _company.save_profile(rec)
     return rec
+
+
+@app.get("/v1/company/logo")
+def company_logo_get_ep(request: Request):
+    """Metadata about the stored logo — never the bytes themselves."""
+    return {"logo": _company.get_logo(_tenant(request))}
+
+
+@app.post("/v1/company/logo", status_code=201)
+def company_logo_save_ep(request: Request, body: dict):
+    """Upload a logo file as base64 — sniffed, measured, judged, and
+    adapted to a suitable format where that can be done losslessly."""
+    try:
+        rec = _company.save_logo(_tenant(request),
+                                 body.get("filename", ""),
+                                 body.get("content_b64", ""))
+    except _company.ProfileRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return rec
+
+
+@app.post("/v1/company/logo/remove")
+def company_logo_remove_ep(request: Request, body: dict):
+    return {"deleted": _company.delete_logo(_tenant(request))}
+
+
+@app.get("/v1/company/logo/raw")
+def company_logo_raw_ep(tenant: str = ""):
+    """The logo's actual bytes — public and unauthenticated on purpose:
+    quiXzoom's map (and any phone rendering a mission pin) fetches this
+    with no Landvex credentials, the same openness the platform already
+    requires of an externally-hosted logo_url."""
+    from fastapi.responses import Response
+    if not tenant:
+        raise HTTPException(status_code=422,
+                            detail="tenant query parameter is required")
+    ut = _company.get_logo_bytes(tenant)
+    if ut is None:
+        raise HTTPException(status_code=404,
+                            detail="no logo uploaded for this tenant")
+    content, content_type = ut
+    return Response(content=content, media_type=content_type)
 
 
 @app.post("/v1/inspections/exceptions/report")

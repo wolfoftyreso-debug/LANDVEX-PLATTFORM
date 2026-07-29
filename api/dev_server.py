@@ -262,6 +262,21 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_bytes(self, code: int, content_type: str, body: bytes) -> None:
+        """Rå kropp, inte JSON — för loggans egna byte (samma väg som
+        /metrics?format=prometheus redan tar förbi _send)."""
+        self._status = code
+        self.send_response(code)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        if getattr(self, "_request_id", None):
+            self.send_header("X-Request-ID", self._request_id)
+        tillaten = self._cors_origin()
+        if tillaten:
+            self.send_header("Access-Control-Allow-Origin", tillaten)
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_OPTIONS(self):                                # noqa: N802
         """Preflight. Samma verb och headers som FastAPI-lagrets
         CORSMiddleware svarar med — skillnaden mellan lagren var
@@ -283,7 +298,7 @@ class Handler(BaseHTTPRequestHandler):
     # ger olika svar på samma nyckel beroende på miljö.
     _OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html",
                    "/sandbox", "/health", "/docs", "/openapi.json",
-                   "/v1/plans")
+                   "/v1/plans", "/v1/company/logo/raw")
 
     def _tenant(self) -> str:
         """Vilken kund frågan kommer från. Lagret KRÄVER den — ett argument
@@ -513,6 +528,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 **company_engine.catalog(),
                 "profile": company_engine.get_profile(self._tenant())})
+        if parsed.path == "/v1/company/logo":
+            return self._send(200, {
+                "logo": company_engine.get_logo(self._tenant())})
+        if parsed.path == "/v1/company/logo/raw":
+            q = parse_qs(parsed.query)
+            tenant = q.get("tenant", [""])[0]
+            if not tenant:
+                return self._send(422, {
+                    "error": "tenant query parameter is required"})
+            ut = company_engine.get_logo_bytes(tenant)
+            if ut is None:
+                return self._send(404, {
+                    "error": "no logo uploaded for this tenant"})
+            content, content_type = ut
+            return self._send_bytes(200, content_type, content)
         if parsed.path == "/v1/staff":
             return self._send(200, {
                 **staff_engine.catalog(),
@@ -1144,6 +1174,17 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(422, {"error": str(e)})
                 company_engine.save_profile(rec)
                 return self._send(201, rec)
+            if self.path == "/v1/company/logo":
+                try:
+                    rec = company_engine.save_logo(
+                        self._tenant(), req.get("filename", ""),
+                        req.get("content_b64", ""))
+                except company_engine.ProfileRefused as e:
+                    return self._send(422, {"error": str(e)})
+                return self._send(201, rec)
+            if self.path == "/v1/company/logo/remove":
+                borta = company_engine.delete_logo(self._tenant())
+                return self._send(200, {"deleted": borta})
             if self.path == "/v1/staff":
                 try:
                     rec = staff_engine.member(
