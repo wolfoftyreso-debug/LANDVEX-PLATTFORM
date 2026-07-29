@@ -30,6 +30,11 @@ from engine.risk_intel import risk_intelligence
 from engine.plan import establishment_plan
 from engine.profile import profile_from_dict, profile_options
 from engine.risk import assess
+from engine.accountability import ledger as accountability_ledger
+from engine.analysis import register as analysis_register
+from engine.corroboration import catalog as corroboration_cat
+from engine.entrypoints import entrypoints
+from engine.mrai import mrai
 from scripts.seed_inspections import payload as inspections_payload
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
@@ -133,6 +138,16 @@ def build(out_path: str, lite: bool = False,
         # Byggs ur fixturens egna listor, aldrig ur ett lager — demon ska
         # inte kunna råka visa en riktig kunds objekt och adresser.
         "inspections": inspections_payload(),
+        # Medie- & politikintelligensen. Vägran bakas som den är: MRAI
+        # utan skördad referensdata SKA säga insufficient, registret
+        # utan körd sökning SKA vara tomt med sitt quiet_en — demon
+        # visar det ärliga läget, inte ett friserat.
+        "entrypoints": entrypoints(),
+        "mrai": {m: mrai(m) for m in ("se", "us", "de")},
+        "analysis": {m: analysis_register(market=m)
+                     for m in ("se", "us", "de")},
+        "corroboration": corroboration_cat(),
+        "ledger": accountability_ledger(),
     }
     for market in marknader:
         for vid in vertikaler:
@@ -212,6 +227,19 @@ async function api(path, body) {
   if (path === "/v1/profile-options") return D.options;
   if (path === "/v1/workforce/occupations") return D.occupations;
   if (path === "/v1/markets") return D.markets;
+  if (path === "/v1/entrypoints") return D.entrypoints;
+  if (path.startsWith("/v1/mrai")) {
+    const r = D.mrai[qp(path, "market") || "se"];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path.startsWith("/v1/analysis")) {
+    const r = D.analysis[qp(path, "market") || "se"];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/corroboration") return D.corroboration;
+  if (path === "/v1/decisions/ledger") return D.ledger;
   if (path === "/v1/ask") {
     const q = (body.question || "").trim();
     const svar = D.ask[q];

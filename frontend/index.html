@@ -90,6 +90,18 @@
   .intro-sub { font-size: 16px; color: var(--muted); line-height: 1.5;
                max-width: 540px; margin: 0 auto 22px; }
   .intro-sub em { font-style: normal; color: var(--text); font-weight: 600; }
+  /* Rollrutnätet: sex dörrar ur /v1/entrypoints — data, inte kopia. */
+  .intro-roller { display: grid; grid-template-columns: repeat(3, 1fr);
+                  gap: 8px; margin: 0 auto 20px; max-width: 620px;
+                  text-align: left; }
+  @media (max-width: 640px) {
+    .intro-roller { grid-template-columns: 1fr 1fr; } }
+  .intro-roll { background: var(--panel, rgba(255,255,255,.05));
+                border: 1px solid var(--kant, rgba(127,127,127,.25));
+                border-radius: 10px; padding: 10px 12px; }
+  .intro-roll b { display: block; font-size: 13px; margin-bottom: 3px; }
+  .intro-roll span { font-size: 11.5px; color: var(--muted);
+                     line-height: 1.35; display: block; }
   .intro-pick { font-size: 13px; font-weight: 600; color: var(--muted);
                 margin-bottom: 10px; }
   .intro-chips { justify-content: center; gap: 8px; }
@@ -285,10 +297,14 @@
       <polyline points="2 12 12 17 22 12" fill="none" stroke="url(#lvxg2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       <polyline points="2 17 12 22 22 17" fill="none" stroke="url(#lvxg2)" stroke-width="2" opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="intro-eyebrow">LANDVEX · WHERE TO ESTABLISH</div>
-    <h2 class="intro-h">Where do <em>you</em> have the highest chance of success — and the money to prove it?</h2>
-    <p class="intro-sub">Not “where are the most people.” Where <em>your</em> business wins: a personalized Opportunity Score, the support you’re leaving on the table, and a live risk radar.</p>
-    <p class="intro-pick">Pick your trade — see your best location right now:</p>
+    <div class="intro-eyebrow">LANDVEX · REALITY INTELLIGENCE</div>
+    <h2 class="intro-h">One reality. <em>Six doors.</em> Every number opens to its source.</h2>
+    <p class="intro-sub">Operations support for business, media and
+      politics: what the data actually supports about a place — and
+      where it runs out. When the basis is thin, the engine says so
+      instead of producing a number.</p>
+    <div id="introRoller" class="intro-roller"></div>
+    <p class="intro-pick">The business door is ready to try — pick your trade:</p>
     <div id="introChips" class="chips intro-chips"></div>
     <div id="introResult"></div>
     <button id="introSkip" class="intro-skip">Skip intro →</button>
@@ -310,6 +326,7 @@
     <button class="tab" data-mode="etab"><svg class="ikon"><use href="#i-byggnad"/></svg>Establish</button>
     <button class="tab" data-mode="komp"><svg class="ikon"><use href="#i-examen"/></svg>Workforce</button>
     <button class="tab" data-mode="index"><svg class="ikon"><use href="#i-lager"/></svg>Index</button>
+    <button class="tab" data-mode="intel"><svg class="ikon"><use href="#i-lager"/></svg>Intelligence</button>
     <button class="tab" data-mode="console"><svg class="ikon"><use href="#i-puls"/></svg>Console</button>
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
     <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
@@ -375,6 +392,20 @@
       <p class="motiv">Three plan tiers plus product modules as add-ons –
         the API enforces entitlements, live layers and rate limits per
         plan automatically.</p>
+    </div>
+    <div id="vyIntel" style="display:none">
+      <h2>Media &amp; political intelligence</h2>
+      <p class="motiv">How well reporting aligns with verifiable events,
+        where official paperwork contradicts observed ground, how
+        corroboration is counted — and who committed to what. Every
+        block below states what it cannot settle.</p>
+      <div class="falt" style="margin-top:12px"><label>Market</label>
+        <select id="intelMarknad">
+          <option value="se">Sweden</option>
+          <option value="us">USA</option>
+          <option value="de">Germany</option>
+        </select></div>
+      <div id="intelUt" class="motiv" style="margin-top:10px"></div>
     </div>
     <div id="vyWatch" style="display:none">
       <h2>Platform watch</h2>
@@ -1077,6 +1108,8 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("vyKomp").style.display = MODE === "komp" ? "" : "none";
   $("vyIndex").style.display = MODE === "index" ? "" : "none";
   $("vyConsole").style.display = MODE === "console" ? "" : "none";
+  $("vyIntel").style.display = MODE === "intel" ? "" : "none";
+  if (MODE === "intel") visaIntel();
   $("vyPaket").style.display = MODE === "paket" ? "" : "none";
   $("vyWatch").style.display = MODE === "watch" ? "" : "none";
   $("vyInstall").style.display = MODE === "install" ? "" : "none";
@@ -2198,6 +2231,99 @@ async function introReveal(id, label) {
   }
 }
 
+async function introRoller() {
+  // Dörrarna är DATA (/v1/entrypoints), inte kopia — ett intro som
+  // räknar upp målgrupper för hand driftar från motorn som definierar
+  // dem. Misslyckas hämtningen visas ingenting hellre än en gissning.
+  const el = $("introRoller");
+  if (!el) return;
+  try {
+    const roller = await api("/v1/entrypoints");
+    el.innerHTML = roller.map(r =>
+      `<div class="intro-roll"><b>${r.label_en}</b>` +
+      `<span>${r.question_en}</span></div>`).join("");
+  } catch (e) { el.innerHTML = ""; }
+}
+
+// ── Media & political intelligence ─────────────────────────────────────
+function intelBlock(titel, inner, cannot) {
+  return `<div style="margin-bottom:16px"><b style="font-size:13px">${titel}</b>` +
+         `<div style="margin-top:6px">${inner}</div>` +
+         (cannot ? `<div style="font-size:11px;opacity:.65;margin-top:6px">` +
+                   `Cannot: ${cannot}</div>` : "") + `</div>`;
+}
+
+async function visaIntel() {
+  const ut = $("intelUt");
+  const marknad = $("intelMarknad").value;
+  ut.innerHTML = "Reading the engines …";
+  const delar = [];
+  // 1. MRAI — medieintelligensen. Vägran ÄR produkten: ett land vi inte
+  //    kan se får inget tal, och det ska stå varför.
+  try {
+    const m = await api(`/v1/mrai?market=${marknad}`);
+    if (m.status === "computed") {
+      delar.push(intelBlock("Media Reality Alignment Index",
+        `<span style="font-size:22px;font-weight:700">${m.index}</span>` +
+        ` <span style="opacity:.7">of weight ${Math.round(m.of_weight*100)}%</span>` +
+        `<div style="margin-top:6px">` + m.components.map(c =>
+          `<div style="display:flex;justify-content:space-between;font-size:12px">` +
+          `<span>${c.label_en}</span><span>` +
+          (c.status === "computed" ? c.value : "refused") +
+          `</span></div>`).join("") + `</div>`, m.cannot_en));
+    } else {
+      delar.push(intelBlock("Media Reality Alignment Index",
+        `<b>No value — and that is the answer.</b>` +
+        `<div style="font-size:12px;margin-top:4px">${m.refusal_en || ""}</div>` +
+        `<div style="font-size:12px;margin-top:4px;opacity:.8">${m.how_to_fix_en || ""}</div>`,
+        m.cannot_en));
+    }
+  } catch (e) { delar.push(intelBlock("Media Reality Alignment Index",
+      "Not available: " + e.message)); }
+  // 2. Motsägelseregistret — politisk intelligens: var pappret och
+  //    marken går isär, och var underlaget inte bär.
+  try {
+    const a = await api(`/v1/analysis?market=${marknad}`);
+    delar.push(intelBlock("Contradiction & relationship register",
+      (a.count ? `${a.count} finding(s) on record` +
+        (a.by_kind ? ` — ` + Object.entries(a.by_kind)
+          .map(([k, n]) => `${k}: ${n}`).join(" · ") : "")
+        : `<i>${a.quiet_en || "Nothing on record."}</i>`) +
+      `<div style="font-size:12px;margin-top:4px;opacity:.8">${a.principle_en || ""}</div>`,
+      a.cannot_en));
+  } catch (e) { delar.push(intelBlock("Contradiction register",
+      "Not available: " + e.message)); }
+  // 3. Korroboreringen — trovärdighet räknas i oberoende nät, aldrig i
+  //    procent, och en ensam källa når aldrig över "weak".
+  try {
+    const k = await api("/v1/corroboration");
+    delar.push(intelBlock("How corroboration is counted",
+      `Bands: ${k.bands.map(b => b.band || b).join(" · ")}` +
+      `<div style="font-size:12px;margin-top:4px">Single source can never ` +
+      `exceed: <b>${k.single_source_ceiling}</b></div>` +
+      `<div style="font-size:12px;margin-top:4px;opacity:.8">${k.principle_en || ""}</div>`));
+  } catch (e) {}
+  // 4. Ansvarsliggaren — vem band sig vid vad, och höll det?
+  try {
+    const l = await api("/v1/decisions/ledger");
+    delar.push(intelBlock("Accountability ledger",
+      l.total_decisions
+        ? `${l.total_decisions} committed decision(s), ${l.total_resolved} resolved` +
+          `<div style="margin-top:6px">` + (l.ledger || []).slice(0, 5).map(r =>
+            `<div style="font-size:12px">• ${r.title || r.id} — ${r.status || ""}</div>`)
+            .join("") + `</div>`
+        : `<i>No committed decisions yet. A decision without a named ` +
+          `owner is refused at commitment — so an empty ledger means ` +
+          `nothing has been committed, not that nothing is tracked.</i>`));
+  } catch (e) {}
+  ut.innerHTML = delar.join("");
+}
+
+(function intelInit() {
+  const m = $("intelMarknad");
+  if (m) m.onchange = () => visaIntel();
+})();
+
 (function introInit() {
   const wrap = $("introChips");
   if (!wrap) return;
@@ -2208,6 +2334,7 @@ async function introReveal(id, label) {
   $("introSkip").onclick = introStang;
   const logo = document.querySelector("header .logomark");
   if (logo) logo.onclick = introVisa;
+  introRoller();
   let seen = false;
   try { seen = localStorage.getItem("landvex_intro_v1") === "1"; } catch (e) {}
   if (!seen) introVisa();
