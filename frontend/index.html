@@ -460,6 +460,7 @@
         <button id="cpAvbryt" style="margin-left:6px">Cancel</button>
       </div>
       <div id="cpUt" class="motiv" style="margin-top:8px"></div>
+      <div id="infraTavla" style="margin-top:14px"></div>
       <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
     </div>
     <div id="vyInstall" style="display:none">
@@ -470,7 +471,20 @@
         <select id="instMalar"></select></div>
       <div class="falt"><label title="Number of hits in top lists">Results (top-N)</label>
         <select id="instTopN"><option>3</option><option selected>5</option><option>8</option><option>10</option></select></div>
-      <div class="falt"><label title="X-API-Key for a protected live API. Leave empty in open/demo mode">API key</label>
+      <h2 style="margin-top:18px">Generate your own delivery</h2>
+      <p class="motiv">Pick a dataset, a media format and a webhook —
+        preview the exact payload, then save it as a scheduled push.
+        A failed delivery never looks like a delivered one.</p>
+      <div class="falt"><label>Dataset</label>
+        <select id="pushDataset"></select></div>
+      <div class="falt"><label>Format</label>
+        <select id="pushFormat"></select></div>
+      <div class="falt"><label>Webhook (https, public)</label>
+        <input id="pushMal" placeholder="https://hooks.example.com/landvex"></div>
+      <button id="pushPreview" style="background:var(--accent);border:none;color:#fff;font-weight:600">Preview exact payload</button>
+      <button id="pushSpara" style="margin-left:6px">Save subscription</button>
+      <div id="pushUt" class="motiv" style="margin-top:8px"></div>
+      <div class="falt" style="margin-top:14px"><label title="X-API-Key for a protected live API. Leave empty in open/demo mode">API key</label>
         <input id="instNyckel" type="password" placeholder="optional" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line)"></div>
       <button id="instSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Save settings</button>
       <div class="falt" style="margin-top:14px"><label>About the system</label>
@@ -1170,14 +1184,14 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   if (konsol) visaConsole(); else stoppaConsole();
   if (MODE === "paket") visaPaket();
   if (MODE === "guide") guideRita();
-  if (MODE === "install") visaOmSystemet();
+  if (MODE === "install") { visaOmSystemet(); pushInit(); }
   $("resultatRubrik").textContent = LAGEN[MODE].rubrik;
   $("undertitel").textContent = LAGEN[MODE].titel;
   tomKarta(); $("hotspots").innerHTML =
     "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
   if (MODE === "watch") visaWatch();
-  if (MODE === "kontroll") visaKontroll();
+  if (MODE === "kontroll") { visaKontroll(); visaFarskhet(); }
 });
 
 // ---- Intelligence Console (skördade lager: λ-index + KPI-motor) ----------
@@ -2386,6 +2400,123 @@ async function cpSpara() {
       `</pre></details>`);
   }
   $("cpUt").innerHTML = ut.join("<br>");
+}
+
+// ── Färskhetstavlan: verkligheten åldras, och det syns ─────────────────
+const FRESH_FARG = {current: "var(--accent)", ageing: "#c90",
+                    stale: "#c33", never: "#777"};
+
+async function visaFarskhet() {
+  const ut = $("infraTavla");
+  if (!ut) return;
+  try {
+    const [kat, tillgangar] = await Promise.all([
+      api("/v1/infrastructure"), api("/v1/assets")]);
+    const typer = new Set(kat.object_types.map(t => t.id));
+    const infra = (tillgangar.assets || []).filter(a => typer.has(a.kind));
+    if (!infra.length) {
+      ut.innerHTML = `<p class="motiv">No infrastructure objects yet — ` +
+        `add one on the map above with a kind like bike_parking or ` +
+        `car_parking.</p>`;
+      return;
+    }
+    const rader = await Promise.all(infra.map(a =>
+      api("/v1/infrastructure/status",
+          {object_id: a.id, kind: a.kind}).catch(e => null)));
+    let html = `<h2>Reality freshness</h2>
+      <p class="motiv">Every value states how long that KIND of value
+      stays current. An expired perishable is shown as history —
+      never as status.</p>`;
+    infra.forEach((a, i) => {
+      const s = rader[i];
+      if (!s) return;
+      html += `<div style="margin:10px 0"><b style="font-size:13px">` +
+        `${a.label_en}</b> <span style="opacity:.6;font-size:11px">` +
+        `${s.current_fields}/${s.of_fields} current</span>` +
+        `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">` +
+        s.fields.map(f => {
+          const v = f.freshness === "stale"
+            ? `hist: ${f.last_known}` : f.value ?? "—";
+          return `<span title="${(f.why_en || "").replace(/"/g, "&quot;")}" ` +
+            `style="font-size:10.5px;padding:2px 7px;border-radius:9px;` +
+            `border:1px solid ${FRESH_FARG[f.freshness]};` +
+            `color:${FRESH_FARG[f.freshness]}">` +
+            `${f.label_en}: ${v}</span>`;
+        }).join("") + `</div></div>`;
+    });
+    try {
+      const d = await api("/v1/infrastructure/due");
+      html += `<div style="margin-top:8px"><b style="font-size:12.5px">` +
+        `Due for verification: ${d.due_count}` +
+        (d.never_count ? ` (+${d.never_count} never verified)` : "") +
+        `</b>` + (d.due.concat(d.never_verified).slice(0, 5).map(r =>
+          `<div style="font-size:11.5px;opacity:.8">• ${r.label_en} — ` +
+          `driven by ${r.driven_by || "first verification"}</div>`)
+          .join("")) +
+        (d.quiet_en ? `<div style="font-size:11.5px;opacity:.7">` +
+                      `${d.quiet_en}</div>` : "") +
+        `<button id="infraBestall" style="margin-top:6px;background:` +
+        `var(--accent);border:none;color:#fff;font-weight:600">` +
+        `Order due missions</button>` +
+        `<span id="infraBestallUt" class="motiv" ` +
+        `style="margin-left:8px;font-size:11.5px"></span></div>`;
+    } catch (e) {}
+    ut.innerHTML = html;
+    const knapp = $("infraBestall");
+    if (knapp) knapp.onclick = async () => {
+      try {
+        const r = await api("/v1/schedules/run", {});
+        $("infraBestallUt").textContent =
+          `${(r.ran || []).length} job(s) ran — refusals are counted, ` +
+          `never hidden.`;
+      } catch (e) { $("infraBestallUt").textContent = e.message; }
+    };
+  } catch (e) {
+    ut.innerHTML = `<p class="motiv">${e.message}</p>`;
+  }
+}
+
+// ── Pushgeneratorn i Settings ──────────────────────────────────────────
+let PUSH_INITIERAD = false;
+async function pushInit() {
+  if (PUSH_INITIERAD) return;
+  PUSH_INITIERAD = true;
+  try {
+    const kat = await api("/v1/pushes");
+    $("pushDataset").innerHTML = kat.datasets.map(d =>
+      `<option value="${d.id}">${d.label_en || d.id}</option>`).join("");
+    $("pushFormat").innerHTML = kat.formats.map(f =>
+      `<option value="${f.id}">${f.label_en || f.id}</option>`).join("");
+  } catch (e) {
+    $("pushUt").textContent = e.message;
+    return;
+  }
+  $("pushPreview").onclick = async () => {
+    $("pushUt").innerHTML = "Building the exact payload …";
+    try {
+      const r = await api("/v1/pushes/preview",
+        {dataset: $("pushDataset").value, format: $("pushFormat").value});
+      $("pushUt").innerHTML =
+        `<b>${r.bytes} bytes</b> · ${r.media_type}<br>` +
+        `<span style="font-size:11px;opacity:.8">${r.note_en}</span>` +
+        `<pre style="font-size:10px;white-space:pre-wrap;max-height:180px;` +
+        `overflow:auto">${r.content.split("\n").slice(0, 8).join("\n")
+          .replace(/</g, "&lt;")}\n…</pre>`;
+    } catch (e) { $("pushUt").textContent = e.message; }
+  };
+  $("pushSpara").onclick = async () => {
+    const mal = $("pushMal").value.trim();
+    try {
+      const rec = await api("/v1/schedules", {
+        id: "push-" + $("pushDataset").value,
+        kind: "push", cadence: {every: "daily"},
+        params: {dataset: $("pushDataset").value,
+                 format: $("pushFormat").value, target_url: mal}});
+      $("pushUt").innerHTML = `✓ Subscription <b>${rec.id}</b> saved — ` +
+        `delivers daily; the result is written on the job, and a ` +
+        `failed POST never looks delivered.`;
+    } catch (e) { $("pushUt").innerHTML = `Refused: ${e.message}`; }
+  };
 }
 
 // ── Analyze: motorerna som DATA — nästa analys är en rad, inte en vy ──

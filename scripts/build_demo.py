@@ -37,6 +37,11 @@ from engine.entrypoints import entrypoints
 from engine.coverage import coverage
 from engine.land import assess as land_assess
 from engine.mrai import mrai
+from engine.export import FORMATS as EXPORT_FORMATS
+from engine.export import catalog as export_catalog
+from engine.pushes import PushRefused
+from engine.pushes import catalog as pushes_catalog
+from engine.pushes import preview as push_preview
 from engine.wages import wage
 from scripts.seed_inspections import payload as inspections_payload
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
@@ -104,6 +109,32 @@ def _strip(f: dict) -> dict:
 # Analyze-flikens regionval — samma tre per marknad som frontend visar.
 _ANALYS_REGIONER = {"se": ("0180", "1480", "1280"),
                     "us": ("us-newyork", "us-losangeles", "us-chicago")}
+
+
+def _bake_pushes() -> dict:
+    """Pushgeneratorns previews för dataset × format.
+
+    Tenant-bundna datamängder vägras med skälet i stället för att
+    förhandsvisas ur ett tomt lager: "0 rader" ur en demo utan kundlager
+    hade sett ut som en kund utan objekt — ett falskt kvitto. Vägrade
+    format bär exportmotorns eget besked.
+    """
+    ut = {}
+    for d in export_catalog()["datasets"]:
+        for fmt in EXPORT_FORMATS:
+            nyckel = f"{d['id']}:{fmt}"
+            if d.get("tenant_scoped"):
+                ut[nyckel] = {"refused_en": (
+                    f"{d['id']} is tenant-scoped: the static demo carries "
+                    f"no customer store, and previewing an empty store "
+                    f"would look like a customer with zero objects. The "
+                    f"live API answers with your tenant's own rows.")}
+                continue
+            try:
+                ut[nyckel] = push_preview(d["id"], fmt)
+            except PushRefused as e:
+                ut[nyckel] = {"refused_en": str(e)}
+    return ut
 
 
 def _bake_saturation(marknader, vertikaler) -> dict:
@@ -179,6 +210,10 @@ def build(out_path: str, lite: bool = False,
         # Byggs ur fixturens egna listor, aldrig ur ett lager — demon ska
         # inte kunna råka visa en riktig kunds objekt och adresser.
         "inspections": inspections_payload(),
+        # Pushgeneratorn: valrymden + exakta previews per dataset×format.
+        # Frysta vid bygget — precis som allt annat i demon.
+        "pushes_catalog": pushes_catalog(),
+        "pushes_preview": _bake_pushes(),
         # Medie- & politikintelligensen. Vägran bakas som den är: MRAI
         # utan skördad referensdata SKA säga insufficient, registret
         # utan körd sökning SKA vara tomt med sitt quiet_en — demon
@@ -421,6 +456,22 @@ async function api(path, body) {
   if (path === "/v1/assets") {
     if (body) throw new Error(DEMOFEL);
     return D.inspections.assets;
+  }
+  if (path === "/v1/infrastructure") return D.inspections.infra_catalog;
+  if (path === "/v1/infrastructure/status") {
+    // En LÄSNING med body: bakad status per seedat objekt. Åldrarna är
+    // byggögonblickets — demon påstår aldrig att den mäter nu.
+    const r = D.inspections.infra_status[(body || {}).object_id];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/infrastructure/due") return D.inspections.infra_due;
+  if (path === "/v1/pushes") return D.pushes_catalog;
+  if (path === "/v1/pushes/preview") {
+    const r = D.pushes_preview[`${(body || {}).dataset}:${(body || {}).format}`];
+    if (!r) throw new Error(DEMOFEL);
+    if (r.refused_en) throw new Error(r.refused_en);
+    return r;
   }
   if (path === "/v1/plans") return D.plans_catalog;
   if (path === "/health") return D.health;

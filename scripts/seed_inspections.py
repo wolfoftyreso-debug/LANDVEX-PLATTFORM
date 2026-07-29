@@ -97,6 +97,11 @@ def flag_supplier(today: str = "") -> dict:
                    "label_en": "Own store staff"},
         tenant=TENANT)
 
+    # Två infrastrukturobjekt med observationer i OLIKA färskhetslägen —
+    # färskhetstavlan ska visa current/ageing/stale/never direkt, inte
+    # en tom yta som kräver att någon först observerar.
+    infra_objekt, infra_obs = _infrastruktur(d0)
+
     objekt, kontroller = [], []
     for aid, label, adress, lat, lon, sedan, utfall in _STANGER:
         objekt.append(I.asset(aid, "flagpole", label_en=label, lat=lat,
@@ -112,14 +117,61 @@ def flag_supplier(today: str = "") -> dict:
             note_en=("Halyard worn through; flag could not be raised."
                      if utfall == "fail" else ""),
             tenant=TENANT))
-    return {"tenant": TENANT, "assets": objekt,
+    return {"tenant": TENANT, "assets": objekt + infra_objekt,
             "routines": [rut, rut_skylt],
-            "checks": kontroller, "source": "mock",
+            "checks": kontroller, "observations": infra_obs,
+            "source": "mock",
             "customer_en": "Flag and flagpole supplier, Stockholm",
             "note_en": ("Simulated customer. The streets are real; the "
                         "objects, the checks and the verdicts are not. No "
                         "row here was ever performed by anyone."),
             "as_of": d0.isoformat()}
+
+
+def _infrastruktur(d0) -> tuple[list[dict], list[dict]]:
+    """Cykelparkering + bilparkering med observationer i olika åldrar.
+
+    Åldrarna är valda så att tavlan visar HELA färskhetsskalan:
+    beläggning 5 min gammal (current), snö/hinder 3 h (ageing),
+    lediga platser 4 h (stale → last_known), och några fält aldrig
+    sedda (never). Ingen rad är verklig, precis som resten av fixturen.
+    """
+    import time as _t
+
+    from engine import infrastructure as INF
+    from engine import inspections as I
+
+    nu = _t.time()
+    objekt = [
+        I.asset("infra-cykel-city", "bike_parking",
+                label_en="Bicycle parking, Sergelgatan",
+                lat=59.3326, lon=18.0649,
+                address="Sergelgatan 11", tenant=TENANT),
+        I.asset("infra-garage-nord", "car_parking",
+                label_en="Garage Nord, Norra Bantorget",
+                lat=59.3346, lon=18.0527,
+                address="Norra Bantorget 2", tenant=TENANT),
+    ]
+    obs = [
+        INF.observe("infra-cykel-city", "bike_parking",
+                    {"occupancy": 0.85, "misparked": 3},
+                    mission_id="qz-mock-cykel-1", tenant=TENANT,
+                    observed_at=nu - 5 * 60),
+        INF.observe("infra-cykel-city", "bike_parking",
+                    {"rack_damage": "acceptable", "litter": "good"},
+                    mission_id="qz-mock-cykel-2", tenant=TENANT,
+                    observed_at=nu - 30 * 3600),
+        INF.observe("infra-garage-nord", "car_parking",
+                    {"free_spaces": 14, "occupancy": 0.82},
+                    mission_id="qz-mock-garage-1", tenant=TENANT,
+                    observed_at=nu - 4 * 3600),
+        INF.observe("infra-garage-nord", "car_parking",
+                    {"snow_or_obstruction": "good",
+                     "payment_machine_works": True},
+                    mission_id="qz-mock-garage-2", tenant=TENANT,
+                    observed_at=nu - 3 * 3600),
+    ]
+    return objekt, obs
 
 
 def seed(today: str = "") -> dict:
@@ -133,6 +185,8 @@ def seed(today: str = "") -> dict:
         I.save_asset(a)
     for c in fix["checks"]:
         I.save_check(c)
+    for o in fix["observations"]:
+        I.save_observation(o)
     return fix
 
 
@@ -145,8 +199,12 @@ def payload(today: str = "") -> dict:
     """
     from engine import inspections as I
 
+    from engine import infrastructure as INF
+
     fix = flag_supplier(today)
     a, r, c = fix["assets"], fix["routines"], fix["checks"]
+    obs = fix["observations"]
+    infra = [x for x in a if x.get("kind") in INF.OBJECT_TYPES]
     return {
         "customer_en": fix["customer_en"], "note_en": fix["note_en"],
         "source": "mock", "as_of": fix["as_of"],
@@ -154,6 +212,13 @@ def payload(today: str = "") -> dict:
         "routines": {"routines": r, "source": "mock"},
         "compliance": I.compliance(a, r, c, fix["as_of"]),
         "exceptions": I.exceptions(a, r, c, fix["as_of"]),
+        # Färskhetstavlan: status/förfall FRYSTA vid bygget — åldrarna i
+        # svaren är byggögonblickets, och det är ärligt: demon påstår
+        # aldrig att den mäter nu.
+        "infra_catalog": INF.catalog(),
+        "infra_status": {x["id"]: INF.status(x["id"], x["kind"], obs)
+                         for x in infra},
+        "infra_due": INF.due(infra, obs),
     }
 
 
