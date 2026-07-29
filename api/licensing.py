@@ -96,6 +96,10 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # Sponsorportalen: annonsörens egen yta. Egen kapabilitet, för det
     # är en annan KUND än den som köper beslutsstöd — och statistiken
     # är k-golvad oavsett paket.
+    "/v1/land": "opportunity",                # markvärdesläget hör till
+                                              # etableringsbeslutet — samma
+                                              # paket som /v1/plan och
+                                              # /v1/saturation
     "/v1/sponsorship": "sponsor_portal",
     "/v1/pushes": "core",                     # generatorns valrymd + preview
                                               # — datamängdens EGEN

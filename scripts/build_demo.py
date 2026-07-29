@@ -35,6 +35,7 @@ from engine.analysis import register as analysis_register
 from engine.corroboration import catalog as corroboration_cat
 from engine.entrypoints import entrypoints
 from engine.coverage import coverage
+from engine.land import assess as land_assess
 from engine.mrai import mrai
 from engine.wages import wage
 from scripts.seed_inspections import payload as inspections_payload
@@ -192,6 +193,9 @@ def build(out_path: str, lite: bool = False,
         "analyze_wages": {f"{o}:{m}": wage(o, m)
                           for m in marknader for o in yrken},
         "analyze_coverage": {m: coverage(m) for m in ("se", "us", "de")},
+        "analyze_land": {f"{m}:{kod}": land_assess(kod, market=m)
+                         for m in marknader
+                         for kod in _ANALYS_REGIONER.get(m, ())},
         "mrai": {m: mrai(m) for m in ("se", "us", "de")},
         "analysis": {m: analysis_register(market=m)
                      for m in ("se", "us", "de")},
@@ -307,6 +311,11 @@ async function api(path, body) {
   }
   if (path === "/v1/wages/lookup") {
     const r = D.analyze_wages[`${body.occupation}:${body.market || "se"}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/land/assess") {
+    const r = D.analyze_land[`${body.market || "se"}:${body.region_code}`];
     if (!r) throw new Error(DEMOFEL);
     return r;
   }

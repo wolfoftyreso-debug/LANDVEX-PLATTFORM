@@ -2430,6 +2430,14 @@ const ANALYSER = [
    path: "/v1/wages/lookup", metod: "POST",
    params: ["market", "occupation"],
    kropp: v => ({occupation: v.occupation, market: v.market})},
+  {id: "land", label: "Land value position — never a price",
+   desc: "What argues for and against the ground here versus the ground " +
+         "next to it, across five weighted families. It carries no " +
+         "currency on purpose: a number shaped like a price gets used " +
+         "like one. Below 35% real coverage it computes nothing.",
+   path: "/v1/land/assess", metod: "POST",
+   params: ["market", "region"],
+   kropp: v => ({region_code: v.region, market: v.market})},
   {id: "coverage", label: "Coverage — what we can answer HERE",
    desc: "The platform's own reach in a market: how much of the " +
          "signal picture rests on real sources. The number that keeps " +

@@ -452,6 +452,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/land":
+            from engine.land import catalog as land_catalog
+            return self._send(200, land_catalog())
         if parsed.path == "/v1/sponsorship":
             from engine import sponsorship as SP
             return self._send(200, {
@@ -904,6 +907,23 @@ class Handler(BaseHTTPRequestHandler):
                     self._tenant(), req.get("now"),
                     {k for k, v in scheduler.JOB_KINDS.items()
                      if self._har(v["capability"])}))
+            if self.path == "/v1/land/assess":
+                from engine.land import assess as land_assess
+                try:
+                    return self._send(200, land_assess(
+                        req.get("region_code", ""),
+                        req.get("market", "se"), resolver=RESOLVER))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/land/compare":
+                from engine.land import LandRefused
+                from engine.land import compare as land_compare
+                try:
+                    return self._send(200, land_compare(
+                        req.get("region_codes") or [],
+                        req.get("market", "se"), resolver=RESOLVER))
+                except (LandRefused, ValueError) as e:
+                    return self._send(422, {"error": str(e)})
             if self.path == "/v1/sponsorship/campaigns":
                 from engine import sponsorship as SP
                 try:

@@ -76,7 +76,7 @@ PROMISES: tuple[dict, ...] = (
         "entry": "/v1/report",
         "engines": ("opportunity", "opportunity_intel", "saturation",
                     "gaps", "plan", "risk", "risk_intelligence", "compare",
-                    "segments", "installed_base", "workforce", "flows",
+                    "segments", "installed_base", "workforce", "flows", "land",
                     "livability", "merit", "entrypoints"),
     },
     {

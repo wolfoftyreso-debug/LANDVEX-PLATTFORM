@@ -1206,6 +1206,35 @@ def export_ep(request: Request, body: dict):
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
+@app.get("/v1/land")
+def land_catalog_ep():
+    """What drives the land-value position, and what it is not."""
+    from engine.land import catalog
+    return catalog()
+
+
+@app.post("/v1/land/assess")
+def land_assess_ep(body: dict):
+    """Relative land-value position for a region — or a refusal."""
+    from engine.land import assess
+    try:
+        return assess(body.get("region_code", ""),
+                      body.get("market", "se"), resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/land/compare")
+def land_compare_ep(body: dict):
+    """Several regions side by side; the unplaceable stay in the list."""
+    from engine.land import LandRefused, compare
+    try:
+        return compare(body.get("region_codes") or [],
+                       body.get("market", "se"), resolver=RESOLVER)
+    except (LandRefused, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
 @app.get("/v1/sponsorship")
 def sponsorship_catalog_ep(request: Request):
     """Sponsored missions: the option space and this tenant's campaigns."""

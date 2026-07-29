@@ -461,6 +461,23 @@ API_CATALOG: dict = {
                            "only, no private or loopback addresses.",
          "endpoints": [{"method": "GET", "path": "/v1/pushes"},
                        {"method": "POST", "path": "/v1/pushes/preview"}]},
+        {"id": "land", "label_en": "What the ground here is worth — "
+                                   "relative to the ground next to it",
+         "beskrivning_en": "Land-value POSITION across five weighted "
+                           "families (location & access, development "
+                           "pressure, economic base, infrastructure, "
+                           "living environment). It carries no currency "
+                           "and no price per square metre on purpose: a "
+                           "number shaped like a price gets used like "
+                           "one. Below 35% real coverage no position is "
+                           "computed at all. Counter-indications are "
+                           "listed separately — a place that scores high "
+                           "DESPITE high crime is a different message "
+                           "than one that scores high without "
+                           "objections.",
+         "endpoints": [{"method": "GET", "path": "/v1/land"},
+                       {"method": "POST", "path": "/v1/land/assess"},
+                       {"method": "POST", "path": "/v1/land/compare"}]},
         {"id": "sponsorship", "label_en": "Fund missions, see aggregates",
          "beskrivning_en": "Sponsored missions: brands fund verification "
                            "or authentic-content work, zoomers choose "
