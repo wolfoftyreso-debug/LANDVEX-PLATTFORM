@@ -22,8 +22,10 @@ utbildningsaktörer och myndigheter – på samma plattform och databas.
 (API-nycklar/tenant/RBAC/rate limit/audit/metrics – öppet läge utan
 `LANDVEX_API_KEYS`), motorversion i varje rapport, schemamigrering i
 lagret, CI i `.github/workflows/landvex-ci.yml` (repo-roten).
-Största gap före deploy: CDK-stacken (#6), tenant-kolumner i lagret,
-OIDC.
+Största gap före deploy: CDK-stacken (#6) och OIDC/JWKS (HS256-JWT
+finns). Tenant-kolumnerna är KLARA (migrationskedjan v12, tenant i
+kundtabellernas primärnycklar); Aurora-selftesten körs med
+`LANDVEX_PG_DSN=... python3 -m scripts.pg_selftest`.
 
 - Beroendefri kärna i `engine/` (endast stdlib) → identisk körning i
   Lambda, ECS och lokalt.

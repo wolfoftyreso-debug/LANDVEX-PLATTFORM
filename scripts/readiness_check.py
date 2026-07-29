@@ -67,9 +67,14 @@ def main() -> int:
     catalog = json.loads(urllib.request.urlopen(f"{BASE}/v1/catalog",
                                                 timeout=8).read())
     # A route proves it is wired if it answers at all with an app status.
-    # 200 = ok; 422 = wired, needs params/body; 503 = wired, degraded
-    # (e.g. persistence off with LANDVEX_DB=off). 404/405/500/0 = broken.
-    WIRED = {200, 201, 422, 503}
+    # 200 = ok; 422 = wired, needs params/body; 409 = wired, the gate said
+    # no (budget cap, pacing — the refusal IS the answer); 503 = wired,
+    # degraded (e.g. persistence off with LANDVEX_DB=off). 405/500/0 =
+    # broken. 404 is TWO different answers: an unwired path says
+    # "not found"/"Not Found", a wired route missing its RESOURCE names
+    # it ("unknown campaign …", "unknown monitor") — only the latter is
+    # wired, and an unwired path can never name a resource.
+    WIRED = {200, 201, 409, 422, 503}
     # Endpoints that MUTATE shared state — never exercised against a live
     # server (would pollute the outcome dataset). Their wiring is proven by
     # the contract test instead.
@@ -83,11 +88,15 @@ def main() -> int:
             if p in SKIP_MUTATING and m != "GET":
                 skipped.append((m, p))
                 continue
-            st, _ = _req(p, POSTS.get(p, {}) if m != "GET" else None)
-            (ok if st in WIRED else bad).append((m, p, st))
+            st, kropp = _req(p, POSTS.get(p, {}) if m != "GET" else None)
+            wired = st in WIRED or (st == 404 and "unknown " in kropp)
+            (ok if wired else bad).append((m, p, st))
     for m, p, st in ok:
         tag = "" if st in (200, 201) else \
-            "  (needs params/body)" if st == 422 else "  (degraded — persistence off)"
+            "  (needs params/body)" if st == 422 else \
+            "  (wired — names its missing resource)" if st == 404 else \
+            "  (wired — the gate refused, with its reason)" if st == 409 \
+            else "  (degraded — persistence off)"
         print(f"  ✓ {m:4} {p:26} {st}{tag}")
     for m, p in skipped:
         print(f"  – {m:4} {p:26} skipped (mutating; wiring via contract test)")

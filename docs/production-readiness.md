@@ -1,8 +1,11 @@
-# Production Readiness Review — LANDVEX v0.9
+# Production Readiness Review — LANDVEX
 
-Funktionsfrys genomförd. Detta dokument svarar på granskningsfrågorna
-inför första enterprise-deploy, med status och evidens i kodbasen.
-Statusskala: ✅ klart · 🟡 delvis/plan finns · 🔴 saknas.
+*Uppdaterad 2026-07-29 (motorversion 1.1.0). Ursprungligen skriven vid
+v0.9-frysen; status nedan är nuläget, med evidens i kodbasen.*
+
+Detta dokument svarar på granskningsfrågorna inför första
+enterprise-deploy. Statusskala: ✅ klart · 🟡 delvis/plan finns ·
+🔴 saknas.
 
 ## Arkitekturprincipen som allt vilar på
 
@@ -39,20 +42,37 @@ kontraktsändring ⇒ `/v2/`, aldrig ändrad semantik under `/v1/`.
 - Rate limiting: token bucket per nyckel (`LANDVEX_RATE_LIMIT`).
 - Nycklar loggas aldrig (maskerat key_id) – testat.
 
-Kvar till enterprise-nivå: OIDC/Cognito (samma `authorize()`-kontrakt,
-bytet är isolerat till nyckeluppslaget), tenant-kolumner i lagringen
-(se fråga 3) och kryptering i vila via KMS på Aurora (infra-fråga).
+Sedan v0.9 tillkommet: JWT-bearer-auth (HS256, stdlib) bredvid
+API-nycklarna med samma RBAC/kapabilitets-enforcement; plan- och
+tilläggsenforcement per endpoint (`api/licensing.py`); persistent
+månadskvot (`usage_meter`, DB-atomisk `bump_usage`); tenant-kolumner
+i lagringen (se fråga 3). Självrevisionen `GET /v1/integrity/audit`
+vaktar ogrindade endpoints och tenant-kontraktet vid körning.
+
+Kvar till enterprise-nivå: OIDC/Cognito med JWKS/RS256 (samma
+`authorize()`-kontrakt, bytet är isolerat till nyckeluppslaget —
+HS256-JWT finns redan) och kryptering i vila via KMS på Aurora
+(infra-fråga). Sponsorbudgetens beställningsskriv är processlåst;
+flera processer mot samma databas kräver ett villkorat lager-skriv
+(redovisat i `engine/sponsorship.py`).
 
 ### 3. Är datamodellen stabil och migrationshanterad? 🟡
 - Modellprincipen är rätt enligt review: vi lagrar observationer
   (signalvärden med källa/kvalitet/tidsstämpel), profiler och
   beräknade rapporter med full härledning – inte lösa "slutsatser".
-- Migrationsrunner med `schema_meta`-versionstabell i SqliteStore;
-  basschema = version 1, nya ändringar läggs som versionerade
-  migrationer. PostgresStore delar DDL-mönstret.
-- Kvar: tenant-kolumn på reports/profiles (idag skiljs tenants åt i
-  audit-loggen men inte i lagringen – krav före fleranvändardrift),
-  samt att köra `PostgresStore.selftest()` mot riktig Aurora.
+- Migrationsrunner med `schema_meta`-versionstabell i BÅDA lagren;
+  sqlite och postgres delar versionsnummer (kedjan är på version 12),
+  och ett statiskt drifttest fäller schemadrift mellan dem.
+- Tenant-kolumner: KLART. reports/profiles fick tenant via migration
+  (befintliga rader blir medvetet osynliga för riktiga tenants — att
+  gissa ägare vore värre); kundtabellerna (assets, routines, checks,
+  scheduled_jobs, observations, sponsor_campaigns/completions) har
+  tenant i primärnyckeln. Skördad/publicerad data har INGEN
+  tenant-kolumn, med flit och dokumenterat skäl.
+- Kvar: köra `PostgresStore.selftest()` mot riktig Aurora —
+  runbook-steget är `LANDVEX_PG_DSN=... python3 -m scripts.pg_selftest`
+  (kör rundturen, skriver migrationsläget, jämför mot referenskedjan;
+  vägrar utan DSN i stället för att ge ett falskt grönt kvitto).
 
 ### 4. Finns strukturerad loggning, metrics och tracing? 🟡
 - Requestlogg + revisionslogg som JSON-rader (ts, request_id, tenant,
@@ -84,12 +104,12 @@ därmed förklaras och räknas om i efterhand – "varför fick vi 87?"
 besvaras rad för rad, ingen svart låda.
 
 ### 8. Finns tester för de viktigaste affärsflödena? ✅
-78 tester i 9 sviter, körbara utan pytest/beroenden/nätverk:
-scoring/determinism, SCB-adapter (fixturer i PxWeb-format),
-persistens+cache, profil→svep→beslutskort, workforce-prognoser+
-simulering, risk+jämförelse, NL-tolken, marknader/globala flöden,
-säkerhet (auth/RBAC/rate limit/audit). CI kör dessutom ett
-API-röktest med auth påslagen.
+94 sviter, körbara utan pytest/beroenden/nätverk (`make test`).
+Utöver v0.9-flödena: kontraktstest som statiskt låser att FastAPI-
+och stdlib-lagret exponerar samma endpoint-yta, red-team-svit,
+självrevision (fäller varje ny modulfil utan test), tenancy-svit,
+mutationsbevisade lås (budgettak, färskhetsexport, resolver-kedjan).
+CI kör dessutom ett API-röktest med auth påslagen.
 
 ### 9. Kan systemet driftsättas från grunden med en enda pipeline? 🟡
 - CI (`.github/workflows/landvex-ci.yml`): kompilering + hela sviten
@@ -110,11 +130,12 @@ API-röktest med auth påslagen.
 | Cache-strategi | ✅ |
 | Förklarbarhet & reproducerbarhet | ✅ |
 | Affärsflödestester + CI | ✅ |
-| Säkerhet | 🟡 baslinje klar; OIDC + tenant-isolering i lagret kvar |
-| Datamodell/migrationer | 🟡 runner klar; tenant-kolumner + Aurora-selftest kvar |
+| Säkerhet | 🟡 nycklar+JWT+RBAC+planer klart; OIDC/JWKS kvar |
+| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; Aurora-selftest kvar (runbook: scripts/pg_selftest) |
 | Observability | 🟡 logg/metrics/request-id klart; tracing senare |
 | CI/CD & IaC | 🟡 CI klar; CDK-stack är största gapet |
 
-**Rekommendation:** skriv CDK-stacken (backlog #6) och tenant-
-kolumnerna före första enterprise-deploy; OIDC kan gå i samma sprint.
+**Rekommendation:** skriv CDK-stacken (backlog #6) före första
+enterprise-deploy och kör `scripts/pg_selftest` mot den provisionerade
+Auroran; OIDC/JWKS kan gå i samma sprint (HS256-JWT är redan i drift).
 Allt annat är deploybart som det står.
