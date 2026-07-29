@@ -77,11 +77,32 @@ def validate_target(url: str) -> str:
     return url
 
 
-def validate_subscription(params: dict) -> None:
+def validate_subscription(params: dict, *, tenant: str | None = None) -> None:
     """Hela prenumerationen prövas när den SKAPAS — mål, datamängd och
     format. Ett fel som först syns i en obevakad nattkörning är ett fel
-    ingen ser."""
-    validate_target((params or {}).get("target_url", ""))
+    ingen ser.
+
+    Målet är ANTINGEN en rå target_url ELLER en koppling (params
+    ["connection"] = provider ur kundens kryp-in): då hämtas adress och
+    autentisering ur kopplingslagret vid varje leverans — hemligheten
+    bor kvar där den maskeras, aldrig i jobbets params."""
+    p = params or {}
+    if p.get("connection") and p.get("target_url"):
+        raise PushRefused(
+            "give target_url OR connection, not both — two targets for "
+            "one delivery is an ambiguity someone discovers at 03:00")
+    if p.get("connection"):
+        if tenant is not None:
+            from engine.connections import (ConnectionRefused,
+                                            get_connection,
+                                            target_url_of)
+            try:
+                target_url_of(get_connection(p["connection"],
+                                             tenant=tenant))
+            except ConnectionRefused as e:
+                raise PushRefused(str(e)) from e
+    else:
+        validate_target(p.get("target_url", ""))
     ds = (params or {}).get("dataset", "")
     kanda = {d["id"] for d in export_catalog()["datasets"]}
     if ds not in kanda:
@@ -133,15 +154,36 @@ def deliver(job: dict, *, transport: Callable | None = None,
     """Kör prenumerationen EN gång: bygg innehållet, POST:a det, skriv
     sanningen om vad som hände."""
     p = job.get("params") or {}
-    mal = p.get("target_url", "")
-    validate_target(mal)                    # även i körningen: params kan
-    #                                         ha ändrats efter skapandet
+    extra_huvud: dict = {}
+    if p.get("connection"):
+        # Kopplingen slås upp vid VARJE leverans: en roterad nyckel i
+        # kryp-in gäller nästa natt utan att jobbet rörs, och
+        # hemligheten bor kvar i lagret som maskerar den.
+        from engine.connections import (ConnectionRefused, get_connection,
+                                        headers_for, target_url_of)
+        try:
+            kopp = get_connection(p["connection"],
+                                  tenant=job.get("tenant", ""))
+            mal = target_url_of(kopp)
+            extra_huvud = headers_for(kopp)
+        except ConnectionRefused as e:
+            return {"delivered": False, "status": None,
+                    "why_en": (f"the {p['connection']!r} connection is "
+                               f"gone or unusable: {e} — nothing was "
+                               f"sent, and nothing is reported as "
+                               f"sent")}
+    else:
+        mal = p.get("target_url", "")
+        validate_target(mal)                # även i körningen: params kan
+        #                                     ha ändrats efter skapandet
     inneh = preview(p.get("dataset", ""), p.get("format", "csv"),
                     p.get("dataset_params") or {},
                     tenant=job.get("tenant", ""))
     huvud = {"Content-Type": inneh["media_type"],
              "User-Agent": "landvex-push/1.0",
-             "X-Landvex-Dataset": inneh["dataset"]}
+             "X-Landvex-Dataset": inneh["dataset"],
+             **{k: v for k, v in extra_huvud.items()
+                if k != "content-type"}}
     t = transport or _http_post
     try:
         status, _svar = t(mal, inneh["content"].encode("utf-8"), huvud,

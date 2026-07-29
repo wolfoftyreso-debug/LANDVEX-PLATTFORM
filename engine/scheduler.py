@@ -385,7 +385,7 @@ def job(id: str, kind: str, *, cadence: dict | None = None,
         # inte i en obevakad nattkörning månader senare.
         from engine.pushes import PushRefused, validate_subscription
         try:
-            validate_subscription(params or {})
+            validate_subscription(params or {}, tenant=tenant)
         except PushRefused as e:
             raise ScheduleRefused(str(e)) from e
     if not tenant:

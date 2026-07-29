@@ -119,6 +119,120 @@ CONNECTORS: dict[str, dict] = {
                       "URL is a secret because holding it means posting "
                       "rights."),
     },
+    # ── Affärssystemen: myndigheters och företags standardsystem ──────
+    # Landvex talar ren JSON över https mot systemens INBOUND-ytor —
+    # integrationsplattformen kunden redan har (CPI, Power Automate,
+    # scripted REST) äger mappningen till interna format. Det är ärligt:
+    # ett löfte om att skriva IDocs vore ett löfte om någon annans
+    # system. En ny integration är en rad, inte en gren.
+    "sap": {
+        "label_en": "SAP (Integration Suite / OData inbound)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "Inbound https endpoint (CPI iFlow or OData "
+                         "service accepting POST)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://your-tenant.it-cpi.cfapps.eu10."
+                               "hana.ondemand.com/http/landvex"},
+            {"id": "auth_value",
+             "label_en": "Authorization header value",
+             "secret": True, "required": False,
+             "placeholder_en": "Basic ... or Bearer ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Scheduled deliveries and approved-mission "
+                       "credentials land in your SAP landscape through "
+                       "the Integration Suite endpoint your team "
+                       "already operates."),
+        "cannot_en": ("Landvex POSTs plain JSON/CSV over https to the "
+                      "inbound endpoint. Mapping into IDocs, BAPIs or "
+                      "CDS views happens in YOUR integration layer, "
+                      "where it belongs — a platform that promised to "
+                      "write SAP internals would be promising someone "
+                      "else's system."),
+    },
+    "servicenow": {
+        "label_en": "ServiceNow (Table API / scripted REST)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "Instance endpoint (Table API or scripted "
+                         "REST)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://yourco.service-now.com/api/now/"
+                               "table/incident"},
+            {"id": "auth_value",
+             "label_en": "Authorization header value",
+             "secret": True, "required": False,
+             "placeholder_en": "Basic ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Deliveries and credentials POST straight into "
+                       "your instance — an exception feed pointed at "
+                       "the incident table becomes tickets your "
+                       "operators already triage."),
+        "cannot_en": ("Landvex sends the rows; assignment rules, SLAs "
+                      "and workflows run in your instance. A failed "
+                      "POST is recorded as failed — it never becomes a "
+                      "ticket that looks filed."),
+    },
+    "dynamics365": {
+        "label_en": "Microsoft Dynamics 365 (Power Automate inbound)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "HTTP-trigger flow URL (Power Automate)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://prod-xx.westeurope.logic.azure."
+                               "com/workflows/..."},
+            {"id": "auth_value",
+             "label_en": "Authorization header value (if the flow "
+                         "checks one)",
+             "secret": True, "required": False,
+             "placeholder_en": "Bearer ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Deliveries and credentials trigger your Power "
+                       "Automate flow, which writes into Dataverse/"
+                       "Dynamics exactly the way your admins decided."),
+        "cannot_en": ("The flow URL carries a signature and is treated "
+                      "as a secret. What the flow does downstream is "
+                      "yours; Landvex only knows whether the trigger "
+                      "answered."),
+    },
+    "salesforce": {
+        "label_en": "Salesforce (Flow / Apex REST inbound)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "Inbound endpoint (Flow HTTP or Apex REST)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://yourco.my.salesforce.com/"
+                               "services/apexrest/landvex"},
+            {"id": "auth_value",
+             "label_en": "Authorization header value",
+             "secret": True, "required": False,
+             "placeholder_en": "Bearer ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Deliveries and credentials land in your org "
+                       "through the REST surface your Salesforce team "
+                       "exposes."),
+        "cannot_en": ("Token refresh and OAuth flows live in your "
+                      "middleware or a long-lived integration user — "
+                      "Landvex sends the request with the header you "
+                      "configured and records the answer, nothing "
+                      "more."),
+    },
 }
 
 
@@ -152,13 +266,14 @@ def connection(provider: str, config: dict, *, tenant: str) -> dict:
         raise ConnectionRefused(
             f"unknown field(s) {sorted(okanda)} for {provider}; it "
             f"takes {', '.join(f['id'] for f in spec['fields'])}")
-    # Webhook-mål genom samma SSRF-grind som pusharna — en kunds
-    # webhook får inte bli vår väg in i vårt eget nät.
-    if "webhook_url" in config:
-        try:
-            validate_target(config["webhook_url"])
-        except PushRefused as e:
-            raise ConnectionRefused(str(e)) from e
+    # Alla mål-URL:er genom samma SSRF-grind som pusharna — en kunds
+    # endpoint får inte bli vår väg in i vårt eget nät.
+    for urlfalt in ("webhook_url", "endpoint_url"):
+        if config.get(urlfalt):
+            try:
+                validate_target(config[urlfalt])
+            except PushRefused as e:
+                raise ConnectionRefused(str(e)) from e
     return {
         "provider": provider, "tenant": tenant,
         "kind": spec["kind"], "config": config,
@@ -188,6 +303,45 @@ def masked(rec: dict) -> dict:
     ut = {k: v for k, v in rec.items() if k != "config"}
     ut["config"] = cfg
     return ut
+
+
+def target_url_of(rec: dict) -> str:
+    """Kopplingens leveransadress — webhook eller enterprise-endpoint."""
+    cfg = rec.get("config") or {}
+    url = cfg.get("webhook_url") or cfg.get("endpoint_url") or ""
+    if not url:
+        raise ConnectionRefused(
+            f"{rec.get('provider')!r} carries no delivery URL — it is "
+            f"not a system deliveries can land in")
+    return url
+
+
+def headers_for(rec: dict) -> dict:
+    """HTTP-huvudena en leverans till kopplingen ska bära.
+
+    Autentiseringsvärdet är en hemlighet: det läses HÄR för att sättas
+    på anropet — aldrig för att loggas eller ekas.
+    """
+    cfg = rec.get("config") or {}
+    huvud = {"content-type": "application/json"}
+    if cfg.get("auth_value"):
+        huvud[cfg.get("auth_header") or "Authorization"] = \
+            cfg["auth_value"]
+    return huvud
+
+
+def feedback_target(tenant: str) -> dict | None:
+    """Vart kvittona ska: feedback-webhooken om den finns, annars
+    första affärssystemet. EN regel, delad av båda API-lagren —
+    två egna urval hade varit två sanningar om samma leverans."""
+    rader = all_connections(tenant)
+    for r in rader:
+        if r.get("provider") == "feedback_webhook":
+            return r
+    for r in rader:
+        if r.get("kind") == "enterprise":
+            return r
+    return None
 
 
 def catalog() -> dict:

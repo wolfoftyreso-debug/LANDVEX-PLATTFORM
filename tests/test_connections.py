@@ -267,6 +267,130 @@ def test_only_llm_connections_can_narrate():
         raise AssertionError("en webhook berättade")
 
 
+def test_enterprise_systems_are_rows_with_the_same_gates():
+    """SAP, ServiceNow, Dynamics, Salesforce: samma SSRF-grind, samma
+    maskering — endpointen och auth-värdet är hemligheter."""
+    for prov in ("sap", "servicenow", "dynamics365", "salesforce"):
+        assert C.CONNECTORS[prov]["kind"] == "enterprise"
+        try:
+            C.connection(prov, {"endpoint_url": "https://10.0.0.5/api"},
+                         tenant="t1")
+        except C.ConnectionRefused:
+            pass
+        else:
+            raise AssertionError(f"{prov}: privat endpoint accepterades")
+    rec = C.connection("sap", {
+        "endpoint_url": "https://cpi.example.hana.ondemand.com/http/lvx",
+        "auth_value": "Basic aGVtbGlndDpsb3Nlbg==",
+        "auth_header": "Authorization"}, tenant="t1")
+    m = json.dumps(C.masked(rec))
+    assert "aGVtbGlndDpsb3Nlbg" not in m, "auth-värdet läckte"
+    assert "hana.ondemand.com" not in m, "endpointen läckte"
+
+
+def test_delivery_headers_carry_the_auth_and_nothing_logs_it():
+    rec = C.connection("servicenow", {
+        "endpoint_url": "https://co.service-now.com/api/now/table/x",
+        "auth_value": "Basic c2VydmljZTpub3c="}, tenant="t1")
+    huvud = C.headers_for(rec)
+    assert huvud["Authorization"] == "Basic c2VydmljZTpub3c="
+    assert C.target_url_of(rec).startswith("https://co.service-now")
+    # Eget huvudnamn respekteras (t.ex. x-sn-apikey).
+    rec2 = C.connection("servicenow", {
+        "endpoint_url": "https://co.service-now.com/api/x",
+        "auth_value": "nyckel123", "auth_header": "x-sn-apikey"},
+        tenant="t1")
+    assert C.headers_for(rec2)["x-sn-apikey"] == "nyckel123"
+    # En LLM-koppling är inget leveransmål.
+    try:
+        C.target_url_of(_koppla())
+    except C.ConnectionRefused as e:
+        assert "no delivery URL" in str(e)
+    else:
+        raise AssertionError("nyckeln blev en adress")
+
+
+def test_credentials_can_land_in_the_enterprise_system():
+    """feedback_webhook vinner om den finns; annars första
+    affärssystemet — och leveransen bär kundens auth-huvud."""
+    from integrations import feedback
+
+    C.reset()
+    try:
+        C.save_connection(C.connection("sap", {
+            "endpoint_url": "https://cpi.example.com/http/lvx",
+            "auth_value": "Bearer sap-token-77"}, tenant="t1"))
+        mal = C.feedback_target("t1")
+        assert mal["provider"] == "sap"
+        anrop = []
+
+        def transport(url, headers, body, timeout):
+            anrop.append({"url": url, "headers": headers})
+            return 201, b"{}"
+        ut = feedback.forward({"id": "lvx-cred-x", "tenant": "t1"},
+                              mal, transport=transport)
+        assert ut["delivered"] is True
+        assert anrop[0]["url"] == "https://cpi.example.com/http/lvx"
+        assert anrop[0]["headers"]["Authorization"] == "Bearer sap-token-77"
+        # Webhooken vinner när båda finns — EN regel, inte en gissning.
+        C.save_connection(C.connection(
+            "feedback_webhook",
+            {"webhook_url": "https://api.kund.se/lvx"}, tenant="t1"))
+        assert C.feedback_target("t1")["provider"] == "feedback_webhook"
+    finally:
+        C.reset()
+
+
+def test_a_push_can_target_a_connection_instead_of_a_raw_url():
+    """Prenumerationen pekar på kopplingen; adress och auth hämtas ur
+    kryp-in vid varje leverans — hemligheten bor kvar där den maskeras."""
+    from engine import pushes as P
+
+    C.reset()
+    try:
+        C.save_connection(C.connection("sap", {
+            "endpoint_url": "https://cpi.example.com/http/lvx",
+            "auth_value": "Bearer natt-77"}, tenant="t1"))
+        P.validate_subscription({"dataset": "hotspots", "format": "csv",
+                                 "connection": "sap"}, tenant="t1")
+        for fel in ({"connection": "sap",
+                     "target_url": "https://x.se/h",
+                     "dataset": "hotspots", "format": "csv"},
+                    {"connection": "servicenow",
+                     "dataset": "hotspots", "format": "csv"}):
+            try:
+                P.validate_subscription(fel, tenant="t1")
+            except P.PushRefused:
+                pass
+            else:
+                raise AssertionError(f"{fel} accepterades")
+        anrop = []
+
+        def transport(url, body, headers, timeout):
+            anrop.append({"url": url, "headers": headers})
+            return 200, b"ok"
+        ut = P.deliver({"tenant": "t1",
+                        "params": {"dataset": "hotspots", "format": "csv",
+                                   "connection": "sap",
+                                   "dataset_params": {"vertical": "gym",
+                                                      "market": "us",
+                                                      "top_n": 2}}},
+                       transport=transport)
+        assert ut["delivered"] is True
+        assert anrop[0]["url"] == "https://cpi.example.com/http/lvx"
+        assert anrop[0]["headers"]["Authorization"] == "Bearer natt-77"
+        # Raderad koppling ⇒ redovisad icke-leverans, aldrig ett kvitto.
+        C.reset()
+        ut2 = P.deliver({"tenant": "t1",
+                         "params": {"dataset": "hotspots", "format": "csv",
+                                    "connection": "sap"}},
+                        transport=transport)
+        assert ut2["delivered"] is False
+        assert "nothing is reported as sent" in ut2["why_en"]
+    finally:
+        C.reset()
+
+
 def test_the_catalog_states_what_it_cannot_do():
     k = C.catalog()
     assert {c["id"] for c in k["connectors"]} == set(C.CONNECTORS)

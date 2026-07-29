@@ -3097,6 +3097,8 @@ async function visaKopplingar() {
     return `<div style="padding:9px 0;border-bottom:1px solid var(--line)">` +
       `<b style="font-size:13px">${esc(c.label_en)}</b> ${status}` +
       `<span class="motiv" style="display:block">${esc(c.enables_en)}</span>` +
+      `<span class="motiv" style="display:block;font-size:10.5px;` +
+      `opacity:.75">Cannot: ${esc(c.cannot_en)}</span>` +
       (har ? `<span class="motiv" style="display:block;font-size:11px">` +
              Object.entries(har.config).map(([kk, vv]) =>
                `${esc(kk)}: ${esc(String(vv))}`).join(" · ") + `</span>` : ``) +

@@ -27,16 +27,18 @@ def forward(credential: dict, connection: dict | None, *,
     """Skicka kvittot till kundens system — och säg som det gick."""
     if connection is None:
         return {"delivered": False,
-                "why_en": ("no feedback_webhook connection for this "
-                           "tenant — the credential was issued and is "
-                           "verifiable, but nothing was sent anywhere. "
-                           "Connect your system (POST /v1/connections, "
-                           "provider feedback_webhook) and the loop "
-                           "closes.")}
-    url = (connection.get("config") or {}).get("webhook_url", "")
+                "why_en": ("no feedback_webhook or enterprise-system "
+                           "connection for this tenant — the credential "
+                           "was issued and is verifiable, but nothing "
+                           "was sent anywhere. Connect your system "
+                           "(POST /v1/connections: feedback_webhook, "
+                           "sap, servicenow, dynamics365 or salesforce) "
+                           "and the loop closes.")}
+    from engine.connections import headers_for, target_url_of
+    url = target_url_of(connection)
     sand = transport or _http
     try:
-        status, _ = sand(url, {"content-type": "application/json"},
+        status, _ = sand(url, headers_for(connection),
                          json.dumps(credential,
                                     ensure_ascii=False).encode("utf-8"),
                          _TIMEOUT)

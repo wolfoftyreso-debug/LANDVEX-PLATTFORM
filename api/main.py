@@ -248,10 +248,8 @@ def _med_credential(rec: dict, kind: str, subject: dict, *,
         ut["credential"] = None
         ut["credential_refused_en"] = str(e)
         return ut
-    koppling = next((r for r in CN.all_connections(tenant)
-                     if r.get("provider") == "feedback_webhook"), None)
     ut["credential"] = cred
-    ut["feedback"] = feedback.forward(cred, koppling)
+    ut["feedback"] = feedback.forward(cred, CN.feedback_target(tenant))
     return ut
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
