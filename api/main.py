@@ -76,7 +76,11 @@ from engine import inspections as _insp
 from engine import scheduler as _sched
 from engine import harvest as _harvest
 from engine import news as _news
+from engine import company as _company
+from engine import connections as _connections
+from engine import credentials as _credentials
 from engine import sponsorship as _sponsorship
+from engine import staff as _staff
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -223,6 +227,32 @@ _harvest.set_store(STORE)
 _news.set_store(STORE)
 # Budget som nollställs vid omstart är en budget som kan överskridas.
 _sponsorship.set_store(STORE)
+_connections.set_store(STORE)
+_company.set_store(STORE)
+_credentials.set_store(STORE)
+_staff.set_store(STORE)
+
+
+def _med_credential(rec: dict, kind: str, subject: dict, *,
+                    tenant: str, mission_id: str) -> dict:
+    """Samma regel som dev-servern: godkänt utfall får sitt signerade
+    kvitto + leveransförsöket till kundens system, båda redovisade;
+    en vägran redovisas i stället för att fälla anropet."""
+    from engine import connections as CN
+    from integrations import feedback
+    ut = dict(rec)
+    try:
+        cred = _credentials.issue(kind, subject, tenant=tenant,
+                                  mission_id=mission_id)
+    except _credentials.CredentialRefused as e:
+        ut["credential"] = None
+        ut["credential_refused_en"] = str(e)
+        return ut
+    koppling = next((r for r in CN.all_connections(tenant)
+                     if r.get("provider") == "feedback_webhook"), None)
+    ut["credential"] = cred
+    ut["feedback"] = feedback.forward(cred, koppling)
+    return ut
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -1039,7 +1069,13 @@ def inspections_verdict_ep(request: Request, body: dict):
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     I.save_check(rec)
-    return rec
+    return _med_credential(
+        rec, "check_passed",
+        {"asset_id": rec["asset_id"], "routine_id": rec["routine_id"],
+         "verdict": rec["verdict"],
+         "performed_at": rec.get("performed_at", ""),
+         "evidence_ref": rec.get("evidence_ref", "")},
+        tenant=_tenant(request), mission_id=rec.get("mission_id", ""))
 
 
 @app.get("/v1/inspections/compliance")
@@ -1373,7 +1409,13 @@ def sponsorship_completion_ep(request: Request, body: dict):
     except SP.SponsorshipRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     SP.save_completion(rec)
-    return JSONResponse(status_code=201, content=rec)
+    return JSONResponse(status_code=201, content=_med_credential(
+        rec, "sponsored_completion",
+        {"campaign_id": rec["campaign_id"],
+         "region_code": rec.get("region_code", ""),
+         "quality_band": rec.get("quality_band", ""),
+         "verdicts": rec.get("verdicts", {})},
+        tenant=_tenant(request), mission_id=rec.get("mission_id", "")))
 
 
 @app.post("/v1/sponsorship/order")
@@ -1419,6 +1461,161 @@ def sponsorship_stats_ep(request: Request, campaign_id: str = ""):
         return SP.stats(campaign_id, tenant=_tenant(request))
     except SP.SponsorshipRefused as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.get("/v1/company")
+def company_get_ep(request: Request):
+    """The tenant's company profile — the brand that rides on missions."""
+    return {**_company.catalog(),
+            "profile": _company.get_profile(_tenant(request))}
+
+
+@app.post("/v1/company", status_code=201)
+def company_save_ep(request: Request, body: dict):
+    """Save the profile; every field is validated at the door."""
+    try:
+        rec = _company.profile(
+            _tenant(request), name=body.get("name", ""),
+            about_en=body.get("about_en", ""),
+            logo_url=body.get("logo_url", ""),
+            website=body.get("website", ""),
+            brand_color=body.get("brand_color", ""),
+            org_ref=body.get("org_ref", ""))
+    except _company.ProfileRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    _company.save_profile(rec)
+    return rec
+
+
+@app.get("/v1/credentials")
+def credentials_catalog_ep():
+    """What a credential certifies — and what it cannot."""
+    return _credentials.catalog()
+
+
+@app.post("/v1/credentials/verify")
+def credentials_verify_ep(request: Request, body: dict):
+    """Recompute the signature — one changed byte fails it."""
+    return _credentials.verify(body.get("credential") or {},
+                               tenant=_tenant(request))
+
+
+@app.get("/v1/staff")
+def staff_list_ep(request: Request):
+    """The tenant's own zoomers — account references, never persons."""
+    return {**_staff.catalog(),
+            "staff": _staff.all_staff(_tenant(request))}
+
+
+@app.post("/v1/staff", status_code=201)
+def staff_add_ep(request: Request, body: dict):
+    """Link an existing quiXzoom account by its reference."""
+    try:
+        rec = _staff.member(body.get("zoomer_ref", ""),
+                            tenant=_tenant(request),
+                            role_label_en=body.get("role_label_en", ""))
+    except _staff.StaffRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    _staff.save_staff(rec)
+    return rec
+
+
+@app.post("/v1/staff/invite", status_code=201)
+def staff_invite_ep(request: Request, body: dict):
+    """Create an invite code — identity and consent live with quiXzoom."""
+    try:
+        rec = _staff.invite(tenant=_tenant(request),
+                            role_label_en=body.get("role_label_en", ""))
+    except _staff.StaffRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    _staff.save_staff(rec)
+    return rec
+
+
+@app.post("/v1/staff/claim", status_code=201)
+def staff_claim_ep(request: Request, body: dict):
+    """Redeem an invite code for the account reference that came back."""
+    try:
+        return _staff.claim_invite(body.get("invite_id", ""),
+                                   body.get("zoomer_ref", ""),
+                                   tenant=_tenant(request))
+    except _staff.StaffRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/staff/remove")
+def staff_remove_ep(request: Request, body: dict):
+    """Stop future targeting; the person's quiXzoom account is untouched."""
+    return {"deleted": _staff.remove_staff(body.get("id", ""),
+                                           tenant=_tenant(request))}
+
+
+@app.get("/v1/connections")
+def connections_catalog_ep(request: Request):
+    """The customer's own integrations — secrets masked on every read."""
+    from engine import connections as CN
+    return {**CN.catalog(),
+            "connections": [CN.masked(r) for r in
+                            CN.all_connections(_tenant(request))]}
+
+
+@app.post("/v1/connections")
+def connections_create_ep(request: Request, body: dict):
+    """Connect a provider — validated at creation, echoed back masked."""
+    from engine import connections as CN
+    try:
+        rec = CN.connection(body.get("provider", ""),
+                            body.get("config") or {},
+                            tenant=_tenant(request))
+    except CN.ConnectionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    CN.save_connection(rec)
+    return JSONResponse(status_code=201, content=CN.masked(rec))
+
+
+@app.post("/v1/connections/delete")
+def connections_delete_ep(request: Request, body: dict):
+    """Remove a connection; a missing one is a state, not an error."""
+    from engine import connections as CN
+    borta = CN.delete_connection(body.get("provider", ""),
+                                 tenant=_tenant(request))
+    return {"deleted": borta,
+            "note_en": "" if borta else (
+                "nothing to delete — no such connection for this "
+                "tenant, which is a state, not an error")}
+
+
+@app.post("/v1/connections/test")
+def connections_test_ep(request: Request, body: dict):
+    """Probe the real provider — only a real answer sets 'verified'."""
+    from engine import connections as CN
+    from integrations import llm
+    try:
+        rec = CN.get_connection(body.get("provider", ""),
+                                tenant=_tenant(request))
+    except CN.ConnectionRefused as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    resultat = llm.probe(rec)
+    if resultat["verified"]:
+        rec = dict(rec)
+        rec["status"] = "verified"
+        rec["verified_at"] = resultat["probed_at"]
+        CN.save_connection(rec)
+    return resultat
+
+
+@app.post("/v1/connections/narrate")
+def connections_narrate_ep(request: Request, body: dict):
+    """The customer's own model interprets an analysis — marked as such."""
+    from engine import connections as CN
+    from integrations import llm
+    try:
+        rec = CN.get_connection(body.get("provider", "anthropic"),
+                                tenant=_tenant(request))
+        return llm.narrate(rec, body.get("analysis") or {},
+                           question=body.get("question", ""))
+    except CN.ConnectionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/v1/pushes")

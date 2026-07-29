@@ -232,6 +232,50 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_observations
         ON observations(tenant, object_id, observed_at);
     """),
+    # Kundens egna kopplingar (LLM-nycklar, webhooks). payload bär
+    # hemligheten OKRYPTERAD i lagret — samma skyddsnivå som resten av
+    # databasen (kryptering i vila är infrastrukturens ansvar, KMS på
+    # Aurora); det som ALDRIG händer är att den lämnar systemet
+    # omaskerad, och den regeln bor i engine/connections.masked().
+    # En koppling per (tenant, provider) — att byta nyckel är att
+    # skriva över, inte att samla gamla nycklar på hög.
+    (13, """
+    CREATE TABLE IF NOT EXISTS connections (
+        tenant     TEXT NOT NULL DEFAULT '',
+        provider   TEXT NOT NULL,
+        created_at REAL NOT NULL DEFAULT 0,
+        payload    TEXT NOT NULL,
+        PRIMARY KEY (tenant, provider)
+    );
+    """),
+    # Företagsprofilen (varumärket som rider på uppdragen) och
+    # credential-hemligheterna. Hemligheten lämnar ALDRIG systemet —
+    # den har ingen läsväg utåt alls, inte ens maskerad: den används
+    # för att signera och verifiera, punkt.
+    (14, """
+    CREATE TABLE IF NOT EXISTS company_profiles (
+        tenant     TEXT PRIMARY KEY,
+        updated_at REAL NOT NULL DEFAULT 0,
+        payload    TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS credential_secrets (
+        tenant     TEXT PRIMARY KEY,
+        secret     TEXT NOT NULL,
+        created_at REAL NOT NULL DEFAULT 0
+    );
+    """),
+    # Kundens egna zoomers: kontoreferenser och inbjudningskoder —
+    # aldrig namn, aldrig e-post. Motorn (engine/staff.py) vägrar dem
+    # vid dörren; att kolumnerna inte finns är spärren som består.
+    (15, """
+    CREATE TABLE IF NOT EXISTS staff (
+        tenant   TEXT NOT NULL DEFAULT '',
+        id       TEXT NOT NULL,
+        added_at REAL NOT NULL DEFAULT 0,
+        payload  TEXT NOT NULL,
+        PRIMARY KEY (tenant, id)
+    );
+    """),
 ]
 
 _DDL = """
@@ -784,6 +828,91 @@ class SqliteStore(Store):
                 "SELECT payload FROM sponsor_completions "
                 "ORDER BY completed_at DESC, id").fetchall()
         return [json.loads(r[0]) for r in rader]
+
+    # ── Kundens kopplingar ──────────────────────────────────────────
+    def save_connection(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO connections "
+                "(tenant, provider, created_at, payload) VALUES (?,?,?,?)",
+                (rec.get("tenant", ""), rec["provider"],
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["provider"]
+
+    def all_connections(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM connections "
+                "ORDER BY created_at DESC, provider").fetchall()
+        return [json.loads(r[0]) for r in rader]
+
+    def delete_connection(self, provider: str, tenant: str) -> bool:
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "DELETE FROM connections WHERE tenant = ? AND provider = ?",
+                (tenant, provider))
+        return cur.rowcount > 0
+
+    # ── Företagsprofil + credential-hemlighet ───────────────────────
+    def save_company_profile(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO company_profiles "
+                "(tenant, updated_at, payload) VALUES (?,?,?)",
+                (rec["tenant"], float(rec.get("updated_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["tenant"]
+
+    def get_company_profile(self, tenant: str) -> dict | None:
+        with self._lock:
+            rad = self._conn.execute(
+                "SELECT payload FROM company_profiles WHERE tenant = ?",
+                (tenant,)).fetchone()
+        return json.loads(rad[0]) if rad else None
+
+    def credential_secret(self, tenant: str) -> bytes:
+        """Hämta-eller-skapa: hemligheten genereras första gången den
+        behövs och har därefter INGEN läsväg utanför signering."""
+        import secrets as _s
+        import time as _t
+        with self._lock, self._conn:
+            rad = self._conn.execute(
+                "SELECT secret FROM credential_secrets WHERE tenant = ?",
+                (tenant,)).fetchone()
+            if rad:
+                return bytes.fromhex(rad[0])
+            ny = _s.token_bytes(32)
+            self._conn.execute(
+                "INSERT INTO credential_secrets (tenant, secret, "
+                "created_at) VALUES (?,?,?)",
+                (tenant, ny.hex(), _t.time()))
+        return ny
+
+    # ── Kundens egna zoomers ────────────────────────────────────────
+    def save_staff(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO staff "
+                "(tenant, id, added_at, payload) VALUES (?,?,?,?)",
+                (rec.get("tenant", ""), rec["id"],
+                 float(rec.get("added_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_staff(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM staff "
+                "ORDER BY added_at, id").fetchall()
+        return [json.loads(r[0]) for r in rader]
+
+    def delete_staff(self, row_id: str, tenant: str) -> bool:
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "DELETE FROM staff WHERE tenant = ? AND id = ?",
+                (tenant, row_id))
+        return cur.rowcount > 0
 
     def close(self) -> None:
         with self._lock:

@@ -242,6 +242,33 @@ CREATE TABLE IF NOT EXISTS observations (
 );
 CREATE INDEX IF NOT EXISTS idx_observations
     ON observations(tenant, object_id, observed_at);
+
+CREATE TABLE IF NOT EXISTS connections (
+    tenant     TEXT NOT NULL DEFAULT '',
+    provider   TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL,
+    PRIMARY KEY (tenant, provider)
+);
+
+CREATE TABLE IF NOT EXISTS company_profiles (
+    tenant     TEXT PRIMARY KEY,
+    updated_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE TABLE IF NOT EXISTS credential_secrets (
+    tenant     TEXT PRIMARY KEY,
+    secret     TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS staff (
+    tenant   TEXT NOT NULL DEFAULT '',
+    id       TEXT NOT NULL,
+    added_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload  JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -296,6 +323,36 @@ CREATE TABLE IF NOT EXISTS observations (
 );
 CREATE INDEX IF NOT EXISTS idx_observations
     ON observations(tenant, object_id, observed_at);
+"""),
+    (13, """
+CREATE TABLE IF NOT EXISTS connections (
+    tenant     TEXT NOT NULL DEFAULT '',
+    provider   TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL,
+    PRIMARY KEY (tenant, provider)
+);
+"""),
+    (14, """
+CREATE TABLE IF NOT EXISTS company_profiles (
+    tenant     TEXT PRIMARY KEY,
+    updated_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE TABLE IF NOT EXISTS credential_secrets (
+    tenant     TEXT PRIMARY KEY,
+    secret     TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+"""),
+    (15, """
+CREATE TABLE IF NOT EXISTS staff (
+    tenant   TEXT NOT NULL DEFAULT '',
+    id       TEXT NOT NULL,
+    added_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload  JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
 """),
 ]
 
@@ -817,6 +874,108 @@ class PostgresStore(Store):
             rader = cur.fetchall()
         return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
                 for r in rader]
+
+    # ── Kundens kopplingar ──────────────────────────────────────────
+    def save_connection(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO connections (tenant, provider, created_at, "
+                "payload) VALUES (%s,%s,%s,%s) "
+                "ON CONFLICT (tenant, provider) DO UPDATE SET "
+                "created_at = EXCLUDED.created_at, "
+                "payload = EXCLUDED.payload",
+                (rec.get("tenant", ""), rec["provider"],
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["provider"]
+
+    def all_connections(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM connections "
+                        "ORDER BY created_at DESC, provider")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
+
+    def delete_connection(self, provider: str, tenant: str) -> bool:
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM connections "
+                        "WHERE tenant = %s AND provider = %s",
+                        (tenant, provider))
+            antal = cur.rowcount
+        self._conn.commit()
+        return antal > 0
+
+    # ── Företagsprofil + credential-hemlighet ───────────────────────
+    def save_company_profile(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO company_profiles (tenant, updated_at, "
+                "payload) VALUES (%s,%s,%s) "
+                "ON CONFLICT (tenant) DO UPDATE SET "
+                "updated_at = EXCLUDED.updated_at, "
+                "payload = EXCLUDED.payload",
+                (rec["tenant"], float(rec.get("updated_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["tenant"]
+
+    def get_company_profile(self, tenant: str) -> dict | None:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM company_profiles "
+                        "WHERE tenant = %s", (tenant,))
+            rad = cur.fetchone()
+        if not rad:
+            return None
+        return rad[0] if isinstance(rad[0], dict) else json.loads(rad[0])
+
+    def credential_secret(self, tenant: str) -> bytes:
+        import secrets as _s
+        import time as _t
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT secret FROM credential_secrets "
+                        "WHERE tenant = %s", (tenant,))
+            rad = cur.fetchone()
+            if rad:
+                return bytes.fromhex(rad[0])
+            ny = _s.token_bytes(32)
+            cur.execute("INSERT INTO credential_secrets (tenant, secret, "
+                        "created_at) VALUES (%s,%s,%s) "
+                        "ON CONFLICT (tenant) DO NOTHING",
+                        (tenant, ny.hex(), _t.time()))
+        self._conn.commit()
+        return ny
+
+    # ── Kundens egna zoomers ────────────────────────────────────────
+    def save_staff(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO staff (tenant, id, added_at, payload) "
+                "VALUES (%s,%s,%s,%s) "
+                "ON CONFLICT (tenant, id) DO UPDATE SET "
+                "added_at = EXCLUDED.added_at, "
+                "payload = EXCLUDED.payload",
+                (rec.get("tenant", ""), rec["id"],
+                 float(rec.get("added_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["id"]
+
+    def all_staff(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM staff ORDER BY added_at, id")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
+
+    def delete_staff(self, row_id: str, tenant: str) -> bool:
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM staff WHERE tenant = %s AND id = %s",
+                        (tenant, row_id))
+            antal = cur.rowcount
+        self._conn.commit()
+        return antal > 0
 
     def close(self) -> None:
         self._conn.close()

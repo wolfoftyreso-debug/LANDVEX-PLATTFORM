@@ -450,6 +450,57 @@ API_CATALOG: dict = {
                            "as the endpoint it came from.",
          "endpoints": [{"method": "GET", "path": "/v1/export"},
                        {"method": "POST", "path": "/v1/export"}]},
+        {"id": "company", "label_en": "Your brand on every mission",
+         "beskrivning_en": "The tenant's company profile — name, logo "
+                           "URL, about-text, website, brand colour. "
+                           "Every quiXzoom mission the customer orders "
+                           "carries it: the logo marks the map pin, and "
+                           "tapping it opens who ordered the mission and "
+                           "why. When a mission completes AND is "
+                           "approved, the platform issues a signed "
+                           "credential (HMAC per tenant), forwards it to "
+                           "the customer's own system via the "
+                           "feedback_webhook connection, and answers "
+                           "verification calls — the loop closes. A "
+                           "failed check is never certified.",
+         "endpoints": [{"method": "GET", "path": "/v1/company"},
+                       {"method": "POST", "path": "/v1/company"},
+                       {"method": "GET", "path": "/v1/credentials"},
+                       {"method": "POST",
+                        "path": "/v1/credentials/verify"}]},
+        {"id": "staff", "label_en": "Your own staff as zoomers",
+         "beskrivning_en": "Link employees' existing quiXzoom accounts "
+                           "by reference, or create invite codes redeemed "
+                           "during quiXzoom onboarding. The roster is "
+                           "what named-audience routines target — 'own "
+                           "staff photograph the rental cars'. Landvex "
+                           "stores account references and role labels "
+                           "only; names and emails are refused at the "
+                           "door, because identity and consent live "
+                           "with quiXzoom.",
+         "endpoints": [{"method": "GET", "path": "/v1/staff"},
+                       {"method": "POST", "path": "/v1/staff"},
+                       {"method": "POST", "path": "/v1/staff/invite"},
+                       {"method": "POST", "path": "/v1/staff/claim"},
+                       {"method": "POST", "path": "/v1/staff/remove"}]},
+        {"id": "connections", "label_en": "Your own integrations",
+         "beskrivning_en": "Bring your own language-model key (Anthropic, "
+                           "OpenAI) or team webhook (Slack, Teams). Keys "
+                           "are stored to be used and never echoed back — "
+                           "every read path masks them. 'Configured' means "
+                           "the form was filled in; 'verified' is set only "
+                           "when the provider's real server answered a "
+                           "probe. A connected model can narrate any "
+                           "analysis — its text is an interpretation "
+                           "billed to the customer's own key, never a "
+                           "Landvex measurement.",
+         "endpoints": [{"method": "GET", "path": "/v1/connections"},
+                       {"method": "POST", "path": "/v1/connections"},
+                       {"method": "POST",
+                        "path": "/v1/connections/delete"},
+                       {"method": "POST", "path": "/v1/connections/test"},
+                       {"method": "POST",
+                        "path": "/v1/connections/narrate"}]},
         {"id": "pushes", "label_en": "Generate your own delivery",
          "beskrivning_en": "The push generator: pick a dataset, a media "
                            "format and a webhook target, preview the "

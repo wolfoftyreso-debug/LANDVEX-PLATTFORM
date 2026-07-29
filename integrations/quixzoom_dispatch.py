@@ -98,6 +98,13 @@ class MissionDispatcher:
             # Kontoreferenser, aldrig personer: namn/e-post har redan
             # vägrats när rutinen skapades (engine/inspections.audience).
             kropp["audience"]["zoomer_ids"] = list(pub.get("zoomer_ids", ()))
+        # Varumärket rider på uppdraget: loggan märker kartnålen i
+        # quiXzoom och ett tryck öppnar vem som beställt och varför.
+        # Ingen profil = inget block — en tom logga hittas inte på.
+        from engine.company import brand_block, get_profile
+        profil = get_profile(asset.get("tenant", ""))
+        if profil is not None:
+            kropp["brand"] = brand_block(profil)
         return kropp
 
     def dispatch(self, asset: dict, rut: dict, due_at: str, *,

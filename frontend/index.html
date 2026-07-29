@@ -618,6 +618,47 @@
         <select id="instMalar"></select></div>
       <div class="falt"><label title="Number of hits in top lists">Results (top-N)</label>
         <select id="instTopN"><option>3</option><option selected>5</option><option>8</option><option>10</option></select></div>
+      <h2 style="margin-top:18px">Company profile</h2>
+      <p class="motiv">Your brand rides on every mission you order —
+        the logo marks the pin on the quiXzoom map, and tapping it
+        shows who ordered the mission and why. When a mission is
+        completed and approved, a signed credential is issued and
+        forwarded to your own system.</p>
+      <div class="falt"><label>Company name</label>
+        <input id="coNamn" placeholder="e.g. Flaggservice AB"></div>
+      <div class="falt"><label>About (shown on tap)</label>
+        <input id="coOm" placeholder="What you do, in one sentence"></div>
+      <div class="falt"><label>Logo URL (public https)</label>
+        <input id="coLogo" placeholder="https://cdn.example.com/logo.png"></div>
+      <div class="falt"><label>Website</label>
+        <input id="coWebb" placeholder="https://example.com"></div>
+      <div class="falt"><label>Brand colour (#hex)</label>
+        <input id="coFarg" placeholder="#0A84FF" style="max-width:110px"></div>
+      <button id="coSpara" style="background:var(--accent);border:none;color:#fff;font-weight:600">Save profile</button>
+      <div id="coUt" class="motiv" style="margin-top:6px"></div>
+
+      <h2 style="margin-top:18px">Your integrations</h2>
+      <p class="motiv">Bring your own language-model key, team webhook
+        or feedback endpoint. Keys are stored to be used and never
+        echoed back — and 'verified' is set only when the provider's
+        real server answers a probe.</p>
+      <div id="knKatalog"></div>
+
+      <h2 style="margin-top:18px">Your own zoomers</h2>
+      <p class="motiv">Link employees' quiXzoom accounts by reference,
+        or create an invite code they redeem during quiXzoom
+        onboarding. Landvex stores references and role labels — never
+        names or emails; identity and consent live with quiXzoom.</p>
+      <div class="falt"><label>Link an existing account</label>
+        <input id="stRef" placeholder="qz-staff-001" style="max-width:170px">
+        <input id="stRoll" placeholder="Role, e.g. Rental fleet" style="max-width:190px">
+        <button id="stKoppla" style="font-size:12px">Link</button></div>
+      <div class="falt"><label>Or invite (no account yet)</label>
+        <input id="stInvRoll" placeholder="Role, e.g. Store staff" style="max-width:190px">
+        <button id="stBjud" style="font-size:12px">Create invite code</button></div>
+      <div id="stLista" class="motiv" style="margin-top:6px"></div>
+      <div id="stUt" class="motiv" style="margin-top:4px"></div>
+
       <h2 style="margin-top:18px">Generate your own delivery</h2>
       <p class="motiv">Pick a dataset, a media format and a webhook —
         preview the exact payload, then save it as a scheduled push.
@@ -1347,7 +1388,7 @@ function bytLage(m, franHistorik) {
   if (konsol) visaConsole(); else stoppaConsole();
   if (MODE === "paket") visaPaket();
   if (MODE === "guide") guideRita();
-  if (MODE === "install") { visaOmSystemet(); pushInit(); }
+  if (MODE === "install") { visaOmSystemet(); pushInit(); kryptInInit(); }
   $("resultatRubrik").textContent = LAGEN[MODE].rubrik;
   $("undertitel").textContent = LAGEN[MODE].titel;
   tomKarta(); $("hotspots").innerHTML =
@@ -2961,6 +3002,149 @@ async function sponsorSkapa() {
   } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
 }
 
+// ── Kryp-in: företagsprofilen + kundens egna kopplingar ────────────────
+let KRYPIN_INITIERAD = false;
+async function kryptInInit() {
+  if (!KRYPIN_INITIERAD) {
+    KRYPIN_INITIERAD = true;
+    $("coSpara").onclick = async () => {
+      try {
+        await api("/v1/company", {
+          name: $("coNamn").value, about_en: $("coOm").value,
+          logo_url: $("coLogo").value, website: $("coWebb").value,
+          brand_color: $("coFarg").value});
+        $("coUt").innerHTML = `✓ Saved — the brand now rides on every ` +
+          `mission you order.`;
+      } catch (e) { $("coUt").innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+  }
+  try {
+    const co = await api("/v1/company");
+    if (co.profile) {
+      $("coNamn").value = co.profile.name || "";
+      $("coOm").value = co.profile.about_en || "";
+      $("coLogo").value = co.profile.logo_url || "";
+      $("coWebb").value = co.profile.website || "";
+      $("coFarg").value = co.profile.brand_color || "";
+    }
+  } catch (e) {}
+  visaKopplingar();
+  visaPersonal();
+  $("stKoppla").onclick = async () => {
+    try {
+      await api("/v1/staff", {zoomer_ref: $("stRef").value,
+                              role_label_en: $("stRoll").value});
+      $("stRef").value = ""; $("stUt").textContent = "";
+      visaPersonal();
+    } catch (e) { $("stUt").textContent = `Refused: ${e.message}`; }
+  };
+  $("stBjud").onclick = async () => {
+    try {
+      const inv = await api("/v1/staff/invite",
+                            {role_label_en: $("stInvRoll").value});
+      $("stUt").innerHTML = `Invite code <b>${esc(inv.id)}</b> — ` +
+        `${esc(inv.hand_to_employee_en)}`;
+      visaPersonal();
+    } catch (e) { $("stUt").textContent = `Refused: ${e.message}`; }
+  };
+}
+
+async function visaPersonal() {
+  const ut = $("stLista");
+  try {
+    const s = await api("/v1/staff");
+    const rader = s.staff || [];
+    ut.innerHTML = rader.length ? rader.map(r =>
+      `<div style="display:flex;gap:8px;align-items:center;` +
+      `padding:3px 0;font-size:12px">` +
+      (r.kind === "member"
+        ? `<b>${esc(r.zoomer_ref)}</b>` +
+          (r.role_label_en ? ` · ${esc(r.role_label_en)}` : ``)
+        : `<span style="color:#c90">invite ${esc(r.id)}</span> · ` +
+          `${esc(r.role_label_en)} · ${esc(r.status)}`) +
+      `<button class="stBort" data-id="${esc(r.id)}" ` +
+      `style="font-size:10.5px">Remove</button></div>`).join("")
+      : `<span style="font-size:11.5px">No staff linked yet — an ` +
+        `empty roster is a state, not an error.</span>`;
+    ut.querySelectorAll(".stBort").forEach(b => b.onclick = async () => {
+      await api("/v1/staff/remove", {id: b.dataset.id});
+      visaPersonal();
+    });
+  } catch (e) { ut.textContent = e.message; }
+}
+
+async function visaKopplingar() {
+  const ut = $("knKatalog");
+  let k;
+  try { k = await api("/v1/connections"); }
+  catch (e) { ut.innerHTML = `<p class="motiv">${esc(e.message)}</p>`; return; }
+  const kopplade = {};
+  (k.connections || []).forEach(c => kopplade[c.provider] = c);
+  ut.innerHTML = (k.connectors || []).map(c => {
+    const har = kopplade[c.id];
+    const status = har
+      ? `<span style="font-size:10.5px;padding:2px 8px;border-radius:9px;` +
+        `border:1px solid ${har.status === "verified"
+          ? "var(--accent)" : "#c90"};color:${har.status === "verified"
+          ? "var(--accent)" : "#c90"}">${har.status}</span>`
+      : ``;
+    const falt = c.fields.map(f =>
+      `<input data-kn="${c.id}" data-f="${f.id}" ` +
+      `type="${f.secret ? "password" : "text"}" ` +
+      `placeholder="${esc(f.placeholder_en || f.label_en)}" ` +
+      `${har && f.secret ? `value=""` : ``} ` +
+      `style="margin:2px 4px 2px 0;max-width:260px">`).join("");
+    return `<div style="padding:9px 0;border-bottom:1px solid var(--line)">` +
+      `<b style="font-size:13px">${esc(c.label_en)}</b> ${status}` +
+      `<span class="motiv" style="display:block">${esc(c.enables_en)}</span>` +
+      (har ? `<span class="motiv" style="display:block;font-size:11px">` +
+             Object.entries(har.config).map(([kk, vv]) =>
+               `${esc(kk)}: ${esc(String(vv))}`).join(" · ") + `</span>` : ``) +
+      `<div style="margin-top:5px">${falt}` +
+      `<button class="knSpara" data-kn="${c.id}" style="font-size:11.5px">` +
+      `${har ? "Replace" : "Connect"}</button>` +
+      (har ? ` <button class="knTesta" data-kn="${c.id}" ` +
+             `style="font-size:11.5px">Test — only a real answer ` +
+             `counts</button> <button class="knBort" data-kn="${c.id}" ` +
+             `style="font-size:11.5px">Remove</button>` : ``) +
+      `</div><div class="motiv knUt" id="knUt-${c.id}" ` +
+      `style="margin-top:4px;font-size:11.5px"></div></div>`;
+  }).join("") +
+  `<p class="motiv" style="margin-top:8px;font-size:11px">` +
+  `${esc(k.cannot_en || "")}</p>`;
+  ut.querySelectorAll(".knSpara").forEach(b => b.onclick = async () => {
+    const cfg = {};
+    ut.querySelectorAll(`input[data-kn="${b.dataset.kn}"]`).forEach(el => {
+      if (el.value.trim()) cfg[el.dataset.f] = el.value.trim();
+    });
+    try {
+      await api("/v1/connections", {provider: b.dataset.kn, config: cfg});
+      visaKopplingar();
+    } catch (e) {
+      $(`knUt-${b.dataset.kn}`).textContent = `Refused: ${e.message}`;
+    }
+  });
+  ut.querySelectorAll(".knTesta").forEach(b => b.onclick = async () => {
+    const d = $(`knUt-${b.dataset.kn}`);
+    d.textContent = "Probing the real provider …";
+    try {
+      const r = await api("/v1/connections/test",
+                          {provider: b.dataset.kn});
+      d.textContent = (r.verified ? "✓ verified — " : "✗ not verified — ")
+        + r.why_en;
+      if (r.verified) visaKopplingar();
+    } catch (e) { d.textContent = e.message; }
+  });
+  ut.querySelectorAll(".knBort").forEach(b => b.onclick = async () => {
+    try {
+      await api("/v1/connections/delete", {provider: b.dataset.kn});
+      visaKopplingar();
+    } catch (e) {
+      $(`knUt-${b.dataset.kn}`).textContent = e.message;
+    }
+  });
+}
+
 // ── Analyze: motorerna som DATA — nästa analys är en rad, inte en vy ──
 // Regionvalen speglar det som är förberäknat i demon; live svarar
 // API:t för vilken region som helst i samma marknader.
@@ -3145,12 +3329,34 @@ async function analysInit() {
     try {
       const svar = a.metod === "GET"
         ? await api(a.url(v)) : await api(a.path, a.kropp(v));
-      $("analysUt").innerHTML = arligKort(svar);
+      SENASTE_ANALYS = svar;
+      $("analysUt").innerHTML = arligKort(svar) +
+        `<button id="narrKnapp" style="margin-top:8px;font-size:12px">` +
+        `🗣 Narrate with your connected model</button>` +
+        `<div id="narrUt" class="motiv" style="margin-top:6px"></div>`;
+      $("narrKnapp").onclick = narrera;
     } catch (e) {
       $("analysUt").innerHTML =
         `<div style="font-size:12.5px">${e.message}</div>`;
     }
   };
+}
+
+// Kundens EGEN modell tolkar analysen — märkt som tolkning, aldrig
+// som ett Landvex-mätvärde, fakturerad på kundens egen nyckel.
+let SENASTE_ANALYS = null;
+async function narrera() {
+  const ut = $("narrUt");
+  ut.innerHTML = "Asking your connected model …";
+  try {
+    const r = await api("/v1/connections/narrate",
+                        {analysis: SENASTE_ANALYS});
+    ut.innerHTML = `<div style="white-space:pre-wrap;font-size:12.5px;` +
+      `border-left:3px solid var(--accent);padding-left:10px">` +
+      `${esc(r.text)}</div>` +
+      `<div style="font-size:10.5px;opacity:.7;margin-top:4px">` +
+      `${esc(r.model)} · ${esc(r.what_this_is_en)}</div>`;
+  } catch (e) { ut.innerHTML = esc(e.message); }
 }
 
 // ── Media & political intelligence ─────────────────────────────────────

@@ -190,7 +190,13 @@ def mission_body(kamp: dict, *, region_code: str = "",
     VAD SOM ERBJUDS.
     """
     klass = MISSION_CLASSES[kamp["mission_class"]]
+    # Sponsorns varumärke rider på uppdraget precis som kontrollägarens:
+    # loggan på kartnålen, tryck för vem/varför. Lazy import — company
+    # och sponsorship är syskon och får inte binda varandra vid import.
+    from engine.company import brand_block, get_profile
+    profil = get_profile(kamp.get("tenant", ""))
     return {
+        **({"brand": brand_block(profil)} if profil is not None else {}),
         "campaign_ref": kamp["id"],
         "mission_class": kamp["mission_class"],
         "title": f"Sponsored: {kamp['brief_en'][:60]}",

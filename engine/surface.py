@@ -114,7 +114,7 @@ PROMISES: tuple[dict, ...] = (
         "engines": ("accountability", "decision", "outcomes", "offering",
                     "surface", "customer", "visitor", "admin",
                     "inspections", "export", "pushes", "sponsorship",
-                    "infrastructure"),
+                    "infrastructure", "connections", "company", "staff"),
     },
 )
 

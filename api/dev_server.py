@@ -84,7 +84,11 @@ from engine import analysis as analysis_engine
 from engine import mrai as mrai_engine
 from engine import harvest as harvest_engine
 from engine import news as news_engine
+from engine import company as company_engine
+from engine import connections as connections_engine
+from engine import credentials as credentials_engine
 from engine import sponsorship as sponsorship_engine
+from engine import staff as staff_engine
 from engine.coverage import compare_markets, coverage
 from engine.export import catalog as export_catalog, export as export_data
 from api.ticker import start as start_ticker, status as ticker_status
@@ -165,6 +169,34 @@ news_engine.set_store(STORE)
 # omstart: en budget som nollställs vid omstart är en budget som kan
 # överskridas obegränsat.
 sponsorship_engine.set_store(STORE)
+connections_engine.set_store(STORE)
+company_engine.set_store(STORE)
+credentials_engine.set_store(STORE)
+staff_engine.set_store(STORE)
+
+
+def _med_credential(rec: dict, kind: str, subject: dict, *,
+                    tenant: str, mission_id: str) -> dict:
+    """Godkänt utfall ⇒ signerat kvitto + leveransförsök till kundens
+    system, båda REDOVISADE på svaret. En vägran (underkänd dom, saknad
+    uppdragsreferens) redovisas också i stället för att fälla anropet:
+    domen är giltig även när kvittot inte kan utfärdas — men den får
+    aldrig se ut att ha certifierats."""
+    from engine import connections as CN
+    from integrations import feedback
+    ut = dict(rec)
+    try:
+        cred = credentials_engine.issue(kind, subject, tenant=tenant,
+                                        mission_id=mission_id)
+    except credentials_engine.CredentialRefused as e:
+        ut["credential"] = None
+        ut["credential_refused_en"] = str(e)
+        return ut
+    koppling = next((r for r in CN.all_connections(tenant)
+                     if r.get("provider") == "feedback_webhook"), None)
+    ut["credential"] = cred
+    ut["feedback"] = feedback.forward(cred, koppling)
+    return ut
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -477,6 +509,24 @@ class Handler(BaseHTTPRequestHandler):
                     q.get("campaign_id", [""])[0], tenant=self._tenant()))
             except SP.SponsorshipRefused as e:
                 return self._send(404, {"error": str(e)})
+        if parsed.path == "/v1/company":
+            return self._send(200, {
+                **company_engine.catalog(),
+                "profile": company_engine.get_profile(self._tenant())})
+        if parsed.path == "/v1/staff":
+            return self._send(200, {
+                **staff_engine.catalog(),
+                "staff": staff_engine.all_staff(self._tenant())})
+        if parsed.path == "/v1/credentials":
+            return self._send(200, credentials_engine.catalog())
+        if parsed.path == "/v1/connections":
+            from engine import connections as CN
+            return self._send(200, {
+                **CN.catalog(),
+                # Läsvägen går genom masked() — nyckeln lagras för att
+                # användas, aldrig för att ekas tillbaka.
+                "connections": [CN.masked(r) for r in
+                                CN.all_connections(self._tenant())]})
         if parsed.path == "/v1/pushes":
             from engine.pushes import catalog as pushes_catalog
             return self._send(200, pushes_catalog())
@@ -879,7 +929,18 @@ class Handler(BaseHTTPRequestHandler):
                     note_en=req.get("note_en", ""),
                     tenant=self._tenant())
                 insp_engine.save_check(rec)
-                return self._send(201, rec)
+                # Godkänt utfall ⇒ signerat kvitto ⇒ in i kundens
+                # system. Underkänt certifieras inte (motorn vägrar),
+                # och en misslyckad leverans redovisas — aldrig döljs.
+                return self._send(201, _med_credential(
+                    rec, "check_passed",
+                    {"asset_id": rec["asset_id"],
+                     "routine_id": rec["routine_id"],
+                     "verdict": rec["verdict"],
+                     "performed_at": rec.get("performed_at", ""),
+                     "evidence_ref": rec.get("evidence_ref", "")},
+                    tenant=self._tenant(),
+                    mission_id=rec.get("mission_id", "")))
             if self.path == "/v1/analysis/run":
                 return self._send(200, analysis_engine.run(
                     req.get("market") or DEFAULT_MARKET,
@@ -1025,7 +1086,14 @@ class Handler(BaseHTTPRequestHandler):
                 except SP.SponsorshipRefused as e:
                     return self._send(422, {"error": str(e)})
                 SP.save_completion(rec)
-                return self._send(201, rec)
+                return self._send(201, _med_credential(
+                    rec, "sponsored_completion",
+                    {"campaign_id": rec["campaign_id"],
+                     "region_code": rec.get("region_code", ""),
+                     "quality_band": rec.get("quality_band", ""),
+                     "verdicts": rec.get("verdicts", {})},
+                    tenant=self._tenant(),
+                    mission_id=rec.get("mission_id", "")))
             if self.path == "/v1/sponsorship/order":
                 from engine import sponsorship as SP
                 if not any(k["id"] == req.get("campaign_id")
@@ -1050,6 +1118,100 @@ class Handler(BaseHTTPRequestHandler):
                         req.get("campaign_id", ""),
                         req.get("status", ""), tenant=self._tenant()))
                 except SP.SponsorshipRefused as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/company":
+                try:
+                    rec = company_engine.profile(
+                        self._tenant(),
+                        name=req.get("name", ""),
+                        about_en=req.get("about_en", ""),
+                        logo_url=req.get("logo_url", ""),
+                        website=req.get("website", ""),
+                        brand_color=req.get("brand_color", ""),
+                        org_ref=req.get("org_ref", ""))
+                except company_engine.ProfileRefused as e:
+                    return self._send(422, {"error": str(e)})
+                company_engine.save_profile(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/staff":
+                try:
+                    rec = staff_engine.member(
+                        req.get("zoomer_ref", ""),
+                        tenant=self._tenant(),
+                        role_label_en=req.get("role_label_en", ""))
+                except staff_engine.StaffRefused as e:
+                    return self._send(422, {"error": str(e)})
+                staff_engine.save_staff(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/staff/invite":
+                try:
+                    rec = staff_engine.invite(
+                        tenant=self._tenant(),
+                        role_label_en=req.get("role_label_en", ""))
+                except staff_engine.StaffRefused as e:
+                    return self._send(422, {"error": str(e)})
+                staff_engine.save_staff(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/staff/claim":
+                try:
+                    return self._send(201, staff_engine.claim_invite(
+                        req.get("invite_id", ""),
+                        req.get("zoomer_ref", ""),
+                        tenant=self._tenant()))
+                except staff_engine.StaffRefused as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/staff/remove":
+                borta = staff_engine.remove_staff(
+                    req.get("id", ""), tenant=self._tenant())
+                return self._send(200, {"deleted": borta})
+            if self.path == "/v1/credentials/verify":
+                return self._send(200, credentials_engine.verify(
+                    req.get("credential") or {}, tenant=self._tenant()))
+            if self.path == "/v1/connections":
+                from engine import connections as CN
+                try:
+                    rec = CN.connection(req.get("provider", ""),
+                                        req.get("config") or {},
+                                        tenant=self._tenant())
+                except CN.ConnectionRefused as e:
+                    return self._send(422, {"error": str(e)})
+                CN.save_connection(rec)
+                return self._send(201, CN.masked(rec))
+            if self.path == "/v1/connections/delete":
+                from engine import connections as CN
+                borta = CN.delete_connection(req.get("provider", ""),
+                                             tenant=self._tenant())
+                return self._send(200, {
+                    "deleted": borta,
+                    "note_en": "" if borta else (
+                        "nothing to delete — no such connection for "
+                        "this tenant, which is a state, not an error")})
+            if self.path == "/v1/connections/test":
+                from engine import connections as CN
+                from integrations import llm
+                try:
+                    rec = CN.get_connection(req.get("provider", ""),
+                                            tenant=self._tenant())
+                except CN.ConnectionRefused as e:
+                    return self._send(404, {"error": str(e)})
+                resultat = llm.probe(rec)
+                if resultat["verified"]:
+                    rec = dict(rec)
+                    rec["status"] = "verified"
+                    rec["verified_at"] = resultat["probed_at"]
+                    CN.save_connection(rec)
+                return self._send(200, resultat)
+            if self.path == "/v1/connections/narrate":
+                from engine import connections as CN
+                from integrations import llm
+                try:
+                    rec = CN.get_connection(
+                        req.get("provider", "anthropic"),
+                        tenant=self._tenant())
+                    return self._send(200, llm.narrate(
+                        rec, req.get("analysis") or {},
+                        question=req.get("question", "")))
+                except CN.ConnectionRefused as e:
                     return self._send(422, {"error": str(e)})
             if self.path == "/v1/pushes/preview":
                 from engine.pushes import PushRefused, preview

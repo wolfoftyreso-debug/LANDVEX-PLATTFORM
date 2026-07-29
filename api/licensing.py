@@ -105,6 +105,13 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
                                               # paket som /v1/plan och
                                               # /v1/saturation
     "/v1/sponsorship": "sponsor_portal",
+    "/v1/connections": "core",                # kundens eget kryp-in: egna
+                                              # nycklar och webhooks — följer
+                                              # kontot, inte något tilläggspaket
+    "/v1/company": "core",                    # varumärket som rider på uppdragen
+    "/v1/credentials": "core",                # kvittona och verifieringen
+    "/v1/staff": "asset_inspections",         # egna zoomers riktar fotouppdrag
+                                              # — samma paket som kontrollerna
     "/v1/pushes": "core",                     # generatorns valrymd + preview
                                               # — datamängdens EGEN
                                               # kapabilitet prövas därtill
