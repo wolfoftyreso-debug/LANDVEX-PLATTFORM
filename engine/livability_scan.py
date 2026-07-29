@@ -10,6 +10,7 @@ marknad, eftersom det avgör före allt annat.
 from __future__ import annotations
 
 from .datasources.base import Resolver
+from .datasources.faults import OUR_BUGS
 from .livability import (DIMENSIONS, HOUSEHOLDS, caveats, explain, framing,
                          mobility, score_place)
 from .markets import MARKETS, get_market
@@ -44,6 +45,11 @@ def _net_pay_common(occupation: str, market: str) -> tuple[float | None, dict]:
     """
     try:
         w = wage(occupation, market)
+    except OUR_BUGS:
+        # wage() är vår egen kod: ett AttributeError där betydde
+        # "marknad utan löneunderlag", och marknaden föll tyst ur
+        # rankingen — en trasig lönemotor såg ut som tunn data.
+        raise
     except Exception:  # noqa: BLE001 – marknad utan löneunderlag
         return None, {}
     net = w.get("net_monthly")

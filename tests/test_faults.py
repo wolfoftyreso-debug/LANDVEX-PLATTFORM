@@ -105,46 +105,34 @@ def test_every_adapter_with_a_pause_carries_the_guard():
 def test_every_source_module_classifies_the_fault_before_degrading():
     """Strukturregel som ingen linter kan uttrycka.
 
-    Varje `except Exception` i datakällslagret måste föregås av
-    `except OUR_BUGS: raise`. Annars är nästa tysta nedgradering redan
-    inskriven — det räcker att någon lägger till en källa och kopierar
-    mönstret från grannen.
+    Varje `except Exception` måste föregås av `except OUR_BUGS: raise`
+    eller stå i den motiverade allowlisten. Svepet gick tidigare bara
+    över engine/datasources/ + registers + aamos — och det var därför
+    revisionen fann fyra ovaktade platser UTANFÖR: engine/admin.py (en
+    nätadapter), engine/risk_intel.py (svalde ImportError — en medlem i
+    själva OUR_BUGS), engine/opportunity_intel.py och
+    engine/livability_scan.py. Skannern bor numera i engine/selfaudit
+    och konsumeras av både det här testet och /v1-ytan: en
+    implementation, två läsare.
     """
-    import pathlib
-    import re
+    from engine.selfaudit import broad_except_sites
 
-    root = pathlib.Path(__file__).resolve().parent.parent
-    unguarded = []
-    for path in sorted(list((root / "engine" / "datasources").glob("*.py"))
-                       + [root / "engine" / "registers.py",
-                          root / "integrations" / "aamos.py"]):
-        if path.name == "faults.py":
-            continue
-        lines = path.read_text(encoding="utf-8").split("\n")
-        for i, line in enumerate(lines):
-            m = re.match(r"^(\s*)except Exception(\s+as\s+\w+)?:", line)
-            if not m:
-                continue
-            # Sök bakåt till try:t på samma indrag — vakten får ligga var
-            # som helst bland det blockets except-satser, oavsett hur många
-            # kommentarrader som skiljer dem åt.
-            indent = m.group(1)
-            guarded = False
-            for back in range(i - 1, -1, -1):
-                prev = lines[back]
-                if prev.strip() and not prev.startswith(indent):
-                    break                       # ute ur blocket
-                if prev == f"{indent}except OUR_BUGS:":
-                    guarded = True
-                    break
-                if prev == f"{indent}try:":
-                    break
-            if not guarded:
-                unguarded.append(f"{path.relative_to(root)}:{i + 1}")
-    assert not unguarded, (
+    fynd = broad_except_sites()
+    assert not fynd, (
         "Dessa ställen sväljer allt, inklusive våra egna buggar, och "
         "rapporterar det som att källan är nere:\n  "
-        + "\n  ".join(unguarded))
+        + "\n  ".join(f["site"] for f in fynd))
+
+
+def test_the_allowlist_carries_no_dead_rows():
+    """En allowlist-rad vars plats försvunnit är en granskad risk som
+    inte längre finns — den ser ut som skydd och täcker ingenting."""
+    from engine.selfaudit import DEFENSIBLE_BROAD_EXCEPTS, dead_allowlist_rows
+
+    assert not dead_allowlist_rows()
+    for rad in DEFENSIBLE_BROAD_EXCEPTS:
+        assert len(rad.get("why_en", "")) > 40, (
+            f"{rad['site']}: skälet är för tunt för att granska")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .datasources.base import Resolver
+from .datasources.faults import OUR_BUGS
 from .markets import DEFAULT_MARKET, get_market
 from .models import Location
 from .scoring import analyze
@@ -239,7 +240,12 @@ def support_programs(report, vertical_id: str,
                     "url": rec.get("url") or "",
                     "source": "registry",
                 })
-        except Exception:
+        except OUR_BUGS:
+            # Ett AttributeError i VÅR mappningskod lästes som "registret
+            # är nere" — arketyper visades, felet försvann. Vår bugg ska
+            # upp, inte kläs ut till nätfel.
+            raise
+        except Exception:                                # noqa: BLE001
             live_connected = False       # honest degradation → archetypes only
 
     all_programs = live + matches

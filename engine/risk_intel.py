@@ -33,6 +33,7 @@ from typing import Any
 
 from .datasources.base import Resolver
 from .datasources.defaults import default_resolver
+from .datasources.faults import OUR_BUGS
 from .markets import DEFAULT_MARKET, get_market
 from .models import Location
 from .scoring import analyze
@@ -318,6 +319,12 @@ def _observations(location: Location, market: str, res) -> dict:
     try:
         from engine import news as N
         from engine.markets import MARKETS
+    except OUR_BUGS:
+        # ImportError STÅR i OUR_BUGS: en trasig nyhetsmodul är vår bugg,
+        # och att svälja den här gjorde varje importfel till "ingen
+        # rapportering" — kategorierna stod kvar som lugn monitoring
+        # medan koden var sönder. Revisionens fynd D1.
+        raise
     except Exception:                                   # noqa: BLE001
         return {}
     poster = N.all_items(market=market, max_age_days=N_MAX_AGE_DAYS)

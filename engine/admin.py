@@ -25,6 +25,8 @@ import os
 import urllib.request
 from typing import Callable
 
+from .datasources.faults import OUR_BUGS
+
 US_STATES = (
     ("AL", "Alabama"), ("AK", "Alaska"), ("AZ", "Arizona"), ("AR", "Arkansas"),
     ("CA", "California"), ("CO", "Colorado"), ("CT", "Connecticut"),
@@ -388,6 +390,12 @@ class MunicipalRegister:
         try:
             raw = json.loads(self._transport(
                 f"{self.base_url}/{country}.json", self.timeout))
+        except OUR_BUGS:
+            # Det här är en nätadapter — exakt det slags kod faults.py
+            # skrevs för — men den bor utanför engine/datasources/ och
+            # undgick därför svepet. Ett stavfel här lästes som "källan
+            # är nere" och degraderade tyst till fröregistret.
+            raise
         except Exception:  # noqa: BLE001 - ärlig degradering
             return None
         if not isinstance(raw, list):

@@ -67,9 +67,21 @@ _SPARRAT = (
 )
 
 # Undantag som betyder att VI har skrivit fel, inte att motparten svarat
-# konstigt. Samma lista som engine/datasources/faults.OUR_BUGS.
-_VARA_BUGGAR = ("AttributeError", "NameError", "ImportError",
-                "SyntaxError", "IndentationError", "TypeError")
+# konstigt. HÄRLEDD ur faults.OUR_BUGS — kommentaren här sa länge "samma
+# lista" medan tupeln i själva verket hade driftat: den bar ett extra
+# "TypeError" som doktrinen uttryckligen klassar som världens fel. En
+# kommentar som påstår likhet ÄR en kopia, och kopior driftar; nu kan
+# bara avsteget drifta, och det står namngivet.
+from engine.datasources.faults import OUR_BUGS as _OUR_BUGS  # noqa: E402
+
+_VARA_BUGGAR = tuple(e.__name__ for e in _OUR_BUGS) + (
+    # Medvetet avsteg: proben textklassar en traceback från PROBKOD, inte
+    # från en adapters datavägar. Ett TypeError i ett probskript är i
+    # praktiken alltid vårt anropsfel (fel antal argument till en klient)
+    # — faults.py:s skäl att lägga TypeError på världens sida (float(None)
+    # ur ett API-svar) gäller inte här, där inget API-svar hunnit komma.
+    "TypeError",
+)
 
 _EJ_KONFIGURERAD = ("not configured", "inte konfigurerad", "unset",
                     "not set", "no url", "saknar url", "ingen url")
