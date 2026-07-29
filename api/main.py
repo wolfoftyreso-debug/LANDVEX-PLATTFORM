@@ -1527,6 +1527,19 @@ def deliveries_verify_ep(request: Request, body: dict):
                                        tenant=_tenant(request))
 
 
+@app.get("/v1/deliveries/streaks")
+def deliveries_streaks_ep(request: Request):
+    """Consecutive-failure streaks per target, straight from the log."""
+    return {"streaks": _deliveries.failure_streaks(_tenant(request))}
+
+
+@app.post("/v1/deliveries/retry")
+def deliveries_retry_ep(request: Request, body: dict):
+    """Rebuild a failed delivery from its source — never from a saved body."""
+    from integrations.redelivery import retry
+    return retry(body.get("delivery_id", ""), tenant=_tenant(request))
+
+
 @app.post("/v1/credentials/verify")
 def credentials_verify_ep(request: Request, body: dict):
     """Recompute the signature — one changed byte fails it."""

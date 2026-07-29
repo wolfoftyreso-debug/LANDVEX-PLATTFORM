@@ -526,6 +526,10 @@ class Handler(BaseHTTPRequestHandler):
                 "deliveries": deliveries_engine.all_deliveries(
                     self._tenant(),
                     limit=int(q.get("limit", ["100"])[0]))})
+        if parsed.path == "/v1/deliveries/streaks":
+            return self._send(200, {
+                "streaks": deliveries_engine.failure_streaks(
+                    self._tenant())})
         if parsed.path == "/v1/connections":
             from engine import connections as CN
             return self._send(200, {
@@ -1194,6 +1198,10 @@ class Handler(BaseHTTPRequestHandler):
                     req.get("delivery_id", ""),
                     req.get("body_sha256", ""),
                     tenant=self._tenant()))
+            if self.path == "/v1/deliveries/retry":
+                from integrations.redelivery import retry
+                return self._send(200, retry(
+                    req.get("delivery_id", ""), tenant=self._tenant()))
             if self.path == "/v1/connections":
                 from engine import connections as CN
                 try:

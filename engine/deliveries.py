@@ -59,28 +59,77 @@ def outbound_headers(tenant: str, body: bytes, kind: str) -> dict:
 
 def record(*, tenant: str, kind: str, provider: str, body: bytes,
            delivery_id: str, delivered: bool, status: object,
-           why_en: str = "") -> dict:
+           why_en: str = "", source: str = "") -> dict:
     """Loggposten: försöket som gjordes och svaret som kom.
 
     Kroppen loggas ALDRIG — bara dess SHA-256 och storlek. Loggen är
     en revisionsyta, inte en andra kopia av det som redan lämnat.
+    `source` är återskapandereferensen (jobb-id för pushar, objekt-id
+    för ärenden): en omkörning bygger leveransen på nytt från källan —
+    den spelar aldrig upp en sparad kropp, för det finns ingen.
     """
     if not tenant or not kind or not delivery_id:
         raise DeliveryRefused(
             "a delivery record needs tenant, kind and delivery_id — an "
             "unattributable log row audits nothing")
+    global _SEQ
+    _SEQ += 1
     rad = {
         "id": delivery_id, "tenant": tenant, "kind": kind,
         "provider": provider,
         "body_sha256": hashlib.sha256(body).hexdigest(),
         "bytes": len(body),
         "delivered": bool(delivered), "status": status,
-        "why_en": why_en,
+        "why_en": why_en, "source": source,
         "schema": f"{kind}.{SCHEMA_VERSION}",
         "created_at": _time.time(),
+        # Monotont löpnummer: time.time() kan ge samma värde för två
+        # anrop tätt efter varandra, och en stabil sortering på enbart
+        # en tidsstämpel faller då tillbaka till infogningsordning —
+        # fel håll för "senaste först". Löpnumret gör ordningen exakt.
+        "seq": _SEQ,
     }
     save_delivery(rad)
     return rad
+
+
+def failure_streaks(tenant: str, *, window_hours: float = 24.0,
+                    now: float = 0.0) -> list[dict]:
+    """Felsviter per mål: hur många misslyckanden i rad SEDAN senaste
+    lyckade leverans, inom fönstret.
+
+    Det är sviten som larmar — ett enstaka nätfel är brus, fem raka
+    mot samma system är ett system som inte tar emot. En lyckad
+    leverans nollar sviten; larmet säger aldrig mer än loggen visar.
+    """
+    nu = now or _time.time()
+    fran = nu - window_hours * 3600.0
+    per_mal: dict[str, dict] = {}
+    # all_deliveries är nyast-först; sviten räknas tills första lyckade.
+    for r in all_deliveries(tenant, limit=1000):
+        if r.get("created_at", 0) < fran:
+            break
+        mal = r.get("provider") or "webhook"
+        rad = per_mal.setdefault(mal, {"provider": mal, "streak": 0,
+                                       "sealed": False,
+                                       "last_status": r.get("status"),
+                                       "kinds": set()})
+        if rad["sealed"]:
+            continue
+        if r.get("delivered"):
+            rad["sealed"] = True
+            continue
+        rad["streak"] += 1
+        rad["kinds"].add(r.get("kind", ""))
+    ut = []
+    for rad in per_mal.values():
+        if rad["streak"] > 0:
+            ut.append({"provider": rad["provider"],
+                       "streak": rad["streak"],
+                       "last_status": rad["last_status"],
+                       "kinds": sorted(rad["kinds"])})
+    ut.sort(key=lambda r: -r["streak"])
+    return ut
 
 
 def verify_delivery(delivery_id: str, body_sha256: str, *,
@@ -141,6 +190,7 @@ def catalog() -> dict:
 _STORE = None
 _RADER: list[dict] = []
 _MINNESTAK = 500
+_SEQ = 0
 
 
 def set_store(store: object) -> None:
@@ -164,7 +214,10 @@ def all_deliveries(tenant: str | None = None,
         rader = list(_RADER)
     if tenant is not None:
         rader = [r for r in rader if r.get("tenant") == tenant]
-    rader.sort(key=lambda r: -r.get("created_at", 0))
+    # seq som tiebreaker: created_at kan tvillinga vid snabba anrop,
+    # och en stabil sort på bara tiden lämnar tvillingade rader i
+    # infogningsordning i stället för nyast-först.
+    rader.sort(key=lambda r: (-r.get("created_at", 0), -r.get("seq", 0)))
     return rader[:limit]
 
 

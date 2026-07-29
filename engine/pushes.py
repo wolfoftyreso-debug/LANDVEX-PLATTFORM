@@ -198,7 +198,8 @@ def deliver(job: dict, *, transport: Callable | None = None,
                   kind=f"push.{inneh['dataset']}", provider=leverantor,
                   body=kropp,
                   delivery_id=extra["X-Landvex-Delivery-Id"],
-                  delivered=ok, status=status, why_en=why)
+                  delivered=ok, status=status, why_en=why,
+                  source=job.get("id", ""))
 
     t = transport or _http_post
     try:

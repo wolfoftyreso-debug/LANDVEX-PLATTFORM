@@ -649,8 +649,14 @@
         filed exceptions — with the receiver's actual answer. Each POST
         carries an idempotency id, an HMAC signature and a schema
         version; your system can verify any delivery against
-        /v1/deliveries/verify. The log never stores the body.</p>
-      <div id="levLogg" class="motiv"></div>
+        /v1/deliveries/verify. The log never stores the body. A failed
+        row can be retried — rebuilt fresh from its source, never
+        replayed from a saved copy, and always under a new id.</p>
+      <div id="levSviter" class="motiv" style="margin-bottom:6px"></div>
+      <button id="levLarmSchema" style="font-size:12px">Alert me on
+        repeated failures (schedule)</button>
+      <span id="levLarmUt" class="motiv" style="font-size:11px;margin-left:6px"></span>
+      <div id="levLogg" class="motiv" style="margin-top:8px"></div>
 
       <h2 style="margin-top:18px">Your own zoomers</h2>
       <p class="motiv">Link employees' quiXzoom accounts by reference,
@@ -3086,11 +3092,21 @@ async function kryptInInit() {
   };
 }
 
+let LEV_LARM_INITIERAD = false;
 async function visaLeveranser() {
   const ut = $("levLogg");
+  const sut = $("levSviter");
   try {
-    const s = await api("/v1/deliveries?limit=25");
+    const [s, str] = await Promise.all([
+      api("/v1/deliveries?limit=25"), api("/v1/deliveries/streaks")]);
     const rader = s.deliveries || [];
+    const sviter = str.streaks || [];
+    sut.innerHTML = sviter.length
+      ? `<b style="color:#c33">Repeated failures:</b> ` +
+        sviter.map(x => `${esc(x.provider)} (${x.streak} in a row, ` +
+          `last ${esc(String(x.last_status))})`).join(" · ")
+      : `<span style="font-size:11px">No target is currently ` +
+        `failing repeatedly.</span>`;
     ut.innerHTML = rader.length ? rader.map(r =>
       `<div style="display:flex;gap:8px;align-items:baseline;` +
       `padding:3px 0;font-size:11.5px;border-bottom:1px solid ` +
@@ -3100,11 +3116,40 @@ async function visaLeveranser() {
       `<b>${esc(r.kind)}</b> → ${esc(r.provider)} · ` +
       `${esc(String(r.status))} · ${r.bytes} B · ` +
       `<span style="opacity:.6">${esc(r.id)}</span>` +
-      `${r.delivered ? "" : ` · <span style="color:#c33">` +
-        `${esc(r.why_en || "not delivered")}</span>`}</div>`).join("")
+      (r.delivered ? "" :
+        ` · <span style="color:#c33">${esc(r.why_en || "not delivered")}` +
+        `</span> <button class="levRetry" data-id="${esc(r.id)}" ` +
+        `style="font-size:10.5px">Retry</button>`) +
+      `<span class="levRetryUt" id="levRetryUt-${esc(r.id)}" ` +
+      `style="font-size:10.5px"></span></div>`).join("")
       : `<span style="font-size:11.5px">Nothing has left the system ` +
         `yet — an empty log is a state, not an error.</span>`;
+    ut.querySelectorAll(".levRetry").forEach(b => b.onclick = async () => {
+      const d = $(`levRetryUt-${b.dataset.id}`);
+      d.textContent = "Rebuilding from source …";
+      try {
+        const r = await api("/v1/deliveries/retry",
+                            {delivery_id: b.dataset.id});
+        d.textContent = r.retried
+          ? `✓ retried — ${r.note_en || ""}` : `Not retried: ${r.why_en}`;
+        if (r.retried) visaLeveranser();
+      } catch (e) { d.textContent = e.message; }
+    });
   } catch (e) { ut.textContent = e.message; }
+  if (!LEV_LARM_INITIERAD) {
+    LEV_LARM_INITIERAD = true;
+    $("levLarmSchema").onclick = async () => {
+      const d = $("levLarmUt");
+      try {
+        const rec = await api("/v1/schedules", {
+          id: "delivery-alert-hourly", kind: "delivery_alert",
+          cadence: {every: "hourly"}, params: {}});
+        d.textContent = `✓ Scheduled: ${rec.id} — checks hourly, ` +
+          `alerts your Slack/Teams connection on 3+ consecutive ` +
+          `failures to the same target.`;
+      } catch (e) { d.textContent = `Refused: ${e.message}`; }
+    };
+  }
 }
 
 async function visaPersonal() {

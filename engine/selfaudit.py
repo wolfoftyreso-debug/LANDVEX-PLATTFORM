@@ -114,6 +114,11 @@ LAYER_SEAMS: tuple[dict, ...] = (
      "why_en": "The exception_report job kind files tickets in the "
                "customer's system; lazy import inside the job runner, "
                "never at engine import time."},
+    {"site": "engine/scheduler.py",
+     "imports": "integrations.redelivery",
+     "why_en": "The delivery_alert job kind sends alerts through the "
+               "customer's Slack/Teams connection; lazy import inside "
+               "the job runner, never at engine import time."},
     {"site": "engine/surface.py", "imports": "api.catalog",
      "why_en": "The surface counts endpoints per promise; API_CATALOG is "
                "data about the API, read lazily. No engine number "

@@ -498,7 +498,11 @@ API_CATALOG: dict = {
                            "that it succeeded.",
          "endpoints": [{"method": "GET", "path": "/v1/deliveries"},
                        {"method": "POST",
-                        "path": "/v1/deliveries/verify"}]},
+                        "path": "/v1/deliveries/verify"},
+                       {"method": "GET",
+                        "path": "/v1/deliveries/streaks"},
+                       {"method": "POST",
+                        "path": "/v1/deliveries/retry"}]},
         {"id": "connections", "label_en": "Your own integrations",
          "beskrivning_en": "Bring your own language-model key (Anthropic, "
                            "OpenAI) or team webhook (Slack, Teams). Keys "

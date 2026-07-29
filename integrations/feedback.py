@@ -54,7 +54,8 @@ def forward(credential: dict, connection: dict | None, *,
                   provider=connection.get("provider", ""), body=kropp,
                   delivery_id=extra["X-Landvex-Delivery-Id"],
                   delivered=False, status=type(e).__name__,
-                  why_en="never got there")
+                  why_en="never got there",
+                  source=credential.get("id", ""))
         return {"delivered": False,
                 "delivery_id": extra["X-Landvex-Delivery-Id"],
                 "why_en": (f"never got there ({type(e).__name__}) — "
@@ -66,7 +67,8 @@ def forward(credential: dict, connection: dict | None, *,
     DL.record(tenant=tenant, kind="credential",
               provider=connection.get("provider", ""), body=kropp,
               delivery_id=extra["X-Landvex-Delivery-Id"],
-              delivered=ok, status=status)
+              delivered=ok, status=status,
+              source=credential.get("id", ""))
     return {"delivered": ok, "status": status,
             "delivery_id": extra["X-Landvex-Delivery-Id"],
             "why_en": ("the customer's system answered — the receipt "
@@ -122,7 +124,8 @@ def report_exceptions(feed: dict, connection: dict | None, *,
         DL.record(tenant=tenant, kind="inspection_exception",
                   provider=connection.get("provider", ""), body=kropp,
                   delivery_id=extra["X-Landvex-Delivery-Id"],
-                  delivered=ok, status=status)
+                  delivered=ok, status=status,
+                  source=str(arende.get("asset_id") or ""))
         skickade += ok
         misslyckade += (not ok)
         detaljer.append({"asset_id": arende["asset_id"],

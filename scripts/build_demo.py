@@ -557,6 +557,14 @@ async function api(path, body) {
   if (path === "/v1/company" && !body) return D.krypin.company;
   if (path === "/v1/staff" && !body) return D.krypin.staff;
   if (path === "/v1/credentials") return D.krypin.credentials;
+  // Leveransloggen är ärligt tom i den statiska demon (kundens egna
+  // rader finns inte här); en omkörning eller ett larmschema är en
+  // SKRIVNING och vägras — men GET-ytorna svarar med sina tomma,
+  // korrekt formade svar i stället för att falla igenom till DEMOFEL.
+  // path bär querystrengen (?limit=25), så matchningen är på PREFIX —
+  // samma mönster som /v1/mrai och /v1/analysis ovan — och den mer
+  // specifika /streaks-ytan prövas FÖRE den allmänna /deliveries.
+  if (path.startsWith("/v1/deliveries/streaks")) return {streaks: []};
   if (path.startsWith("/v1/deliveries") && !body) return D.krypin.deliveries;
   if (path === "/v1/pushes") return D.pushes_catalog;
   if (path === "/v1/pushes/preview") {

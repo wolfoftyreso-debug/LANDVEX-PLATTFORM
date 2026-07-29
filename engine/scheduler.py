@@ -106,6 +106,53 @@ def _run_push(job: dict, now: float) -> dict:
         return {"delivered": False, "status": None, "why_en": str(e)}
 
 
+def _run_delivery_alert(job: dict, now: float) -> dict:
+    """Larma när ett mål har misslyckats i följd över tröskeln.
+
+    Läser felsviterna ur leveransloggen (sedan senaste lyckade
+    leverans, inom fönstret) och skickar ETT larm per mål över
+    tröskeln till kundens Slack/Teams-koppling. Larmet SÄGER aldrig
+    mer än loggen visar; att inte hitta något över tröskeln är ett
+    resultat, inte en tystnad.
+    """
+    from engine import connections as CN
+    from engine import deliveries as DL
+    from integrations.redelivery import send_alert
+
+    tenant = job.get("tenant", "")
+    p = job.get("params") or {}
+    troskel = int(p.get("threshold", 3))
+    sviter = DL.failure_streaks(
+        tenant, window_hours=float(p.get("window_hours", 24.0)), now=now)
+    over = [s for s in sviter if s["streak"] >= troskel]
+    if not over:
+        return {"alerted": 0, "of_targets": len(sviter),
+                "why_en": (f"no target has {troskel}+ consecutive "
+                           f"failures — nothing to raise, and that is "
+                           f"a result, not a silence.")}
+    try:
+        kanal = CN.get_connection(p["connection"], tenant=tenant) \
+            if p.get("connection") else next(
+                (r for r in CN.all_connections(tenant)
+                 if r.get("provider") in ("slack_webhook",
+                                          "teams_webhook")), None)
+    except CN.ConnectionRefused as e:
+        return {"alerted": 0, "of_targets": len(over), "why_en": str(e)}
+    skickade = 0
+    for s in over:
+        text = (f"Landvex: {s['streak']} consecutive failed deliveries "
+                f"to {s['provider']} (kinds: {', '.join(s['kinds'])}, "
+                f"last status {s['last_status']}). Check the "
+                f"connection under Settings — deliveries are queued, "
+                f"not lost, and can be retried once it is fixed.")
+        r = send_alert(text, kanal, tenant=tenant)
+        skickade += r["delivered"]
+    return {"alerted": skickade, "of_targets": len(over),
+            "why_en": "" if skickade == len(over) else
+            "the alert itself failed to send for one or more targets "
+            "— logged under kind 'alert'"}
+
+
 def _run_exception_report(job: dict, now: float) -> dict:
     """Arkivera avvikelseflödet som ärenden i kundens system — nattligt.
 
@@ -347,6 +394,21 @@ JOB_KINDS: dict[str, dict] = {
                    "ones away. Orders go through the same dispatcher as "
                    "the photo checks — refusals are counted with "
                    "reasons, and no mission id is ever invented."},
+    "delivery_alert": {
+        "label_en": "Alert on repeated delivery failures",
+        "capability": "core",
+        "params_en": "threshold (optional, default 3 consecutive "
+                     "failures), window_hours (optional, default 24), "
+                     "connection (optional — a slack_webhook or "
+                     "teams_webhook provider; defaults to the first "
+                     "one found)",
+        "run": _run_delivery_alert,
+        "note_en": "Reads the delivery log's failure streaks — never "
+                   "more than the log shows. One alert per target over "
+                   "the threshold; the alert delivery is itself logged "
+                   "under kind 'alert', so a silent alarm is at least "
+                   "visible afterward.",
+    },
     "exception_report": {
         "label_en": "File the exception feed as tickets in the "
                     "customer's own system",
@@ -430,6 +492,14 @@ def job(id: str, kind: str, *, cadence: dict | None = None,
         # En namngiven koppling ska FINNAS när jobbet skapas — utan
         # namn används feedback-målet vid varje körning, vilket är
         # rätt: kopplingen kan bytas utan att jobbet rörs.
+        from engine.connections import (ConnectionRefused,
+                                        get_connection, target_url_of)
+        try:
+            target_url_of(get_connection(params["connection"],
+                                         tenant=tenant))
+        except ConnectionRefused as e:
+            raise ScheduleRefused(str(e)) from e
+    if kind == "delivery_alert" and (params or {}).get("connection"):
         from engine.connections import (ConnectionRefused,
                                         get_connection, target_url_of)
         try:
