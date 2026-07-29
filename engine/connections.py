@@ -207,6 +207,61 @@ CONNECTORS: dict[str, dict] = {
                       "yours; Landvex only knows whether the trigger "
                       "answered."),
     },
+    "visma": {
+        "label_en": "Visma (inbound integration endpoint)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "Inbound https endpoint (Visma.net "
+                         "integration or your Visma middleware)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://integration.yourco.se/visma/"
+                               "landvex"},
+            {"id": "auth_value",
+             "label_en": "Authorization header value",
+             "secret": True, "required": False,
+             "placeholder_en": "Bearer ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Deliveries and credentials land in the Visma "
+                       "landscape common across Swedish public sector "
+                       "and SMEs, through the inbound endpoint your "
+                       "integration team operates."),
+        "cannot_en": ("Visma is a family of products with different "
+                      "APIs — Landvex POSTs plain JSON/CSV to ONE "
+                      "https endpoint you choose, and the mapping into "
+                      "your specific Visma product lives in your "
+                      "integration layer. OAuth flows against Visma "
+                      "Connect are your middleware's to run."),
+    },
+    "unit4": {
+        "label_en": "Unit4 ERP / Agresso (inbound endpoint)",
+        "kind": "enterprise",
+        "fields": (
+            {"id": "endpoint_url",
+             "label_en": "Inbound https endpoint (Unit4 ERP web "
+                         "services gateway or your middleware)",
+             "secret": True, "required": True,
+             "placeholder_en": "https://erp.yourco.se/unit4/landvex"},
+            {"id": "auth_value",
+             "label_en": "Authorization header value",
+             "secret": True, "required": False,
+             "placeholder_en": "Basic ... or Bearer ..."},
+            {"id": "auth_header", "label_en": "Auth header name",
+             "secret": False, "required": False,
+             "placeholder_en": "Authorization"},
+        ),
+        "enables_en": ("Deliveries and credentials reach the Unit4/"
+                       "Agresso environment that runs much of Swedish "
+                       "government administration."),
+        "cannot_en": ("Landvex speaks plain https to the endpoint you "
+                      "expose; ABW web services, workflow steps and "
+                      "posting rules stay in your Unit4 configuration "
+                      "— a receipt landing there is an inbox item, "
+                      "not a booked transaction."),
+    },
     "salesforce": {
         "label_en": "Salesforce (Flow / Apex REST inbound)",
         "kind": "enterprise",

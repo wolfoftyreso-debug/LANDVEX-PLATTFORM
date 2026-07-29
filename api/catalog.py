@@ -601,7 +601,9 @@ API_CATALOG: dict = {
                        {"method": "GET",
                         "path": "/v1/inspections/compliance"},
                        {"method": "GET",
-                        "path": "/v1/inspections/exceptions"}]},
+                        "path": "/v1/inspections/exceptions"},
+                       {"method": "POST",
+                        "path": "/v1/inspections/exceptions/report"}]},
         {"id": "sensitive", "label_en": "Sensitive questions",
          "beskrivning_en": "Surfaces associations on protected categories "
                            "(origin, victim status, health…) ONLY with "

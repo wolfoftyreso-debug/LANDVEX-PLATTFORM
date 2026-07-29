@@ -342,6 +342,43 @@ def exceptions(assets: list[dict], routines: list[dict],
     }
 
 
+def incident_payload(row: dict, *, as_of: str = "") -> dict:
+    """Avvikelsen som ett ÄRENDE för kundens eget system.
+
+    Bär både generiska nycklar och ServiceNow-vänliga short_description/
+    description — instansens transform äger fältmappningen, inte vi.
+    Raden handlar om ett OBJEKT som behöver någon; ingen person
+    förekommer, och källan står med så ärendet aldrig läses som ett
+    mätvärde.
+    """
+    a = row.get("asset") or {}
+    rubrik = (f"Landvex exception: "
+              f"{a.get('label_en') or a.get('id') or 'object'} — "
+              f"{row.get('status', '')}")
+    return {
+        "source": "landvex", "kind": "inspection_exception",
+        "asset_id": a.get("id"),
+        "asset_label_en": a.get("label_en", ""),
+        "status": row.get("status", ""),
+        "days_overdue": row.get("days_overdue", 0),
+        "next_due": row.get("next_due", ""),
+        "address": a.get("address", ""),
+        "lat": a.get("lat"), "lon": a.get("lon"),
+        "why_en": row.get("why_en", ""),
+        "as_of": as_of,
+        "short_description": rubrik,
+        "description": (
+            f"{row.get('why_en', '')}\n"
+            f"Status: {row.get('status', '')} · days overdue: "
+            f"{row.get('days_overdue', 0)} · next due: "
+            f"{row.get('next_due', '')}\n"
+            f"Address: {a.get('address', '')}\n"
+            f"As of {as_of}. Source: the Landvex compliance register — "
+            f"decision support built on recorded verdicts, not a "
+            f"measurement of the object's current state."),
+    }
+
+
 def _rutin_for(a: dict, routines: list[dict],
                per_id: dict) -> dict | None:
     for r in routines:

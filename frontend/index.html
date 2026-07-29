@@ -2291,11 +2291,15 @@ async function visaKontroll() {
     `<p class="motiv"><b>Cannot:</b> ${esc(c.cannot_en || "")}</p>`);
   if (avv.status === "fulfilled") {
     const a = avv.value;
-    html += watchKort("Exceptions", "varning", a.count
+    html += watchKort("Exceptions", "varning", (a.count
       ? (a.exceptions || []).map(kontrollRad).join("") +
         `<p class="motiv" style="margin-top:10px">${a.count} of ` +
         `${a.of_total} objects need someone.</p>`
-      : `<p class="motiv">${esc(a.quiet_en || "Nothing needs anyone.")}</p>`);
+      : `<p class="motiv">${esc(a.quiet_en || "Nothing needs anyone.")}</p>`) +
+      `<button id="avvArende" style="margin-top:6px;font-size:12px">` +
+      `File these in your own system</button>` +
+      `<span id="avvArendeUt" class="motiv" style="display:block;` +
+      `margin-top:4px;font-size:11.5px"></span>`);
   }
   if (rut.status === "fulfilled") {
     html += watchKort("Routines", "kugge", (rut.value.routines || []).map(r =>
@@ -2312,6 +2316,16 @@ async function visaKontroll() {
             .join(" · ") + `</span>` : "") + `</div>`).join(""));
   }
   wrap.innerHTML = html;
+  const arende = $("avvArende");
+  if (arende) arende.onclick = async () => {
+    const d = $("avvArendeUt");
+    d.textContent = "Filing in your connected system …";
+    try {
+      const r = await api("/v1/inspections/exceptions/report", {});
+      d.textContent = `${r.sent} filed, ${r.failed} failed, of ` +
+        `${r.of}. ${r.why_en || ""}`;
+    } catch (e) { d.textContent = e.message; }
+  };
   ritaKontrollKarta(c.rows || []);
   const k = (window.DEMO && window.DEMO.inspections) || null;
   $("kontrollKund").innerHTML = k

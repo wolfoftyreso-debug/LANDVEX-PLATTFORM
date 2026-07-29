@@ -270,7 +270,8 @@ def test_only_llm_connections_can_narrate():
 def test_enterprise_systems_are_rows_with_the_same_gates():
     """SAP, ServiceNow, Dynamics, Salesforce: samma SSRF-grind, samma
     maskering — endpointen och auth-värdet är hemligheter."""
-    for prov in ("sap", "servicenow", "dynamics365", "salesforce"):
+    for prov in ("sap", "servicenow", "dynamics365", "salesforce",
+                 "visma", "unit4"):
         assert C.CONNECTORS[prov]["kind"] == "enterprise"
         try:
             C.connection(prov, {"endpoint_url": "https://10.0.0.5/api"},
@@ -389,6 +390,53 @@ def test_a_push_can_target_a_connection_instead_of_a_raw_url():
         assert "nothing is reported as sent" in ut2["why_en"]
     finally:
         C.reset()
+
+
+def test_exceptions_become_tickets_with_honest_counting():
+    """Avvikelseflödet blir ärenden: ett POST per rad med kundens auth,
+    summeringen ljuger aldrig, tomt flöde skickar inget och säger det,
+    och utan koppling vägras körningen."""
+    from engine import inspections as I
+    from integrations import feedback
+
+    rad = {"asset": {"id": "fp1", "label_en": "Flagpole · Södra Latin",
+                     "address": "Skaraborgsgatan 14",
+                     "lat": 59.3, "lon": 18.0},
+           "status": "failed", "days_overdue": 12,
+           "next_due": "2026-07-20",
+           "why_en": "Halyard worn through; flag could not be raised."}
+    arende = I.incident_payload(rad, as_of="2026-07-29")
+    assert arende["short_description"].startswith("Landvex exception")
+    assert "Halyard worn" in arende["description"]
+    assert "not a measurement" in arende["description"]
+    for forbjudet in ("zoomer_id", "name", "email", "observed_by"):
+        assert forbjudet not in arende
+
+    feed = {"exceptions": [rad, dict(rad, asset={"id": "fp2"})],
+            "as_of": "2026-07-29", "quiet_en": ""}
+    kopp = C.connection("servicenow", {
+        "endpoint_url": "https://co.service-now.com/api/now/table/incident",
+        "auth_value": "Basic c24="}, tenant="t1")
+    anrop = []
+
+    def transport(url, headers, body, timeout):
+        anrop.append(json.loads(body))
+        # Andra raden nekas av instansen — och får inte se arkiverad ut.
+        if len(anrop) == 2:
+            return 403, b"denied"
+        return 201, b"{}"
+    ut = feedback.report_exceptions(feed, kopp, transport=transport)
+    assert (ut["sent"], ut["failed"], ut["of"]) == (1, 1, 2)
+    assert "not reported as filed" in ut["why_en"]
+    assert anrop[0]["kind"] == "inspection_exception"
+
+    tomt = feedback.report_exceptions(
+        {"exceptions": [], "quiet_en": "Nothing needs anyone today."},
+        kopp, transport=transport)
+    assert tomt == {"sent": 0, "failed": 0, "of": 0,
+                    "why_en": "Nothing needs anyone today."}
+    utan = feedback.report_exceptions(feed, None)
+    assert utan["sent"] == 0 and "no system connected" in utan["why_en"]
 
 
 def test_the_catalog_states_what_it_cannot_do():

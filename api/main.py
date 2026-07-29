@@ -1485,6 +1485,24 @@ def company_save_ep(request: Request, body: dict):
     return rec
 
 
+@app.post("/v1/inspections/exceptions/report")
+def exceptions_report_ep(request: Request, body: dict):
+    """File the exception feed as tickets in the customer's own system."""
+    from engine import connections as CN
+    from engine import inspections as I
+    from integrations import feedback
+    t = _tenant(request)
+    if body.get("connection"):
+        try:
+            kopp = CN.get_connection(body["connection"], tenant=t)
+        except CN.ConnectionRefused as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+    else:
+        kopp = CN.feedback_target(t)
+    return feedback.report_exceptions(
+        I.exception_feed(t, body.get("today", "")), kopp)
+
+
 @app.get("/v1/credentials")
 def credentials_catalog_ep():
     """What a credential certifies — and what it cannot."""

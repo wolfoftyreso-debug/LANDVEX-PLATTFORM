@@ -1162,6 +1162,21 @@ class Handler(BaseHTTPRequestHandler):
                 borta = staff_engine.remove_staff(
                     req.get("id", ""), tenant=self._tenant())
                 return self._send(200, {"deleted": borta})
+            if self.path == "/v1/inspections/exceptions/report":
+                from engine import connections as CN
+                from integrations import feedback
+                t = self._tenant()
+                if req.get("connection"):
+                    try:
+                        kopp = CN.get_connection(req["connection"],
+                                                 tenant=t)
+                    except CN.ConnectionRefused as e:
+                        return self._send(404, {"error": str(e)})
+                else:
+                    kopp = CN.feedback_target(t)
+                return self._send(200, feedback.report_exceptions(
+                    insp_engine.exception_feed(t, req.get("today", "")),
+                    kopp))
             if self.path == "/v1/credentials/verify":
                 return self._send(200, credentials_engine.verify(
                     req.get("credential") or {}, tenant=self._tenant()))

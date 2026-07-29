@@ -58,3 +58,57 @@ def forward(credential: dict, connection: dict | None, *,
                        "is theirs now." if ok else
                        f"the customer's system answered HTTP {status} "
                        f"— that is their word, and it stands.")}
+
+
+def report_exceptions(feed: dict, connection: dict | None, *,
+                      transport: Callable | None = None) -> dict:
+    """Avvikelseflödet blir ärenden i kundens system — ett POST per
+    avvikelse, ärligt räknat.
+
+    Ett tomt flöde skickar ingenting och SÄGER det (quiet_en är ett
+    resultat); utan koppling vägras hela körningen med skälet; och
+    summeringen ljuger aldrig — sent + failed = antalet avvikelser,
+    alltid.
+    """
+    from engine.connections import headers_for, target_url_of
+    from engine.inspections import incident_payload
+
+    rader = feed.get("exceptions") or []
+    if connection is None:
+        return {"sent": 0, "failed": 0, "of": len(rader),
+                "why_en": ("no system connected — nothing was filed, "
+                           "and nothing is reported as filed. Connect "
+                           "servicenow, sap, dynamics365, salesforce, "
+                           "visma, unit4 or a feedback_webhook and "
+                           "run this again.")}
+    if not rader:
+        return {"sent": 0, "failed": 0, "of": 0,
+                "why_en": feed.get("quiet_en",
+                                   "nothing needs anyone today")}
+    url = target_url_of(connection)
+    huvud = headers_for(connection)
+    sand = transport or _http
+    skickade, misslyckade, detaljer = 0, 0, []
+    for rad in rader:
+        arende = incident_payload(rad, as_of=feed.get("as_of", ""))
+        try:
+            status, _ = sand(url, huvud,
+                             json.dumps(arende,
+                                        ensure_ascii=False).encode(
+                                 "utf-8"), _TIMEOUT)
+            ok = 200 <= status < 300
+        except OUR_BUGS:
+            raise
+        except Exception as e:  # noqa: BLE001 — nätranden: raden
+            # räknas som misslyckad med skälet, aldrig som tyst borta.
+            ok, status = False, f"{type(e).__name__}"
+        skickade += ok
+        misslyckade += (not ok)
+        detaljer.append({"asset_id": arende["asset_id"],
+                         "filed": ok, "status": status})
+    return {"sent": skickade, "failed": misslyckade, "of": len(rader),
+            "rows": detaljer,
+            "why_en": ("" if misslyckade == 0 else
+                       f"{misslyckade} exception(s) did not reach the "
+                       f"system — they remain in the feed and are not "
+                       f"reported as filed.")}
