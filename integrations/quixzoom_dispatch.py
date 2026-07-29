@@ -75,7 +75,13 @@ class MissionDispatcher:
                radius_m: int) -> dict:
         """Vad Landvex behöver säga. Översätts här om quiXzoom vill ha
         det annorlunda — resten av modulen berörs inte."""
-        return {
+        # Riktningen är rutinens data: en hyrbilsflotta fotas av egna
+        # anställda, en butiks skyltning av butikspersonalen — samma
+        # quiXzoom-konton som alla andra, men uppdraget läggs inte i
+        # öppna poolen. Ingen publik på rutinen = öppna poolen, exakt
+        # som före fältet fanns.
+        pub = rut.get("audience") or {"pool": "open"}
+        kropp = {
             "title": f"{rut.get('label_en') or 'Inspection'}: "
                      f"{asset.get('label_en') or asset['id']}",
             "location": {"lat": asset.get("lat"), "lng": asset.get("lon")},
@@ -84,9 +90,15 @@ class MissionDispatcher:
             "due_at": due_at,
             "required_media": ["photo"],
             "checklist": list(rut.get("checks", ())),
+            "audience": {"pool": pub.get("pool", "open")},
             "reference": {"asset_id": asset["id"],
                           "routine_id": rut["id"]},
         }
+        if pub.get("pool") == "named":
+            # Kontoreferenser, aldrig personer: namn/e-post har redan
+            # vägrats när rutinen skapades (engine/inspections.audience).
+            kropp["audience"]["zoomer_ids"] = list(pub.get("zoomer_ids", ()))
+        return kropp
 
     def dispatch(self, asset: dict, rut: dict, due_at: str, *,
                  radius_m: int = 50) -> dict:

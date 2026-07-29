@@ -102,10 +102,47 @@ def _in_i_sasongen(sasong: tuple[str, str] | None, d: _dt.date) -> _dt.date:
 
 
 # ── Rutinen ─────────────────────────────────────────────────────────────
+def audience(pool: str = "open", zoomer_ids: tuple[str, ...] = (),
+             label_en: str = "") -> dict:
+    """Vem som får ta uppdraget — öppna poolen eller namngivna zoomers.
+
+    En hyrbilsflotta fotas av de egna anställda; en butiks skyltning av
+    butikspersonalen. Båda är quiXzoom-konton som vilka andra som helst
+    — skillnaden är att uppdraget RIKTAS till dem i stället för att
+    läggas i öppna poolen. Riktningen är data på rutinen, och
+    beställningen översätter den; ingenting i domslut, bevis eller
+    lagring ändras av vem som höll kameran.
+
+    `zoomer_ids` är quiXzoom-kontoreferenser och ingenting annat: namn
+    och e-post vägras, för personerna och deras samtycke bor hos
+    quiXzoom — Landvex lagrar referensen, aldrig människan.
+    """
+    if pool not in ("open", "named"):
+        raise RoutineError(f"audience.pool är 'open' eller 'named', "
+                           f"fick {pool!r}")
+    if pool == "named" and not zoomer_ids:
+        raise RoutineError(
+            "en riktad publik utan zoomer_ids är en tom pool: uppdraget "
+            "hade beställts och aldrig kunnat tas av någon")
+    if pool == "open" and zoomer_ids:
+        raise RoutineError(
+            "zoomer_ids med pool='open' är tvetydigt — riktat eller "
+            "öppet? Välj 'named' om listan ska gälla.")
+    for zid in zoomer_ids:
+        if "@" in zid or " " in zid or not zid.strip():
+            raise RoutineError(
+                f"zoomer_ids ska vara quiXzoom-kontoreferenser, inte "
+                f"namn eller e-post ({zid!r}): personen och samtycket "
+                f"bor hos quiXzoom, Landvex lagrar referensen")
+    return {"pool": pool, "zoomer_ids": tuple(zoomer_ids),
+            "label_en": label_en}
+
+
 def routine(id: str, label_en: str, applies_to: str, every_days: int, *,
             checks: tuple[str, ...] = (), weekday: int | None = None,
             season: tuple[str, str] | None = None,
             owners: dict | None = None, expected: dict | None = None,
+            audience_: dict | None = None,
             tenant: str = "") -> dict:
     """Skapa en rutin, eller vägra med ett skäl som går att åtgärda."""
     if every_days < 1:
@@ -128,11 +165,17 @@ def routine(id: str, label_en: str, applies_to: str, every_days: int, *,
         raise RoutineError(
             "en rutin utan `checks` säger inte vad som räknas som "
             "godkänt, och då går ingen dom att motivera")
+    # Publiken valideras även när den kommer som rå dict (ur ett API-
+    # anrop): en rutin med trasig riktning ska falla när den skapas,
+    # inte när beställningen misslyckas månader senare.
+    pub = (audience(**audience_) if audience_ is not None
+           else audience())
     return {
         "id": id, "tenant": tenant, "label_en": label_en,
         "applies_to": applies_to, "every_days": every_days,
         "weekday": weekday, "season": season, "checks": tuple(checks),
         "owners": dict(owners or {}), "expected": dict(expected or {}),
+        "audience": pub,
     }
 
 

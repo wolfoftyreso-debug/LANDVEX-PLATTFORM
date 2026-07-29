@@ -831,6 +831,7 @@ class Handler(BaseHTTPRequestHandler):
                     weekday=req.get("weekday"),
                     season=tuple(req["season"]) if req.get("season") else None,
                     owners=req.get("owners"), expected=req.get("expected"),
+                    audience_=req.get("audience"),
                     tenant=self._tenant())
                 insp_engine.save_routine(rec)
                 return self._send(201, rec)

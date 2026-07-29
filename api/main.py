@@ -998,6 +998,7 @@ def routines_create_ep(request: Request, body: dict):
                         else None,
                         owners=body.get("owners"),
                         expected=body.get("expected"),
+                        audience_=body.get("audience"),
                         tenant=_tenant(request))
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e

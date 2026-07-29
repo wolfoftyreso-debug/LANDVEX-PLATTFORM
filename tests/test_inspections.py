@@ -384,6 +384,82 @@ def test_the_demo_fixture_is_labelled_simulated_and_mixed():
         assert not any(k in rad for k in ("image", "photo", "media"))
 
 
+# ── Riktade zoomers: publiken är rutinens data ─────────────────────────
+def test_a_routine_without_an_audience_goes_to_the_open_pool():
+    """Precis som före fältet fanns — ingen befintlig rutin byter
+    beteende av att riktning blev möjlig."""
+    rut = I.routine("r-open", "Weekly check", "flagpole", 7,
+                    checks=["present"])
+    assert rut["audience"] == {"pool": "open", "zoomer_ids": (),
+                               "label_en": ""}
+
+
+def test_a_named_audience_reaches_the_mission_body_verbatim():
+    """Hyrbilarna fotas av de egna anställda, skyltningen av
+    butikspersonalen: uppdraget ska bära exakt de kontoreferenser
+    rutinen riktar till — och en öppen rutin ska INTE bära någon
+    lista alls, för en tom lista i öppna poolen läses som en tom
+    riktning."""
+    import json as _json
+
+    from integrations.quixzoom_dispatch import MissionDispatcher
+
+    sedd = {}
+
+    def t(url, payload, headers, timeout):
+        sedd["kropp"] = _json.loads(payload)
+        return b'{"id": "m-1", "created_at": "2026-07-29"}'
+
+    d = MissionDispatcher(base_url="https://qz.example", transport=t)
+    obj = I.asset("bil-1", "rental_car", label_en="Hyrbil VXZ 123",
+                  lat=59.3, lon=18.0, tenant="t1")
+    riktad = I.routine(
+        "hyrbilsfoto", "Return photo", "rental_car", 1,
+        checks=["exterior", "interior"],
+        audience_={"pool": "named",
+                   "zoomer_ids": ("qz-staff-001", "qz-staff-002")},
+        tenant="t1")
+    d.dispatch(obj, riktad, "2026-07-30")
+    pub = sedd["kropp"]["audience"]
+    assert pub == {"pool": "named",
+                   "zoomer_ids": ["qz-staff-001", "qz-staff-002"]}
+
+    oppen = I.routine("r-open2", "Weekly check", "rental_car", 7,
+                      checks=["present"], tenant="t1")
+    d.dispatch(obj, oppen, "2026-07-30")
+    assert sedd["kropp"]["audience"] == {"pool": "open"}
+    assert "zoomer_ids" not in sedd["kropp"]["audience"]
+
+
+def test_a_targeted_pool_cannot_be_empty_or_carry_people():
+    """Två vägransgrunder, båda vid SKAPANDET: en riktad publik utan
+    referenser är en pool ingen kan ta uppdrag ur, och namn/e-post är
+    människor — personen och samtycket bor hos quiXzoom, Landvex lagrar
+    kontoreferensen."""
+    for fel in ({"pool": "named"},
+                {"pool": "named", "zoomer_ids": ()},
+                {"pool": "open", "zoomer_ids": ("qz-1",)},
+                {"pool": "named", "zoomer_ids": ("anna@butiken.se",)},
+                {"pool": "named", "zoomer_ids": ("Anna Andersson",)},
+                {"pool": "vip"}):
+        try:
+            I.routine("r-x", "X", "flagpole", 7, checks=["a"],
+                      audience_=fel)
+        except I.RoutineError:
+            continue
+        raise AssertionError(f"publiken {fel} borde ha vägrats")
+
+
+def test_the_seed_carries_one_targeted_routine_as_a_worked_example():
+    from scripts.seed_inspections import flag_supplier
+
+    fix = flag_supplier("2026-07-29")
+    riktade = [r for r in fix["routines"]
+               if r["audience"]["pool"] == "named"]
+    assert len(riktade) == 1
+    assert riktade[0]["audience"]["zoomer_ids"]
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

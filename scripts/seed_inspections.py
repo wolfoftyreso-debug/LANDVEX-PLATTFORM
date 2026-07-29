@@ -80,6 +80,23 @@ def flag_supplier(today: str = "") -> dict:
                   "target": 1.0},
         tenant=TENANT)
 
+    # Den riktade varianten: skyltningen fotas av BUTIKSPERSONALEN, inte
+    # öppna poolen — samma quiXzoom-konton som alla andra, men uppdraget
+    # går till namngivna referenser. (Samma mekanism bär "egna anställda
+    # fotar hyrbilarna": publiken är rutinens data, inte en egen modul.)
+    rut_skylt = I.routine(
+        "skyltkontroll-vecka", "Weekly signage check", "storefront", 7,
+        checks=["campaign visible", "price tags current", "window clean"],
+        owners={"formellt": "Store manager, Flaggservice AB",
+                "operativt": "Store staff (named quiXzoom accounts)",
+                "uppfoljning": "Operations manager, Flaggservice AB"},
+        expected={"metric": "share_current", "direction": "reach",
+                  "target": 1.0},
+        audience_={"pool": "named",
+                   "zoomer_ids": ("qz-staff-001", "qz-staff-002"),
+                   "label_en": "Own store staff"},
+        tenant=TENANT)
+
     objekt, kontroller = [], []
     for aid, label, adress, lat, lon, sedan, utfall in _STANGER:
         objekt.append(I.asset(aid, "flagpole", label_en=label, lat=lat,
@@ -95,7 +112,8 @@ def flag_supplier(today: str = "") -> dict:
             note_en=("Halyard worn through; flag could not be raised."
                      if utfall == "fail" else ""),
             tenant=TENANT))
-    return {"tenant": TENANT, "assets": objekt, "routines": [rut],
+    return {"tenant": TENANT, "assets": objekt,
+            "routines": [rut, rut_skylt],
             "checks": kontroller, "source": "mock",
             "customer_en": "Flag and flagpole supplier, Stockholm",
             "note_en": ("Simulated customer. The streets are real; the "
