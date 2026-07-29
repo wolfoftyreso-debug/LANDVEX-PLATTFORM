@@ -152,13 +152,27 @@ def test_an_open_path_leaves_a_metric_but_no_audit_row():
     är exakt det plattformens egen doktrin förbjuder statusytor att
     vara. Audit-rad ska däremot INTE skrivas: anonym HTML är brus i en
     säkerhetslogg, och det valet är medvetet.
+
+    Mätpunkten skrivs SERVERSIDAN efter att svaret gått ut på tråden —
+    klienten kan alltså ha hela /health-svaret i handen, öppna en ny
+    anslutning och få /metrics besvarat av en annan tråd innan den
+    första hunnit räkna. Att kräva att talet finns i NÄSTA anrop vore
+    att pröva ett löfte servern aldrig gett; CI fällde precis det
+    (grönt lokalt i 100 försök, rött på en delad byggmaskin). Testet
+    prövar därför kontraktet som gäller: mätpunkten kommer, och den
+    kommer snabbt.
     """
     svar = _request(b"GET /health HTTP/1.1\r\nHost: t\r\n\r\n")
     assert '"status"' in svar
-    metrik = _request(b"GET /metrics HTTP/1.1\r\nHost: t\r\n\r\n")
-    kropp = json.loads(metrik.partition("\r\n\r\n")[2])
-    assert kropp["requests_by_path"].get("/health", 0) >= 1, (
-        f"/health syns inte i metriken: {sorted(kropp['requests_by_path'])}")
+    sedda: list = []
+    for _ in range(50):                       # ≤5 s, normalt första varvet
+        metrik = _request(b"GET /metrics HTTP/1.1\r\nHost: t\r\n\r\n")
+        kropp = json.loads(metrik.partition("\r\n\r\n")[2])
+        sedda = sorted(kropp["requests_by_path"])
+        if kropp["requests_by_path"].get("/health", 0) >= 1:
+            return
+        time.sleep(0.1)
+    raise AssertionError(f"/health syns inte i metriken: {sedda}")
 
 
 def test_a_normal_request_still_works():
