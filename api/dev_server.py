@@ -268,7 +268,16 @@ class Handler(BaseHTTPRequestHandler):
         """Auth → rate limit → routning → metrics + audit."""
         path = self.path
         if urlparse(path).path in self._OPEN_PATHS:
-            return route()
+            # Utanför Gate men INTE utanför metriken — samma regel som
+            # FastAPI-lagret: en driftbild där startsidan aldrig hänt är
+            # gladare än verkligheten. Ingen audit-rad, medvetet.
+            t0 = time.monotonic()
+            try:
+                return route()
+            finally:
+                GATE.metrics.observe(
+                    urlparse(path).path, getattr(self, "_status", 200),
+                    (time.monotonic() - t0) * 1000)
         t0 = time.monotonic()
         principal, self._request_id, self._status = None, None, 500
         try:

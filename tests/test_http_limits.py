@@ -143,6 +143,24 @@ def test_a_missing_field_names_the_field():
     assert "lat" in payload["error"], payload
 
 
+def test_an_open_path_leaves_a_metric_but_no_audit_row():
+    """Öppna vägar går utanför Gate — men INTE utanför driftbilden.
+
+    Mätt före fixen: tio vägar (startsidan, /health, /openapi.json …)
+    lämnade inget spår alls i /metrics. En driftbild där startsidan
+    aldrig hänt är gladare än verkligheten — och gladare än verkligheten
+    är exakt det plattformens egen doktrin förbjuder statusytor att
+    vara. Audit-rad ska däremot INTE skrivas: anonym HTML är brus i en
+    säkerhetslogg, och det valet är medvetet.
+    """
+    svar = _request(b"GET /health HTTP/1.1\r\nHost: t\r\n\r\n")
+    assert '"status"' in svar
+    metrik = _request(b"GET /metrics HTTP/1.1\r\nHost: t\r\n\r\n")
+    kropp = json.loads(metrik.partition("\r\n\r\n")[2])
+    assert kropp["requests_by_path"].get("/health", 0) >= 1, (
+        f"/health syns inte i metriken: {sorted(kropp['requests_by_path'])}")
+
+
 def test_a_normal_request_still_works():
     """Grinden får inte ha stängt dörren för riktiga anrop."""
     body = json.dumps({"question": "var behovs elektriker"}).encode()

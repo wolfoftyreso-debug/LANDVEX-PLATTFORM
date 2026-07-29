@@ -128,7 +128,17 @@ async def security_middleware(request: Request, call_next):
     """Auth → rate limit → routning → metrics + audit (se api/security.py)."""
     path = request.url.path
     if path in _OPEN_PATHS:
-        return await call_next(request)
+        # Öppna vägar går utanför Gate — auth och kvot på "/" hade brutit
+        # dörren. Men METRIKEN ska se dem: före den här raden fanns tio
+        # vägar som inte lämnade något spår alls i /metrics, och en
+        # driftbild där startsidan inte existerar är gladare än
+        # verkligheten. Ingen audit-rad: anonym HTML är brus i en
+        # säkerhetslogg, och det är ett medvetet val, inte ett hål.
+        t0 = time.monotonic()
+        response = await call_next(request)
+        GATE.metrics.observe(path, response.status_code,
+                             (time.monotonic() - t0) * 1000)
+        return response
     t0 = time.monotonic()
     principal, request_id, status = None, "-", 500
     try:
