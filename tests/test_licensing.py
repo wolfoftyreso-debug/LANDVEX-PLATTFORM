@@ -34,6 +34,33 @@ def test_every_engine_endpoint_has_a_capability():
             assert required_capability(ep["path"]) is not None, ep["path"]
 
 
+def test_every_routed_path_has_a_capability_not_just_the_catalogued():
+    """Svepet ovan går bara igenom API_CATALOG — och det är därför det
+    aldrig larmade. Mätt före fixen: tre routade vägar var varken öppna
+    eller kapabilitetsmappade, och `required_capability` gav None:
+
+        /v1/verticals     hela vertikalkatalogen med faktorvikter
+        /v1/commercial    säljytan — syskonet /v1/offering är core
+        /v1/entitlements  anroparens egna rättigheter
+
+    En väg utan kapabilitet är inte "öppen" — den kräver giltig nyckel
+    men släpper in VARJE plan, inklusive Free. Grinden såg stängd ut och
+    var det inte, och inget test kunde se det eftersom inget test läste
+    ytan. Nu läses ytan: varje routad väg i BÅDA lagren måste antingen
+    stå i `_OPEN_PATHS` (ett medvetet beslut i källkoden) eller bära en
+    kapabilitet."""
+    from api import surface_scan as Y
+
+    oppna = Y.open_paths("main.py") | Y.open_paths("dev_server.py")
+    vagar = {p for _, p in Y.fastapi_pairs() | Y.devserver_pairs()}
+    ogrindade = sorted(
+        p for p in vagar
+        if p not in oppna and p != "/health"
+        and required_capability(p) is None)
+    assert not ogrindade, (
+        f"vägar som varken är öppna eller kapabilitetsmappade: {ogrindade}")
+
+
 def test_capability_resolution_and_addons():
     caps = resolve_capabilities("free")
     assert "core" in caps and "workforce" not in caps

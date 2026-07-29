@@ -9,50 +9,15 @@ import pathlib
 import re
 
 from api.catalog import API_CATALOG
+# Parsarna föddes här men bor numera i api/surface_scan.py: licenssvepet
+# och självrevisionsytan läser SAMMA implementation. Två kopior av en
+# parser är två sanningar om vad ytan är.
+from api.surface_scan import (devserver_pairs as _devserver_pairs,
+                              fastapi_pairs as _fastapi_pairs,
+                              norm as _norm, open_paths as _open_paths,
+                              unparseable_verbs as _unparseable_verbs)
 
 _ROOT = pathlib.Path(__file__).resolve().parent.parent / "api"
-
-
-def _norm(path: str) -> str:
-    """Normaliserar path-parametrar: {id}/<id> → *."""
-    path = re.sub(r"\{[^}]+\}", "*", path)
-    path = re.sub(r"<[^>]+>", "*", path)
-    return path.split("?")[0].rstrip("/") or "/"
-
-
-def _fastapi_pairs() -> set[tuple[str, str]]:
-    """(METOD, väg) ur dekoratorerna i main.py."""
-    src = (_ROOT / "main.py").read_text(encoding="utf-8")
-    return {(m.upper(), _norm(p)) for m, p in
-            re.findall(r'@app\.(get|post|put|delete)\("([^"]+)"', src)}
-
-
-def _devserver_pairs() -> set[tuple[str, str]]:
-    """(METOD, väg) ur dev-servern.
-
-    Metoden avgörs av vilken router vägen står i: `_route_get` respektive
-    `_route_post`. Att bara jämföra vägar dolde riktig drift — en endpoint
-    som finns som POST i den ena servern och GET i den andra har samma väg
-    och gick därför igenom kontraktstestet.
-    """
-    src = (_ROOT / "dev_server.py").read_text(encoding="utf-8")
-    cut = src.index("def _route_post")
-    pairs = set()
-    for method, part in (("GET", src[:cut]), ("POST", src[cut:])):
-        for p in re.findall(r'(?:parsed\.path|self\.path)\s*==\s*"([^"]+)"',
-                            part):
-            pairs.add((method, _norm(p)))
-        for s in re.findall(
-                r'(?:parsed\.path|self\.path)\.startswith\("([^"]+)"', part):
-            pairs.add((method, _norm(s.rstrip("/") + "/*")))
-        # `parsed.path in ("/", "/console", ...)` — en route som serveras av
-        # ett medlemskapstest är lika mycket en route som en likhetsjämförelse.
-        # Utan det här läste kontraktet dem som obefintliga.
-        for grupp in re.findall(
-                r'(?:parsed\.path|self\.path)\s+in\s+\(([^)]*)\)', part):
-            for p in re.findall(r'"([^"]+)"', grupp):
-                pairs.add((method, _norm(p)))
-    return pairs
 
 
 def _fastapi_routes() -> set[str]:
@@ -71,8 +36,65 @@ def _devserver_routes() -> set[str]:
 _DEV_ONLY: set[str] = set()
 _FASTAPI_ONLY: set[str] = set()
 # Ramverksgenererade i FastAPI (auto, syns ej i källan) men explicita i
-# dev-servern – båda serverar dem, alltså ingen drift.
+# dev-servern – båda serverar dem, alltså ingen drift. Kommentaren var
+# en gång en LÖGN: dev-servern serverade inte /docs alls, och eftersom
+# mängden EXKLUDERAR vägarna ur jämförelsen kunde ingen se det. Numera
+# verifierar test_framework_paths_are_actually_served att varje väg här
+# faktiskt routas i dev-servern — en undantagsrad måste förtjäna sig.
 _FRAMEWORK = {"/openapi.json", "/docs"}
+
+
+def test_framework_paths_are_actually_served_not_just_excluded():
+    """En väg i _FRAMEWORK tas bort ur jämförelsen. Serverar dev-servern
+    den inte, är undantaget ett hål med en kommentar på. Mätt före
+    fixen: /docs fanns i mängden, och `grep '"/docs"' dev_server.py` gav
+    noll träffar — klienten som bytte lager fick 404 på en väg
+    kontraktet kallade ramverksstandard."""
+    dev = _devserver_routes()
+    for p in sorted(_FRAMEWORK):
+        assert p in dev, (
+            f"{p} står i _FRAMEWORK men routas inte av dev-servern — "
+            f"undantaget döljer ett hål i stället för en ramverksdetalj")
+
+
+def test_open_paths_are_identical_in_both_layers():
+    """De öppna vägarna är den enda punkt där lagren får skilja sig utan
+    att routningsjämförelsen ser det — alltså måste tuplarna själva
+    jämföras. Mätt före fixen: main hade /docs öppen, dev hade den inte
+    (och serverade den inte heller); samma nyckel gav olika svar på
+    samma väg beroende på miljö."""
+    assert _open_paths("main.py") == _open_paths("dev_server.py")
+
+
+def test_no_verbs_the_devserver_parser_cannot_see():
+    """_devserver_pairs känner igen exakt GET och POST. En @app.put i
+    main.py skulle rapporteras som "saknas i dev" utan att dev NÅGONSIN
+    kan bli grön — parsern måste byggas ut FÖRST. Det här testet ger
+    felet ett namn i förväg i stället för en gåta i efterhand."""
+    verb = _unparseable_verbs()
+    assert not verb, (
+        f"main.py använder {sorted(set(verb))} — utöka "
+        f"surface_scan.devserver_pairs innan verbet införs")
+
+
+def test_verticals_answers_with_the_same_shape_in_both_layers():
+    """Kontraktet låser vägar, inte nyttolaster — så /v1/verticals
+    svarade med faktornedbrytning i FastAPI och bara id/label i dev.
+    Ett fullständigt nyttolastkontrakt vore ett annat verktyg; det här
+    låser den ENA uppmätta driften: båda lagren ska bygga
+    factors-nedbrytningen."""
+    fapi = (_ROOT / "main.py").read_text(encoding="utf-8")
+    dev = (_ROOT / "dev_server.py").read_text(encoding="utf-8")
+    # Sök på ROUTNINGSuttrycket, inte på vägsträngen: den nämns även i
+    # moduldocstringen, och ett test som läser fel förekomst godkänner
+    # vad som helst.
+    for namn, src, mark in (
+            ("main.py", fapi, '@app.get("/v1/verticals")'),
+            ("dev_server.py", dev, 'parsed.path == "/v1/verticals"')):
+        i = src.index(mark)
+        utsnitt = src[i:i + 700]
+        assert '"factors"' in utsnitt, (
+            f"{namn}: /v1/verticals bygger ingen factors-nedbrytning")
 
 
 def test_both_servers_expose_the_same_surface():

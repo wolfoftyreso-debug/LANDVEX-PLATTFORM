@@ -115,6 +115,17 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
                                               # — måste vara läsbar utan att
                                               # först ha köpt något
     "/v1/brief": "monitoring",                # proaktiv upptäckt (daily brief)
+    # De tre raderna nedan fanns inte, och det syntes inte: en väg utan
+    # rad kräver giltig nyckel men släpper in VARJE plan. "Ogatad" ser
+    # exakt likadan ut som "medvetet öppen" tills någon läser hela ytan
+    # — vilket tests/test_licensing numera gör.
+    "/v1/verticals": "core",                  # katalog, som syskonen
+                                              # /v1/markets, /v1/segments
+    "/v1/commercial": "core",                 # säljytan — samma grund som
+                                              # /v1/offering: läsbar utan köp
+    "/v1/entitlements": "core",               # anroparens EGNA rättigheter;
+                                              # core bärs av varje plan, så
+                                              # ingen betalande kan 403:as
     "/v1/agent-manifest": "partner_api",
     "/v1/audit": "platform_ops",
     "/metrics": "platform_ops",

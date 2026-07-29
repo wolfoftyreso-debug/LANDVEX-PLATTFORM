@@ -164,6 +164,15 @@ news_engine.set_store(STORE)
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
 
+# CORS — SAMMA variabel och samma tre headers som FastAPI-lagret
+# (api/main.py). Dev-servern hade ingen CORS alls: en frontend som
+# fungerade mot produktionslagret fick tysta preflight-fel mot det här,
+# och skillnaden stod inte dokumenterad någonstans. Osatt variabel =
+# samma origin = inga CORS-headers, precis som i main.
+_CORS = tuple(o.strip()
+              for o in os.environ.get("LANDVEX_CORS_ORIGINS", "").split(",")
+              if o.strip())
+
 # Samma källkedja som produktions-API:t; LANDVEX_LIVE=0 → endast mock.
 _LIVE = os.environ.get("LANDVEX_LIVE", "1") != "0"
 _sources = production_sources() if _LIVE else []
@@ -193,6 +202,15 @@ class _TooLarge(Exception):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _cors_origin(self) -> str:
+        """Anroparens origin OM den står i listan — annars tomt.
+
+        Origin ekas aldrig tillbaka oprövad: `Access-Control-Allow-
+        Origin: <vad som helst>` hade gjort listan till dekoration.
+        """
+        origin = self.headers.get("Origin", "")
+        return origin if origin and origin in _CORS else ""
+
     def _send(self, code: int, payload: dict | list) -> None:
         self._status = code
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -201,11 +219,34 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         if getattr(self, "_request_id", None):
             self.send_header("X-Request-ID", self._request_id)
+        tillaten = self._cors_origin()
+        if tillaten:
+            self.send_header("Access-Control-Allow-Origin", tillaten)
         self.end_headers()
         self.wfile.write(body)
 
-    _OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html", "/sandbox",
-                   "/health", "/v1/plans", "/openapi.json")
+    def do_OPTIONS(self):                                # noqa: N802
+        """Preflight. Samma verb och headers som FastAPI-lagrets
+        CORSMiddleware svarar med — skillnaden mellan lagren var
+        odokumenterad och syntes först som tysta fetch-fel i en
+        frontend som fungerade mot produktion."""
+        tillaten = self._cors_origin()
+        self._status = 204
+        self.send_response(204)
+        if tillaten:
+            self.send_header("Access-Control-Allow-Origin", tillaten)
+            self.send_header("Access-Control-Allow-Methods", "GET, POST")
+            self.send_header("Access-Control-Allow-Headers",
+                             "Content-Type, X-API-Key, Authorization")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    # Samma tupel som api/main.py — kontraktstestet jämför dem numera
+    # statiskt. En väg som är öppen i ena lagret och grindad i det andra
+    # ger olika svar på samma nyckel beroende på miljö.
+    _OPEN_PATHS = ("/", "/console", "/demo", "/explore", "/index.html",
+                   "/sandbox", "/health", "/docs", "/openapi.json",
+                   "/v1/plans")
 
     def _tenant(self) -> str:
         """Vilken kund frågan kommer från. Lagret KRÄVER den — ett argument
@@ -316,8 +357,15 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             return self._send(200, build_health(RESOLVER, STORE))
         if parsed.path == "/v1/verticals":
-            return self._send(200, [{"id": v.id, "label_en": v.label_en}
-                                    for v in VERTICALS.values()])
+            # Samma form som FastAPI-lagret, med faktornedbrytningen.
+            # Utan den svarade samma väg med OLIKA nyttolast i de två
+            # lagren — kontraktstestet låser vägar, inte svar, så driften
+            # var osynlig tills någon jämförde svaren.
+            return self._send(200, [
+                {"id": v.id, "label_en": v.label_en,
+                 "factors": [{"id": f.id, "label_en": f.label_en,
+                              "weight": f.weight} for f in v.factors]}
+                for v in VERTICALS.values()])
         if parsed.path == "/v1/profile-options":
             return self._send(200, {**profile_options(),
                                     "scan_levels": SCAN_LEVEL_OPTIONS})
@@ -327,6 +375,18 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/openapi.json":
             from api.catalog import openapi_spec
             return self._send(200, openapi_spec())
+        if parsed.path == "/docs":
+            # FastAPI genererar en Swagger-sida här. Dev-servern gjorde
+            # INGENTING — medan kontraktstestets _FRAMEWORK-kommentar
+            # påstod att "båda serverar dem". En omdirigering till
+            # specifikationen är inte Swagger, men den är sann: samma
+            # väg svarar i båda lagren, och svaret leder rätt.
+            self._status = 307
+            self.send_response(307)
+            self.send_header("Location", "/openapi.json")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
         if parsed.path == "/v1/markets":
             return self._send(200, market_catalog())
         if parsed.path == "/v1/kpi":
