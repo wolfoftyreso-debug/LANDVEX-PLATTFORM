@@ -2,6 +2,46 @@
 
 Formatet följer [Keep a Changelog](https://keepachangelog.com/); semantisk versionering.
 
+## [Ej släppt] — Palantir-revisionen: hela systemet mätt mot sin egen ambition
+
+Full rapport med bevis per fynd: `docs/palantir-revision-2026-07-29.md`.
+Åtta fixgrupper, varje regressionstest bevisat bitande via mutation:
+
+- **Grupp 1** (`4a56a18`): tre ogrindade vägar (`/v1/verticals`,
+  `/v1/commercial`, `/v1/entitlements`) → `core`; svep-test över ALLA
+  routade vägar; `_OPEN_PATHS`-paritet; `/docs` i dev-servern (kontrakts-
+  kommentaren "båda serverar dem" var osann); `/v1/verticals` samma
+  nyttolast i båda lagren; CORS i dev via samma variabel som FastAPI.
+- **Grupp 2** (`ee650be`): öppna vägar syns i `/metrics` — en driftbild
+  där startsidan aldrig hänt är gladare än verkligheten. Ingen
+  audit-rad, medvetet.
+- **Grupp 3** (`79da646`, `24fc274`): postgres får sqlite-kedjans
+  migrationsliggare (baslinjen härledd, kan inte drifta) och ett
+  statiskt schemadrifttest; `selftest()` kunde aldrig starta
+  (TypeError på tenant-kravet) — fixad; deploy-testet bar gamla
+  doktrinen som regel och godkände avsaknaden av liggare.
+- **Grupp 4** (`e8447ce`, `699019c`): `data_coverage` + `sides_real` på
+  kontradiktionsindexet (flaggskeppet kunde stå på 100 % simulering
+  omärkt); `kalla` + täckning i segments/installed_base; EN delad
+  motordefault. Första defaultvalet (produktionskedjan) FÄLLDES AV CI —
+  72 s och icke-determinism med öppet nät — och återtogs: defaulten är
+  märkt simulering, produktionskedjan ett uttryckligt val.
+- **Grupp 5** (`6a4021b`): fyra `except OUR_BUGS: raise`-vakter (en
+  plats svalde `ImportError` — medlem i OUR_BUGS); svepet gäller hela
+  kodytan med allowlist som data; `probe_all`:s "Samma lista"-kopia
+  hade redan driftat och härleds nu ur källan.
+- **Grupp 6** (`b2ebeed`): fällkatalogen `landvex-opportunity-engine/`
+  raderad; intäktsmodellen och ordlistan riktat testade.
+- **Grupp 7** (`9a5cea2`): **`GET /v1/integrity/audit`** — revisionens
+  mätningar som stående yta, åtta kontroller med `what_en`/`cannot_en`,
+  refused utan API-kontext i stället för gissning, innehållsadresserat
+  `audit_id`, `core`-kapabilitet. Lagersömmarna som data
+  (`LAYER_SEAMS`) ersatte en osann "ALDRIG"-regel.
+
+Medvetet icke-fixat, med skäl i rapporten: audit-loggblobbarna i
+git-historiken (4 rader dev-metadata, inga hemligheter — history-
+rewrite är användarens beslut). 87 → **90 sviter gröna**.
+
 ## [Ej släppt] — bygglov ur öppna register, och sveparen som inte såg dem
 
 Den fjärde blockeraren var inte en blockerare. Jag rapporterade
