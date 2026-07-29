@@ -59,6 +59,7 @@ from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
+from engine.chain import chain_overview
 from engine.surface import surface
 from engine.sensors import catalog as sensor_catalog
 from engine.corroboration import (assess as corroboration_assess,
@@ -988,6 +989,13 @@ def sensors_ep():
 def surface_ep(detail: bool = False):
     """Four promises. The full catalogue stays at /v1/catalog."""
     return surface(detail)
+
+
+@app.get("/v1/chain")
+def chain_ep():
+    """Four intents, and the two real chains behind them — never a
+    fabricated shared pipeline. The full catalogue stays at /v1/catalog."""
+    return chain_overview()
 
 
 @app.get("/v1/assets")

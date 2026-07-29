@@ -143,6 +143,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     "/v1/corroboration": "core",              # hur väl underbyggt något är
     "/v1/sensors": "core",                    # vad som kan mätas, och inte
     "/v1/surface": "core",                    # de fyra löftena — ytan
+    "/v1/chain": "core",                      # de fyra avsikterna + kedjorna
     "/v1/offering": "core",                   # vad varje nivå låter dig BESLUTA
                                               # — måste vara läsbar utan att
                                               # först ha köpt något

@@ -67,6 +67,7 @@ from engine import inbox as inbox_engine
 from engine.brief import catalog as brief_catalog, daily_brief, report as brief_report
 from engine.provenance import parameters as provenance_parameters, summary as provenance_summary
 from engine.offering import offering
+from engine.chain import chain_overview
 from engine.surface import surface
 from engine.sensors import catalog as sensor_catalog
 from engine.corroboration import (assess as corroboration_assess,
@@ -499,6 +500,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/chain":
+            return self._send(200, chain_overview())
         if parsed.path == "/v1/infrastructure":
             from engine.infrastructure import catalog as infra_catalog
             return self._send(200, infra_catalog())

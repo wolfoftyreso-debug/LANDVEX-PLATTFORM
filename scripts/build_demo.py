@@ -44,6 +44,7 @@ from engine.pushes import catalog as pushes_catalog
 from engine.pushes import preview as push_preview
 from engine.wages import wage
 from scripts.seed_inspections import payload as inspections_payload
+from engine.chain import chain_overview
 from engine.scan import SCAN_LEVEL_OPTIONS, scan
 from engine.surface import surface
 from engine.workforce import (OCCUPATIONS, forecast, national_map, simulate,
@@ -260,6 +261,8 @@ def build(out_path: str, lite: bool = False,
         # själv. Bakad, inte en levande /v1/surface-fråga: samma regel
         # som resten av demon.
         "surface": surface(),
+        # De fyra avsikterna + de två ärliga kedjorna — samma bakningsregel.
+        "chain": chain_overview(),
         "index_catalog": index_catalog(),
         "index_maps": {}, "assessments": {},
         "plans_catalog": plans_catalog(),
@@ -584,6 +587,7 @@ async function api(path, body) {
     return r;
   }
   if (path.startsWith("/v1/surface")) return D.surface;
+  if (path.startsWith("/v1/chain")) return D.chain;
   if (path === "/v1/plans") return D.plans_catalog;
   if (path === "/health") return D.health;
   if (path === "/v1/catalog") return D.catalog;

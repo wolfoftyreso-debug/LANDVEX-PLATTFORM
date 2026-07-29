@@ -71,7 +71,14 @@
   /* Över bottennaven (60) och arket (71): introt äger hela skärmen,
      annars täcker naven dess Skip-knapp på mobil. */
   #intro { position: fixed; inset: 0; z-index: 80; display: none;
-           align-items: center; justify-content: center; padding: 24px;
+           /* flex-start, inte center: en centrerad flexbox med overflow
+              startar scrollpositionen mitt i innehållet i vissa
+              webbläsare, vilket gömde loggan och rubriken för en
+              förstagångsbesökare så fort innehållet blev högre än
+              skärmen. flex-start + auto-marginal ger äkta uppifrån-och-
+              ned-ordning oavsett höjd, och förblir centrerat när
+              innehållet får plats. */
+           align-items: flex-start; justify-content: center; padding: 24px;
            background:
              radial-gradient(1200px 600px at 50% -10%, rgba(0,122,255,.22), transparent 60%),
              radial-gradient(900px 500px at 100% 110%, rgba(52,199,89,.18), transparent 60%),
@@ -81,7 +88,9 @@
   #intro.on { display: flex; animation: introIn .4s var(--fjader); }
   @keyframes introIn { from { opacity: 0; } to { opacity: 1; } }
   body.intro-open { overflow: hidden; }
-  .intro-inner { max-width: 640px; text-align: center; }
+  /* margin: auto 0 med flex-start-föräldern ovan: centrerat när
+     innehållet får plats, alltid uppifrån och nerbläddringsbart annars. */
+  .intro-inner { max-width: 640px; text-align: center; margin: auto 0; }
   .intro-logo { width: 60px; height: 60px; margin-bottom: 14px;
                 filter: drop-shadow(0 8px 24px rgba(0,122,255,.35)); }
   .intro-eyebrow { font-size: 12px; letter-spacing: 3px; font-weight: 700;
@@ -89,6 +98,8 @@
   .intro-h { font-size: clamp(26px, 4.4vw, 42px); font-weight: 750;
              line-height: 1.1; letter-spacing: -.02em; margin: 0 0 14px; }
   .intro-h em { font-style: normal; color: var(--accent); }
+  .intro-tagline { font-size: 15px; font-weight: 700; color: var(--accent);
+                   letter-spacing: -.01em; margin: 0 0 10px; }
   .intro-sub { font-size: 16px; color: var(--muted); line-height: 1.5;
                max-width: 540px; margin: 0 auto 22px; }
   .intro-sub em { font-style: normal; color: var(--text); font-weight: 600; }
@@ -380,12 +391,15 @@
     </svg>
     <div class="intro-eyebrow">LANDVEX · REALITY INTELLIGENCE</div>
     <h2 class="intro-h">One reality. <em>Six doors.</em> Every number opens to its source.</h2>
-    <p class="intro-sub">Not a report generator: Landvex finds where
-      opportunity or shortage is forming, turns that into a concrete
-      plan, dispatches real-world verification through its own field
-      network, and reports back into the systems you already run —
-      SAP, ServiceNow, Salesforce and more. When the basis is thin,
-      the engine says so instead of producing a number.</p>
+    <p class="intro-tagline">From observation to decision.</p>
+    <p class="intro-sub">Not a report generator: Landvex collects data
+      from independent sources, verifies each observation, aggregates
+      it over time and turns it into traceable decision intelligence —
+      the same chain whether you're checking infrastructure, scoring a
+      market, or dispatching real-world verification through its own
+      field network and reporting back into the systems you already
+      run: SAP, ServiceNow, Salesforce and more. When the basis is
+      thin, the engine says so instead of producing a number.</p>
     <div id="introStats" class="intro-stats"></div>
     <div id="introPromises" class="intro-promises"></div>
     <div id="introDifferent" class="intro-different"></div>
@@ -2637,27 +2651,30 @@ async function introRoller() {
 }
 
 async function introSurface() {
-  // Fyra löften + siffrorna bakom dem, ur /v1/surface — samma regel som
-  // dörrarna ovan: motorn som räknar sina egna motorer (och testar att
-  // ingen är hemlös eller dubbelräknad) är sanningskällan, inte en
-  // handskriven "vi har massor av funktioner"-rad som glider ifrån
-  // verkligheten nästa gång en motor läggs till eller tas bort.
-  const stats = $("introStats"), loften = $("introPromises"),
+  // Siffror ur /v1/surface + de FYRA AVSIKTERNA ur /v1/chain — samma
+  // regel som dörrarna ovan: motorn som räknar sina egna motorer (och
+  // testar att ingen är hemlös eller dubbelräknad) är sanningskällan,
+  // inte en handskriven "vi har massor av funktioner"-rad som glider
+  // ifrån verkligheten nästa gång en motor läggs till eller tas bort.
+  // Avsikterna (vad KUNDEN vill göra) visas här i stället för löftena
+  // (vilken FRÅGA motorn svarar på) — två giltiga kartor över samma
+  // motorer; den här är den kunden faktiskt tänker i.
+  const stats = $("introStats"), kort = $("introPromises"),
     annorlunda = $("introDifferent");
   if (!stats) return;
   try {
-    const s = await api("/v1/surface");
+    const [s, c] = await Promise.all([api("/v1/surface"), api("/v1/chain")]);
     stats.innerHTML =
       `<span class="intro-stat"><b>${s.engine_count}</b> engines</span>` +
       `<span class="intro-stat"><b>${s.endpoint_count}</b> endpoints</span>` +
-      `<span class="intro-stat"><b>${s.promise_count}</b> promises, ` +
-      `not ${s.engine_count} things to learn</span>`;
-    loften.innerHTML = s.promises.map((p, i) =>
-      `<div class="intro-promise"><span class="ip-n">${i + 1}</span>` +
-      `<b>${esc(p.question_en)}</b><span>${esc(p.settles_en)}</span></div>`
+      `<span class="intro-stat"><b>4</b> things you actually do here, ` +
+      `not ${s.engine_count} to learn</span>`;
+    kort.innerHTML = c.categories.map(cat =>
+      `<div class="intro-promise"><span class="ip-n">${cat.order}</span>` +
+      `<b>${esc(cat.label_en)}</b><span>${esc(cat.intent_en)}</span></div>`
     ).join("");
-    annorlunda.textContent = s.what_makes_it_different_en;
-  } catch (e) { stats.innerHTML = ""; loften.innerHTML = ""; annorlunda.textContent = ""; }
+    annorlunda.textContent = c.chains.converge_on_en;
+  } catch (e) { stats.innerHTML = ""; kort.innerHTML = ""; annorlunda.textContent = ""; }
 }
 
 // ── Kontrollpunkter på kartan: peka, beskriv, schemalägg ───────────────

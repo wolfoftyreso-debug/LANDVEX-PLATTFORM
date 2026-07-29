@@ -318,7 +318,7 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/sensors"}]},
         {"id": "surface", "label_en": "What Landvex offers",
          "beskrivning_en": "What a person is offered, as opposed to what "
-                           "was built. Forty-five engines answer four "
+                           "was built. Dozens of engines answer four "
                            "questions a human actually asks: is that true, "
                            "is there room for me, what changed, and who "
                            "carries the decision. Each promise names what "
@@ -329,6 +329,21 @@ API_CATALOG: dict = {
                            "nothing was left homeless or counted twice to "
                            "make the surface look wider.",
          "endpoints": [{"method": "GET", "path": "/v1/surface"}]},
+        {"id": "chain", "label_en": "What kind of thing you're trying to do",
+         "beskrivning_en": "A second, equally real map over the same "
+                           "engines — not by which question they answer, "
+                           "but by which activity the customer is doing "
+                           "right now: understand and decide, verify "
+                           "something is true, collect new knowledge, or "
+                           "turn knowledge into action. Also names the two "
+                           "real chains underneath — field verification "
+                           "runs on a human zoomer's verdict, statistical "
+                           "scoring runs on sourced, normalized, weighted "
+                           "signals — and refuses to claim they are one "
+                           "identical pipeline, since that would imply "
+                           "automated image analysis this platform does "
+                           "not have.",
+         "endpoints": [{"method": "GET", "path": "/v1/chain"}]},
         {"id": "offering", "label_en": "Plans, and what each lets you decide",
          "beskrivning_en": "What each tier lets you DECIDE, not how much data "
                            "it lets you download. Every offer names the "

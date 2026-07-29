@@ -112,7 +112,7 @@ PROMISES: tuple[dict, ...] = (
         # Också det kommersiella förhållandet: vad du köpte, vem du är,
         # och vad plattformen därmed är skyldig dig.
         "engines": ("accountability", "decision", "outcomes", "offering",
-                    "surface", "customer", "visitor", "admin",
+                    "surface", "chain", "customer", "visitor", "admin",
                     "inspections", "export", "pushes", "sponsorship",
                     "infrastructure", "connections", "company", "staff",
                     "deliveries"),
@@ -156,12 +156,12 @@ def surface(detail: bool = False) -> dict:
         "endpoint_count": sum(len(g["endpoints"])
                               for g in API_CATALOG["engines"]),
         "principle_en": (
-            "Four promises, not forty-five engines. The catalogue at "
-            "/v1/catalog is complete and unchanged — machines need every "
-            "row of it. This is what a person is offered, and it is the "
-            "same platform underneath: every engine belongs to exactly "
-            "one promise, and a test asserts none was left homeless or "
-            "counted twice."),
+            f"Four promises, not {len(API_CATALOG['engines'])} engines. "
+            f"The catalogue at /v1/catalog is complete and unchanged — "
+            f"machines need every row of it. This is what a person is "
+            f"offered, and it is the same platform underneath: every "
+            f"engine belongs to exactly one promise, and a test asserts "
+            f"none was left homeless or counted twice."),
         "what_makes_it_different_en": (
             "Each promise names what it refuses. Every comparable tool "
             "answers with a confident number; the position here is that a "

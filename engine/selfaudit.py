@@ -123,6 +123,9 @@ LAYER_SEAMS: tuple[dict, ...] = (
      "why_en": "The surface counts endpoints per promise; API_CATALOG is "
                "data about the API, read lazily. No engine number "
                "depends on it."},
+    {"site": "engine/chain.py", "imports": "api.catalog",
+     "why_en": "categories() counts endpoints per intent, same reason and "
+               "same lazy-read pattern as engine/surface.py."},
 )
 
 
