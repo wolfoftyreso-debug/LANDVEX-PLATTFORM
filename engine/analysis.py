@@ -60,13 +60,14 @@ def _default_resolver():
     'inga fynd' och se korrekt ut, vilket är precis den sortens tysta
     nedgradering doktrinen förbjuder.
 
-    Invändningen som stod här — "INTE scoring._DEFAULT_RESOLVER: den är
-    mock-only" — har upphört att gälla: revisionen gjorde exakt den här
-    kedjan till ALLA motorers default (engine/datasources/defaults.py),
-    så mönstret som var ett lokalt undantag är numera regeln.
+    Svepet är därför det MEDVETNA undantaget från motordefaulten
+    (märkt mock): det är ett schemalagt bakgrundsjobb utan svarsbudget,
+    och `production_resolver()` är byggd för just det. Revisionen
+    prövade att göra produktionskedjan till ALLAS default och återtog
+    det efter mätning i CI — se engine/datasources/defaults.py.
     """
-    from engine.datasources.defaults import default_resolver
-    return default_resolver()
+    from engine.datasources.defaults import production_resolver
+    return production_resolver()
 
 
 # ── Motsägelser ─────────────────────────────────────────────────────────

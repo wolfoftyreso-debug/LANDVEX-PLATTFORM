@@ -72,6 +72,27 @@ def test_unknown_vertical_raises():
     raise AssertionError("Okänd vertikal ska ge ValueError")
 
 
+def test_the_engine_default_resolver_cannot_reach_the_network():
+    """Mätt i CI (öppet nät): när motordefaulten var produktionskedjan
+    tog gap_analysis utan resolver 72 sekunder och gav OLIKA svar två
+    gånger i rad — SCB och Kolada är nyckellösa med default-adresser och
+    ansluter så fort nätet är öppet. Motorernas default måste vara
+    deterministisk och nätfri: märkt simulering, aldrig ett överraskande
+    nätanrop. Produktionskedjan är API-lagrets (RESOLVER) och de
+    schemalagda svepens (production_resolver) uttryckliga val."""
+    from engine.datasources.defaults import (default_resolver,
+                                             production_resolver)
+    from engine.datasources.mock import MockSource
+
+    kallor = default_resolver().sources
+    assert all(isinstance(s, MockSource) for s in kallor), (
+        f"motordefaulten bär {[type(s).__name__ for s in kallor]} — "
+        f"allt utom MockSource kan nå nätet")
+    # och produktionskedjan finns kvar för den som uttryckligen ber
+    assert any(not isinstance(s, MockSource)
+               for s in production_resolver().sources)
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

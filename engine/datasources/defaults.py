@@ -1,38 +1,58 @@
-"""EN default-resolver — produktionskedjan plus märkt mock, delad.
+"""EN default-resolver — deterministisk, nätfri, märkt mock. Delad.
 
-Fyra motorer bar varsin `_DEFAULT_RESOLVER = Resolver([MockSource()])`.
-Det är fällan analysis.py dokumenterade och undvek lokalt: en anropare
-som glömmer `resolver=` fick ett 100 % simulerat tal, och i motorer utan
-täckningsfält sa ingenting i svaret att så var fallet. API-lagren
-skickar alltid den riktiga kedjan — fällan gällde interna anropare,
-skript och nästa utvecklare.
+Sju motorer bar varsin `_DEFAULT_RESOLVER = Resolver([MockSource()])`.
+Revisionen samlade dem hit — och prövade först att göra defaulten till
+produktionskedjan. Det ÅTERTOGS, med mätning som skäl:
 
-Defaulten är nu samma sak som den riktiga kedjan: produktionskällor
-först (oanslutna adaptrar är `connected=False` och gör NOLL nätanrop,
-så en nätfri miljö beter sig exakt som förr), märkt mock sist så att
-svaret aldrig blir tomt utan blir ärligt etiketterat.
+    CI (öppet nät): gap_analysis("bilverkstad", market="se") utan
+    resolver tog 72 sekunder och gav OLIKA svar två gånger i rad —
+    SCB och Kolada är nyckellösa med default-adresser och därmed
+    anslutna så fort nätet är öppet. Determinismtestet föll, och
+    varje motoranrop utan resolver hade blivit ett nätanrop.
 
-Cachad per process: `production_sources()` bygger klienter, och en
-default som konstruerar om kedjan per anrop hade gjort varje glömt
-`resolver=` till en prestandabugg i stället för en ärlighetsbugg.
+Regeln som håller är i stället:
+
+  * Motorernas default är MÄRKT SIMULERING — deterministisk, nätfri,
+    och sedan revisionen märkt på svaret (`data_coverage`, `kalla`).
+    Ett glömt `resolver=` ger ett tal som SÄGER att det är simulerat,
+    aldrig ett överraskande nätanrop i en svarsbudget på 700 ms.
+  * Den riktiga kedjan är API-LAGRETS ansvar: RESOLVER där bär
+    produktionskällorna OCH cachen, och kontraktstestet låser att varje
+    marknadsmotor får den uttryckligen.
+  * Bakgrundssvep (engine/analysis) som VILL se produktionskedjan
+    bygger den själv via `production_resolver()` — de är schemalagda
+    jobb utan svarsbudget, och ett svep på ren mock rapporterar
+    "inga fynd" och betyder blind.
 """
 from __future__ import annotations
 
 from .base import Resolver
 from .mock import MockSource
 
-_CACHE: Resolver | None = None
+_MOCK: Resolver | None = None
+_PROD: Resolver | None = None
 
 
 def default_resolver() -> Resolver:
-    global _CACHE
-    if _CACHE is None:
+    """Motorernas default: märkt mock, aldrig nät. Cachad per process."""
+    global _MOCK
+    if _MOCK is None:
+        _MOCK = Resolver([MockSource()])
+    return _MOCK
+
+
+def production_resolver() -> Resolver:
+    """Produktionskällorna + märkt mock — för bakgrundssvep och
+    anropare som uttryckligen vill nå nätet. Cachad per process."""
+    global _PROD
+    if _PROD is None:
         from .adapters import production_sources
-        _CACHE = Resolver(production_sources() + [MockSource()])
-    return _CACHE
+        _PROD = Resolver(production_sources() + [MockSource()])
+    return _PROD
 
 
 def reset() -> None:
     """Endast för tester: tvinga omkonstruktion (t.ex. efter env-byte)."""
-    global _CACHE
-    _CACHE = None
+    global _MOCK, _PROD
+    _MOCK = None
+    _PROD = None
