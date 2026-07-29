@@ -189,18 +189,24 @@ def test_secrets_are_marked_so_they_are_never_logged():
 
 # ── Lagret: två implementationer, ett schema ────────────────────────────
 def test_both_stores_declare_the_same_tables():
-    """SQLite versionerar med migrationer, Postgres kör idempotent DDL vid
-    uppstart. Två olika strategier är i sin ordning — två olika SCHEMAN är
-    det inte, och drift upptäcks annars först i produktion."""
+    """Två olika migrationsstrategier vore i sin ordning — två olika
+    SCHEMAN är det inte, och drift upptäcks annars först i produktion.
+
+    Det här testet bar tidigare själva felet som en regel: "Postgres kör
+    idempotent DDL och behöver ingen schema_meta" — undantaget
+    `sq - pg == {"schema_meta"}` GODKÄNDE att produktionslagret saknade
+    versionsliggare. Revisionen fann att utan liggare får en befintlig
+    Postgres-databas aldrig nästa kolumnändring (CREATE TABLE IF NOT
+    EXISTS lägger inga kolumner på gamla tabeller). Numera bär båda
+    lagren kedjan, och tabellmängderna ska vara IDENTISKA — undantag
+    utan skäl är hål med en kommentar på."""
     from engine.storage import postgres as P
     from engine.storage.sqlite import _DDL, _MIGRATIONS
     sqlite_ddl = _DDL + "".join(d for _, d in _MIGRATIONS)
     tab = lambda t: set(re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", t))
     sq, pg = tab(sqlite_ddl), tab(P._DDL)
-    # schema_meta är SQLites egen migrationsbokföring; Postgres kör
-    # idempotent DDL och behöver ingen.
-    assert sq - pg == {"schema_meta"}, f"bara i sqlite: {sorted(sq - pg)}"
-    assert not pg - sq, f"bara i postgres: {sorted(pg - sq)}"
+    assert sq == pg, (f"bara i sqlite: {sorted(sq - pg)} · "
+                      f"bara i postgres: {sorted(pg - sq)}")
 
 
 def test_the_postgres_ddl_is_idempotent_because_replicas_start_together():
