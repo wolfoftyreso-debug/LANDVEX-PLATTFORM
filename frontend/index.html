@@ -92,6 +92,34 @@
   .intro-sub { font-size: 16px; color: var(--muted); line-height: 1.5;
                max-width: 540px; margin: 0 auto 22px; }
   .intro-sub em { font-style: normal; color: var(--text); font-weight: 600; }
+  /* Bevisremsan: siffror + löften ur /v1/surface — samma regel som
+     dörrarna: data, aldrig handskriven kopia som kan glida ifrån
+     verkligheten. */
+  .intro-stats { display: flex; justify-content: center; flex-wrap: wrap;
+                 gap: 8px 18px; margin-bottom: 16px; }
+  .intro-stat { font-size: 13px; color: var(--muted); }
+  .intro-stat b { color: var(--text); font-weight: 750; font-size: 15px;
+                  font-variant-numeric: tabular-nums; }
+  .intro-promises { display: grid; grid-template-columns: repeat(4, 1fr);
+                    gap: 8px; margin: 0 auto 18px; max-width: 620px;
+                    text-align: left; }
+  @media (max-width: 640px) {
+    .intro-promises { grid-template-columns: 1fr 1fr; } }
+  .intro-promise { background: var(--panel, rgba(255,255,255,.05));
+                   border: 1px solid var(--kant, rgba(127,127,127,.25));
+                   border-radius: 10px; padding: 10px 11px; }
+  .intro-promise .ip-n { display: inline-flex; align-items: center;
+                         justify-content: center; width: 18px; height: 18px;
+                         border-radius: 50%; background: var(--accent-tint);
+                         color: var(--accent); font-size: 11px;
+                         font-weight: 750; margin-bottom: 5px; }
+  .intro-promise b { display: block; font-size: 12.5px; margin-bottom: 3px; }
+  .intro-promise span { font-size: 11px; color: var(--muted);
+                        line-height: 1.35; display: block; }
+  .intro-different { font-size: 13px; color: var(--text); font-weight: 550;
+                     line-height: 1.5; max-width: 560px; margin: 0 auto 22px;
+                     padding: 12px 16px; background: var(--accent-tint);
+                     border-radius: 10px; }
   /* Rollrutnätet: sex dörrar ur /v1/entrypoints — data, inte kopia. */
   .intro-roller { display: grid; grid-template-columns: repeat(3, 1fr);
                   gap: 8px; margin: 0 auto 20px; max-width: 620px;
@@ -352,10 +380,15 @@
     </svg>
     <div class="intro-eyebrow">LANDVEX · REALITY INTELLIGENCE</div>
     <h2 class="intro-h">One reality. <em>Six doors.</em> Every number opens to its source.</h2>
-    <p class="intro-sub">Operations support for business, media and
-      politics: what the data actually supports about a place — and
-      where it runs out. When the basis is thin, the engine says so
-      instead of producing a number.</p>
+    <p class="intro-sub">Not a report generator: Landvex finds where
+      opportunity or shortage is forming, turns that into a concrete
+      plan, dispatches real-world verification through its own field
+      network, and reports back into the systems you already run —
+      SAP, ServiceNow, Salesforce and more. When the basis is thin,
+      the engine says so instead of producing a number.</p>
+    <div id="introStats" class="intro-stats"></div>
+    <div id="introPromises" class="intro-promises"></div>
+    <div id="introDifferent" class="intro-different"></div>
     <div id="introRoller" class="intro-roller"></div>
     <p class="intro-pick">The business door is ready to try — pick your trade:</p>
     <div id="introChips" class="chips intro-chips"></div>
@@ -2603,6 +2636,30 @@ async function introRoller() {
   } catch (e) { el.innerHTML = ""; }
 }
 
+async function introSurface() {
+  // Fyra löften + siffrorna bakom dem, ur /v1/surface — samma regel som
+  // dörrarna ovan: motorn som räknar sina egna motorer (och testar att
+  // ingen är hemlös eller dubbelräknad) är sanningskällan, inte en
+  // handskriven "vi har massor av funktioner"-rad som glider ifrån
+  // verkligheten nästa gång en motor läggs till eller tas bort.
+  const stats = $("introStats"), loften = $("introPromises"),
+    annorlunda = $("introDifferent");
+  if (!stats) return;
+  try {
+    const s = await api("/v1/surface");
+    stats.innerHTML =
+      `<span class="intro-stat"><b>${s.engine_count}</b> engines</span>` +
+      `<span class="intro-stat"><b>${s.endpoint_count}</b> endpoints</span>` +
+      `<span class="intro-stat"><b>${s.promise_count}</b> promises, ` +
+      `not ${s.engine_count} things to learn</span>`;
+    loften.innerHTML = s.promises.map((p, i) =>
+      `<div class="intro-promise"><span class="ip-n">${i + 1}</span>` +
+      `<b>${esc(p.question_en)}</b><span>${esc(p.settles_en)}</span></div>`
+    ).join("");
+    annorlunda.textContent = s.what_makes_it_different_en;
+  } catch (e) { stats.innerHTML = ""; loften.innerHTML = ""; annorlunda.textContent = ""; }
+}
+
 // ── Kontrollpunkter på kartan: peka, beskriv, schemalägg ───────────────
 // Inversen av px/py — kartklickets pixel tillbaka till lat/lon.
 function kartaLatLon(e) {
@@ -3622,6 +3679,7 @@ async function visaIntel() {
   const logo = document.querySelector("header .logomark");
   if (logo) logo.onclick = introVisa;
   introRoller();
+  introSurface();
   let seen = false;
   try { seen = localStorage.getItem("landvex_intro_v1") === "1"; } catch (e) {}
   if (!seen) introVisa();
