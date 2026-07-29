@@ -189,6 +189,32 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_news_region
         ON news_items(region_code, harvested_at);
     """),
+    # Sponsrade uppdrag. Kampanjer och fullbordanden är KUNDENS egna
+    # (tenant-kolumn, motorn filtrerar — samma mönster som assets).
+    # Fullbordanden bär dom, region och avräkningsreferens — ALDRIG
+    # person: zoomern, plånboken och samtycket bor hos quiXzoom, och
+    # att kolumnerna inte finns är spärren som inte kan glömmas.
+    (11, """
+    CREATE TABLE IF NOT EXISTS sponsor_campaigns (
+        id         TEXT NOT NULL,
+        tenant     TEXT NOT NULL DEFAULT '',
+        created_at REAL NOT NULL DEFAULT 0,
+        status     TEXT NOT NULL DEFAULT 'active',
+        payload    TEXT NOT NULL,
+        PRIMARY KEY (tenant, id)
+    );
+    CREATE TABLE IF NOT EXISTS sponsor_completions (
+        id           TEXT PRIMARY KEY,
+        tenant       TEXT NOT NULL DEFAULT '',
+        campaign_id  TEXT NOT NULL,
+        mission_id   TEXT NOT NULL,
+        region_code  TEXT NOT NULL DEFAULT '',
+        completed_at REAL NOT NULL DEFAULT 0,
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sponsor_completions
+        ON sponsor_completions(tenant, campaign_id, completed_at);
+    """),
 ]
 
 _DDL = """
@@ -682,6 +708,45 @@ class SqliteStore(Store):
             d["harvested_at"] = harvested_at
             ut.append(d)
         return ut
+
+    # ── Sponsrade uppdrag ───────────────────────────────────────────
+    def save_campaign(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO sponsor_campaigns "
+                "(id, tenant, created_at, status, payload) "
+                "VALUES (?,?,?,?,?)",
+                (rec["id"], rec.get("tenant", ""),
+                 float(rec.get("created_at") or 0),
+                 rec.get("status", "active"),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_campaigns(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM sponsor_campaigns "
+                "ORDER BY created_at DESC, id").fetchall()
+        return [json.loads(r[0]) for r in rader]
+
+    def save_completion(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO sponsor_completions "
+                "(id, tenant, campaign_id, mission_id, region_code, "
+                "completed_at, payload) VALUES (?,?,?,?,?,?,?)",
+                (rec["id"], rec.get("tenant", ""), rec["campaign_id"],
+                 rec["mission_id"], rec.get("region_code", ""),
+                 float(rec.get("completed_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_completions(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM sponsor_completions "
+                "ORDER BY completed_at DESC, id").fetchall()
+        return [json.loads(r[0]) for r in rader]
 
     def close(self) -> None:
         with self._lock:

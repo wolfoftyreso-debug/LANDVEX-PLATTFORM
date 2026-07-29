@@ -76,6 +76,7 @@ from engine import inspections as _insp
 from engine import scheduler as _sched
 from engine import harvest as _harvest
 from engine import news as _news
+from engine import sponsorship as _sponsorship
 from engine.scenario import project as scenario_project
 from engine.eventstudy import before_after, diff_in_diff
 from engine.benchmark import benchmark
@@ -220,6 +221,8 @@ _sched.set_store(STORE)
 # förfrågningsvägen en tom tabell och svarar mock.
 _harvest.set_store(STORE)
 _news.set_store(STORE)
+# Budget som nollställs vid omstart är en budget som kan överskridas.
+_sponsorship.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -1201,6 +1204,83 @@ def export_ep(request: Request, body: dict):
                       body.get("params") or {}, tenant=_tenant(request))
     except ExportRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/sponsorship")
+def sponsorship_catalog_ep(request: Request):
+    """Sponsored missions: the option space and this tenant's campaigns."""
+    from engine import sponsorship as SP
+    return {**SP.catalog(),
+            "campaigns": SP.all_campaigns(_tenant(request))}
+
+
+@app.post("/v1/sponsorship/campaigns")
+def sponsorship_create_ep(request: Request, body: dict):
+    """Create a campaign, or refuse with a reason that can be acted on."""
+    from engine import sponsorship as SP
+    try:
+        rec = SP.campaign(
+            body.get("id", ""), body.get("sponsor_visible_en", ""),
+            body.get("mission_class", ""), body.get("brief_en", ""),
+            budget=float(body.get("budget", 0)),
+            currency=body.get("currency", "SEK"),
+            rewards=tuple(body.get("rewards") or ()),
+            market=body.get("market", "se"),
+            region_codes=tuple(body.get("region_codes") or ()),
+            max_per_day=int(body.get("max_per_day", 0)),
+            rights_agreement_ref=body.get("rights_agreement_ref", ""),
+            co_sponsors=tuple(body.get("co_sponsors") or ()),
+            tenant=_tenant(request))
+    except (SP.SponsorshipRefused, ValueError, TypeError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    SP.save_campaign(rec)
+    return JSONResponse(status_code=201, content=rec)
+
+
+@app.post("/v1/sponsorship/mission")
+def sponsorship_mission_ep(request: Request, body: dict):
+    """The mission body a zoomer would see — budget cap and pacing
+    decide whether one may be generated at all."""
+    from engine import sponsorship as SP
+    kamp = next((k for k in SP.all_campaigns(_tenant(request))
+                 if k["id"] == body.get("campaign_id")), None)
+    if kamp is None:
+        raise HTTPException(status_code=404,
+                            detail=f"unknown campaign "
+                                   f"{body.get('campaign_id')!r}")
+    grind = SP.can_order(kamp, today_count=int(body.get("today_count", 0)))
+    if not grind["allowed"]:
+        raise HTTPException(status_code=409, detail=grind["why_en"])
+    return SP.mission_body(kamp, region_code=body.get("region_code", ""),
+                           lat=body.get("lat"), lon=body.get("lon"))
+
+
+@app.post("/v1/sponsorship/completion")
+def sponsorship_completion_ep(request: Request, body: dict):
+    """Record a completion: verdict and region — never a person."""
+    from engine import sponsorship as SP
+    try:
+        rec = SP.completion(
+            body.get("campaign_id", ""), body.get("mission_id", ""),
+            region_code=body.get("region_code", ""),
+            quality_band=body.get("quality_band", ""),
+            verdicts=body.get("verdicts"),
+            settlement_ref=body.get("settlement_ref", ""),
+            tenant=_tenant(request))
+    except SP.SponsorshipRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    SP.save_completion(rec)
+    return JSONResponse(status_code=201, content=rec)
+
+
+@app.get("/v1/sponsorship/stats")
+def sponsorship_stats_ep(request: Request, campaign_id: str = ""):
+    """Aggregates only — cells under the k-floor are suppressed and counted."""
+    from engine import sponsorship as SP
+    try:
+        return SP.stats(campaign_id, tenant=_tenant(request))
+    except SP.SponsorshipRefused as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @app.get("/v1/pushes")

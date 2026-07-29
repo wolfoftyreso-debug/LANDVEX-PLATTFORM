@@ -210,6 +210,26 @@ CREATE TABLE IF NOT EXISTS news_items (
     payload      JSONB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_news_region ON news_items(region_code, harvested_at);
+
+CREATE TABLE IF NOT EXISTS sponsor_campaigns (
+    id         TEXT NOT NULL,
+    tenant     TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    status     TEXT NOT NULL DEFAULT 'active',
+    payload    JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
+CREATE TABLE IF NOT EXISTS sponsor_completions (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    campaign_id  TEXT NOT NULL,
+    mission_id   TEXT NOT NULL,
+    region_code  TEXT NOT NULL DEFAULT '',
+    completed_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sponsor_completions
+    ON sponsor_completions(tenant, campaign_id, completed_at);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -225,7 +245,34 @@ CREATE INDEX IF NOT EXISTS idx_news_region ON news_items(region_code, harvested_
 # dem om inte ALTER-raderna i _DDL ovan (idempotenta, "migration 6
 # inbakad i baslinjen") råkat täcka just det fallet. Nästa ändring hade
 # inte haft den turen: utan liggare finns ingen plats att lägga den på.
-_MIGRATIONS: list[tuple[int, str]] = []
+# Migration 11 (sponsrade uppdrag) står BÅDE i _DDL (färska scheman får
+# allt direkt och stämplas på baslinjen) och här (en befintlig databas
+# på version 10 får tabellerna via kedjan). Idempotent DDL gör dubbel
+# närvaro ofarlig — och det här är mekanismen revisionen byggde, använd
+# skarpt för första gången.
+_MIGRATIONS: list[tuple[int, str]] = [
+    (11, """
+CREATE TABLE IF NOT EXISTS sponsor_campaigns (
+    id         TEXT NOT NULL,
+    tenant     TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    status     TEXT NOT NULL DEFAULT 'active',
+    payload    JSONB NOT NULL,
+    PRIMARY KEY (tenant, id)
+);
+CREATE TABLE IF NOT EXISTS sponsor_completions (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    campaign_id  TEXT NOT NULL,
+    mission_id   TEXT NOT NULL,
+    region_code  TEXT NOT NULL DEFAULT '',
+    completed_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sponsor_completions
+    ON sponsor_completions(tenant, campaign_id, completed_at);
+"""),
+]
 
 # Baslinjen härleds ur sqlite-kedjan i stället för att skrivas som en
 # siffra här: _DDL ovan skapar allt till och med sqlite-migration 10,
@@ -679,6 +726,50 @@ class PostgresStore(Store):
                 d["harvested_at"] = harvested_at
                 ut.append(d)
             return ut
+
+    # ── Sponsrade uppdrag ───────────────────────────────────────────
+    def save_campaign(self, rec: dict[str, Any]) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO sponsor_campaigns "
+                "(id, tenant, created_at, status, payload) "
+                "VALUES (%s,%s,%s,%s,%s) "
+                "ON CONFLICT (tenant, id) DO UPDATE SET "
+                "status = EXCLUDED.status, payload = EXCLUDED.payload",
+                (rec["id"], rec.get("tenant", ""),
+                 float(rec.get("created_at") or 0),
+                 rec.get("status", "active"),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_campaigns(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM sponsor_campaigns "
+                        "ORDER BY created_at DESC, id")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
+
+    def save_completion(self, rec: dict[str, Any]) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO sponsor_completions "
+                "(id, tenant, campaign_id, mission_id, region_code, "
+                "completed_at, payload) VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO NOTHING",
+                (rec["id"], rec.get("tenant", ""), rec["campaign_id"],
+                 rec["mission_id"], rec.get("region_code", ""),
+                 float(rec.get("completed_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_completions(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM sponsor_completions "
+                        "ORDER BY completed_at DESC, id")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+                for r in rader]
 
     def close(self) -> None:
         self._conn.close()

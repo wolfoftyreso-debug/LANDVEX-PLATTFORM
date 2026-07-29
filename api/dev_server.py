@@ -84,6 +84,7 @@ from engine import analysis as analysis_engine
 from engine import mrai as mrai_engine
 from engine import harvest as harvest_engine
 from engine import news as news_engine
+from engine import sponsorship as sponsorship_engine
 from engine.coverage import compare_markets, coverage
 from engine.export import catalog as export_catalog, export as export_data
 from api.ticker import start as start_ticker, status as ticker_status
@@ -160,6 +161,10 @@ scheduler.set_store(STORE)
 # och varje svar blir mock fast rader finns.
 harvest_engine.set_store(STORE)
 news_engine.set_store(STORE)
+# Kampanjer och fullbordanden är kundens egna och måste överleva en
+# omstart: en budget som nollställs vid omstart är en budget som kan
+# överskridas obegränsat.
+sponsorship_engine.set_store(STORE)
 
 # Gate delar lagret så månadskvoten överlever omstarter (om DB på).
 GATE = Gate(store=STORE)
@@ -447,6 +452,19 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/surface":
             detail = parse_qs(parsed.query).get("detail", [""])[0]
             return self._send(200, surface(detail.lower() in ("1", "true")))
+        if parsed.path == "/v1/sponsorship":
+            from engine import sponsorship as SP
+            return self._send(200, {
+                **SP.catalog(),
+                "campaigns": SP.all_campaigns(self._tenant())})
+        if parsed.path == "/v1/sponsorship/stats":
+            from engine import sponsorship as SP
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, SP.stats(
+                    q.get("campaign_id", [""])[0], tenant=self._tenant()))
+            except SP.SponsorshipRefused as e:
+                return self._send(404, {"error": str(e)})
         if parsed.path == "/v1/pushes":
             from engine.pushes import catalog as pushes_catalog
             return self._send(200, pushes_catalog())
@@ -886,6 +904,57 @@ class Handler(BaseHTTPRequestHandler):
                     self._tenant(), req.get("now"),
                     {k for k, v in scheduler.JOB_KINDS.items()
                      if self._har(v["capability"])}))
+            if self.path == "/v1/sponsorship/campaigns":
+                from engine import sponsorship as SP
+                try:
+                    rec = SP.campaign(
+                        req.get("id", ""),
+                        req.get("sponsor_visible_en", ""),
+                        req.get("mission_class", ""),
+                        req.get("brief_en", ""),
+                        budget=float(req.get("budget", 0)),
+                        currency=req.get("currency", "SEK"),
+                        rewards=tuple(req.get("rewards") or ()),
+                        market=req.get("market", "se"),
+                        region_codes=tuple(req.get("region_codes") or ()),
+                        max_per_day=int(req.get("max_per_day", 0)),
+                        rights_agreement_ref=req.get(
+                            "rights_agreement_ref", ""),
+                        co_sponsors=tuple(req.get("co_sponsors") or ()),
+                        tenant=self._tenant())
+                except (SP.SponsorshipRefused, ValueError, TypeError) as e:
+                    return self._send(422, {"error": str(e)})
+                SP.save_campaign(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/sponsorship/mission":
+                from engine import sponsorship as SP
+                kamp = next((k for k in SP.all_campaigns(self._tenant())
+                             if k["id"] == req.get("campaign_id")), None)
+                if kamp is None:
+                    return self._send(404, {"error": (
+                        f"unknown campaign {req.get('campaign_id')!r}")})
+                grind = SP.can_order(
+                    kamp, today_count=int(req.get("today_count", 0)))
+                if not grind["allowed"]:
+                    return self._send(409, {"error": grind["why_en"]})
+                return self._send(200, SP.mission_body(
+                    kamp, region_code=req.get("region_code", ""),
+                    lat=req.get("lat"), lon=req.get("lon")))
+            if self.path == "/v1/sponsorship/completion":
+                from engine import sponsorship as SP
+                try:
+                    rec = SP.completion(
+                        req.get("campaign_id", ""),
+                        req.get("mission_id", ""),
+                        region_code=req.get("region_code", ""),
+                        quality_band=req.get("quality_band", ""),
+                        verdicts=req.get("verdicts"),
+                        settlement_ref=req.get("settlement_ref", ""),
+                        tenant=self._tenant())
+                except SP.SponsorshipRefused as e:
+                    return self._send(422, {"error": str(e)})
+                SP.save_completion(rec)
+                return self._send(201, rec)
             if self.path == "/v1/pushes/preview":
                 from engine.pushes import PushRefused, preview
                 d = {x["id"]: x for x in

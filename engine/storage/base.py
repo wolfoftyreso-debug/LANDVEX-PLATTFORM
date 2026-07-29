@@ -184,6 +184,24 @@ class Store(ABC):
     def all_news(self) -> Optional[list[dict[str, Any]]]:
         return None
 
+    def save_campaign(self, rec: dict[str, Any]):
+        """Sponsrad kampanj. Kundens egen (tenant-kolumn); motorn
+        filtrerar, lagret lagrar — samma mönster som assets."""
+        return None
+
+    def all_campaigns(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
+    def save_completion(self, rec: dict[str, Any]):
+        """Fullbordat sponsrat uppdrag: dom, region och avräknings-
+        referens. INGEN person — zoomern, plånboken och samtycket bor
+        hos quiXzoom, och att kolumnerna inte finns är spärren som
+        inte kan glömmas."""
+        return None
+
+    def all_completions(self) -> Optional[list[dict[str, Any]]]:
+        return None
+
     def claim_job(self, job_id: str, tenant: str, now: float,
                   gap_seconds: float):
         """Ta jobbet ATOMISKT om det inte körts inom `gap_seconds`.

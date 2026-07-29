@@ -93,6 +93,10 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # Ett index som bara betalande kan öppna är ett omdöme
     # med en siffra på. Samma grund som /v1/coverage.
     "/v1/mrai": "core",
+    # Sponsorportalen: annonsörens egen yta. Egen kapabilitet, för det
+    # är en annan KUND än den som köper beslutsstöd — och statistiken
+    # är k-golvad oavsett paket.
+    "/v1/sponsorship": "sponsor_portal",
     "/v1/pushes": "core",                     # generatorns valrymd + preview
                                               # — datamängdens EGEN
                                               # kapabilitet prövas därtill
@@ -231,7 +235,8 @@ PLANS: dict[str, dict] = _PlanMap({
         "capabilities": ("core", "opportunity", "workforce",
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "monitoring", "partner_api",
-                         "platform_ops", "asset_inspections"),
+                         "platform_ops", "asset_inspections",
+                         "sponsor_portal"),
         "ingar_en": ["Everything in Professional",
                      "Asset inspections: your own objects, recurring "
                      "routines, field orders, verdicts and a compliance "
@@ -270,6 +275,13 @@ ADDONS: dict[str, dict] = {
     "partner_api": {"label_en": "Partner API & Agents",
                     "pris_manad": {"USD": 499, "EUR": 459},
                     "capabilities": ("partner_api",)},
+    # Sponsorportalen köps av annonsören, inte av den som köper
+    # beslutsstöd — därför ett eget tillägg och inte en planrad. Vad
+    # sponsorn får se är k-golvat oavsett vad hen betalar: paketet
+    # styr åtkomst, aldrig upplösning.
+    "sponsor_portal": {"label_en": "Sponsor Portal (sponsored missions)",
+                       "pris_manad": {"USD": 399, "EUR": 369},
+                       "capabilities": ("sponsor_portal",)},
 }
 
 PRISNOT_EN = ("List prices (examples) in USD per month excl. taxes – "

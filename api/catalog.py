@@ -461,6 +461,28 @@ API_CATALOG: dict = {
                            "only, no private or loopback addresses.",
          "endpoints": [{"method": "GET", "path": "/v1/pushes"},
                        {"method": "POST", "path": "/v1/pushes/preview"}]},
+        {"id": "sponsorship", "label_en": "Fund missions, see aggregates",
+         "beskrivning_en": "Sponsored missions: brands fund verification "
+                           "or authentic-content work, zoomers choose "
+                           "among offered rewards, and sponsors see "
+                           "k-floored aggregates — never an individual. "
+                           "The funding sponsor is a required, "
+                           "zoomer-visible field: a mission whose funder "
+                           "is hidden is refused at creation. Content "
+                           "missions additionally require a rights "
+                           "agreement reference before a single mission "
+                           "is generated. The wallet, the payout, the "
+                           "photograph and every per-person record live "
+                           "with quiXzoom.",
+         "endpoints": [{"method": "GET", "path": "/v1/sponsorship"},
+                       {"method": "POST",
+                        "path": "/v1/sponsorship/campaigns"},
+                       {"method": "POST",
+                        "path": "/v1/sponsorship/mission"},
+                       {"method": "POST",
+                        "path": "/v1/sponsorship/completion"},
+                       {"method": "GET",
+                        "path": "/v1/sponsorship/stats"}]},
         {"id": "inspections", "label_en": "Prove your assets were checked",
          "beskrivning_en": "A register of the customer's own physical objects "
                            "(flagpoles, lifebuoys, ladders, signs, chargers), "
