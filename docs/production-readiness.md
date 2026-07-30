@@ -124,18 +124,33 @@ dessutom ett API-röktest med auth påslagen.
   `deploy/aws/task-definition.json` (ECS Fargate) och `deploy/k8s/`
   (Kubernetes, se `docs/k8s.md`). Båda är deploybara som de står; ingen
   av dem är körd mot riktig infrastruktur än.
-- **Ny information (2026-07-30-inventeringen,
-  `infra/infrastruktur-inventering-2026-07-30.md`):** motorn kör redan
-  skarpt – `server-2:8087`, systemd, mot en riktig PostgreSQL-databas
-  (`landvex`). Ett riktigt EKS-kluster (`landvex-prod`) finns också,
-  tomt, med fem namngivna luckor kvar innan Kubernetes-spåret kan bära
-  trafik (`docs/k8s.md`). Ingen Aurora finns i kontot – bara vanliga
+- **Ny information (2026-07-30-inventeringen och uppföljningssvaret,
+  `infra/infrastruktur-inventering-2026-07-30.md` +
+  `infra/aws-svar-2026-07-30.md`):** motorn kör redan skarpt –
+  `server-2:8087`, systemd, stdlib-servern (`api.dev_server`, inte
+  FastAPI/gunicorn) – **mot SQLite**
+  (`/var/lib/landvex/landvex.db`), inte Postgres.
+  `LANDVEX_API_KEYS` är satt (tjänsten kräver alltså nyckel, är inte
+  öppen); `AAMOS_CORE_URL` pekar lokalt (`127.0.0.1:3100`) men
+  `AAMOS_JWT_TOKEN` löpte ut 2026-07-26 – quiXzoom-uppdragsvägen är
+  förberedd men obekräftad live. En Postgres-databas som RÅKAR heta
+  `landvex` finns också på servern, men tillhör ett annat system
+  (`admin_users`/`data_caches`/`orders`/`reports`/`users`, ingen
+  PostGIS, ingen `schema_meta`) – **inte** en Opportunity Engine-databas,
+  och ska aldrig pekas ut med `LANDVEX_PG_DSN` (namnkrocken hade gett
+  ett `reports`-kolumnfel som inte säger varför; nu vägrar
+  `PostgresStore.selftest()` tidigt och tydligt i stället, se
+  `engine/storage/postgres._verify_shape`). Servern kör dessutom en
+  gammal ögonblicksbild av repot (saknar bl.a. `scripts/pg_selftest.py`)
+  – uppdateras när den fullständiga koden kopieras in i den egna Gitean.
+  Ett riktigt EKS-kluster (`landvex-prod`) finns också, tomt, med fem
+  namngivna luckor kvar innan Kubernetes-spåret kan bära trafik
+  (`docs/k8s.md`). Ingen Aurora finns i kontot – bara vanliga
   RDS-instanser.
-- Kvar, i prioritetsordning: (1) `scripts/pg_selftest` mot den
-  REDAN LIVE `landvex`-databasen på server-2 – schemaversion och
-  PostGIS-status där är obekräftade härifrån; (2) de fem luckorna i
-  `docs/k8s.md` (ingress-controller, ECR-repo, OIDC-federation,
-  databas nåbar från EKS-VPC:t, ACM-cert); (3) OIDC/JWKS.
+- Kvar, i prioritetsordning: (1) uppdatera server-2 till den fullständiga
+  koden och förnya `AAMOS_JWT_TOKEN`; (2) de fem luckorna i `docs/k8s.md`
+  (ingress-controller, ECR-repo, OIDC-federation, en databas i EKS-VPC:t
+  med ett namn som INTE är `landvex`, ACM-cert); (3) OIDC/JWKS.
 
 ## Sammanfattning
 
@@ -148,13 +163,16 @@ dessutom ett API-röktest med auth påslagen.
 | Förklarbarhet & reproducerbarhet | ✅ |
 | Affärsflödestester + CI (GitHub + Gitea) | ✅ |
 | Säkerhet | 🟡 nycklar+JWT+RBAC+planer klart; OIDC/JWKS kvar |
-| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; `pg_selftest` mot den REDAN LIVE `landvex`-databasen på server-2 är okört |
+| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; skarp drift kör SQLite, inte Postgres; en Postgres-databas som råkar heta `landvex` finns men tillhör ett annat system (bekräftat, ska inte återanvändas) |
 | Observability | 🟡 logg/metrics/request-id klart; tracing senare |
 | CI/CD & IaC | 🟡 CI klar (två plattformar); ECS- och K8s-manifest klara och testade, ingen körd mot riktig infrastruktur |
 
-**Rekommendation:** kör `scripts/pg_selftest` mot server-2:s
-`landvex`-databas FÖRST – den kör redan skarpt, så det svarar på
-schemaversion och PostGIS-status utan gissning innan något annat rör
-den databasen. Stäng därefter de fem luckorna i `docs/k8s.md`, eller
-gå ECS-vägen (`docs/aws.md`) om Kubernetes inte är först ut. OIDC/JWKS
-kan gå i samma sprint (HS256-JWT är redan i drift).
+**Rekommendation:** kopiera in den fullständiga koden på server-2
+(fångar upp `scripts/pg_selftest.py` och allt byggt sedan den
+ursprungliga driftsättningen) och förnya `AAMOS_JWT_TOKEN` FÖRST – den
+lokala `landvex`-Postgres-databasen är bekräftat ett annat systems
+schema och ska inte röras. Provisionera i stället en ny databas
+(annat namn, se `docs/k8s.md` D2) den dag Postgres väljs över SQLite.
+Stäng därefter de fem luckorna i `docs/k8s.md`, eller gå ECS-vägen
+(`docs/aws.md`) om Kubernetes inte är först ut. OIDC/JWKS kan gå i
+samma sprint (HS256-JWT är redan i drift).

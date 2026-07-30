@@ -31,11 +31,21 @@ Five things are missing that block a real deployment:
 | 4 | No database reachable from the EKS VPC — it is not peered with any other VPC, and the running instance's own Postgres (`server-2`, `172.31.x.x`) is on a different, unpeered VPC | persistence with more than one replica |
 | 5 | No ACM certificate for `opportunity.landvex.com` (or any `landvex.com` variant) | TLS on the ingress |
 
-And one fact worth being explicit about: **Landvex Opportunity Engine is
-already running** — on `server-2`, port `:8087`, systemd, against a
-local PostgreSQL database named `landvex`. That deployment is not
-affected by anything below; this is a second, additional path, not a
-replacement in progress.
+And one fact worth being explicit about, **corrected after the 2026-07-30
+follow-up** (`infra/aws-svar-2026-07-30.md`): Landvex Opportunity Engine
+is already running on `server-2`, port `:8087`, systemd — but against
+**SQLite** (`/var/lib/landvex/landvex.db`), not PostgreSQL.
+`LANDVEX_PG_DSN` is unset there. A local PostgreSQL database that
+happens to be named `landvex` also exists on that host, but it belongs
+to an unrelated system (`admin_users`, `data_caches`, `orders`,
+`reports`, `users` — none of it Landvex's schema, no PostGIS, no
+`schema_meta`). **Do not point `LANDVEX_PG_DSN` at that database** — see
+D2 below. That systemd deployment is not affected by anything in this
+document; this is a second, additional path, not a replacement in
+progress. It is also running an old snapshot of this repo (missing
+`scripts/pg_selftest.py` and most of what has shipped since) — worth
+refreshing from the current `main`/`claude/new-session-d9t6ni` branch
+before relying on it for anything beyond what it already does.
 
 ---
 
@@ -52,14 +62,25 @@ handling consistent across both deploy paths. Cost: needs OIDC
 federation (gap #3) enabled first, since the controller authenticates
 via IRSA.
 
-**D2 — Database: a new RDS Postgres instance inside the EKS VPC**, not
-peering to `server-2`'s local Postgres and not the existing
-`quixzoom-db` (which lives in a different, unpeered VPC). The inventory
-itself calls peering-to-a-local-Postgres "an uncertain solution for
-production" — a fresh instance inside `192.168.0.0/16` has zero
-cross-VPC dependency and needs no peering decision at all. Aurora is not
-required — nothing built uses PostGIS yet (same conclusion `aws.md` §3
-already reached for the ECS path).
+**D2 — Database: a new RDS Postgres instance inside the EKS VPC, with a
+database name that is NOT `landvex`.** Not peering to `server-2`'s local
+Postgres, and not the existing `quixzoom-db` (different, unpeered VPC).
+The inventory itself calls peering-to-a-local-Postgres "an uncertain
+solution for production" — a fresh instance inside `192.168.0.0/16` has
+zero cross-VPC dependency and needs no peering decision at all. Aurora
+is not required — nothing built uses PostGIS yet (same conclusion
+`aws.md` §3 already reached for the ECS path).
+
+The name matters because of a real incident found on 2026-07-30: a
+database on `server-2` happens to be named `landvex` and already has an
+unrelated `reports` table (a different system's schema).
+`CREATE TABLE IF NOT EXISTS` silently no-ops against a same-named,
+wrong-shaped table — the first real `save_report()` would then fail
+with a confusing column error. `PostgresStore.selftest()` now checks
+for exactly this (`_verify_shape` in `engine/storage/postgres.py`,
+`tests/test_storage.py`) and refuses early with a clear message instead
+— but the simplest defense is still to never create the new instance
+with that name in the first place.
 
 **D3 — Network path to AAMOS/quiXzoom: the public endpoint
 (`amos.aamos.systems`) for beta**, not VPC peering or PrivateLink. Zero
@@ -102,7 +123,10 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 aws ecr create-repository --repository-name landvex/opportunity-engine --region eu-north-1
 
 # Gap #4 — database reachable from the EKS VPC (D2)
+# --db-name is deliberately NOT "landvex": a database with that exact
+# name already exists on server-2, owned by a different system.
 aws rds create-db-instance --db-instance-identifier landvex-opportunity \
+  --db-name landvex_opportunity \
   --engine postgres --db-instance-class db.t4g.micro --allocated-storage 20 \
   --vpc-security-group-ids <sg-in-vpc-0a555e90cae995e95> \
   --db-subnet-group-name <subnet-group-in-eks-vpc> \

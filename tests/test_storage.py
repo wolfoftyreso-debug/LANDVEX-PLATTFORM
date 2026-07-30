@@ -342,9 +342,11 @@ class _FejkCursor:
     """Loggar exekverad SQL och svarar på versionsfrågan — mer behövs
     inte för att bevisa kedjelogiken utan psycopg."""
 
-    def __init__(self, versioner: list[int], logg: list):
+    def __init__(self, versioner: list[int], logg: list,
+                 report_columns: tuple[str, ...] | None = None):
         self._versioner, self._logg = versioner, logg
         self._svar = None
+        self._report_columns = report_columns
 
     def execute(self, sql, params=None):
         self._logg.append((sql.strip(), params))
@@ -352,9 +354,14 @@ class _FejkCursor:
             self._svar = (max(self._versioner) if self._versioner else None,)
         elif "INSERT INTO schema_meta" in sql:
             self._versioner.append(params[0])
+        elif "information_schema.columns" in sql:
+            self._rader = [(k,) for k in (self._report_columns or ())]
 
     def fetchone(self):
         return self._svar
+
+    def fetchall(self):
+        return getattr(self, "_rader", [])
 
     def __enter__(self):
         return self
@@ -364,12 +371,14 @@ class _FejkCursor:
 
 
 class _FejkConn:
-    def __init__(self, versioner: list[int] | None = None):
+    def __init__(self, versioner: list[int] | None = None,
+                 report_columns: tuple[str, ...] | None = None):
         self.versioner = list(versioner or [])
         self.logg: list = []
+        self._report_columns = report_columns
 
     def cursor(self):
-        return _FejkCursor(self.versioner, self.logg)
+        return _FejkCursor(self.versioner, self.logg, self._report_columns)
 
 
 def test_a_fresh_postgres_schema_is_stamped_at_the_sqlite_baseline():
@@ -411,6 +420,33 @@ def test_pending_postgres_migrations_run_in_order_and_stamp_each_step():
         assert not [s for s, _ in conn2.logg if s.startswith("ALTER")]
     finally:
         P._MIGRATIONS = orig
+
+
+def test_verify_shape_refuses_a_reports_table_from_a_different_system():
+    """Fyndet var verkligt: en databas som råkade heta `landvex` hade
+    redan en `reports`-tabell — ett annat systems schema
+    (admin_users/data_caches/orders/reports/users), inte ett tomt
+    Landvex-schema. `CREATE TABLE IF NOT EXISTS` no-opar tyst mot den;
+    utan den här kontrollen hade första riktiga `save_report()` gett ett
+    kolumnfel som inte säger VARFÖR."""
+    from engine.storage.postgres import _verify_shape
+
+    frammande = _FejkConn(report_columns=("id", "owner", "notes"))
+    try:
+        _verify_shape(frammande)
+        raise AssertionError("skulle ha vägrat mot ett främmande schema")
+    except RuntimeError as e:
+        assert "different system's table" in str(e)
+        assert "landvex_pg_dsn at a dedicated database" in str(e).lower()
+
+
+def test_verify_shape_accepts_our_own_reports_table():
+    from engine.storage.postgres import _verify_shape
+
+    var = _FejkConn(report_columns=("id", "created_at", "vertical_id",
+                                    "opportunity_score", "data_coverage",
+                                    "payload", "tenant"))
+    _verify_shape(var)     # inget undantag
 
 
 def test_the_two_stores_describe_the_same_tables_and_columns():

@@ -503,6 +503,36 @@ def _migrate(conn) -> None:
                             (version, time.time()))
 
 
+# En databas som RÅKAR heta "landvex" är inte samma sak som EN databas
+# för Landvex — en verklig driftsättning hittade en `reports`-tabell som
+# redan fanns, tillhörande ett annat system, i en databas med det namnet.
+# `CREATE TABLE IF NOT EXISTS` no-opar tyst mot den, och första riktiga
+# `save_report()` hade kraschat på ett kolumnfel som inte säger varför.
+# Kolumnnamnen nedan är valda för att vara osannolika att dela med ett
+# annat system av misstag (inte "id"/"address", som vilken tabell som
+# helst kan råka ha).
+_FRAMMANDE_SCHEMA_KOLUMNER = ("vertical_id", "opportunity_score",
+                              "data_coverage")
+
+
+def _verify_shape(conn) -> None:
+    """Vägrar tidigt och tydligt om `reports` redan fanns med fel form,
+    i stället för att låta första skrivningen ge ett kolumnfel som ser
+    ut som ett buggigt schema snarare än fel databas."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'reports'")
+        kolumner = {r[0] for r in cur.fetchall()}
+    saknas = [k for k in _FRAMMANDE_SCHEMA_KOLUMNER if k not in kolumner]
+    if saknas:
+        raise RuntimeError(
+            f"the 'reports' table exists but is missing {saknas} — this "
+            f"looks like a different system's table that happens to "
+            f"share the name, not an empty Landvex database. Point "
+            f"LANDVEX_PG_DSN at a dedicated database instead.")
+
+
 class PostgresStore(Store):
 
     def __init__(self, dsn: str):
@@ -1230,6 +1260,7 @@ class PostgresStore(Store):
     def selftest(self) -> None:
         """Minimal rundtur mot riktig databas – kör vid driftsättning."""
         import time
+        _verify_shape(self._conn)
         # tenant= är keyword-only UTAN default (tenancy-doktrinen). Utan
         # argumentet kraschade själva självtestet med TypeError — vilket
         # betyder att driftsättningsverifieringen ALDRIG har kunnat köras
