@@ -40,6 +40,13 @@ from engine.corroboration import catalog as corroboration_cat
 from engine.entrypoints import entrypoints
 from engine.coverage import coverage
 from engine import leads as leads_engine
+from engine import monitors as monitors_engine
+from engine.brief import catalog as brief_catalog
+from engine.feeds import catalog as feeds_catalog
+from engine.provenance import parameters as provenance_parameters
+from engine.provenance import summary as provenance_summary
+from engine.selfaudit import run_audit
+from api.surface_scan import selfaudit_context
 from engine.land import assess as land_assess
 from engine.mrai import mrai
 from engine.export import FORMATS as EXPORT_FORMATS
@@ -338,6 +345,15 @@ def build(out_path: str, lite: bool = False,
         # Spaningarna är ärligt tomma — demon har inget kundlager, och
         # varje skrivning (skapa/dispatch/verdikt) faller till DEMOFEL.
         "leads_catalog": {**leads_engine.catalog(), "surveys": []},
+        # Watch-flikens egna sektioner: monitors bakas ärligt tomma
+        # (inget kundlager), briefens katalog + provenance/selfaudit/
+        # feeds är rena funktioner av motorernas EGEN kod — samma svar
+        # bakat som levande, ingen skillnad att dölja.
+        "monitors_catalog": {**monitors_engine.catalog(), "monitors": []},
+        "brief_catalog": brief_catalog(),
+        "provenance": {**provenance_summary(), "parameters": provenance_parameters()},
+        "selfaudit": run_audit(selfaudit_context()),
+        "feeds_catalog": feeds_catalog(),
         "mrai": {m: mrai(m) for m in ("se", "us", "de")},
         "analysis": {m: analysis_register(market=m)
                      for m in ("se", "us", "de")},
@@ -485,6 +501,15 @@ async function api(path, body) {
   // varje skrivning (survey/dispatch/verdict) och /results faller till
   // DEMOFEL — samma regel som routines/assets ovan.
   if (path === "/v1/leads" && !body) return D.leads_catalog;
+  // Watch-flikens nya sektioner: monitors-katalogen bakas ärligt tom
+  // (inget kundlager); registrering/utvärdering är skrivningar och
+  // faller till DEMOFEL. Brief/provenance/selfaudit/feeds är rena
+  // läsningar — bakade oförändrat.
+  if (path === "/v1/monitors" && !body) return D.monitors_catalog;
+  if (path === "/v1/brief" && !body) return D.brief_catalog;
+  if (path === "/v1/provenance") return D.provenance;
+  if (path === "/v1/integrity/audit") return D.selfaudit;
+  if (path === "/v1/feeds" && !body) return D.feeds_catalog;
   if (path.startsWith("/v1/coverage")) {
     const r = D.analyze_coverage[qp(path, "market") || "se"];
     if (!r) throw new Error(DEMOFEL);

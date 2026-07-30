@@ -612,6 +612,59 @@
         <textarea id="watchChatText" rows="2" placeholder="Ask the platform agents a question …"></textarea></div>
       <button id="watchChatSend" style="background:var(--accent);border:none;color:#fff;font-weight:600">Send</button>
       <div id="watchChatUt" class="motiv" style="margin-top:10px"></div>
+
+      <div style="margin-top:22px;border-top:1px solid var(--linje);padding-top:16px">
+        <h2>Your monitors</h2>
+        <p class="motiv">Not the platform status above — a watch YOU
+          register on a metric you track: threshold breach, structural
+          change-point, anomaly or sustained decline. Evaluate it against
+          a series of values and get back a finding, or nothing if it
+          didn't trip.</p>
+        <div id="monitorsLista" class="motiv">Loading …</div>
+        <div class="falt"><label>Metric</label>
+          <input id="monMetric" placeholder="e.g. establishment_count_0180"></div>
+        <div class="falt"><label>Scope</label>
+          <input id="monScope" placeholder="e.g. se:0180:electrician"></div>
+        <div class="falt"><label>Rule</label><select id="monRule"></select></div>
+        <div id="monRuleInfo" class="motiv" style="font-size:12px"></div>
+        <div class="falt"><label>Rule parameters (key=value, comma-separated)</label>
+          <input id="monParams" placeholder="e.g. level=100, direction=above"></div>
+        <div id="monParamsInfo" class="motiv" style="font-size:11px"></div>
+        <div class="falt"><label>Owner</label>
+          <input id="monOwner" placeholder="e.g. jane@company.com"></div>
+        <div class="falt"><label>Label</label>
+          <input id="monLabel" placeholder="e.g. Electricians in Stockholm"></div>
+        <button id="monSkapa" style="background:var(--accent);border:none;color:#fff;font-weight:600">Register monitor</button>
+        <div id="monSkapaUt" class="motiv" style="margin-top:6px"></div>
+        <div class="falt" style="margin-top:10px"><label>Evaluate — pick a monitor</label>
+          <select id="monValdMonitor"></select></div>
+        <div class="falt"><label>Series (comma-separated, oldest first)</label>
+          <textarea id="monSerie" rows="2" placeholder="100, 98, 95, 90, 82"></textarea></div>
+        <button id="monUtvardera">Evaluate</button>
+        <div id="monUtvarderaUt" class="motiv" style="margin-top:6px"></div>
+      </div>
+
+      <div style="margin-top:22px;border-top:1px solid var(--linje);padding-top:16px">
+        <h2>Today's brief</h2>
+        <p class="motiv">Add findings one at a time — each names what it
+          observed AND what it does not establish. Landvex ranks them by
+          decision value, never by recency; a quiet day stays quiet.</p>
+        <div class="falt"><label>Kind</label><select id="brKind"></select></div>
+        <div id="brKindInfo" class="motiv" style="font-size:12px"></div>
+        <div class="falt"><label>Title</label>
+          <input id="brTitel" placeholder="e.g. New signage at 12 Main St"></div>
+        <div class="falt"><label>Summary</label>
+          <input id="brSammanfattning" placeholder="Plain-language summary"></div>
+        <div class="falt"><label>Areas (comma-separated)</label>
+          <input id="brOmraden" placeholder="e.g. 0180, 1480"></div>
+        <div class="falt"><label>Evidence note</label>
+          <input id="brBevis" placeholder="What was actually observed"></div>
+        <button id="brLagg" style="background:var(--accent);border:none;color:#fff;font-weight:600">Add finding</button>
+        <div id="brLaggUt" class="motiv" style="margin-top:6px"></div>
+        <div id="brLista" class="motiv" style="margin-top:8px"></div>
+        <button id="brBerakna" style="margin-top:8px">Compute today's brief</button>
+        <div id="brUt" class="motiv" style="margin-top:8px"></div>
+      </div>
     </div>
     <div id="vyKontroll" style="display:none">
       <h2>Prove it was checked</h2>
@@ -1598,7 +1651,7 @@ function bytLage(m, franHistorik) {
   tomKarta(); $("hotspots").innerHTML =
     "<p class='motiv'>No results yet.</p>"; $("caveats").innerHTML = "";
   $("status").textContent = LAGEN[MODE].status;
-  if (MODE === "watch") visaWatch();
+  if (MODE === "watch") { visaWatch(); monitorsInit(); briefInit(); }
   if (MODE === "kontroll") { visaKontroll(); visaFarskhet();
                              kontrollProduktInit(); }
   if (!franHistorik && location.hash !== "#" + m) location.hash = m;
@@ -2630,6 +2683,145 @@ $("watchChatText").addEventListener("keydown", e => {
     e.preventDefault(); $("watchChatSend").click();
   }
 });
+
+// ── Your monitors: register a watch, evaluate it against a series ────
+// Egen sektion, medvetet skild från "Platform status" ovan — samma
+// ord ("watch") men olika saker: AAMOS-status kontra en tröskel KUNDEN
+// själv registrerat på en egen mätare.
+let MONITORS_INITIERAD = false, MONITORS_KATALOG = null;
+
+async function monitorsRitaLista() {
+  const svar = await api("/v1/monitors");
+  MONITORS_KATALOG = svar;
+  const lista = $("monitorsLista"), val = $("monValdMonitor");
+  if (!svar.monitors || !svar.monitors.length) {
+    lista.innerHTML = `<p class="motiv">No monitors yet — register one below.</p>`;
+    val.innerHTML = "";
+    return;
+  }
+  lista.innerHTML = svar.monitors.map(m => `
+    <div class="kort" style="padding:8px 10px">
+      <div class="plats" style="font-size:13px">${esc(m.label || m.metric)}</div>
+      <p class="motiv">${esc(m.rule)} · ${esc(m.metric)} · owner ${esc(m.owner)}</p>
+    </div>`).join("");
+  val.innerHTML = svar.monitors.map(m =>
+    `<option value="${esc(m.id)}">${esc(m.label || m.metric)} (${esc(m.id)})</option>`).join("");
+}
+
+async function monitorsInit() {
+  if (!MONITORS_INITIERAD) {
+    MONITORS_INITIERAD = true;
+    const svar = await api("/v1/monitors");
+    MONITORS_KATALOG = svar;
+    $("monRule").innerHTML = svar.rules.map(r =>
+      `<option value="${esc(r.id)}">${esc(r.label_en)}</option>`).join("");
+    const ruleInfo = () => {
+      const r = svar.rules.find(x => x.id === $("monRule").value);
+      $("monRuleInfo").textContent = r ? r.desc_en : "";
+      $("monParamsInfo").textContent = r ? "Expected: " +
+        Object.entries(r.params || {}).map(([k, v]) => `${k} (${v})`)
+          .join(", ") : "";
+    };
+    $("monRule").onchange = ruleInfo;
+    ruleInfo();
+    // "level=100, direction=above" → {level: 100, direction: "above"} —
+    // samma enkla key=value-läsning som en människa faktiskt skriver,
+    // talvärden gissas aldrig till text.
+    const lasMonParams = () => {
+      const out = {};
+      $("monParams").value.split(",").forEach(par => {
+        const [k, v] = par.split("=").map(s => s.trim());
+        if (!k || v === undefined) return;
+        const n = Number(v);
+        out[k] = v !== "" && !Number.isNaN(n) ? n : v;
+      });
+      return out;
+    };
+    $("monSkapa").onclick = async () => {
+      const ut = $("monSkapaUt");
+      try {
+        const rec = await api("/v1/monitors", {
+          metric: $("monMetric").value.trim(),
+          scope: $("monScope").value.trim(),
+          rule: $("monRule").value,
+          owner: $("monOwner").value.trim(),
+          label: $("monLabel").value.trim(),
+          params: lasMonParams()});
+        ut.innerHTML = `✓ Monitor <b>${esc(rec.id)}</b> registered.`;
+        monitorsRitaLista();
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("monUtvardera").onclick = async () => {
+      const ut = $("monUtvarderaUt");
+      const id = $("monValdMonitor").value;
+      if (!id) { ut.innerHTML = "Register or pick a monitor first."; return; }
+      try {
+        const serie = $("monSerie").value.split(",").map(s => Number(s.trim()))
+          .filter(n => !Number.isNaN(n));
+        const r = await api("/v1/monitors/evaluate",
+          {monitor_id: id, series: serie});
+        ut.innerHTML = arligKort(r);
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+  }
+  monitorsRitaLista();
+}
+
+// ── Today's brief: compose findings, then rank by decision value ─────
+let BRIEF_INITIERAD = false, BRIEF_KATALOG = null, BRIEF_REPORTS = [];
+
+function briefRitaLista() {
+  $("brLista").innerHTML = BRIEF_REPORTS.length
+    ? BRIEF_REPORTS.map(r => `
+      <div class="kort" style="padding:6px 10px">
+        <div class="plats" style="font-size:12.5px">${esc(r.title)}</div>
+        <p class="motiv">${esc(r.kind_label_en)} · priority ` +
+          `${r.priority.band ? esc(r.priority.band) : "below threshold (no confidence/impact signals given)"}</p>
+      </div>`).join("")
+    : `<p class="motiv">No findings queued yet.</p>`;
+}
+
+async function briefInit() {
+  if (!BRIEF_INITIERAD) {
+    BRIEF_INITIERAD = true;
+    BRIEF_KATALOG = await api("/v1/brief");
+    const kinds = BRIEF_KATALOG.detection_kinds || [];
+    $("brKind").innerHTML = kinds.map(k =>
+      `<option value="${esc(k.kind)}">${esc(k.label_en)}</option>`).join("");
+    const kindInfo = () => {
+      const k = kinds.find(x => x.kind === $("brKind").value);
+      $("brKindInfo").textContent = k
+        ? `Observes: ${k.observation_en} Never: ${k.never_en}` : "";
+    };
+    $("brKind").onchange = kindInfo;
+    kindInfo();
+    $("brLagg").onclick = async () => {
+      const ut = $("brLaggUt");
+      try {
+        const rec = await api("/v1/brief/report", {
+          kind: $("brKind").value,
+          title: $("brTitel").value.trim(),
+          summary_en: $("brSammanfattning").value.trim(),
+          areas: $("brOmraden").value.split(",").map(s => s.trim()).filter(Boolean),
+          evidence: [{note_en: $("brBevis").value.trim()}]});
+        BRIEF_REPORTS.push(rec);
+        ut.innerHTML = `✓ Added — ${BRIEF_REPORTS.length} finding(s) queued.`;
+        briefRitaLista();
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("brBerakna").onclick = async () => {
+      const ut = $("brUt");
+      if (!BRIEF_REPORTS.length) {
+        ut.innerHTML = "Add at least one finding first."; return;
+      }
+      try {
+        const r = await api("/v1/brief", {reports: BRIEF_REPORTS});
+        ut.innerHTML = arligKort(r);
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+  }
+  briefRitaLista();
+}
 
 // ── Intelligence Map (Index) ─────────────────────────────────────────
 async function visaIndexStad(kod, namn) {
@@ -3857,6 +4049,93 @@ const ANALYSER = [
          "every other number honest.",
    path: "/v1/coverage", metod: "GET", params: ["market"],
    url: v => `/v1/coverage?market=${v.market}`},
+  {id: "benchmark", label: "Benchmark — where a value sits among peers",
+   desc: "Percentile, z-score and an outlier band against 3+ comparable " +
+         "units. A neutral read on whether a claimed shortage or excess " +
+         "is actually unusual — never a biased verdict either way.",
+   path: "/v1/benchmark", metod: "POST",
+   params: [
+     {id: "value", type: "number", label: "Value",
+      placeholder: "e.g. 42"},
+     {id: "peers", type: "textarea", rows: 2,
+      label: "Peer values (comma-separated)",
+      placeholder: "38, 40, 45, 51, 33"},
+     {id: "label", type: "text", label: "Unit label",
+      placeholder: "e.g. electricians per 10k residents"},
+     {id: "metric", type: "text", label: "Metric name",
+      placeholder: "e.g. establishment_rate"}],
+   kropp: v => ({
+     value: Number(v.value),
+     peers: v.peers.split(/[,\n]/).map(s => Number(s.trim()))
+       .filter(n => !Number.isNaN(n)),
+     label: v.label || "unit", metric: v.metric || "ratio"})},
+  {id: "compare_places", label: "Compare — 2-4 locations head to head",
+   desc: "The same factors, the same method, side by side — a factor " +
+         "matrix, never a winner declared for you.",
+   path: "/v1/compare", metod: "POST",
+   params: ["vertical", {id: "locations", type: "textarea", rows: 4,
+     label: "Locations — one per line: address, lat, lon",
+     placeholder: "Downtown, 40.7128, -74.0060\nUptown, 40.8296, -73.9262"}],
+   kropp: v => ({
+     vertical: v.vertical,
+     locations: v.locations.split("\n").map(r => r.trim()).filter(Boolean)
+       .map(r => {
+         const [address, lat, lon] = r.split(",").map(s => s.trim());
+         return {address, lat: Number(lat), lon: Number(lon)};
+       })})},
+  {id: "scenario", label: "Scenario — credibility-gated, not a guess",
+   desc: "Only speaks when there is enough history AND enough credible " +
+         "sources AND a systematic tendency in the data — otherwise it " +
+         "refuses rather than speculates about what comes next.",
+   path: "/v1/scenario", metod: "POST",
+   params: [
+     {id: "series", type: "textarea", rows: 2,
+      label: "Historical series (comma-separated, oldest first)",
+      placeholder: "100, 104, 109, 111, 118, 121"},
+     {id: "sources", type: "text", label: "Credible sources (comma-separated)",
+      placeholder: "SCB, Kolada"},
+     {id: "metric", type: "text", label: "Metric name",
+      placeholder: "e.g. new_registrations"},
+     {id: "horizon", type: "number", label: "Horizon (periods ahead)",
+      default: 3}],
+   kropp: v => ({
+     series: v.series.split(",").map(s => Number(s.trim()))
+       .filter(n => !Number.isNaN(n)),
+     sources: v.sources ? v.sources.split(",").map(s => s.trim())
+       .filter(Boolean) : [],
+     metric: v.metric || "indicator", horizon: Number(v.horizon) || 3})},
+  {id: "claims", label: "Claims — turn a figure into a citable claim",
+   desc: "Content-hashed, versioned, with three named owners and text/" +
+         "APA/BibTeX citations — a number nobody can quietly change " +
+         "later without it showing.",
+   path: "/v1/cite", metod: "POST",
+   params: [
+     {id: "statement", type: "text", label: "Statement",
+      placeholder: "e.g. Stockholm has 412 registered electricians"},
+     {id: "value", type: "number", label: "Value"},
+     {id: "unit", type: "text", label: "Unit", placeholder: "e.g. count"},
+     {id: "source_authority", type: "text", label: "Source authority",
+      placeholder: "e.g. Bolagsverket"},
+     {id: "jurisdiction_code", type: "text", label: "Jurisdiction code",
+      placeholder: "e.g. SE-0180"},
+     {id: "observed_at", type: "text", label: "Observed at (date/year)",
+      placeholder: "2026"},
+     {id: "method", type: "select", label: "Method",
+      options: ["observed", "estimated", "calculated"]},
+     {id: "uncertainty", type: "text", label: "Uncertainty",
+      placeholder: "e.g. ±5%"},
+     {id: "owner_formal", type: "text", label: "Formal owner"},
+     {id: "owner_operational", type: "text", label: "Operational owner"},
+     {id: "owner_followup", type: "text", label: "Follow-up owner"}],
+   kropp: v => ({
+     statement: v.statement, value: v.value === "" ? null : Number(v.value),
+     unit: v.unit || "", source: {authority: v.source_authority || ""},
+     jurisdiction: {code: v.jurisdiction_code || ""},
+     time: {observed_at: v.observed_at || ""},
+     method: v.method || "observed", uncertainty: v.uncertainty || "",
+     owners: {formellt: v.owner_formal || "",
+              operativt: v.owner_operational || "",
+              uppfoljning: v.owner_followup || ""}})},
 ];
 
 // Valen hämtas via api() — SAMMA väg i demo (bakade svar) och live.
@@ -3870,6 +4149,29 @@ async function analysHamtaVal() {
 }
 
 function analysFalt(typ) {
+  // Generiska fält (objekt, inte en känd sträng) — värde, text och
+  // fritext-lista, samma läsning som alla andra: data-p + .value.
+  if (typeof typ === "object") {
+    const esc2 = s => esc(String(s == null ? "" : s));
+    if (typ.type === "number")
+      return `<div class="falt"><label>${esc2(typ.label)}</label>
+        <input data-p="${esc2(typ.id)}" type="number" step="any"
+          value="${esc2(typ.default ?? "")}"
+          placeholder="${esc2(typ.placeholder || "")}"></div>`;
+    if (typ.type === "textarea")
+      return `<div class="falt"><label>${esc2(typ.label)}</label>
+        <textarea data-p="${esc2(typ.id)}" rows="${typ.rows || 2}"
+          placeholder="${esc2(typ.placeholder || "")}"></textarea></div>`;
+    if (typ.type === "select")
+      return `<div class="falt"><label>${esc2(typ.label)}</label>
+        <select data-p="${esc2(typ.id)}">` + typ.options.map(o =>
+          `<option value="${esc2(o)}">${esc2(o)}</option>`).join("") +
+        `</select></div>`;
+    // "text" och okänt faller igenom hit — enklaste fallet.
+    return `<div class="falt"><label>${esc2(typ.label)}</label>
+      <input data-p="${esc2(typ.id)}" type="text"
+        placeholder="${esc2(typ.placeholder || "")}"></div>`;
+  }
   if (typ === "market")
     return `<div class="falt"><label>Market</label>
       <select data-p="market"><option value="se">Sweden</option>
@@ -3920,7 +4222,7 @@ function arligKort(svar) {
       `padding:4px 8px;margin-bottom:6px;opacity:.85"><b>${f.replace("_en", "")}` +
       `</b>: ${text}</div>`);
   }
-  if ("data_coverage" in svar)
+  if (typeof svar.data_coverage === "number")
     bitar.push(`<div style="font-size:12px;margin-bottom:6px">data_coverage: ` +
       `<b>${svar.data_coverage}</b>${svar.data_coverage === 0
         ? " — everything below is simulation, and says so" : ""}</div>`);
@@ -4086,6 +4388,42 @@ async function visaIntel() {
           `owner is refused at commitment — so an empty ledger means ` +
           `nothing has been committed, not that nothing is tracked.</i>`));
   } catch (e) {}
+  // 5. Provenance — varifrån plattformens EGNA trösklar kommer, inte
+  //    bara datan den mäter med dem.
+  try {
+    const p = await api("/v1/provenance");
+    delar.push(intelBlock("Where our own numbers come from",
+      `${esc(p.headline_en)}` +
+      `<div style="margin-top:6px">` + Object.entries(p.by_class || {}).map(
+        ([k, n]) => `<div style="display:flex;justify-content:space-between;` +
+          `font-size:12px"><span>${esc(k)}</span><b>${n}</b></div>`).join("") +
+      `</div>`, p.note_en));
+  } catch (e) { delar.push(intelBlock("Where our own numbers come from",
+      "Not available: " + e.message)); }
+  // 6. Plattformens egen revision — spärrarna som hittade defekterna,
+  //    fortsatt körande.
+  try {
+    const a2 = await api("/v1/integrity/audit");
+    delar.push(intelBlock("Platform self-audit",
+      `${a2.passed ? "<b>Passing</b>" : `<b>${a2.finding_count} finding(s)</b>`}` +
+      ` — ${a2.checks_computed} check(s) computed, ${a2.checks_refused} refused` +
+      ` for missing context`, a2.cannot_en));
+  } catch (e) { delar.push(intelBlock("Platform self-audit",
+      "Not available: " + e.message)); }
+  // 7. Feed-katalogen — tröskeltabellen, inte händelsegeneratorn: den
+  //    matas av plattformens egna KPI-rörelser, inte av handpetade rader.
+  try {
+    const f = await api("/v1/feeds");
+    const rows = Array.isArray(f) ? f : (f.feeds || []);
+    delar.push(intelBlock("Change-detection feeds",
+      rows.map(r => `<div style="display:flex;justify-content:space-between;` +
+        `font-size:12px"><span>${esc(r.name)} <span style="opacity:.6">` +
+        `(${esc(r.tier)})</span></span><span>Δ≥${r.min_effect_threshold}%, ` +
+        `conf≥${r.min_confidence}</span></div>`).join(""),
+      "These thresholds gate which KPI movements become an event — fed by " +
+      "the platform's own tracked indicators, not rows typed in here."));
+  } catch (e) { delar.push(intelBlock("Change-detection feeds",
+      "Not available: " + e.message)); }
   ut.innerHTML = delar.join("");
 }
 
