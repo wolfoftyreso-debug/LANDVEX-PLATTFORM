@@ -22,6 +22,10 @@ from engine.ask import ask
 from engine.datasources.base import Resolver
 from engine.datasources.mock import MockSource
 from engine.gaps import gap_analysis
+from engine.housing_market import master_plans as hm_master_plans
+from engine.housing_market import price as hm_price
+from engine.housing_market import price_vs_standard as hm_price_vs_standard
+from engine.housing_market import standard as hm_standard
 from engine.indices import city_assessment, index_catalog, index_map
 from engine.markets import MARKETS, market_catalog
 from engine.models import Location
@@ -35,6 +39,7 @@ from engine.analysis import register as analysis_register
 from engine.corroboration import catalog as corroboration_cat
 from engine.entrypoints import entrypoints
 from engine.coverage import coverage
+from engine import leads as leads_engine
 from engine.land import assess as land_assess
 from engine.mrai import mrai
 from engine.export import FORMATS as EXPORT_FORMATS
@@ -223,6 +228,26 @@ def _bake_merit(marknader) -> dict:
     return ut
 
 
+def _bake_housing_market(marknader) -> dict:
+    """Housing-market-analyserna, samma nyckelform som analyze_land.
+
+    Pris och planer vägras ärligt i demon precis som i skarpt läge utan
+    LANDVEX_HOUSING_PRICE_URL/LANDVEX_MASTER_PLAN_URL satta — vägran
+    bakas alltså, den hittas inte på. Standard och kvoten är
+    deterministiska ur signalkatalogen, samma mönster som land.py.
+    """
+    pris, standard, kvot, planer = {}, {}, {}, {}
+    for m in marknader:
+        for kod in _ANALYS_REGIONER.get(m, ()):
+            nyckel = f"{m}:{kod}"
+            pris[nyckel] = hm_price(m, kod)
+            standard[nyckel] = hm_standard(kod, m)
+            kvot[nyckel] = hm_price_vs_standard(m, kod)
+            planer[nyckel] = hm_master_plans(m, kod)
+    return {"price": pris, "standard": standard, "compare": kvot,
+            "master_plans": planer}
+
+
 def _bake_livability(marknader, yrken) -> dict:
     from engine.livability_scan import livability_ranking
     hushall = ("single", "couple_children", "senior")
@@ -308,6 +333,11 @@ def build(out_path: str, lite: bool = False,
         "analyze_land": {f"{m}:{kod}": land_assess(kod, market=m)
                          for m in marknader
                          for kod in _ANALYS_REGIONER.get(m, ())},
+        "analyze_housing": _bake_housing_market(marknader),
+        # Leads-fliken: katalogen (villkor + severity-skalan) bakas.
+        # Spaningarna är ärligt tomma — demon har inget kundlager, och
+        # varje skrivning (skapa/dispatch/verdikt) faller till DEMOFEL.
+        "leads_catalog": {**leads_engine.catalog(), "surveys": []},
         "mrai": {m: mrai(m) for m in ("se", "us", "de")},
         "analysis": {m: analysis_register(market=m)
                      for m in ("se", "us", "de")},
@@ -431,6 +461,30 @@ async function api(path, body) {
     if (!r) throw new Error(DEMOFEL);
     return r;
   }
+  if (path === "/v1/housing-market/price") {
+    const r = D.analyze_housing.price[`${body.market || "se"}:${body.region_code}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/housing-market/standard") {
+    const r = D.analyze_housing.standard[`${body.market || "se"}:${body.region_code}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/housing-market/compare") {
+    const r = D.analyze_housing.compare[`${body.market || "se"}:${body.region_code}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  if (path === "/v1/housing-market/master-plans") {
+    const r = D.analyze_housing.master_plans[`${body.market || "se"}:${body.region_code}`];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
+  // Leads: GET utan kropp bakas (katalog + ärligt tom spaningslista);
+  // varje skrivning (survey/dispatch/verdict) och /results faller till
+  // DEMOFEL — samma regel som routines/assets ovan.
+  if (path === "/v1/leads" && !body) return D.leads_catalog;
   if (path.startsWith("/v1/coverage")) {
     const r = D.analyze_coverage[qp(path, "market") || "se"];
     if (!r) throw new Error(DEMOFEL);

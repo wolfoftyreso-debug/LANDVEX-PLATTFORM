@@ -497,6 +497,7 @@
     <button class="tab" data-mode="paket"><svg class="ikon"><use href="#i-paket"/></svg>Plans</button>
     <button class="tab" data-mode="watch"><svg class="ikon"><use href="#i-puls"/></svg>Watch</button>
     <button class="tab" data-mode="kontroll"><svg class="ikon"><use href="#i-bock"/></svg>Checks</button>
+    <button class="tab" data-mode="leads"><svg class="ikon"><use href="#i-pin"/></svg>Leads</button>
     <button class="tab" data-mode="sponsor"><svg class="ikon"><use href="#i-paket"/></svg>Sponsor</button>
     <button class="tab" data-mode="install"><svg class="ikon"><use href="#i-kugge"/></svg>Settings</button>
   </nav>
@@ -719,6 +720,50 @@
         <input id="spCo" placeholder="e.g. Garmin Nordic=0.6, Runners World=0.4"></div>
       <button id="spSkapa" style="background:var(--accent);border:none;color:#fff;font-weight:600">Create campaign</button>
       <div id="spUt" class="motiv" style="margin-top:8px"></div>
+    </div>
+    <div id="vyLeads" style="display:none">
+      <h2>Leads: named addresses, not aggregates</h2>
+      <p class="motiv">Survey a condition — dirty windows, a tired
+        facade, broken signage — across addresses you name. Field
+        missions are dispatched per address; the result is a
+        traceable list of the addresses that met the threshold,
+        deliberately the opposite of sponsorship's anonymized
+        aggregates. The photo is never stored here — only the
+        severity verdict and the mission reference.</p>
+      <div id="leadsSpaningar" style="margin-top:10px"></div>
+
+      <h2 style="margin-top:16px">New survey</h2>
+      <div class="falt"><label>Survey id</label>
+        <input id="leadsId" placeholder="e.g. main-st-windows-2026"></div>
+      <div class="falt"><label>Label</label>
+        <input id="leadsLabel" placeholder="e.g. Main St window cleanliness"></div>
+      <div class="falt"><label>Condition</label>
+        <select id="leadsVillkor"></select></div>
+      <div id="leadsVillkorInfo" class="motiv"></div>
+      <div class="falt"><label>Addresses — one per line: id, address, lat, lon</label>
+        <textarea id="leadsAdresser" rows="4" placeholder="a1, 12 Main St, 59.30, 18.00
+a2, 14 Main St, 59.31, 18.01"></textarea></div>
+      <button id="leadsSkapa" style="background:var(--accent);border:none;color:#fff;font-weight:600">Create survey</button>
+      <div id="leadsSkapaUt" class="motiv" style="margin-top:8px"></div>
+
+      <h2 style="margin-top:16px">Dispatch &amp; record verdicts</h2>
+      <div class="falt"><label>Survey</label>
+        <select id="leadsValdSpaning"></select></div>
+      <button id="leadsDispatch" style="font-size:12px">Dispatch field missions</button>
+      <div id="leadsDispatchUt" class="motiv" style="margin-top:6px"></div>
+
+      <div class="falt" style="margin-top:10px"><label>Record a verdict</label>
+        <input id="leadsVerdiktAdress" placeholder="address id, e.g. a1" style="max-width:140px">
+        <select id="leadsVerdiktSeverity"></select>
+        <input id="leadsVerdiktUppdrag" placeholder="mission/evidence ref" style="max-width:180px">
+        <button id="leadsVerdiktSpara" style="font-size:12px">Record</button></div>
+      <div id="leadsVerdiktUt" class="motiv" style="margin-top:4px"></div>
+
+      <h2 style="margin-top:16px">Results</h2>
+      <div class="falt"><label>Minimum severity</label>
+        <select id="leadsTroskel"></select>
+        <button id="leadsHamta" style="font-size:12px">Get leads</button></div>
+      <div id="leadsResultat" style="margin-top:8px"></div>
     </div>
     <div id="vyInstall" style="display:none">
       <h2>Settings</h2>
@@ -1479,6 +1524,10 @@ const LAGEN = {
   sponsor: { rubrik: "Sponsorship", titel: "Sponsored missions · funded, visible, k-floored",
              status: "Campaigns, budget caps, k-floored statistics and " +
                      "exactly what the zoomer sees." },
+  leads: { rubrik: "Leads", titel: "Leads · named addresses, not aggregates",
+           status: "Survey a condition across named addresses, dispatch "
+                   + "field missions, get back the ones that met the "
+                   + "threshold." },
 };
 // Lägesbytet är EN funktion och EN sanning: flikraden, bottennaven,
 // Material-arket och webbläsarhistoriken går alla genom bytLage. Varje
@@ -1497,7 +1546,7 @@ const INGEN_KARTA = new Set(["fraga", "paket"]);
 // stället till ett helt eget element i vänsterpanelen (analysUt,
 // installationens formulär). Vänsterpanelen får då hela bredden i
 // stället för att dela den med två tomma kolumner.
-const SOLOPANEL = new Set(["install", "analys"]);
+const SOLOPANEL = new Set(["install", "analys", "leads"]);
 
 function bytLage(m, franHistorik) {
   if (!LAGEN[m]) m = "guide";
@@ -1524,6 +1573,8 @@ function bytLage(m, franHistorik) {
   $("vyKontroll").style.display = MODE === "kontroll" ? "" : "none";
   $("vySponsor").style.display = MODE === "sponsor" ? "" : "none";
   if (MODE === "sponsor") visaSponsor();
+  $("vyLeads").style.display = MODE === "leads" ? "" : "none";
+  if (MODE === "leads") leadsInit();
   $("legendEtab").style.display = MODE === "etab" ? "" : "none";
   $("legendKomp").style.display = MODE === "komp" ? "" : "none";
   $("legendIndex").style.display = MODE === "index" ? "" : "none";
@@ -3347,6 +3398,116 @@ async function sponsorSkapa() {
   } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
 }
 
+// ── Leads: spåra villkoret till adressen, inte till ett medeltal ──────
+let LEADS_INITIERAD = false, LEADS_KATALOG = null;
+
+function leadsParsAdresser(text) {
+  // "id, address, lat, lon" per rad — enklast möjliga inmatning som
+  // fortfarande ger motorn koordinater den kräver (den gissar aldrig
+  // en adress åt någon).
+  return text.split("\n").map(r => r.trim()).filter(Boolean).map(rad => {
+    const [id, address, lat, lon] = rad.split(",").map(s => s.trim());
+    return {id, address, lat: Number(lat), lon: Number(lon)};
+  });
+}
+
+async function leadsRitaSpaningar() {
+  const svar = await api("/v1/leads");
+  const lista = $("leadsSpaningar"), val = $("leadsValdSpaning");
+  if (!svar.surveys || !svar.surveys.length) {
+    lista.innerHTML = `<p class="motiv">No surveys yet — create one below.</p>`;
+    val.innerHTML = "";
+    return;
+  }
+  lista.innerHTML = svar.surveys.map(s => `
+    <div class="kort" style="padding:8px 10px">
+      <div class="plats" style="font-size:13px">${esc(s.label_en)}</div>
+      <p class="motiv">${esc(s.condition_label_en)} · ${s.addresses.length} address(es) · id ${esc(s.id)}</p>
+    </div>`).join("");
+  val.innerHTML = svar.surveys.map(s =>
+    `<option value="${esc(s.id)}">${esc(s.label_en)} (${esc(s.id)})</option>`).join("");
+}
+
+async function leadsInit() {
+  if (!LEADS_INITIERAD) {
+    LEADS_INITIERAD = true;
+    LEADS_KATALOG = await api("/v1/leads");
+    $("leadsVillkor").innerHTML = LEADS_KATALOG.conditions.map(c =>
+      `<option value="${c.id}">${esc(c.label_en)}</option>`).join("");
+    const villkorInfo = () => {
+      const c = LEADS_KATALOG.conditions.find(
+        x => x.id === $("leadsVillkor").value);
+      $("leadsVillkorInfo").textContent = c ? c.what_en : "";
+    };
+    $("leadsVillkor").onchange = villkorInfo;
+    villkorInfo();
+    const severityOpts = LEADS_KATALOG.severity_scale.map(s =>
+      `<option value="${s}">${s}</option>`).join("");
+    $("leadsVerdiktSeverity").innerHTML = severityOpts;
+    $("leadsTroskel").innerHTML = severityOpts;
+    $("leadsTroskel").value = "light";
+
+    $("leadsSkapa").onclick = async () => {
+      const ut = $("leadsSkapaUt");
+      try {
+        const rec = await api("/v1/leads/survey", {
+          id: $("leadsId").value.trim(),
+          label_en: $("leadsLabel").value.trim(),
+          condition: $("leadsVillkor").value,
+          addresses: leadsParsAdresser($("leadsAdresser").value)});
+        ut.innerHTML = `✓ Survey <b>${esc(rec.id)}</b> created — ` +
+          `${rec.addresses.length} address(es), ready to dispatch below.`;
+        leadsRitaSpaningar();
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("leadsDispatch").onclick = async () => {
+      const ut = $("leadsDispatchUt");
+      const id = $("leadsValdSpaning").value;
+      if (!id) { ut.innerHTML = "Create or pick a survey first."; return; }
+      ut.innerHTML = "Ordering field missions …";
+      try {
+        const r = await api("/v1/leads/dispatch", {survey_id: id});
+        ut.innerHTML = `${r.ordered_count} ordered, ${r.refused_count} ` +
+          `refused (connected: ${r.connected}). ${esc(r.note_en)}` +
+          (r.refused.length ? `<div style="margin-top:4px;font-size:11px">` +
+            r.refused.map(x => `${esc(x.address_id)}: ${esc(x.why_en)}`)
+              .join("<br>") + `</div>` : "");
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("leadsVerdiktSpara").onclick = async () => {
+      const ut = $("leadsVerdiktUt");
+      const id = $("leadsValdSpaning").value;
+      if (!id) { ut.innerHTML = "Create or pick a survey first."; return; }
+      try {
+        const ref = $("leadsVerdiktUppdrag").value.trim();
+        await api("/v1/leads/verdict", {
+          survey_id: id, address_id: $("leadsVerdiktAdress").value.trim(),
+          severity: $("leadsVerdiktSeverity").value,
+          mission_id: ref, evidence_ref: ref});
+        ut.innerHTML = `✓ Verdict recorded.`;
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("leadsHamta").onclick = async () => {
+      const ut = $("leadsResultat");
+      const id = $("leadsValdSpaning").value;
+      if (!id) { ut.innerHTML = "Create or pick a survey first."; return; }
+      try {
+        const r = await api(`/v1/leads/results?survey_id=${encodeURIComponent(id)}` +
+          `&min_severity=${$("leadsTroskel").value}`);
+        ut.innerHTML = r.count === 0
+          ? `<p class="motiv">No addresses at or above "${$("leadsTroskel").value}" yet.</p>`
+          : r.leads.map(l => `
+            <div class="kort" style="padding:8px 10px">
+              <div class="rubrik"><span class="plats">${esc(l.address)}</span>
+                <span class="score s-orange" style="font-size:13px">${esc(l.severity)}</span></div>
+              <p class="motiv">${esc(l.performed_at)} · mission ${esc(l.mission_id || "—")}</p>
+            </div>`).join("");
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+  }
+  leadsRitaSpaningar();
+}
+
 // ── Kryp-in: företagsprofilen + kundens egna kopplingar ────────────────
 function arrayBufferTillBase64(buf) {
   let binart = "";
@@ -3660,6 +3821,34 @@ const ANALYSER = [
          "currency on purpose: a number shaped like a price gets used " +
          "like one. Below 35% real coverage it computes nothing.",
    path: "/v1/land/assess", metod: "POST",
+   params: ["market", "region"],
+   kropp: v => ({region_code: v.region, market: v.market})},
+  {id: "housing_price", label: "Housing price per m² — only if real",
+   desc: "Price per square metre from an official transaction " +
+         "register. Shown ONLY when a real register answers — never " +
+         "estimated, exactly like the establishment counts in " +
+         "market saturation.",
+   path: "/v1/housing-market/price", metod: "POST",
+   params: ["market", "region"],
+   kropp: v => ({region_code: v.region, market: v.market})},
+  {id: "housing_standard", label: "Housing standard — never a currency",
+   desc: "Relative housing-stock quality (building age, renovation " +
+         "activity, cost context), 0-100 against the market's other " +
+         "regions. Carries no currency, same rule as land value.",
+   path: "/v1/housing-market/standard", metod: "POST",
+   params: ["market", "region"],
+   kropp: v => ({region_code: v.region, market: v.market})},
+  {id: "housing_compare", label: "Price ÷ standard — a ratio, not a valuation",
+   desc: "Price per m² divided by the standard score — plain " +
+         "arithmetic. Never a predicted 'fair price', a valuation or " +
+         "a forecast; refuses if either side is missing.",
+   path: "/v1/housing-market/compare", metod: "POST",
+   params: ["market", "region"],
+   kropp: v => ({region_code: v.region, market: v.market})},
+  {id: "master_plans", label: "Master plans — what the municipality intends",
+   desc: "The municipality's own comprehensive/master-plan register. " +
+         "An empty list means 'not connected', never 'nothing planned'.",
+   path: "/v1/housing-market/master-plans", metod: "POST",
    params: ["market", "region"],
    kropp: v => ({region_code: v.region, market: v.market})},
   {id: "coverage", label: "Coverage — what we can answer HERE",
