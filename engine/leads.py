@@ -47,25 +47,61 @@ SEVERITY = ("none", "light", "moderate", "severe")
 REVIEW_OUTCOMES = ("confirmed", "disputed", "insufficient_evidence")
 _SEVERITY_ORDER = {s: i for i, s in enumerate(SEVERITY)}
 
+# Incitamentsklass — inte en teknisk egenskap hos villkoret, utan hur lätt
+# ett falskt eller överdrivet verdikt är att vinna på. Modellen är
+# försäkringsbranschens: bredare rapportering där bedrägeriincitamentet
+# är lågt, oberoende granskning där det inte är det. Landvex äger aldrig
+# betalningen (den bor hos quiXzoom, som resten av persondatan) — det
+# den HÄR klassen styr är om ett verdikt räknas som avgjort i leads()
+# utan en bekräftad andra-persons-granskning.
+INCENTIVE_CLASSES: dict[str, dict] = {
+    "A": {"label_en": "Natural event",
+         "fraud_risk_en": "Low — damage from weather, growth or age is "
+                          "hard to fabricate convincingly, and the "
+                          "public can report it freely.",
+         "review_required": False},
+    "B": {"label_en": "Gradual wear",
+         "fraud_risk_en": "Low — condition changes slowly and staging "
+                          "a convincing false report gains little.",
+         "review_required": False},
+    "C": {"label_en": "Deliberate damage",
+         "fraud_risk_en": "Higher — a single unverified report of "
+                          "vandalism could be staged or exaggerated if "
+                          "reporting it pays. A confirmed second-person "
+                          "review is required before it counts.",
+         "review_required": True},
+}
+
 CONDITIONS: dict[str, dict] = {
     "window_cleanliness": {
         "label_en": "Window cleanliness",
         "what_en": "How clean the storefront or building windows look "
                    "from the street.",
+        "incentive_class": "B",
     },
     "facade_condition": {
         "label_en": "Facade condition",
         "what_en": "Visible paint, render or masonry condition on the "
                    "street-facing wall.",
+        "incentive_class": "B",
     },
     "signage_condition": {
         "label_en": "Signage condition",
         "what_en": "Whether exterior signs are intact, lit and legible.",
+        "incentive_class": "B",
     },
     "landscaping_condition": {
         "label_en": "Landscaping condition",
         "what_en": "Visible upkeep of street-facing greenery, hedges or "
                    "planters.",
+        "incentive_class": "A",
+    },
+    "vandalism_damage": {
+        "label_en": "Vandalism damage",
+        "what_en": "Broken windows, smashed furniture, graffiti, or "
+                   "other signs of deliberate damage visible from the "
+                   "street.",
+        "incentive_class": "C",
     },
 }
 
@@ -210,7 +246,14 @@ def review(verdict_rec: dict, *, reviewer: str, outcome: str,
 def leads(survey_id: str, *, min_severity: str = "light",
          tenant: str = "") -> dict:
     """Adresserna som mötte tröskeln — verdikt + uppdragsreferens,
-    ALDRIG bilden. Det är hela produkten: en spårbar rad per adress."""
+    ALDRIG bilden. Det är hela produkten: en spårbar rad per adress.
+
+    Incitamentsgrind: för ett villkor i klass C (avsiktlig skadegörelse)
+    räknas ett verdikt inte som avgjort utan en BEKRÄFTAD andra-persons-
+    granskning — samma logik som en väktarrond, inte en fyndbaserad
+    ersättning. Håller aldrig undan tyst: `held_back_pending_review`
+    säger exakt hur många som väntar.
+    """
     if min_severity not in SEVERITY:
         raise SurveyRefused(f"unknown severity {min_severity!r}")
     troskel = _SEVERITY_ORDER[min_severity]
@@ -219,12 +262,24 @@ def leads(survey_id: str, *, min_severity: str = "light",
     if surv is None:
         return {"survey_id": survey_id, "leads": [], "count": 0,
                 "why_en": "no such survey for this tenant"}
+    spec = CONDITIONS.get(surv["condition"], {})
+    klass = spec.get("incentive_class", "B")
+    kravs_granskning = INCENTIVE_CLASSES.get(klass, {}).get(
+        "review_required", False)
+    bekraftade = set()
+    if kravs_granskning:
+        bekraftade = {r["verdict_id"] for r in all_reviews(tenant)
+                     if r.get("outcome") == "confirmed"}
+
     adresser = {a["id"]: a for a in surv["addresses"]}
-    trafflista = []
+    trafflista, vantande = [], 0
     for v in all_verdicts(tenant):
         if v["survey_id"] != survey_id:
             continue
         if _SEVERITY_ORDER.get(v["severity"], -1) < troskel:
+            continue
+        if kravs_granskning and v["id"] not in bekraftade:
+            vantande += 1
             continue
         a = adresser.get(v["address_id"], {})
         trafflista.append({
@@ -237,12 +292,18 @@ def leads(survey_id: str, *, min_severity: str = "light",
     return {
         "survey_id": survey_id, "condition": surv["condition"],
         "condition_label_en": surv["condition_label_en"],
+        "incentive_class": klass, "review_required": kravs_granskning,
         "min_severity": min_severity, "leads": trafflista,
         "count": len(trafflista),
+        "held_back_pending_review": vantande,
         "scope_en": surv["scope_en"],
         "cannot_en": ("Each row is one field visit's observation, not a "
                       "guarantee of current condition — a lead is worth "
-                      "checking, not worth assuming."),
+                      "checking, not worth assuming."
+                      + (" Verdicts awaiting a confirmed review are held "
+                         "back, not discounted or hidden — see "
+                         "held_back_pending_review." if kravs_granskning
+                         else "")),
     }
 
 
@@ -254,6 +315,8 @@ def catalog() -> dict:
                     "addresses that actually met the threshold — a "
                     "sales lead list, not an aggregate."),
         "conditions": [{"id": k, **v} for k, v in CONDITIONS.items()],
+        "incentive_classes": [{"id": k, **v}
+                              for k, v in INCENTIVE_CLASSES.items()],
         "severity_scale": list(SEVERITY),
         "scope_en": ("Exterior, street-visible observation of named "
                      "third-party addresses the customer supplies — no "

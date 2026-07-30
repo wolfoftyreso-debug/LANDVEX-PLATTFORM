@@ -3689,7 +3689,12 @@ async function leadsInit() {
     const villkorInfo = () => {
       const c = LEADS_KATALOG.conditions.find(
         x => x.id === $("leadsVillkor").value);
-      $("leadsVillkorInfo").textContent = c ? c.what_en : "";
+      if (!c) { $("leadsVillkorInfo").textContent = ""; return; }
+      const ik = (LEADS_KATALOG.incentive_classes || [])
+        .find(x => x.id === c.incentive_class);
+      $("leadsVillkorInfo").textContent = c.what_en +
+        (ik ? ` — incentive class ${ik.id} (${ik.label_en}): ${ik.fraud_risk_en}`
+            : "");
     };
     $("leadsVillkor").onchange = villkorInfo;
     villkorInfo();
@@ -3762,14 +3767,23 @@ async function leadsInit() {
       try {
         const r = await api(`/v1/leads/results?survey_id=${encodeURIComponent(id)}` +
           `&min_severity=${$("leadsTroskel").value}`);
-        ut.innerHTML = r.count === 0
+        const incitament = r.review_required
+          ? `<p class="roi-notis" style="margin-bottom:6px">Incentive class ` +
+            `<b>${esc(r.incentive_class)}</b> — a confirmed second-person ` +
+            `review is required before a verdict counts.` +
+            (r.held_back_pending_review
+              ? ` <b>${r.held_back_pending_review}</b> awaiting review, ` +
+                `held back — not discarded.`
+              : "") + `</p>`
+          : "";
+        ut.innerHTML = incitament + (r.count === 0
           ? `<p class="motiv">No addresses at or above "${$("leadsTroskel").value}" yet.</p>`
           : r.leads.map(l => `
             <div class="kort" style="padding:8px 10px">
               <div class="rubrik"><span class="plats">${esc(l.address)}</span>
                 <span class="score s-orange" style="font-size:13px">${esc(l.severity)}</span></div>
               <p class="motiv">${esc(l.performed_at)} · mission ${esc(l.mission_id || "—")}</p>
-            </div>`).join("");
+            </div>`).join(""));
       } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
     };
   }

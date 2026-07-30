@@ -217,6 +217,70 @@ def test_the_review_media_itself_is_never_stored():
             f"fältet {f!r} ser ut att bära media")
 
 
+# ── Incitamentsklass: klass C kräver bekräftad granskning ───────────────
+def test_a_class_b_condition_needs_no_review():
+    """window_cleanliness är klass B (slitage) — verdiktet räknas direkt,
+    väktarrondslogiken utan extra grind."""
+    LD.reset()
+    surv = LD.survey("s1", "x", "window_cleanliness", [_adress()], tenant="t1")
+    LD.save_survey(surv)
+    LD.save_verdict(LD.verdict("s1", "a1", "moderate", mission_id="m1",
+                               tenant="t1"))
+    ut = LD.leads("s1", min_severity="light", tenant="t1")
+    assert ut["incentive_class"] == "B" and ut["review_required"] is False
+    assert ut["count"] == 1 and ut["held_back_pending_review"] == 0
+
+
+def test_a_class_c_condition_holds_back_an_unreviewed_verdict():
+    """vandalism_damage är klass C — ett verdikt utan en BEKRÄFTAD
+    granskning räknas inte, men försvinner inte tyst."""
+    LD.reset()
+    surv = LD.survey("s1", "x", "vandalism_damage", [_adress()], tenant="t1")
+    LD.save_survey(surv)
+    LD.save_verdict(LD.verdict("s1", "a1", "severe", mission_id="m1",
+                               tenant="t1"))
+    ut = LD.leads("s1", min_severity="light", tenant="t1")
+    assert ut["incentive_class"] == "C" and ut["review_required"] is True
+    assert ut["count"] == 0
+    assert ut["held_back_pending_review"] == 1
+    assert "held_back_pending_review" in ut["cannot_en"]
+
+
+def test_a_class_c_verdict_counts_once_confirmed():
+    LD.reset()
+    surv = LD.survey("s1", "x", "vandalism_damage", [_adress()], tenant="t1")
+    LD.save_survey(surv)
+    v = LD.verdict("s1", "a1", "severe", mission_id="m1", tenant="t1")
+    LD.save_verdict(v)
+    LD.save_review(LD.review(v, reviewer="Björn", outcome="confirmed",
+                             tenant="t1"))
+    ut = LD.leads("s1", min_severity="light", tenant="t1")
+    assert ut["count"] == 1 and ut["held_back_pending_review"] == 0
+
+
+def test_a_disputed_class_c_review_does_not_count_as_confirmed():
+    """"disputed" och "insufficient_evidence" är INTE "confirmed" —
+    ett granskat men ifrågasatt verdikt hålls fortfarande tillbaka."""
+    LD.reset()
+    surv = LD.survey("s1", "x", "vandalism_damage", [_adress()], tenant="t1")
+    LD.save_survey(surv)
+    v = LD.verdict("s1", "a1", "severe", mission_id="m1", tenant="t1")
+    LD.save_verdict(v)
+    LD.save_review(LD.review(v, reviewer="Björn", outcome="disputed",
+                             tenant="t1"))
+    ut = LD.leads("s1", min_severity="light", tenant="t1")
+    assert ut["count"] == 0 and ut["held_back_pending_review"] == 1
+
+
+def test_incentive_classes_are_listed_in_the_catalog():
+    cat = LD.catalog()
+    ids = {c["id"] for c in cat["incentive_classes"]}
+    assert ids == {"A", "B", "C"}
+    vandalism = next(c for c in cat["conditions"]
+                     if c["id"] == "vandalism_damage")
+    assert vandalism["incentive_class"] == "C"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
