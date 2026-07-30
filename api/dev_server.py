@@ -513,6 +513,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, I.due(
                 insp_engine.all_assets(t),
                 insp_engine.all_observations(t)))
+        if parsed.path == "/v1/reality-kpi":
+            from engine.reality_kpi import reality_kpi
+            t = self._tenant()
+            return self._send(200, reality_kpi(
+                insp_engine.all_assets(t), insp_engine.all_routines(t),
+                insp_engine.all_checks(t), insp_engine.all_observations(t)))
         if parsed.path == "/v1/land":
             from engine.land import catalog as land_catalog
             return self._send(200, land_catalog())

@@ -2643,12 +2643,35 @@ async function visaKontroll() {
     : "";
 }
 
+// Reality Coverage/Freshness/Confidence — en rollup, ingen ny mätning.
+// Reality Risk saknas medvetet (risk_en förklarar varför) i stället för
+// att gissas fram som en fjärde kolumn.
+function watchKpiHTML(k) {
+  if (!k.kinds || !k.kinds.length)
+    return `<p class="motiv">Nothing registered yet — no object classes ` +
+      `to roll up.</p><p class="roi-notis">${esc(k.risk_en)}</p>`;
+  const rader = k.kinds.map(r => `
+    <div class="driver">
+      <span>${esc(r.kind)}</span>
+      <span>
+        cov ${r.coverage && r.coverage.share_current != null
+          ? Math.round(r.coverage.share_current * 100) + "%" : "—"} ·
+        fresh ${r.freshness && r.freshness.share_current != null
+          ? Math.round(r.freshness.share_current * 100) + "%" : "—"} ·
+        conf ${r.confidence && r.confidence.share_corroborated != null
+          ? Math.round(r.confidence.share_corroborated * 100) + "%" : "—"}
+      </span>
+    </div>`).join("");
+  return rader + `<p class="roi-notis" style="margin-top:6px">${esc(k.risk_en)}</p>`;
+}
+
 async function visaWatch() {
   if (MODE !== "watch") return;
   const wrap = $("hotspots");
   wrap.innerHTML = "<p class='motiv'>Loading platform status …</p>";
-  const [ps, w, ag] = await Promise.allSettled([
-    api("/v1/platform/status"), api("/v1/watch"), api("/v1/agents")]);
+  const [ps, w, ag, rk] = await Promise.allSettled([
+    api("/v1/platform/status"), api("/v1/watch"), api("/v1/agents"),
+    api("/v1/reality-kpi")]);
   if (MODE !== "watch") return;
   let html = "";
   html += watchKort("Platform status", "puls", ps.status === "fulfilled"
@@ -2659,6 +2682,8 @@ async function visaWatch() {
     ? watchAlertsHTML(w.value) : watchFel(w.reason));
   html += watchKort("Agents", "kompass", ag.status === "fulfilled"
     ? watchAgentsHTML(ag.value) : watchFel(ag.reason));
+  html += watchKort("Reality Coverage · Freshness · Confidence", "upp",
+    rk.status === "fulfilled" ? watchKpiHTML(rk.value) : watchFel(rk.reason));
   wrap.innerHTML = html;
 }
 

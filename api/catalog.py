@@ -579,6 +579,16 @@ API_CATALOG: dict = {
                         "path": "/v1/infrastructure/freshness"},
                        {"method": "POST",
                         "path": "/v1/infrastructure/sla"}]},
+        {"id": "reality_kpi", "label_en": "How much of reality is actually under control",
+         "beskrivning_en": "Coverage, Freshness and Confidence, rolled up "
+                           "per object class — no new measurement, a "
+                           "roll-up of what inspections.compliance() and "
+                           "infrastructure.freshness_record() already "
+                           "compute per object and per field. A fourth "
+                           "KPI, Reality Risk, is refused rather than "
+                           "estimated: no engine in the catalogue scores "
+                           "physical safety risk yet.",
+         "endpoints": [{"method": "GET", "path": "/v1/reality-kpi"}]},
         {"id": "land", "label_en": "What the ground here is worth — "
                                    "relative to the ground next to it",
          "beskrivning_en": "Land-value POSITION across five weighted "

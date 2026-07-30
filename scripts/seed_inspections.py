@@ -200,6 +200,7 @@ def payload(today: str = "") -> dict:
     from engine import inspections as I
 
     from engine import infrastructure as INF
+    from engine.reality_kpi import reality_kpi
 
     fix = flag_supplier(today)
     a, r, c = fix["assets"], fix["routines"], fix["checks"]
@@ -223,6 +224,7 @@ def payload(today: str = "") -> dict:
         # kombinationer hänvisar ärligt till live-API:t.
         "infra_sla": INF.sla_report(infra, obs, promised_minutes=240.0,
                                     window_hours=168.0),
+        "reality_kpi": reality_kpi(a, r, c, obs, today=fix["as_of"]),
     }
 
 

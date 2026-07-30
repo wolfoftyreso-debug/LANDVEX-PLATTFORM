@@ -60,7 +60,7 @@ PROMISES: tuple[dict, ...] = (
                     "indices", "claims", "provenance", "sensitive",
                     "worthiness", "strim", "wages", "corrections",
                     "data_sources", "platform", "coverage", "mrai",
-                    "selfaudit"),
+                    "selfaudit", "reality_kpi"),
     },
     {
         "id": "is_there_room",

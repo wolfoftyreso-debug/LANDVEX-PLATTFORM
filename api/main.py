@@ -1312,6 +1312,16 @@ def infrastructure_due_ep(request: Request):
     return I.due(INS.all_assets(t), INS.all_observations(t))
 
 
+@app.get("/v1/reality-kpi")
+def reality_kpi_ep(request: Request):
+    """Coverage, Freshness and Confidence, rolled up per object class."""
+    from engine import inspections as INS
+    from engine.reality_kpi import reality_kpi
+    t = _tenant(request)
+    return reality_kpi(INS.all_assets(t), INS.all_routines(t),
+                       INS.all_checks(t), INS.all_observations(t))
+
+
 @app.post("/v1/infrastructure/sla")
 def infrastructure_sla_ep(request: Request, body: dict):
     """Did the promised verification frequency hold? From history."""
