@@ -688,6 +688,29 @@ def test_a_tick_that_stops_coming_is_not_silent():
         "MaximumEventAgeInSeconds"] <= 900
 
 
+# ── Gitea-spegeln ───────────────────────────────────────────────────────
+def test_the_gitea_workflow_runs_the_same_steps_as_the_github_one():
+    """Två CI-plattformar, en pipeline. Skillnaden får vara språket i
+    step-namn och echo-strängar (svensk/engelsk översättning) — allt som
+    faktiskt körs ska vara identiskt, annars upptäcks driften bara av
+    vem som råkar titta på fel plattforms gröna bock."""
+    def _rensad(text: str) -> str:
+        rader = []
+        for rad in text.split("\n"):
+            stripped = rad.strip()
+            if stripped.startswith("#"):
+                continue
+            if re.match(r"^\s*-?\s*name:", rad) or "echo " in rad:
+                continue
+            rader.append(rad)
+        return "\n".join(rader)
+
+    github = (_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    gitea = (_ROOT / ".gitea" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert _rensad(github) == _rensad(gitea), (
+        ".gitea/workflows/ci.yml har glidit ifrån .github/workflows/ci.yml")
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

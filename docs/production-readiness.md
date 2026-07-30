@@ -1,6 +1,6 @@
 # Production Readiness Review — LANDVEX
 
-*Uppdaterad 2026-07-29 (motorversion 1.1.0). Ursprungligen skriven vid
+*Uppdaterad 2026-07-30 (motorversion 1.1.0). Ursprungligen skriven vid
 v0.9-frysen; status nedan är nuläget, med evidens i kodbasen.*
 
 Detta dokument svarar på granskningsfrågorna inför första
@@ -104,21 +104,38 @@ därmed förklaras och räknas om i efterhand – "varför fick vi 87?"
 besvaras rad för rad, ingen svart låda.
 
 ### 8. Finns tester för de viktigaste affärsflödena? ✅
-94 sviter, körbara utan pytest/beroenden/nätverk (`make test`).
+106 sviter, körbara utan pytest/beroenden/nätverk (`make test`).
 Utöver v0.9-flödena: kontraktstest som statiskt låser att FastAPI-
 och stdlib-lagret exponerar samma endpoint-yta, red-team-svit,
 självrevision (fäller varje ny modulfil utan test), tenancy-svit,
-mutationsbevisade lås (budgettak, färskhetsexport, resolver-kedjan).
-CI kör dessutom ett API-röktest med auth påslagen.
+mutationsbevisade lås (budgettak, färskhetsexport, resolver-kedjan),
+en Kubernetes-svit (`tests/test_k8s.py`, 16 tester) som håller
+`deploy/k8s/` lika mot `deploy/aws/task-definition.json`. CI kör
+dessutom ett API-röktest med auth påslagen.
 
 ### 9. Kan systemet driftsättas från grunden med en enda pipeline? 🟡
-- CI (`.github/workflows/landvex-ci.yml`): kompilering + hela sviten
-  + API-röktest på Python 3.11/3.12 – noll beroenden krävs, vilket
-  gör pipelinen trivial att lita på.
-- Kvar: CD-steget. Blueprint finns (infra/aws-notes.md: CDK,
-  API Gateway+Lambda/Mangum eller ECS, Aurora, Secrets Manager) men
-  IaC-koden är inte skriven (backlog #6). Detta är den enskilt
-  största kvarvarande punkten före deploy.
+- CI (`.github/workflows/ci.yml`): kompilering + hela sviten +
+  API-röktest på Python 3.11/3.12 – noll beroenden krävs, vilket gör
+  pipelinen trivial att lita på. Speglad i `.gitea/workflows/ci.yml`
+  (samma steg, drift mellan de två filerna hålls av ett test) för
+  driftsättning via egen Gitea.
+- IaC: inte CDK (backlog #6 syftade på CDK specifikt, och det är
+  fortfarande oskrivet) – i stället två hand-skrivna, testade spår:
+  `deploy/aws/task-definition.json` (ECS Fargate) och `deploy/k8s/`
+  (Kubernetes, se `docs/k8s.md`). Båda är deploybara som de står; ingen
+  av dem är körd mot riktig infrastruktur än.
+- **Ny information (2026-07-30-inventeringen,
+  `infra/infrastruktur-inventering-2026-07-30.md`):** motorn kör redan
+  skarpt – `server-2:8087`, systemd, mot en riktig PostgreSQL-databas
+  (`landvex`). Ett riktigt EKS-kluster (`landvex-prod`) finns också,
+  tomt, med fem namngivna luckor kvar innan Kubernetes-spåret kan bära
+  trafik (`docs/k8s.md`). Ingen Aurora finns i kontot – bara vanliga
+  RDS-instanser.
+- Kvar, i prioritetsordning: (1) `scripts/pg_selftest` mot den
+  REDAN LIVE `landvex`-databasen på server-2 – schemaversion och
+  PostGIS-status där är obekräftade härifrån; (2) de fem luckorna i
+  `docs/k8s.md` (ingress-controller, ECR-repo, OIDC-federation,
+  databas nåbar från EKS-VPC:t, ACM-cert); (3) OIDC/JWKS.
 
 ## Sammanfattning
 
@@ -129,13 +146,15 @@ CI kör dessutom ett API-röktest med auth påslagen.
 | Adapterabstraktion av källor | ✅ |
 | Cache-strategi | ✅ |
 | Förklarbarhet & reproducerbarhet | ✅ |
-| Affärsflödestester + CI | ✅ |
+| Affärsflödestester + CI (GitHub + Gitea) | ✅ |
 | Säkerhet | 🟡 nycklar+JWT+RBAC+planer klart; OIDC/JWKS kvar |
-| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; Aurora-selftest kvar (runbook: scripts/pg_selftest) |
+| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; `pg_selftest` mot den REDAN LIVE `landvex`-databasen på server-2 är okört |
 | Observability | 🟡 logg/metrics/request-id klart; tracing senare |
-| CI/CD & IaC | 🟡 CI klar; CDK-stack är största gapet |
+| CI/CD & IaC | 🟡 CI klar (två plattformar); ECS- och K8s-manifest klara och testade, ingen körd mot riktig infrastruktur |
 
-**Rekommendation:** skriv CDK-stacken (backlog #6) före första
-enterprise-deploy och kör `scripts/pg_selftest` mot den provisionerade
-Auroran; OIDC/JWKS kan gå i samma sprint (HS256-JWT är redan i drift).
-Allt annat är deploybart som det står.
+**Rekommendation:** kör `scripts/pg_selftest` mot server-2:s
+`landvex`-databas FÖRST – den kör redan skarpt, så det svarar på
+schemaversion och PostGIS-status utan gissning innan något annat rör
+den databasen. Stäng därefter de fem luckorna i `docs/k8s.md`, eller
+gå ECS-vägen (`docs/aws.md`) om Kubernetes inte är först ut. OIDC/JWKS
+kan gå i samma sprint (HS256-JWT är redan i drift).

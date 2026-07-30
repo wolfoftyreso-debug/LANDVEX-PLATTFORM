@@ -1,0 +1,99 @@
+# Gitea Actions mirror of .github/workflows/ci.yml — same jobs, same
+# steps, so CI keeps running the moment this repo lands in your own
+# Gitea (per the July-30 infrastructure inventory, a
+# `gitea-act-runner` container already runs on server-2). Two files
+# instead of one shared workflow because GitHub Actions and Gitea
+# Actions are two different platforms with their own trigger/context
+# conventions — same reasoning as running two API layers (api/main.py,
+# api/dev_server.py) side by side rather than one that has to guess
+# which platform it's on.
+#
+# Needs actions/checkout@v4 and actions/setup-python@v5 to resolve from
+# wherever your act runner fetches actions (github.com directly, or a
+# configured local mirror). If the runner is network-isolated from
+# github.com, that resolution will fail — the fix is a runner-side
+# actions mirror, not a change to this file.
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile (syntax + imports)
+        run: python -m compileall -q engine api integrations tests scripts
+      - name: Lint (ruff — see ruff.toml for why each rule is on)
+        run: |
+          pip install --quiet ruff
+          ruff check .
+      - name: Performance budget (engine time)
+        run: |
+          python -m scripts.measure_api --runs 20 --out /tmp/lv-mock.json
+          python -m scripts.perf_budget /tmp/lv-mock.json \
+            --budgets docs/landvex-budgets.json
+      - name: Demo (fails itself if a step doesn't line up)
+        run: python -m scripts.demo90
+      - name: Preflight (the start gate must fail an empty environment)
+        run: |
+          if LANDVEX_PREFLIGHT=strict python -m scripts.preflight --gate; then
+            echo "preflight passed an empty environment — the gate is broken"
+            exit 1
+          fi
+          LANDVEX_PREFLIGHT=warn python -m scripts.preflight --gate
+          LANDVEX_PREFLIGHT=off python -m scripts.preflight --gate
+      - name: Test suite (auto-discovered, no deps, no network)
+        run: |
+          for t in tests/test_*.py; do
+            m="tests.$(basename "$t" .py)"; echo "── $m"; python -m "$m"
+          done
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build -t landvex/opportunity-engine:ci .
+      - name: Import everything the image is supposed to contain
+        run: |
+          docker run --rm landvex/opportunity-engine:ci python -c "
+          import api.main, api.dev_server, integrations.aamos
+          import engine.datasources.adapters, scripts.preflight
+          print('imports OK')"
+      - name: The gate must refuse an open API
+        run: |
+          if docker run --rm -e LANDVEX_PREFLIGHT=strict \
+               landvex/opportunity-engine:ci \
+               python -m scripts.preflight --gate; then
+            echo "the image starts with an open API — the gate is broken"
+            exit 1
+          fi
+      - name: Start the container and answer a real request
+        run: |
+          docker run -d --name lv -p 8000:8000 \
+            -e LANDVEX_API_KEYS=citest:acme:analyst:pro \
+            -e LANDVEX_DB=off -e LANDVEX_LIVE=0 \
+            -e WEB_CONCURRENCY=1 -e LANDVEX_PREFLIGHT=strict \
+            landvex/opportunity-engine:ci
+          for i in $(seq 1 40); do
+            curl -fsS localhost:8000/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          echo "── /health"
+          curl -fsS localhost:8000/health
+          echo "── /v1/catalog without a key should give 401"
+          kod=$(curl -s -o /dev/null -w '%{http_code}' localhost:8000/v1/catalog)
+          [ "$kod" = "401" ] || { echo "got $kod, not 401"; exit 1; }
+          echo "── /v1/catalog with a key"
+          curl -fsS -H 'X-API-Key: citest' localhost:8000/v1/catalog >/dev/null
+      - name: Container logs (always, so a failed start can be read)
+        if: always()
+        run: docker logs lv || true
+      - name: Stop
+        if: always()
+        run: docker rm -f lv || true
