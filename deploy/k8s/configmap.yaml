@@ -34,4 +34,5 @@ data:
   # AAMOS Core over its public endpoint for beta rather than waiting on
   # VPC peering. Change to an internal address once peering exists.
   AAMOS_CORE_URL: "https://amos.aamos.systems"
-  AAMOS_QUIXZOOM_PATH: "/api/qz/missions"
+  # Confirmed live on server-2, 2026-07-30 (infra/aws-svar-2026-07-30-b.md).
+  AAMOS_QUIXZOOM_PATH: "/api/quixzoom/missions"

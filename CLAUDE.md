@@ -354,7 +354,10 @@ kundtabellernas primärnycklar); Aurora-selftesten körs med
   exakt AAMOS-route för quiXzoom-missions + kommissionsmodellens scope.
 - **Verkliga quiXzoom-/kommissionsfakta inlåsta (v0.26):** AAMOS-dev
   bekräftade formen. quiXzoom-adaptern: path `/api/qz/missions` via
-  AAMOS Core, mission-form `location{lat,lng}` (fältet `lng`),
+  AAMOS Core (KORRIGERAT 2026-07-30: den verkliga live-routen på
+  server-2 är `/api/quixzoom/missions` — se
+  `infra/aws-svar-2026-07-30-b.md`; koden och testerna använder nu
+  den), mission-form `location{lat,lng}` (fältet `lng`),
   klientfiltrering till 10 km-radie så `field_observation_density` är
   verkligt lokal (NYC-mission filtreras bort för en Houston-punkt).
   Kommissionsmodellen byggd på riktigt: `engine/commission.py` (ren,
@@ -363,8 +366,8 @@ kundtabellernas primärnycklar); Aurora-selftesten körs med
   (en lead = ett kort). Growth-planen har ingen månadsavgift –
   `pris_manad=None`, `kommission=commission_catalog()`; frontenden
   visar "0.05–0.15 QZ/lead". `_mission_latlon` läser både `lng`/`lon`.
-  Öppet kvar (icke-blockerande): exakta query-params `/api/qz/missions`
-  tar, och om kommission gäller bortom Growth.
+  Öppet kvar (icke-blockerande): exakta query-params
+  `/api/quixzoom/missions` tar, och om kommission gäller bortom Growth.
 - **Personlig Opportunity Score: specialisering + percentil (v0.27):**
   Omorientering enligt produktvisionen – från "var finns flest
   människor?" till "var har just DU störst chans att lyckas?".

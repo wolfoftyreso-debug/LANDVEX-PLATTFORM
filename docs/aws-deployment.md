@@ -71,7 +71,7 @@ identical endpoint surface (locked by tests/test_contract.py).
 | `LANDVEX_PG_DSN` | Postgres/PostGIS DSN (via pgbouncer). Empty ⇒ SQLite | `postgresql://user:pw@127.0.0.1:6432/landvex` |
 | `LANDVEX_DB` | SQLite path, or `off` when using Postgres | `off` |
 | `AAMOS_CORE_URL` | AAMOS Capability Platform base. Empty ⇒ honest not-connected | `http://127.0.0.1:3100` |
-| `AAMOS_QUIXZOOM_PATH` | AAMOS Core route for quiXzoom missions (quiXzoom is reached VIA AAMOS Core, decision #2) | `/api/qz/missions` |
+| `AAMOS_QUIXZOOM_PATH` | AAMOS Core route for quiXzoom missions (quiXzoom is reached VIA AAMOS Core, decision #2) | `/api/quixzoom/missions` |
 | `LANDVEX_LIVE` | `0` = mock only (no real adapters) | `1` |
 | `LANDVEX_RATE_LIMIT` | Fallback per-minute cap when a key has no plan | `300` |
 | `LANDVEX_AUDIT_LOG` | JSONL audit path, or `off` | `/var/log/landvex/audit.jsonl` |
@@ -111,7 +111,9 @@ Both adapters are real clients today; they just need URLs.
 
 - **quiXzoom (via AAMOS Core, decision #2)** → set `AAMOS_CORE_URL`;
   the client calls `GET {AAMOS_QUIXZOOM_PATH}?lat&lon&radius_km`
-  (default `/api/qz/missions`, confirmed) and reads the mission list
+  (default `/api/quixzoom/missions` — this superseded the earlier
+  `/api/qz/missions` in this section once server-2 confirmed the live
+  route on 2026-07-30) and reads the mission list
   (real shape locked: `id, title, location{lat,lng}, reward, currency,
   status, required_media, deadline, created_at` — note `lng`). It
   filters missions client-side to a 10 km radius and derives
@@ -163,8 +165,9 @@ mode; zero banned colors). Pricing is USD-only (locked rule).
 ## 9. DECISIONS — RESOLVED (from AAMOS-dev)
 1. ✅ **Domain:** `opportunity.landvex.com` (nginx conf ready, reuses
    the landvex.com cert).
-2. ✅ **quiXzoom:** via AAMOS Core (`/api/qz/missions`), never fails the
-   endpoint on AAMOS error.
+2. ✅ **quiXzoom:** via AAMOS Core (`/api/quixzoom/missions` — corrected
+   2026-07-30 against the live route on server-2, see §6), never fails
+   the endpoint on AAMOS error.
 3. ✅ **Service registration:** `landvex-opportunity-engine` posts to
    `/api/services/register` at startup (best-effort, non-blocking).
 4. ✅ **Pricing:** Growth = quiXzoom commission 0.05–0.15 QZ per lead by
@@ -176,7 +179,7 @@ mode; zero banned colors). Pricing is USD-only (locked rule).
    locked into the parsers.
 
 ### Still helpful to confirm on the live box
-- Exact query params `/api/qz/missions` accepts (we send
+- Exact query params `/api/quixzoom/missions` accepts (we send
   `?lat&lon&radius_km` and also filter client-side to 10 km, so it works
   either way).
 - Whether commission applies platform-wide beyond Growth (Free stays

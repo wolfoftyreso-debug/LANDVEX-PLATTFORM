@@ -1,6 +1,7 @@
 """Direct quiXzoom client (:3209) — optional alternative to via-AAMOS-Core.
 
-The confirmed data path is quiXzoom → AAMOS Core (:3100) /api/qz/missions.
+The confirmed data path is quiXzoom → AAMOS Core (:3100)
+/api/quixzoom/missions (verified live on server-2, 2026-07-30).
 But AAMOS Core gates every endpoint and a valid service token has been the
 blocker. quiXzoom also runs its OWN API on :3209. Talking to a service's own
 API is normal integration, not a bypass — so this is an OPTIONAL direct

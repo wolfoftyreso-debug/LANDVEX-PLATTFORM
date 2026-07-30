@@ -225,10 +225,12 @@ class AamosClient:
     # ── quiXzoom (reality collection, VIA AAMOS Core) ────────────────
     # quiXzoom är mission-baserat (missions + zoomer-submissions med
     # media), INTE en /v1/observations-endpoint. Fältdata når oss genom
-    # AAMOS Core. Basvägen är konfigurerbar (QUIXZOOM_MISSIONS_PATH) tills
-    # den exakta AAMOS-routen är bekräftad.
+    # AAMOS Core. Basvägen är konfigurerbar (AAMOS_QUIXZOOM_PATH) —
+    # bekräftad live på server-2 den 2026-07-30 (infra/aws-svar-
+    # 2026-07-30-b.md): den aktiva routen är /api/quixzoom/missions,
+    # inte den tidigare gissade /api/qz/missions.
     QUIXZOOM_PATH = os.environ.get(
-        "AAMOS_QUIXZOOM_PATH", "/api/qz/missions")
+        "AAMOS_QUIXZOOM_PATH", "/api/quixzoom/missions")
 
     def quixzoom_missions(self, lat: float, lon: float,
                           radius_km: float = 5.0) -> dict:

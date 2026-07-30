@@ -4,15 +4,17 @@ Pre-flight diagnostic before wiring Landvex to the real AAMOS Capability
 Platform. It exercises the integration end-to-end against a running AAMOS
 Core and prints a clear per-endpoint report: what connected, what returned
 JSON vs XML/RSS, the quiXzoom mission shape, and which candidate route
-actually answers (the exact quiXzoom path is still marked unconfirmed in
-integrations/aamos.py).
+actually answers. The route is confirmed as of 2026-07-30
+(/api/quixzoom/missions, integrations/aamos.py's default) — the other
+candidates stay in the probe list in case a future AAMOS Core release
+moves it again.
 
     AAMOS_CORE_URL=http://127.0.0.1:3100 python3 -m scripts.aamos_smoke
     # AAMOS Core gates every endpoint — set ONE of these if you get 401s:
     AAMOS_TOKEN=<jwt>      # sent as Authorization: Bearer <jwt>
     AAMOS_API_KEY=<key>    # sent as X-API-Key: <key>
     # optional overrides:
-    AAMOS_QUIXZOOM_PATH=/api/qz/missions  LAT=59.33 LON=18.06 RADIUS_KM=10 ...
+    AAMOS_QUIXZOOM_PATH=/api/quixzoom/missions  LAT=59.33 LON=18.06 RADIUS_KM=10 ...
 
 Nothing here mutates state except an optional best-effort service
 registration (POST /api/services/register) — pass --no-register to skip.
@@ -33,11 +35,13 @@ LON = float(os.environ.get("LON", "18.06"))
 RADIUS_KM = float(os.environ.get("RADIUS_KM", "10"))
 TIMEOUT = float(os.environ.get("AAMOS_TIMEOUT", "5"))
 
-# Candidate quiXzoom routes to probe (the exact one is unconfirmed).
+# Candidate quiXzoom routes to probe. /api/quixzoom/missions (the
+# AamosClient default) is confirmed live as of 2026-07-30; the rest stay
+# as a fallback probe list in case a future AAMOS Core release moves it.
 QZ_CANDIDATES = [
-    os.environ.get("AAMOS_QUIXZOOM_PATH", "/api/aamos/quixzoom/missions"),
+    os.environ.get("AAMOS_QUIXZOOM_PATH", "/api/quixzoom/missions"),
+    "/api/aamos/quixzoom/missions",
     "/api/qz/missions",
-    "/api/quixzoom/missions",
     "/api/missions",
 ]
 

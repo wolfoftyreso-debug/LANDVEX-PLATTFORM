@@ -49,7 +49,7 @@ LAYERS: tuple[dict, ...] = (
      "you_still_do_en": "Everything after the pixels: deciding what to "
                         "look for, looking, and deciding what it means.",
      "in_this_repo": "engine/datasources/quixzoom_direct.py · "
-                     "/api/qz/missions"},
+                     "/api/quixzoom/missions"},
 
     {"id": "perception", "order": 2, "company": "AAMOS",
      "sells_en": "The models that read the imagery.",

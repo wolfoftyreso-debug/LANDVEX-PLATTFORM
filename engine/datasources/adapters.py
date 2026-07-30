@@ -376,8 +376,9 @@ class QuixzoomSource(DataSource):
     INTE en /v1/observations-endpoint. Missions har formen
     {id, title, description, location:{lat,lng}, reward, currency,
     status, required_media, deadline, created_at} – notera fältet `lng`.
-    Fältdata når oss via AAMOS Core (:3100) på /api/qz/missions
-    (AAMOS_QUIXZOOM_PATH), inte direkt mot :3209 (beslut #2).
+    Fältdata når oss via AAMOS Core (:3100) på /api/quixzoom/missions
+    (AAMOS_QUIXZOOM_PATH, bekräftad live på server-2 2026-07-30), inte
+    direkt mot :3209 (beslut #2).
 
     Vad vi ÄRLIGT kan härleda idag: tätheten av missions inom radien
     runt punkten → signalen `field_observation_density`. Vi filtrerar

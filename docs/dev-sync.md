@@ -99,8 +99,9 @@ percentile ("Beats 93% of 60 locations in USA for your profile"), and a
   (target `http://127.0.0.1:3100`). XML/RSS→JSON fallback for `contents`.
   Self-registers best-effort at `/api/services/register` on startup.
 - **quiXzoom missions** via AAMOS Core. Default path
-  `AAMOS_QUIXZOOM_PATH=/api/qz/missions` — **route still to be confirmed**;
-  the smoke script probes candidates. Real signal derived:
+  `AAMOS_QUIXZOOM_PATH=/api/quixzoom/missions` — confirmed live on
+  server-2, 2026-07-30; the smoke script still probes fallback
+  candidates in case a future release moves it. Real signal derived:
   `field_observation_density` (missions near a point). Never fabricates
   `development_m2` (that needs the Vision pipeline).
 - **Commission model** (`engine/commission.py`): Growth plan is
