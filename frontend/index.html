@@ -739,6 +739,19 @@
         <div id="disUt" class="motiv" style="margin-top:6px"></div>
       </div>
       <div id="kontrollKund" class="motiv" style="margin-top:10px"></div>
+
+      <div style="margin-top:22px;border-top:1px solid var(--linje);padding-top:16px">
+        <h2>One object, everything known about it</h2>
+        <p class="motiv">Universal Object Model, minimal — compliance
+          status, condition, full check history and every second-person
+          review, composed into one view. Names what it still cannot
+          show (geometry, a rich owner, full lifecycle, relationships,
+          policies) rather than pretending it is complete.</p>
+        <div class="falt"><label>Object id</label>
+          <input id="objVyId" placeholder="e.g. fp-hamn-01"></div>
+        <button id="objVyHamta" style="background:var(--accent);border:none;color:#fff;font-weight:600">Look up</button>
+        <div id="objVyUt" style="margin-top:8px"></div>
+      </div>
     </div>
     <div id="vySponsor" style="display:none">
       <h2>Sponsored missions</h2>
@@ -3373,6 +3386,16 @@ function kontrollProduktInit() {
         `<br><span style="font-size:10.5px"><b>Cannot:</b> ` +
         `${esc(r.cannot_en)}</span>`;
     } catch (e) { $("slaUt").textContent = e.message; }
+  };
+  $("objVyHamta").onclick = async () => {
+    const ut = $("objVyUt");
+    const id = $("objVyId").value.trim();
+    if (!id) { ut.innerHTML = "Enter an object id first."; return; }
+    ut.innerHTML = "Loading …";
+    try {
+      const r = await api(`/v1/objects/${encodeURIComponent(id)}`);
+      ut.innerHTML = arligKort(r);
+    } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
   };
   $("disPublik").onchange = () =>
     $("disZoomFalt").style.display =

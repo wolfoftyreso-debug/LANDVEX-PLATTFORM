@@ -623,6 +623,12 @@ async function api(path, body) {
   }
   if (path === "/v1/infrastructure/due") return D.inspections.infra_due;
   if (path === "/v1/reality-kpi") return D.inspections.reality_kpi;
+  if (path.startsWith("/v1/objects/")) {
+    const oid = decodeURIComponent(path.split("/").pop());
+    const r = D.inspections.object_view[oid];
+    if (!r) throw new Error(DEMOFEL);
+    return r;
+  }
   if (path === "/v1/infrastructure/sla") {
     // Endast demons standardkombination är bakad; frysta åldrar gör
     // varje annan kombination till en gissning — som vägras.

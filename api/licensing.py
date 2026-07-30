@@ -101,6 +101,7 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
     # samma paket.
     "/v1/infrastructure": "asset_inspections",
     "/v1/reality-kpi": "asset_inspections",
+    "/v1/objects": "asset_inspections",
     "/v1/land": "opportunity",                # markvärdesläget hör till
                                               # etableringsbeslutet — samma
                                               # paket som /v1/plan och

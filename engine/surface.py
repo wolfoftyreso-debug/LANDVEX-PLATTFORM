@@ -116,7 +116,7 @@ PROMISES: tuple[dict, ...] = (
                     "surface", "chain", "customer", "visitor", "admin",
                     "inspections", "export", "pushes", "sponsorship",
                     "infrastructure", "connections", "company", "staff",
-                    "deliveries", "leads"),
+                    "deliveries", "leads", "object_view"),
     },
 )
 

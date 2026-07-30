@@ -579,6 +579,17 @@ API_CATALOG: dict = {
                         "path": "/v1/infrastructure/freshness"},
                        {"method": "POST",
                         "path": "/v1/infrastructure/sla"}]},
+        {"id": "object_view", "label_en": "One object, everything currently known about it",
+         "beskrivning_en": "Universal Object Model, minimal version — "
+                           "compliance status, condition, full check "
+                           "history and every second-person review, "
+                           "composed from inspections.py and "
+                           "infrastructure.py into one view. Names what "
+                           "it still cannot show (geometry, a rich "
+                           "owner, full lifecycle, relationships, "
+                           "policies) rather than implying it is "
+                           "complete.",
+         "endpoints": [{"method": "GET", "path": "/v1/objects/{object_id}"}]},
         {"id": "reality_kpi", "label_en": "How much of reality is actually under control",
          "beskrivning_en": "Coverage, Freshness and Confidence, rolled up "
                            "per object class — no new measurement, a "

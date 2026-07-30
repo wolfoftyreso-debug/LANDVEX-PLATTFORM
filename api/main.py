@@ -1133,6 +1133,22 @@ def inspections_reviews_ep(request: Request):
     return {"reviews": I.all_reviews(_tenant(request))}
 
 
+@app.get("/v1/objects/{object_id}")
+def object_view_ep(request: Request, object_id: str):
+    """One object, everything currently known — compliance, condition,
+    full history and every second-person review, composed from the
+    engines that already compute each piece."""
+    from engine import inspections as I
+    from engine.object_view import ObjectNotFound, object_view
+    t = _tenant(request)
+    try:
+        return object_view(
+            object_id, I.all_assets(t), I.all_routines(t), I.all_checks(t),
+            I.all_observations(t), I.all_reviews(t))
+    except ObjectNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @app.get("/v1/schedules")
 def schedules_ep(request: Request):
     """Registered jobs, what can be scheduled, and whether it is awake."""

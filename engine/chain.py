@@ -83,7 +83,7 @@ CATEGORIES: tuple[dict, ...] = (
             "infrastructure", "sensors", "corroboration", "mrai",
             "analysis", "selfaudit", "provenance", "outcomes", "brief",
             "monitors", "strim", "coverage", "platform", "leads",
-            "reality_kpi",
+            "reality_kpi", "object_view",
         ),
     },
     {

@@ -639,6 +639,17 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/reviews":
             return self._send(200,
                               {"reviews": insp_engine.all_reviews(self._tenant())})
+        if parsed.path.startswith("/v1/objects/"):
+            from engine.object_view import ObjectNotFound, object_view
+            t = self._tenant()
+            oid = parsed.path.rsplit("/", 1)[1]
+            try:
+                return self._send(200, object_view(
+                    oid, insp_engine.all_assets(t), insp_engine.all_routines(t),
+                    insp_engine.all_checks(t), insp_engine.all_observations(t),
+                    insp_engine.all_reviews(t)))
+            except ObjectNotFound as e:
+                return self._send(404, {"error": str(e)})
         if parsed.path == "/v1/mrai/compare":
             q = parse_qs(parsed.query)
             m = [x for x in q.get("markets", [""])[0].split(",") if x]
