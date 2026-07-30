@@ -56,4 +56,7 @@ ignore = [
 # Serverlagren loggar strukturerat till stdout med flit (se AuditLog).
 "api/dev_server.py" = ["T20"]
 "api/security.py" = ["T20"]
+# Endast uppstartsvarningen (öppet läge) skriver här — samma skäl som
+# ovan: en människa som startar processen ska se den bland loggraderna.
+"api/main.py" = ["T20"]
 "integrations/aamos.py" = ["T20"]

@@ -1780,6 +1780,9 @@ def main(port: int | None = None) -> None:
     # dialogen som annars dyker upp vid bindning mot alla gränssnitt.
     host = os.environ.get("LANDVEX_HOST", "0.0.0.0")
     print(f"Opportunity Engine dev server: http://localhost:{port}")
+    warning = GATE.auth.open_mode_warning(host)
+    if warning:
+        print(warning, file=sys.stderr)
     _register_with_aamos(port)
     # Schemaläggaren startas HÄR och inte vid import: en bakgrundstråd som
     # börjar beställa fältuppdrag bara för att någon importerat modulen är

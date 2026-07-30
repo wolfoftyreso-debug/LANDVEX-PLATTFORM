@@ -9,6 +9,7 @@ För en beroendefri utvecklingsserver, se api/dev_server.py.
 from __future__ import annotations
 
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -281,6 +282,10 @@ def _start_scheduler() -> None:
     men en tråd per worker som väcks av en modulimport är fel ordning på
     orsak och verkan. Avstängd om inte LANDVEX_SCHEDULER=on.
     """
+    warning = GATE.auth.open_mode_warning(
+        os.environ.get("LANDVEX_HOST", "0.0.0.0"))
+    if warning:
+        print(warning, file=sys.stderr)
     from api.ticker import start
     start()
 

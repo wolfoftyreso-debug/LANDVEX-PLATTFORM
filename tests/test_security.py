@@ -336,6 +336,31 @@ def test_the_latency_window_is_bounded_without_copying_every_call():
     assert m.requests == Metrics.WINDOW + 500     # räknaren tappar inget
 
 
+def test_open_mode_warns_when_no_keys_and_no_jwt_secret():
+    auth = ApiAuth(keys_env="")
+    warning = auth.open_mode_warning("0.0.0.0")
+    assert warning is not None
+    assert "OPEN" in warning
+    assert "0.0.0.0" in warning
+
+
+def test_open_mode_warning_is_silent_once_a_key_is_configured():
+    auth = ApiAuth(keys_env="k1:acme:analyst")
+    assert auth.open_mode_warning("0.0.0.0") is None
+
+
+def test_open_mode_warning_is_silent_with_only_a_jwt_secret():
+    auth = ApiAuth(keys_env="", jwt_secret="s3cret")
+    assert auth.open_mode_warning("0.0.0.0") is None
+
+
+def test_open_mode_warning_still_fires_for_localhost_but_skips_reachability_line():
+    auth = ApiAuth(keys_env="")
+    warning = auth.open_mode_warning("127.0.0.1")
+    assert warning is not None
+    assert "unauthenticated admin" not in warning
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

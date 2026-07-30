@@ -195,6 +195,36 @@ class ApiAuth:
     _OPEN = Principal("dev", "admin", "open", "enterprise", (),
                       licensing.resolve_capabilities("enterprise"))
 
+    def open_mode_warning(self, host: str = "") -> str | None:
+        """Rad(er) att skrika ut vid uppstart om servern är öppen.
+
+        Ingen kod läser detta – det är för en människa som startar
+        processen. Tomt om auth är på; annars en text som inte går att
+        missa i en loggrad bland hundra andra."""
+        if self.enabled:
+            return None
+        reachable = host not in ("", "127.0.0.1", "localhost", "::1")
+        lines = [
+            "=" * 70,
+            "WARNING: LANDVEX_API_KEYS and LANDVEX_JWT_SECRET are both "
+            "unset.",
+            "This server is running OPEN: every request is treated as "
+            "tenant 'dev',",
+            "role 'admin', plan 'enterprise' — no credential is checked.",
+        ]
+        if reachable:
+            lines.append(
+                f"It is also bound to {host!r}, not just localhost — "
+                "anyone who can reach")
+            lines.append(
+                "this host on this port has unauthenticated admin "
+                "access.")
+        lines.append(
+            "Set LANDVEX_API_KEYS (or LANDVEX_JWT_SECRET) before "
+            "exposing this beyond your own machine.")
+        lines.append("=" * 70)
+        return "\n".join(lines)
+
     def authorize(self, credential: str | None, method: str,
                   path: str) -> Principal:
         """credential = det servern läst ur headern: rå API-nyckel
