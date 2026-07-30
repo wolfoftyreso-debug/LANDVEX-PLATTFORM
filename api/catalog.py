@@ -596,6 +596,46 @@ API_CATALOG: dict = {
          "endpoints": [{"method": "GET", "path": "/v1/land"},
                        {"method": "POST", "path": "/v1/land/assess"},
                        {"method": "POST", "path": "/v1/land/compare"}]},
+        {"id": "housing_market", "label_en": "Housing price against housing standard",
+         "beskrivning_en": "Price per square metre from an official "
+                           "transaction register — shown ONLY when a "
+                           "real register answers, never estimated, "
+                           "exactly like the establishment counts in "
+                           "/v1/registers. Measured against a relative "
+                           "housing-standard position (building age, "
+                           "renovation activity, cost context) that "
+                           "carries no currency, exactly like /v1/land. "
+                           "The ratio between them is arithmetic, never "
+                           "a valuation or a forecast. Also surfaces the "
+                           "municipality's own comprehensive/master-plan "
+                           "register for what is actually planned.",
+         "endpoints": [{"method": "GET", "path": "/v1/housing-market"},
+                       {"method": "POST",
+                        "path": "/v1/housing-market/price"},
+                       {"method": "POST",
+                        "path": "/v1/housing-market/standard"},
+                       {"method": "POST",
+                        "path": "/v1/housing-market/compare"},
+                       {"method": "POST",
+                        "path": "/v1/housing-market/master-plans"}]},
+        {"id": "leads", "label_en": "Order a facade/condition survey, get named leads",
+         "beskrivning_en": "Survey a named list of third-party "
+                           "addresses for an observable exterior "
+                           "condition (dirty windows, a tired facade, "
+                           "broken signage), dispatched as quiXzoom "
+                           "field missions, and get back the addresses "
+                           "that actually met the severity threshold — "
+                           "a traceable sales-lead list, the deliberate "
+                           "opposite of sponsorship's k-floored "
+                           "aggregates. Exterior, street-visible "
+                           "observation only; the photo is never stored "
+                           "here, only the severity verdict and the "
+                           "mission reference.",
+         "endpoints": [{"method": "GET", "path": "/v1/leads"},
+                       {"method": "POST", "path": "/v1/leads/survey"},
+                       {"method": "POST", "path": "/v1/leads/dispatch"},
+                       {"method": "POST", "path": "/v1/leads/verdict"},
+                       {"method": "GET", "path": "/v1/leads/results"}]},
         {"id": "sponsorship", "label_en": "Fund missions, see aggregates",
          "beskrivning_en": "Sponsored missions: brands fund verification "
                            "or authentic-content work, zoomers choose "

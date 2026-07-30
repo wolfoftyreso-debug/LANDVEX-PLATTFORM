@@ -104,6 +104,13 @@ ENDPOINT_CAPABILITY: dict[str, str] = {
                                               # etableringsbeslutet — samma
                                               # paket som /v1/plan och
                                               # /v1/saturation
+    "/v1/housing-market": "opportunity",      # pris mot standard hör till
+                                              # samma etableringsbeslut som
+                                              # /v1/land — samma paket
+    "/v1/leads": "lead_surveys",              # egen produkt: spårbara
+                                              # leads över tredje parts
+                                              # fastigheter, inte kundens
+                                              # egna objekt (asset_inspections)
     "/v1/sponsorship": "sponsor_portal",
     "/v1/connections": "core",                # kundens eget kryp-in: egna
                                               # nycklar och webhooks — följer
@@ -253,7 +260,7 @@ PLANS: dict[str, dict] = _PlanMap({
                          "demand_intelligence", "intelligence_map_free",
                          "intelligence_map_live", "monitoring", "partner_api",
                          "platform_ops", "asset_inspections",
-                         "sponsor_portal"),
+                         "sponsor_portal", "lead_surveys"),
         "ingar_en": ["Everything in Professional",
                      "Asset inspections: your own objects, recurring "
                      "routines, field orders, verdicts and a compliance "
@@ -299,6 +306,14 @@ ADDONS: dict[str, dict] = {
     "sponsor_portal": {"label_en": "Sponsor Portal (sponsored missions)",
                        "pris_manad": {"USD": 399, "EUR": 369},
                        "capabilities": ("sponsor_portal",)},
+    # Egen produkt, egen köpare: ett fönsterputtarföretag som vill ha en
+    # lista med smutsiga skyltfönster i sitt område behöver inte
+    # etableringsanalys eller arbetskraftsprognoser. Samma skäl som
+    # asset_inspections ovan — kapabiliteten får inte bara ligga i den
+    # dyraste planen.
+    "lead_surveys": {"label_en": "Lead Surveys (third-party condition leads)",
+                     "pris_manad": {"USD": 299, "EUR": 279},
+                     "capabilities": ("lead_surveys",)},
 }
 
 PRISNOT_EN = ("List prices (examples) in USD per month excl. taxes – "

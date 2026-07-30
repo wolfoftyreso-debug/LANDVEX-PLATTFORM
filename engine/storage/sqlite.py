@@ -300,6 +300,26 @@ _MIGRATIONS: list[tuple[int, str]] = [
         payload     TEXT NOT NULL
     );
     """),
+    # Områdesspaningar (leads): spaningsordern och varje adress-verdikt.
+    # Samma "payload bär allt"-form som resten av lagret — adresslistan
+    # (tredje parts fastigheter, aldrig kundens egna) ligger i ordern.
+    (18, """
+    CREATE TABLE IF NOT EXISTS lead_surveys (
+        id         TEXT PRIMARY KEY,
+        tenant     TEXT NOT NULL DEFAULT '',
+        created_at REAL NOT NULL DEFAULT 0,
+        payload    TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS lead_verdicts (
+        id           TEXT PRIMARY KEY,
+        survey_id    TEXT NOT NULL DEFAULT '',
+        tenant       TEXT NOT NULL DEFAULT '',
+        performed_at TEXT NOT NULL DEFAULT '',
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_lead_verdicts
+        ON lead_verdicts(tenant, survey_id);
+    """),
 ]
 
 _DDL = """
@@ -916,6 +936,42 @@ class SqliteStore(Store):
             cur = self._conn.execute(
                 "DELETE FROM company_logos WHERE tenant = ?", (tenant,))
         return cur.rowcount > 0
+
+    # ── Områdesspaningar (leads) ────────────────────────────────────
+    def save_survey(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO lead_surveys "
+                "(id, tenant, created_at, payload) VALUES (?,?,?,?)",
+                (rec["id"], rec.get("tenant", ""),
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_surveys(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM lead_surveys "
+                "ORDER BY created_at DESC").fetchall()
+        return [json.loads(r[0]) for r in rader]
+
+    def save_lead_verdict(self, rec: dict) -> str:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO lead_verdicts "
+                "(id, survey_id, tenant, performed_at, payload) "
+                "VALUES (?,?,?,?,?)",
+                (rec["id"], rec.get("survey_id", ""),
+                 rec.get("tenant", ""), rec.get("performed_at", ""),
+                 json.dumps(rec, ensure_ascii=False)))
+        return rec["id"]
+
+    def all_lead_verdicts(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM lead_verdicts "
+                "ORDER BY performed_at DESC").fetchall()
+        return [json.loads(r[0]) for r in rader]
 
     def credential_secret(self, tenant: str) -> bytes:
         """Hämta-eller-skapa: hemligheten genereras första gången den

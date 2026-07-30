@@ -89,6 +89,7 @@ from engine import company as company_engine
 from engine import connections as connections_engine
 from engine import credentials as credentials_engine
 from engine import deliveries as deliveries_engine
+from engine import leads as leads_engine
 from engine import sponsorship as sponsorship_engine
 from engine import staff as staff_engine
 from engine.coverage import compare_markets, coverage
@@ -176,6 +177,7 @@ company_engine.set_store(STORE)
 credentials_engine.set_store(STORE)
 staff_engine.set_store(STORE)
 deliveries_engine.set_store(STORE)
+leads_engine.set_store(STORE)
 
 
 def _med_credential(rec: dict, kind: str, subject: dict, *,
@@ -514,6 +516,23 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/land":
             from engine.land import catalog as land_catalog
             return self._send(200, land_catalog())
+        if parsed.path == "/v1/housing-market":
+            from engine.housing_market import catalog as hm_catalog
+            return self._send(200, hm_catalog())
+        if parsed.path == "/v1/leads":
+            from engine import leads as LD
+            return self._send(200, {**LD.catalog(),
+                                    "surveys": LD.all_surveys(self._tenant())})
+        if parsed.path == "/v1/leads/results":
+            from engine import leads as LD
+            q = parse_qs(parsed.query)
+            try:
+                return self._send(200, LD.leads(
+                    q.get("survey_id", [""])[0],
+                    min_severity=q.get("min_severity", ["light"])[0],
+                    tenant=self._tenant()))
+            except LD.SurveyRefused as e:
+                return self._send(422, {"error": str(e)})
         if parsed.path == "/v1/sponsorship":
             from engine import sponsorship as SP
             return self._send(200, {
@@ -1080,6 +1099,70 @@ class Handler(BaseHTTPRequestHandler):
                         req.get("market", "se"), resolver=RESOLVER))
                 except (LandRefused, ValueError) as e:
                     return self._send(422, {"error": str(e)})
+            if self.path == "/v1/housing-market/price":
+                from engine.housing_market import price as hm_price
+                try:
+                    return self._send(200, hm_price(
+                        req.get("market", "se"), req.get("region_code", "")))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/housing-market/standard":
+                from engine.housing_market import standard as hm_standard
+                try:
+                    return self._send(200, hm_standard(
+                        req.get("region_code", ""),
+                        req.get("market", "se"), resolver=RESOLVER))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/housing-market/compare":
+                from engine.housing_market import price_vs_standard as hm_pvs
+                try:
+                    return self._send(200, hm_pvs(
+                        req.get("market", "se"), req.get("region_code", ""),
+                        resolver=RESOLVER))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/housing-market/master-plans":
+                from engine.housing_market import master_plans as hm_plans
+                try:
+                    return self._send(200, hm_plans(
+                        req.get("market", "se"), req.get("region_code", "")))
+                except ValueError as e:
+                    return self._send(422, {"error": str(e)})
+            if self.path == "/v1/leads/survey":
+                from engine import leads as LD
+                try:
+                    rec = LD.survey(req.get("id", ""),
+                                    req.get("label_en", ""),
+                                    req.get("condition", ""),
+                                    req.get("addresses") or [],
+                                    tenant=self._tenant())
+                except LD.SurveyRefused as e:
+                    return self._send(422, {"error": str(e)})
+                LD.save_survey(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/leads/dispatch":
+                from engine import leads as LD
+                surv = next((s for s in LD.all_surveys(self._tenant())
+                            if s["id"] == req.get("survey_id", "")), None)
+                if surv is None:
+                    return self._send(404, {
+                        "error": "no such survey for this tenant"})
+                return self._send(200, LD.dispatch_survey(surv))
+            if self.path == "/v1/leads/verdict":
+                from engine import leads as LD
+                try:
+                    rec = LD.verdict(req.get("survey_id", ""),
+                                     req.get("address_id", ""),
+                                     req.get("severity", ""),
+                                     mission_id=req.get("mission_id", ""),
+                                     evidence_ref=req.get("evidence_ref", ""),
+                                     note_en=req.get("note_en", ""),
+                                     tenant=self._tenant())
+                except LD.SurveyRefused as e:
+                    return self._send(422, {"error": str(e)})
+                LD.save_verdict(rec)
+                return self._send(201, rec)
             if self.path == "/v1/sponsorship/campaigns":
                 from engine import sponsorship as SP
                 try:

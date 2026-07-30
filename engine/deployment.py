@@ -166,6 +166,18 @@ ENVIRONMENT: dict[str, dict] = {
     "LANDVEX_PROGRAMS_URL": _v(
         "optional", "Support-programme feed.",
         "Programme matching is mock."),
+    "LANDVEX_HOUSING_PRICE_URL": _v(
+        "optional", "Official housing-transaction register (price per "
+                    "square metre).",
+        "No price is shown at all — a made-up price would be used in a "
+        "negotiation. /v1/housing-market refuses by name instead of "
+        "estimating."),
+    "LANDVEX_MASTER_PLAN_URL": _v(
+        "optional", "Municipal comprehensive/master-plan register "
+                    "(long-horizon development plans, distinct from "
+                    "LANDVEX_PERMITS_URL's detail plans).",
+        "No planning documents are shown; an empty list is reported as "
+        "'not connected', never as 'nothing planned'."),
     "LANDVEX_SVK_URL": _v(
         "optional", "Svenska kraftnät / ENTSO-E grid telemetry.",
         "Grid production mix and balance are mock."),

@@ -65,9 +65,9 @@ CATEGORIES: tuple[dict, ...] = (
             "opportunity_intel", "risk_intelligence", "gaps", "plan",
             "segments", "installed_base", "indices", "kpi", "lambda",
             "setpoints", "decision", "entrypoints", "wages", "flows",
-            "land", "livability", "merit", "scenario", "correlate",
-            "event_study", "benchmark", "sensitive", "accountability",
-            "saturation", "admin",
+            "land", "housing_market", "livability", "merit", "scenario",
+            "correlate", "event_study", "benchmark", "sensitive",
+            "accountability", "saturation", "admin",
         ),
     },
     {
@@ -82,7 +82,7 @@ CATEGORIES: tuple[dict, ...] = (
             "claims", "feeds", "worthiness", "corrections", "inspections",
             "infrastructure", "sensors", "corroboration", "mrai",
             "analysis", "selfaudit", "provenance", "outcomes", "brief",
-            "monitors", "strim", "coverage", "platform",
+            "monitors", "strim", "coverage", "platform", "leads",
         ),
     },
     {

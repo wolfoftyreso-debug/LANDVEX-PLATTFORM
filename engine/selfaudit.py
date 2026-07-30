@@ -126,6 +126,12 @@ LAYER_SEAMS: tuple[dict, ...] = (
     {"site": "engine/chain.py", "imports": "api.catalog",
      "why_en": "categories() counts endpoints per intent, same reason and "
                "same lazy-read pattern as engine/surface.py."},
+    {"site": "engine/leads.py", "imports": "integrations.quixzoom_dispatch",
+     "why_en": "dispatch_survey() reuses MissionDispatcher as-is (a "
+               "survey address is asset-shaped, a survey order is "
+               "routine-shaped); lazy import inside the dispatch call, "
+               "never at engine import time — same reason as "
+               "engine/scheduler.py's dispatch seam."},
 )
 
 

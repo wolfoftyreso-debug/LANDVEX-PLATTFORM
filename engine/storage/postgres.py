@@ -285,6 +285,22 @@ CREATE TABLE IF NOT EXISTS company_logos (
     uploaded_at DOUBLE PRECISION NOT NULL DEFAULT 0,
     payload     JSONB NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS lead_surveys (
+    id         TEXT PRIMARY KEY,
+    tenant     TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE TABLE IF NOT EXISTS lead_verdicts (
+    id           TEXT PRIMARY KEY,
+    survey_id    TEXT NOT NULL DEFAULT '',
+    tenant       TEXT NOT NULL DEFAULT '',
+    performed_at TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lead_verdicts
+    ON lead_verdicts(tenant, survey_id);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -387,6 +403,23 @@ CREATE TABLE IF NOT EXISTS company_logos (
     uploaded_at DOUBLE PRECISION NOT NULL DEFAULT 0,
     payload     JSONB NOT NULL
 );
+"""),
+    (18, """
+CREATE TABLE IF NOT EXISTS lead_surveys (
+    id         TEXT PRIMARY KEY,
+    tenant     TEXT NOT NULL DEFAULT '',
+    created_at DOUBLE PRECISION NOT NULL DEFAULT 0,
+    payload    JSONB NOT NULL
+);
+CREATE TABLE IF NOT EXISTS lead_verdicts (
+    id           TEXT PRIMARY KEY,
+    survey_id    TEXT NOT NULL DEFAULT '',
+    tenant       TEXT NOT NULL DEFAULT '',
+    performed_at TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lead_verdicts
+    ON lead_verdicts(tenant, survey_id);
 """),
 ]
 
@@ -993,6 +1026,49 @@ class PostgresStore(Store):
             antal = cur.rowcount
         self._conn.commit()
         return antal > 0
+
+    # ── Områdesspaningar (leads) ────────────────────────────────────
+    def save_survey(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO lead_surveys (id, tenant, created_at, "
+                "payload) VALUES (%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET "
+                "payload = EXCLUDED.payload",
+                (rec["id"], rec.get("tenant", ""),
+                 float(rec.get("created_at") or 0),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["id"]
+
+    def all_surveys(self) -> list[dict]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM lead_surveys "
+                        "ORDER BY created_at DESC")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+               for r in rader]
+
+    def save_lead_verdict(self, rec: dict) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO lead_verdicts (id, survey_id, tenant, "
+                "performed_at, payload) VALUES (%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET "
+                "payload = EXCLUDED.payload",
+                (rec["id"], rec.get("survey_id", ""),
+                 rec.get("tenant", ""), rec.get("performed_at", ""),
+                 json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rec["id"]
+
+    def all_lead_verdicts(self) -> list[dict]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM lead_verdicts "
+                        "ORDER BY performed_at DESC")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+               for r in rader]
 
     def credential_secret(self, tenant: str) -> bytes:
         import secrets as _s

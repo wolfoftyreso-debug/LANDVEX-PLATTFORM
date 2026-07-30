@@ -81,6 +81,7 @@ from engine import company as _company
 from engine import connections as _connections
 from engine import credentials as _credentials
 from engine import deliveries as _deliveries
+from engine import leads as _leads
 from engine import sponsorship as _sponsorship
 from engine import staff as _staff
 from engine.scenario import project as scenario_project
@@ -235,6 +236,7 @@ _company.set_store(STORE)
 _credentials.set_store(STORE)
 _staff.set_store(STORE)
 _deliveries.set_store(STORE)
+_leads.set_store(STORE)
 
 
 def _med_credential(rec: dict, kind: str, subject: dict, *,
@@ -1351,6 +1353,121 @@ def land_compare_ep(body: dict):
         return compare(body.get("region_codes") or [],
                        body.get("market", "se"), resolver=RESOLVER)
     except (LandRefused, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/housing-market")
+def housing_market_catalog_ep():
+    """What the price, the standard and the plans can and cannot say."""
+    from engine.housing_market import catalog
+    return catalog()
+
+
+@app.post("/v1/housing-market/price")
+def housing_market_price_ep(body: dict):
+    """Price per m² — measured=True only from a real transaction register."""
+    from engine.housing_market import price
+    try:
+        return price(body.get("market", "se"), body.get("region_code", ""))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/housing-market/standard")
+def housing_market_standard_ep(body: dict):
+    """Relative housing-standard position — never a currency."""
+    from engine.housing_market import standard
+    try:
+        return standard(body.get("region_code", ""),
+                        body.get("market", "se"), resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/housing-market/compare")
+def housing_market_compare_ep(body: dict):
+    """Price divided by standard — arithmetic, never a valuation."""
+    from engine.housing_market import price_vs_standard
+    try:
+        return price_vs_standard(body.get("market", "se"),
+                                 body.get("region_code", ""),
+                                 resolver=RESOLVER)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.post("/v1/housing-market/master-plans")
+def housing_market_plans_ep(body: dict):
+    """The municipality's own planning documents — or an honest 'not connected'."""
+    from engine.housing_market import master_plans
+    try:
+        return master_plans(body.get("market", "se"),
+                            body.get("region_code", ""))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/leads")
+def leads_catalog_ep(request: Request):
+    """What a survey can ask for, and this tenant's surveys."""
+    from engine import leads as LD
+    return {**LD.catalog(), "surveys": LD.all_surveys(_tenant(request))}
+
+
+@app.post("/v1/leads/survey", status_code=201)
+def leads_survey_ep(request: Request, body: dict):
+    """Create a survey order over named third-party addresses."""
+    from engine import leads as LD
+    try:
+        rec = LD.survey(body.get("id", ""), body.get("label_en", ""),
+                        body.get("condition", ""),
+                        body.get("addresses") or [],
+                        tenant=_tenant(request))
+    except LD.SurveyRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    LD.save_survey(rec)
+    return rec
+
+
+@app.post("/v1/leads/dispatch")
+def leads_dispatch_ep(request: Request, body: dict):
+    """Order one field mission per address — refusals are answers."""
+    from engine import leads as LD
+    surv = next((s for s in LD.all_surveys(_tenant(request))
+                if s["id"] == body.get("survey_id", "")), None)
+    if surv is None:
+        raise HTTPException(status_code=404,
+                            detail="no such survey for this tenant")
+    return LD.dispatch_survey(surv)
+
+
+@app.post("/v1/leads/verdict", status_code=201)
+def leads_verdict_ep(request: Request, body: dict):
+    """Record a severity — refused without evidence, same rule as inspections."""
+    from engine import leads as LD
+    try:
+        rec = LD.verdict(body.get("survey_id", ""),
+                         body.get("address_id", ""),
+                         body.get("severity", ""),
+                         mission_id=body.get("mission_id", ""),
+                         evidence_ref=body.get("evidence_ref", ""),
+                         note_en=body.get("note_en", ""),
+                         tenant=_tenant(request))
+    except LD.SurveyRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    LD.save_verdict(rec)
+    return rec
+
+
+@app.get("/v1/leads/results")
+def leads_results_ep(request: Request, survey_id: str = "",
+                     min_severity: str = "light"):
+    """The addresses that met the threshold — verdict + mission reference, never the photo."""
+    from engine import leads as LD
+    try:
+        return LD.leads(survey_id, min_severity=min_severity,
+                        tenant=_tenant(request))
+    except LD.SurveyRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

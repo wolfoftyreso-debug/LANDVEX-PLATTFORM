@@ -77,6 +77,7 @@ PROMISES: tuple[dict, ...] = (
         "engines": ("opportunity", "opportunity_intel", "saturation",
                     "gaps", "plan", "risk", "risk_intelligence", "compare",
                     "segments", "installed_base", "workforce", "flows", "land",
+                    "housing_market",
                     "livability", "merit", "entrypoints"),
     },
     {
@@ -115,7 +116,7 @@ PROMISES: tuple[dict, ...] = (
                     "surface", "chain", "customer", "visitor", "admin",
                     "inspections", "export", "pushes", "sponsorship",
                     "infrastructure", "connections", "company", "staff",
-                    "deliveries"),
+                    "deliveries", "leads"),
     },
 )
 
