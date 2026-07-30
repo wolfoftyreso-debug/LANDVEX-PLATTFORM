@@ -460,6 +460,76 @@ def test_the_seed_carries_one_targeted_routine_as_a_worked_example():
     assert riktade[0]["audience"]["zoomer_ids"]
 
 
+# ── Verifiering: andra-persons-granskning ───────────────────────────────
+def test_a_review_without_a_named_reviewer_is_refused():
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1", observed_by="Anna")
+    try:
+        I.review(c, reviewer="", outcome="confirmed")
+    except ValueError as e:
+        assert "namngiven granskare" in str(e)
+        return
+    raise AssertionError("granskning utan granskare accepterades")
+
+
+def test_a_review_by_the_same_observer_is_refused():
+    """Poängen med hela funktionen: granskaren måste vara någon ANNAN
+    än den som observerade, annars bekräftar personen sig själv."""
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1", observed_by="Anna")
+    try:
+        I.review(c, reviewer="Anna", outcome="confirmed")
+    except ValueError as e:
+        assert "en annan person" in str(e)
+        return
+    raise AssertionError("Anna granskade sin egen observation utan att vägras")
+
+
+def test_a_review_by_a_different_observer_is_accepted():
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1", observed_by="Anna")
+    r = I.review(c, reviewer="Björn", outcome="confirmed")
+    assert r["reviewer"] == "Björn"
+    assert r["asset_id"] == "a1" and r["routine_id"] == "r1"
+
+
+def test_an_unknown_review_outcome_is_refused():
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1")
+    try:
+        I.review(c, reviewer="Björn", outcome="looks_fine")
+    except ValueError as e:
+        assert "granskningsutfall" in str(e)
+        return
+    raise AssertionError("ett okänt utfall accepterades")
+
+
+def test_a_review_with_no_observed_by_cannot_verify_distinctness_but_is_not_blocked():
+    """`observed_by` är valfritt på en kontroll. En granskning ska inte
+    straffas för att fältet aldrig fylldes i — men ska säga att den
+    inte KAN verifiera att granskaren skiljer sig från observatören."""
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1")
+    r = I.review(c, reviewer="Björn", outcome="confirmed")
+    assert r["reviewer"] == "Björn"
+    assert "cannot" in r["cannot_en"].lower()
+
+
+def test_the_review_never_mutates_the_original_check():
+    """Append-only, som resten av modulen: en granskning skriver en NY
+    post och lämnar den granskade kontrollen orörd."""
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1", observed_by="Anna")
+    fore = dict(c)
+    I.review(c, reviewer="Björn", outcome="disputed")
+    assert c == fore
+
+
+def test_the_review_media_itself_is_never_stored():
+    c = I.record("a1", "r1", "pass", evidence_ref="ev-1", observed_by="Anna")
+    r = I.review(c, reviewer="Björn", outcome="confirmed",
+                note_en="Looks consistent with the photo timestamp")
+    forbjudna = ("image", "photo", "media", "bild", "base64", "blob",
+                "bytes", "data_url")
+    for f in r:
+        assert not any(x in f.lower() for x in forbjudna), (
+            f"fältet {f!r} ser ut att bära media")
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

@@ -320,6 +320,32 @@ _MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_lead_verdicts
         ON lead_verdicts(tenant, survey_id);
     """),
+    # Verifiering: andra-persons-granskning av ett redan registrerat
+    # utfall (inspections) eller en redan registrerad severity (leads).
+    # Append-only, precis som checks/lead_verdicts — en granskning är en
+    # NY rad, aldrig en ändring av det granskade.
+    (19, """
+    CREATE TABLE IF NOT EXISTS check_reviews (
+        id           TEXT PRIMARY KEY,
+        tenant       TEXT NOT NULL DEFAULT '',
+        asset_id     TEXT NOT NULL,
+        routine_id   TEXT NOT NULL DEFAULT '',
+        performed_at TEXT NOT NULL DEFAULT '',
+        reviewer     TEXT NOT NULL DEFAULT '',
+        payload      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_check_reviews_tenant
+        ON check_reviews(tenant, asset_id);
+    CREATE TABLE IF NOT EXISTS lead_reviews (
+        id          TEXT PRIMARY KEY,
+        tenant      TEXT NOT NULL DEFAULT '',
+        verdict_id  TEXT NOT NULL DEFAULT '',
+        reviewer    TEXT NOT NULL DEFAULT '',
+        payload     TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_lead_reviews_tenant
+        ON lead_reviews(tenant, verdict_id);
+    """),
 ]
 
 _DDL = """
@@ -710,6 +736,28 @@ class SqliteStore(Store):
             ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
+    def save_review(self, record: dict[str, Any]) -> str:
+        # Append-only, precis som save_check: en granskning skriver
+        # alltid en NY rad.
+        rid = str(uuid.uuid4())
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO check_reviews (id, tenant, "
+                "asset_id, routine_id, performed_at, reviewer, payload) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (rid, record.get("tenant", ""), record["asset_id"],
+                 record.get("routine_id", ""),
+                 record.get("performed_at", ""), record.get("reviewer", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return rid
+
+    def all_reviews(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT payload FROM check_reviews ORDER BY performed_at, id"
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
     # ── Schemalagda körningar ────────────────────────────────────────
     def save_job(self, record: dict[str, Any]) -> str:
         with self._lock, self._conn:
@@ -971,6 +1019,23 @@ class SqliteStore(Store):
             rader = self._conn.execute(
                 "SELECT payload FROM lead_verdicts "
                 "ORDER BY performed_at DESC").fetchall()
+        return [json.loads(r[0]) for r in rader]
+
+    def save_lead_review(self, rec: dict) -> str:
+        rid = str(uuid.uuid4())
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO lead_reviews "
+                "(id, tenant, verdict_id, reviewer, payload) "
+                "VALUES (?,?,?,?,?)",
+                (rid, rec.get("tenant", ""), rec.get("verdict_id", ""),
+                 rec.get("reviewer", ""), json.dumps(rec, ensure_ascii=False)))
+        return rid
+
+    def all_lead_reviews(self) -> list[dict]:
+        with self._lock:
+            rader = self._conn.execute(
+                "SELECT payload FROM lead_reviews ORDER BY id").fetchall()
         return [json.loads(r[0]) for r in rader]
 
     def credential_secret(self, tenant: str) -> bytes:

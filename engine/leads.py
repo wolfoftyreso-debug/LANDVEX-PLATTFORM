@@ -44,6 +44,7 @@ import uuid as _uuid
 # Fyra allvarlighetsgrader delade av alla villkor — enklare än en
 # skala per villkor, och jämförbara (leads() filtrerar på tröskel).
 SEVERITY = ("none", "light", "moderate", "severe")
+REVIEW_OUTCOMES = ("confirmed", "disputed", "insufficient_evidence")
 _SEVERITY_ORDER = {s: i for i, s in enumerate(SEVERITY)}
 
 CONDITIONS: dict[str, dict] = {
@@ -174,6 +175,38 @@ def verdict(survey_id: str, address_id: str, severity: str, *,
     }
 
 
+def review(verdict_rec: dict, *, reviewer: str, outcome: str,
+          note_en: str = "", reviewed_at: str = "", tenant: str = "") -> dict:
+    """Andra-persons-granskning av en redan registrerad severity — samma
+    Verifiering-steg som `inspections.review()`, för en fristående
+    verdikt i stället för en rutinbunden kontroll.
+
+    Ingen `observed_by`-jämförelse här: vem som utförde fältbesöket är
+    en person-uppgift som stannar hos quiXzoom (se modulens doktrin
+    överst), så granskningen kan bara kräva en namngiven granskare —
+    aldrig verifiera att hen skiljer sig från zoomern, det vore att
+    låtsas känna till en identitet Landvex medvetet inte lagrar."""
+    if not reviewer:
+        raise SurveyRefused("en granskning kräver en namngiven granskare")
+    if outcome not in REVIEW_OUTCOMES:
+        raise SurveyRefused(f"okänt granskningsutfall {outcome!r}; "
+                            f"välj bland {REVIEW_OUTCOMES}")
+    return {
+        "verdict_id": verdict_rec["id"], "survey_id": verdict_rec["survey_id"],
+        "address_id": verdict_rec["address_id"],
+        "tenant": tenant or verdict_rec.get("tenant", ""),
+        "reviewer": reviewer, "outcome": outcome, "note_en": note_en,
+        "reviewed_at": reviewed_at or _time.strftime("%Y-%m-%d"),
+        "basis_en": ("A second reading of the same evidence reference, "
+                     "by a named reviewer. It does not repeat the field "
+                     "visit — it checks whether the recorded severity is "
+                     "supported by what was submitted."),
+        "cannot_en": ("Cannot confirm the reviewer is a different person "
+                      "from the zoomer who visited — that identity is "
+                      "not stored here by design."),
+    }
+
+
 def leads(survey_id: str, *, min_severity: str = "light",
          tenant: str = "") -> dict:
     """Adresserna som mötte tröskeln — verdikt + uppdragsreferens,
@@ -280,8 +313,27 @@ def all_verdicts(tenant: str | None = None) -> list[dict]:
     return [r for r in rader if tenant is None or r.get("tenant") == tenant]
 
 
+_REVIEWS: list[dict] = []
+
+
+def save_review(rec: dict) -> str:
+    if _STORE is not None and getattr(_STORE, "save_lead_review", None):
+        return _STORE.save_lead_review(rec)
+    with _LOCK:
+        _REVIEWS.append(dict(rec))
+    return f"{rec['verdict_id']}:{rec['reviewer']}"
+
+
+def all_reviews(tenant: str | None = None) -> list[dict]:
+    rader = (_STORE.all_lead_reviews() if _STORE is not None
+            and getattr(_STORE, "all_lead_reviews", None)
+            else list(_REVIEWS))
+    return [r for r in rader if tenant is None or r.get("tenant") == tenant]
+
+
 def reset() -> None:
     """Endast för tester."""
     with _LOCK:
         _SURVEYS.clear()
         _VERDICTS.clear()
+        _REVIEWS.clear()

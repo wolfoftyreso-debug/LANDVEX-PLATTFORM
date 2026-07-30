@@ -1089,6 +1089,29 @@ def inspections_verdict_ep(request: Request, body: dict):
         tenant=_tenant(request), mission_id=rec.get("mission_id", ""))
 
 
+@app.post("/v1/inspections/review", status_code=201)
+def inspections_review_ep(request: Request, body: dict):
+    """A second, named person reads the same evidence and confirms,
+    disputes, or says the basis is not enough to tell."""
+    from engine import inspections as I
+    t = _tenant(request)
+    check = next((c for c in I.all_checks(t)
+                 if c.get("asset_id") == body.get("asset_id")
+                 and c.get("routine_id") == body.get("routine_id")
+                 and c.get("performed_at") == body.get("performed_at")), None)
+    if check is None:
+        raise HTTPException(status_code=404,
+                            detail="no such check for this tenant")
+    try:
+        rec = I.review(check, reviewer=body["reviewer"],
+                       outcome=body["outcome"],
+                       note_en=body.get("note_en", ""), tenant=t)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    I.save_review(rec)
+    return rec
+
+
 @app.get("/v1/inspections/compliance")
 def inspections_compliance_ep(request: Request):
     """Every object, last seen, next due — what you show afterwards."""
@@ -1101,6 +1124,13 @@ def inspections_exceptions_ep(request: Request):
     """Only what needs someone."""
     from engine import inspections as I
     return I.exception_feed(_tenant(request))
+
+
+@app.get("/v1/inspections/reviews")
+def inspections_reviews_ep(request: Request):
+    """Every second-person review recorded for this tenant."""
+    from engine import inspections as I
+    return {"reviews": I.all_reviews(_tenant(request))}
 
 
 @app.get("/v1/schedules")
@@ -1469,6 +1499,26 @@ def leads_verdict_ep(request: Request, body: dict):
     return rec
 
 
+@app.post("/v1/leads/review", status_code=201)
+def leads_review_ep(request: Request, body: dict):
+    """A second, named person reads the same evidence reference."""
+    from engine import leads as LD
+    t = _tenant(request)
+    verdict_rec = next((v for v in LD.all_verdicts(t)
+                        if v["id"] == body.get("verdict_id", "")), None)
+    if verdict_rec is None:
+        raise HTTPException(status_code=404,
+                            detail="no such verdict for this tenant")
+    try:
+        rec = LD.review(verdict_rec, reviewer=body.get("reviewer", ""),
+                        outcome=body.get("outcome", ""),
+                        note_en=body.get("note_en", ""), tenant=t)
+    except LD.SurveyRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    LD.save_review(rec)
+    return rec
+
+
 @app.get("/v1/leads/results")
 def leads_results_ep(request: Request, survey_id: str = "",
                      min_severity: str = "light"):
@@ -1479,6 +1529,13 @@ def leads_results_ep(request: Request, survey_id: str = "",
                         tenant=_tenant(request))
     except LD.SurveyRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/v1/leads/reviews")
+def leads_reviews_ep(request: Request):
+    """Every second-person review recorded for this tenant."""
+    from engine import leads as LD
+    return {"reviews": LD.all_reviews(_tenant(request))}
 
 
 @app.get("/v1/sponsorship")

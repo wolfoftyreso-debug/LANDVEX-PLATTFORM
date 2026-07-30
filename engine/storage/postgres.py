@@ -301,6 +301,26 @@ CREATE TABLE IF NOT EXISTS lead_verdicts (
 );
 CREATE INDEX IF NOT EXISTS idx_lead_verdicts
     ON lead_verdicts(tenant, survey_id);
+CREATE TABLE IF NOT EXISTS check_reviews (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    asset_id     TEXT NOT NULL,
+    routine_id   TEXT NOT NULL DEFAULT '',
+    performed_at TEXT NOT NULL DEFAULT '',
+    reviewer     TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_check_reviews_tenant
+    ON check_reviews(tenant, asset_id);
+CREATE TABLE IF NOT EXISTS lead_reviews (
+    id          TEXT PRIMARY KEY,
+    tenant      TEXT NOT NULL DEFAULT '',
+    verdict_id  TEXT NOT NULL DEFAULT '',
+    reviewer    TEXT NOT NULL DEFAULT '',
+    payload     JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lead_reviews_tenant
+    ON lead_reviews(tenant, verdict_id);
 """
 
 # ── Migrationskedjan ────────────────────────────────────────────────────
@@ -420,6 +440,28 @@ CREATE TABLE IF NOT EXISTS lead_verdicts (
 );
 CREATE INDEX IF NOT EXISTS idx_lead_verdicts
     ON lead_verdicts(tenant, survey_id);
+"""),
+    (19, """
+CREATE TABLE IF NOT EXISTS check_reviews (
+    id           TEXT PRIMARY KEY,
+    tenant       TEXT NOT NULL DEFAULT '',
+    asset_id     TEXT NOT NULL,
+    routine_id   TEXT NOT NULL DEFAULT '',
+    performed_at TEXT NOT NULL DEFAULT '',
+    reviewer     TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_check_reviews_tenant
+    ON check_reviews(tenant, asset_id);
+CREATE TABLE IF NOT EXISTS lead_reviews (
+    id          TEXT PRIMARY KEY,
+    tenant      TEXT NOT NULL DEFAULT '',
+    verdict_id  TEXT NOT NULL DEFAULT '',
+    reviewer    TEXT NOT NULL DEFAULT '',
+    payload     JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lead_reviews_tenant
+    ON lead_reviews(tenant, verdict_id);
 """),
 ]
 
@@ -776,6 +818,28 @@ class PostgresStore(Store):
                         "ORDER BY performed_at, id")
             return [r[0] for r in cur.fetchall()]
 
+    def save_review(self, record: dict[str, Any]) -> str:
+        import json
+        import uuid as _uuid
+        rid = str(_uuid.uuid4())
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO check_reviews (id, tenant, asset_id, "
+                "routine_id, performed_at, reviewer, payload) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload",
+                (rid, record.get("tenant", ""), record["asset_id"],
+                 record.get("routine_id", ""),
+                 record.get("performed_at", ""), record.get("reviewer", ""),
+                 json.dumps(record, ensure_ascii=False)))
+        return rid
+
+    def all_reviews(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM check_reviews "
+                        "ORDER BY performed_at, id")
+            return [r[0] for r in cur.fetchall()]
+
     # ── Schemalagda körningar ────────────────────────────────────────
     def save_job(self, record: dict[str, Any]) -> str:
         import json
@@ -1066,6 +1130,27 @@ class PostgresStore(Store):
         with self._conn.cursor() as cur:
             cur.execute("SELECT payload FROM lead_verdicts "
                         "ORDER BY performed_at DESC")
+            rader = cur.fetchall()
+        return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
+               for r in rader]
+
+    def save_lead_review(self, rec: dict) -> str:
+        import uuid as _uuid
+        rid = str(_uuid.uuid4())
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO lead_reviews (id, tenant, verdict_id, "
+                "reviewer, payload) VALUES (%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO UPDATE SET "
+                "payload = EXCLUDED.payload",
+                (rid, rec.get("tenant", ""), rec.get("verdict_id", ""),
+                 rec.get("reviewer", ""), json.dumps(rec, ensure_ascii=False)))
+        self._conn.commit()
+        return rid
+
+    def all_lead_reviews(self) -> list[dict]:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT payload FROM lead_reviews")
             rader = cur.fetchall()
         return [r[0] if isinstance(r[0], dict) else json.loads(r[0])
                for r in rader]

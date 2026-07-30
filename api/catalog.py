@@ -645,6 +645,8 @@ API_CATALOG: dict = {
                        {"method": "POST", "path": "/v1/leads/survey"},
                        {"method": "POST", "path": "/v1/leads/dispatch"},
                        {"method": "POST", "path": "/v1/leads/verdict"},
+                       {"method": "POST", "path": "/v1/leads/review"},
+                       {"method": "GET", "path": "/v1/leads/reviews"},
                        {"method": "GET", "path": "/v1/leads/results"}]},
         {"id": "sponsorship", "label_en": "Fund missions, see aggregates",
          "beskrivning_en": "Sponsored missions: brands fund verification "
@@ -689,6 +691,8 @@ API_CATALOG: dict = {
                        {"method": "GET", "path": "/v1/inspections/due"},
                        {"method": "POST", "path": "/v1/inspections/dispatch"},
                        {"method": "POST", "path": "/v1/inspections/verdict"},
+                       {"method": "POST", "path": "/v1/inspections/review"},
+                       {"method": "GET", "path": "/v1/inspections/reviews"},
                        {"method": "GET",
                         "path": "/v1/inspections/compliance"},
                        {"method": "GET",

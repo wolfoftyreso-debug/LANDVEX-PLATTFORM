@@ -55,6 +55,7 @@ import datetime as _dt
 VERDICTS = ("pass", "fail", "missing", "unclear")
 STATUSES = ("never_checked", "ok", "due_soon", "overdue", "failed",
             "out_of_season")
+REVIEW_OUTCOMES = ("confirmed", "disputed", "insufficient_evidence")
 
 # Hur nära förfall något ska vara för att kallas "snart". En vecka är
 # den horisont en driftplanering faktiskt arbetar i.
@@ -287,6 +288,48 @@ def record(asset_id: str, routine_id: str, verdict: str, *,
     }
 
 
+def review(check: dict, *, reviewer: str, outcome: str, note_en: str = "",
+          reviewed_at: str = "", tenant: str = "") -> dict:
+    """Andra-persons-granskning av ett REDAN registrerat utfall.
+
+    Det här är den granskning `Control DNA`s Verifiering-steg saknade:
+    en NAMNGIVEN person, skild från `observed_by` när den är känd, som
+    läser samma bevis och antingen bekräftar, ifrågasätter eller säger
+    att underlaget inte räcker för att avgöra. Granskningen upprepar
+    aldrig fältbesöket — den prövar om verdikten stöds av det som redan
+    lämnades in.
+
+    Skriver en NY post, ändrar aldrig den granskade kontrollen — samma
+    append-only-regel som resten av modulen.
+    """
+    if not reviewer:
+        raise ValueError("en granskning kräver en namngiven granskare")
+    if outcome not in REVIEW_OUTCOMES:
+        raise ValueError(f"okänt granskningsutfall {outcome!r}; "
+                         f"välj bland {REVIEW_OUTCOMES}")
+    if check.get("observed_by") and reviewer == check["observed_by"]:
+        raise ValueError(
+            "granskaren måste vara en annan person än den som "
+            "observerade — annars bekräftar personen sig själv, och "
+            "det är inte en granskning")
+    return {
+        "asset_id": check["asset_id"], "routine_id": check["routine_id"],
+        "performed_at": check["performed_at"],
+        "tenant": tenant or check.get("tenant", ""),
+        "reviewer": reviewer, "outcome": outcome, "note_en": note_en,
+        "reviewed_at": reviewed_at or _dt.date.today().isoformat(),
+        "basis_en": ("A second reading of the same evidence, by someone "
+                     "other than the original observer where that is "
+                     "known. It does not repeat the field visit — it "
+                     "checks whether the recorded verdict is supported "
+                     "by what was submitted."),
+        "cannot_en": ("When the original observer was never named, this "
+                      "cannot confirm the reviewer is a different "
+                      "person — it can only refuse when it KNOWS they "
+                      "are the same."),
+    }
+
+
 # ── Leveranserna ────────────────────────────────────────────────────────
 def compliance(assets: list[dict], routines: list[dict],
                checks: list[dict], today: object = "") -> dict:
@@ -456,6 +499,23 @@ def save_check(rec: dict) -> str:
     return f"{rec['asset_id']}:{rec['performed_at']}"
 
 
+_REVIEWS: list[dict] = []
+
+
+def save_review(rec: dict) -> str:
+    with _LOCK:
+        _REVIEWS.append(rec)
+    if _STORE is not None and getattr(_STORE, "save_review", None):
+        _STORE.save_review(rec)
+    return f"{rec['asset_id']}:{rec['routine_id']}:{rec['performed_at']}:{rec['reviewer']}"
+
+
+def all_reviews(tenant: str | None = None) -> list[dict]:
+    rader = (_STORE.all_reviews() if _STORE is not None
+             and getattr(_STORE, "all_reviews", None) else list(_REVIEWS))
+    return [r for r in rader if tenant is None or r.get("tenant") == tenant]
+
+
 def _las(lista: list[dict], metod: str, tenant: str | None) -> list[dict]:
     rader = (getattr(_STORE, metod)() if _STORE is not None
              and getattr(_STORE, metod, None) else list(lista))
@@ -483,6 +543,7 @@ def reset() -> None:
         _ROUTINES.clear()
         _CHECKS.clear()
         _OBSERVATIONER.clear()
+        _REVIEWS.clear()
 
 
 def asset(id: str, kind: str, *, label_en: str = "", lat: float | None = None,

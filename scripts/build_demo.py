@@ -659,6 +659,10 @@ async function api(path, body) {
   // specifika /streaks-ytan prövas FÖRE den allmänna /deliveries.
   if (path.startsWith("/v1/deliveries/streaks")) return {streaks: []};
   if (path.startsWith("/v1/deliveries") && !body) return D.krypin.deliveries;
+  // Granskningar: kundens egna rader finns inte i en statisk demo —
+  // ärligt tomma, samma regel som leveranserna ovan.
+  if (path === "/v1/inspections/reviews") return {reviews: []};
+  if (path === "/v1/leads/reviews") return {reviews: []};
   if (path === "/v1/pushes") return D.pushes_catalog;
   if (path === "/v1/pushes/preview") {
     const r = D.pushes_preview[`${(body || {}).dataset}:${(body || {}).format}`];

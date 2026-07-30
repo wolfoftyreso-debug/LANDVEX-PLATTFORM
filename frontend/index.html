@@ -812,6 +812,18 @@ a2, 14 Main St, 59.31, 18.01"></textarea></div>
         <button id="leadsVerdiktSpara" style="font-size:12px">Record</button></div>
       <div id="leadsVerdiktUt" class="motiv" style="margin-top:4px"></div>
 
+      <div class="falt" style="margin-top:10px"><label>Verify it — a second, named person</label>
+        <input id="leadsGranskVerdiktId" placeholder="verdict id (filled in above)" style="max-width:140px">
+        <input id="leadsGranskare" placeholder="reviewer name" style="max-width:140px">
+        <select id="leadsGranskUtfall">
+          <option value="confirmed">confirmed</option>
+          <option value="disputed">disputed</option>
+          <option value="insufficient_evidence">insufficient_evidence</option>
+        </select>
+        <input id="leadsGranskNot" placeholder="note (optional)" style="max-width:160px">
+        <button id="leadsGranskaSpara" style="font-size:12px">Record review</button></div>
+      <div id="leadsGranskaUt" class="motiv" style="margin-top:4px"></div>
+
       <h2 style="margin-top:16px">Results</h2>
       <div class="falt"><label>Minimum severity</label>
         <select id="leadsTroskel"></select>
@@ -3616,7 +3628,7 @@ async function sponsorSkapa() {
 }
 
 // ── Leads: spåra villkoret till adressen, inte till ett medeltal ──────
-let LEADS_INITIERAD = false, LEADS_KATALOG = null;
+let LEADS_INITIERAD = false, LEADS_KATALOG = null, LEADS_SENASTE_VERDIKT_ID = "";
 
 function leadsParsAdresser(text) {
   // "id, address, lat, lon" per rad — enklast möjliga inmatning som
@@ -3697,11 +3709,27 @@ async function leadsInit() {
       if (!id) { ut.innerHTML = "Create or pick a survey first."; return; }
       try {
         const ref = $("leadsVerdiktUppdrag").value.trim();
-        await api("/v1/leads/verdict", {
+        const rec = await api("/v1/leads/verdict", {
           survey_id: id, address_id: $("leadsVerdiktAdress").value.trim(),
           severity: $("leadsVerdiktSeverity").value,
           mission_id: ref, evidence_ref: ref});
-        ut.innerHTML = `✓ Verdict recorded.`;
+        LEADS_SENASTE_VERDIKT_ID = rec.id;
+        $("leadsGranskVerdiktId").value = rec.id;
+        ut.innerHTML = `✓ Verdict recorded — id <code>${esc(rec.id)}</code> ` +
+          `(filled in below for review).`;
+      } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
+    };
+    $("leadsGranskaSpara").onclick = async () => {
+      const ut = $("leadsGranskaUt");
+      const verdictId = $("leadsGranskVerdiktId").value.trim();
+      if (!verdictId) { ut.innerHTML = "Record a verdict first, or paste its id."; return; }
+      try {
+        await api("/v1/leads/review", {
+          verdict_id: verdictId,
+          reviewer: $("leadsGranskare").value.trim(),
+          outcome: $("leadsGranskUtfall").value,
+          note_en: $("leadsGranskNot").value.trim()});
+        ut.innerHTML = `✓ Review recorded.`;
       } catch (e) { ut.innerHTML = `Refused: ${esc(e.message)}`; }
     };
     $("leadsHamta").onclick = async () => {

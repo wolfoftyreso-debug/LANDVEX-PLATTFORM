@@ -539,6 +539,9 @@ class Handler(BaseHTTPRequestHandler):
                     tenant=self._tenant()))
             except LD.SurveyRefused as e:
                 return self._send(422, {"error": str(e)})
+        if parsed.path == "/v1/leads/reviews":
+            from engine import leads as LD
+            return self._send(200, {"reviews": LD.all_reviews(self._tenant())})
         if parsed.path == "/v1/sponsorship":
             from engine import sponsorship as SP
             return self._send(200, {
@@ -633,6 +636,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/inspections/exceptions":
             return self._send(200,
                               insp_engine.exception_feed(self._tenant()))
+        if parsed.path == "/v1/inspections/reviews":
+            return self._send(200,
+                              {"reviews": insp_engine.all_reviews(self._tenant())})
         if parsed.path == "/v1/mrai/compare":
             q = parse_qs(parsed.query)
             m = [x for x in q.get("markets", [""])[0].split(",") if x]
@@ -1010,6 +1016,20 @@ class Handler(BaseHTTPRequestHandler):
                      "evidence_ref": rec.get("evidence_ref", "")},
                     tenant=self._tenant(),
                     mission_id=rec.get("mission_id", "")))
+            if self.path == "/v1/inspections/review":
+                t = self._tenant()
+                check = next((c for c in insp_engine.all_checks(t)
+                             if c.get("asset_id") == req.get("asset_id")
+                             and c.get("routine_id") == req.get("routine_id")
+                             and c.get("performed_at") == req.get("performed_at")),
+                            None)
+                if check is None:
+                    return self._send(404, {"error": "no such check for this tenant"})
+                rec = insp_engine.review(
+                    check, reviewer=req["reviewer"], outcome=req["outcome"],
+                    note_en=req.get("note_en", ""), tenant=t)
+                insp_engine.save_review(rec)
+                return self._send(201, rec)
             if self.path == "/v1/analysis/run":
                 return self._send(200, analysis_engine.run(
                     req.get("market") or DEFAULT_MARKET,
@@ -1168,6 +1188,24 @@ class Handler(BaseHTTPRequestHandler):
                 except LD.SurveyRefused as e:
                     return self._send(422, {"error": str(e)})
                 LD.save_verdict(rec)
+                return self._send(201, rec)
+            if self.path == "/v1/leads/review":
+                from engine import leads as LD
+                t = self._tenant()
+                verdict_rec = next((v for v in LD.all_verdicts(t)
+                                    if v["id"] == req.get("verdict_id", "")),
+                                   None)
+                if verdict_rec is None:
+                    return self._send(404, {
+                        "error": "no such verdict for this tenant"})
+                try:
+                    rec = LD.review(verdict_rec,
+                                    reviewer=req.get("reviewer", ""),
+                                    outcome=req.get("outcome", ""),
+                                    note_en=req.get("note_en", ""), tenant=t)
+                except LD.SurveyRefused as e:
+                    return self._send(422, {"error": str(e)})
+                LD.save_review(rec)
                 return self._send(201, rec)
             if self.path == "/v1/sponsorship/campaigns":
                 from engine import sponsorship as SP

@@ -169,6 +169,54 @@ def test_it_belongs_to_its_own_addon_not_asset_inspections():
     assert required_capability("/v1/leads/survey") == "lead_surveys"
 
 
+# ── Verifiering: andra-persons-granskning ───────────────────────────────
+def test_a_review_without_a_named_reviewer_is_refused():
+    v = LD.verdict("s1", "a1", "moderate", mission_id="m1", tenant="t1")
+    try:
+        LD.review(v, reviewer="", outcome="confirmed")
+    except LD.SurveyRefused as e:
+        assert "namngiven granskare" in str(e)
+        return
+    raise AssertionError("granskning utan granskare accepterades")
+
+
+def test_an_unknown_review_outcome_is_refused():
+    v = LD.verdict("s1", "a1", "moderate", mission_id="m1", tenant="t1")
+    try:
+        LD.review(v, reviewer="Björn", outcome="looks_fine")
+    except LD.SurveyRefused as e:
+        assert "granskningsutfall" in str(e)
+        return
+    raise AssertionError("ett okänt utfall accepterades")
+
+
+def test_a_review_references_the_verdict_it_reviewed():
+    v = LD.verdict("s1", "a1", "moderate", mission_id="m1", tenant="t1")
+    r = LD.review(v, reviewer="Björn", outcome="disputed",
+                  note_en="Evidence looks inconclusive")
+    assert r["verdict_id"] == v["id"]
+    assert r["survey_id"] == "s1" and r["address_id"] == "a1"
+    assert r["outcome"] == "disputed"
+
+
+def test_leads_review_cannot_claim_the_reviewer_differs_from_the_zoomer():
+    """Ingen `observed_by`-motsvarighet finns i leads.py — den identiteten
+    stannar hos quiXzoom. cannot_en måste säga det, inte tiga om det."""
+    v = LD.verdict("s1", "a1", "moderate", mission_id="m1", tenant="t1")
+    r = LD.review(v, reviewer="Björn", outcome="confirmed")
+    assert "not stored" in r["cannot_en"]
+
+
+def test_the_review_media_itself_is_never_stored():
+    v = LD.verdict("s1", "a1", "moderate", mission_id="m1", tenant="t1")
+    r = LD.review(v, reviewer="Björn", outcome="confirmed")
+    forbjudna = ("image", "photo", "media", "bild", "base64", "blob",
+                "bytes", "data_url")
+    for f in r:
+        assert not any(x in f.lower() for x in forbjudna), (
+            f"fältet {f!r} ser ut att bära media")
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
