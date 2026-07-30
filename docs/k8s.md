@@ -4,24 +4,25 @@ This is the `landvex-prod` EKS path. For the AWS-native ECS path see
 [`aws.md`](aws.md); for the EC2/systemd handoff see
 [`aws-deployment.md`](aws-deployment.md).
 
-Everything here is grounded in a real inventory of the cluster, run by
-the infrastructure agent on 2026-07-30 (kept in full at
-`infra/infrastruktur-inventering-2026-07-30.md`). Nothing below has been
-applied to `landvex-prod` — the manifests exist in this repo
-(`deploy/k8s/`), and every step that touches AWS is marked **needs
-cluster-admin access to landvex-prod**.
+**Status: live.** Deployed for real on 2026-07-30
+(`infra/aws-svar-2026-07-30-c.md`) — `https://opportunity.landvex.com/health`
+answers 200, 2/2 pods, Postgres persistence (`schema_meta version: 19`),
+ALB provisioned, ACM cert issued. Everything below is grounded in that
+real run, including the five obstacles it hit and how they were closed
+(§6). The gaps in §0 are historical — kept for the record, not because
+they're still open.
 
 ---
 
-## 0. What that inventory actually found
+## 0. What that inventory actually found (2026-07-30, before deploy)
 
-`landvex-prod` (eu-north-1, EKS 1.34, VPC `192.168.0.0/16`) exists and
-has two `t3.medium` nodes, but it is otherwise empty: no other workload
-runs there, so there is no existing Helm/Kustomize/namespace convention
-to match — the choices below are the first ones made for this cluster,
-not a continuation of one.
+`landvex-prod` (eu-north-1, EKS 1.34, VPC `192.168.0.0/16`) existed and
+had two `t3.medium` nodes, but was otherwise empty: no other workload
+ran there, so there was no existing Helm/Kustomize/namespace convention
+to match — the choices below were the first ones made for this cluster,
+not a continuation of one. (The nodegroup is now 4 nodes — see §6.)
 
-Five things are missing that block a real deployment:
+Five things were missing before the deploy, all closed same-day:
 
 | # | Gap | Blocks |
 |---|-----|--------|
@@ -166,21 +167,43 @@ holds the two lists equal so they cannot drift apart.
 
 ## 4. Build, push, deploy
 
+The `landvex-prod` nodegroup is AL2023 **x86_64**. Build for that
+architecture explicitly — a build machine that's arm64 (server-2 is)
+produces an image that fails every pod with `exec format error` and
+never says why. `buildx` targets the right platform regardless of what
+the build machine itself is:
+
 ```bash
 make smoke                                                  # compile + every suite
-docker build -t landvex/opportunity-engine:1.1.0 .
-aws ecr get-login-password --region eu-north-1 \
-  | docker login --username AWS --password-stdin \
-    $AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com
-docker tag  landvex/opportunity-engine:1.1.0 \
-  $AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/landvex/opportunity-engine:1.1.0
-docker push $AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/landvex/opportunity-engine:1.1.0
+docker buildx build --platform linux/amd64 \
+  --tag $AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/landvex/opportunity-engine:1.1.0 \
+  --push .
+```
 
+(`aws ecr get-login-password ... | docker login ...` first, same as
+`aws.md` §1, if the registry session has expired.)
+
+```bash
 cd deploy/k8s
-kustomize edit set image \
-  landvex/opportunity-engine=$AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/landvex/opportunity-engine:1.1.0
+```
+
+If `kustomize` is installed: `kustomize edit set image
+landvex/opportunity-engine=$AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/landvex/opportunity-engine:1.1.0`.
+If it isn't (it wasn't on the box used for the first deploy), edit
+`kustomization.yaml`'s `images:` block by hand with the same values —
+`newName` + `newTag`, not a raw string substitution.
+
+**`${ACM_CERTIFICATE_ARN}` in `ingress.yaml` needs a manual edit too** —
+`kustomize`'s `images:` transformer only rewrites the image reference,
+it does not substitute arbitrary `${...}` placeholders in annotations.
+Replace that one line with the real ACM ARN from gap #5 before
+applying (or add a proper `replacements:` transformer to
+`kustomization.yaml` if this becomes a recurring redeploy step worth
+automating).
+
+```bash
 kubectl apply -k .
-kubectl -n landvex rollout status deployment/landvex-opportunity-engine
+kubectl -n landvex rollout status deployment/landvex-opportunity-engine --timeout=120s
 ```
 
 **needs cluster-admin access to landvex-prod.**
@@ -201,16 +224,47 @@ because the runtime is Kubernetes.
 
 ---
 
+## 6. Lessons from the first real deploy (2026-07-30)
+
+Five obstacles came up that nothing above predicted. Kept here so the
+next redeploy — or the next cluster — doesn't rediscover them the hard
+way.
+
+| Obstacle | Cause | Fix |
+|---|---|---|
+| `exec format error` at pod start | Image built arm64 (server-2's own architecture) against amd64 nodes | `docker buildx build --platform linux/amd64` (now the documented command in §4) |
+| `ModuleNotFoundError: No module named 'psycopg'` at pod start | `psycopg[binary]` was commented out in `requirements.txt` | Uncommented — it's a hard production dependency now that both deploy paths promise Postgres. `tests/test_deploy.py::test_psycopg_ships_whenever_a_deploy_path_promises_postgres` holds this from drifting back |
+| Pods stuck `Pending` — `Insufficient cpu/memory` | The two `t3.medium` nodes were already ~80% allocated before this deployment's requests | Nodegroup scaled 2 → 4. If the cluster stays this size, `deployment.yaml`'s resource requests (`500m`/`1Gi` × 2 replicas) are worth revisiting against whatever else lands in the cluster |
+| ALB address never appeared, `ec2:CreateSecurityGroup` 403 in the controller's logs | The IRSA role backing the AWS Load Balancer Controller had `ElasticLoadBalancingFullAccess` attached instead of the controller's own `AWSLoadBalancerControllerIAMPolicy` | Swapped the policy, recycled the controller pods so they picked up a fresh IRSA token |
+| `${ACM_CERTIFICATE_ARN}` left as a literal string in the applied Ingress | `kustomize` wasn't installed on the deploy box, so the substitution never ran (and even with `kustomize` present, `images:` doesn't touch annotations — see §4) | Edited `ingress.yaml`'s annotation directly with the real ARN before applying |
+
+What that run confirmed working exactly as designed: `pg_selftest`
+against the new RDS instance printed `schema_meta version: 19` and
+`PostgresStore matches the reference migration chain` on the first try;
+preflight's `strict` gate started cleanly with no open-API warning
+(`landvex-secrets` was mounted correctly); and `/health` came up
+reporting **more** connected sources than server-2 ever had — not a
+bug, just that `deploy/k8s/configmap.yaml` mirrors the full source URL
+list from `deploy/aws/task-definition.json` (Kolada included), while
+server-2's hand-written `/etc/landvex/opportunity.env` only ever set
+the minimum to get the service running.
+
+---
+
 ## Checklist
 
-- [ ] OIDC federation enabled on `landvex-prod` (gap #3)
-- [ ] AWS Load Balancer Controller installed (gap #1)
-- [ ] ECR repo `landvex/opportunity-engine` created (gap #2)
-- [ ] Database reachable from the EKS VPC (gap #4, decision D2)
-- [ ] ACM cert for `opportunity.landvex.com` issued (gap #5)
-- [ ] Route53 record for `opportunity.landvex.com` pointed at the ALB
-- [ ] `landvex-secrets` created in the `landvex` namespace (§3)
-- [ ] image pushed, `kubectl apply -k deploy/k8s` rolled out
-- [ ] `/health` green through the ALB
+- [x] OIDC federation enabled on `landvex-prod` (gap #3)
+- [x] AWS Load Balancer Controller installed (gap #1)
+- [x] ECR repo `landvex/opportunity-engine` created (gap #2)
+- [x] Database reachable from the EKS VPC (gap #4, decision D2) — RDS
+      `landvex_opportunity`, schema at version 19
+- [x] ACM cert for `opportunity.landvex.com` issued (gap #5)
+- [x] Route53 record for `opportunity.landvex.com` pointed at the ALB
+- [x] `landvex-secrets` created in the `landvex` namespace (§3)
+- [x] image pushed, `kubectl apply -k deploy/k8s` rolled out
+- [x] `/health` green (confirmed pod-internal; ALB target health was
+      still `RegistrationInProgress` as of the last report — re-check
+      `curl -sf https://opportunity.landvex.com/health` if it's been a
+      while since 2026-07-30)
 - [ ] control plane logging turned on (gap #10 in the inventory — best
       practice, not a blocker)

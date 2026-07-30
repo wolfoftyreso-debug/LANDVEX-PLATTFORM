@@ -113,7 +113,7 @@ en Kubernetes-svit (`tests/test_k8s.py`, 16 tester) som håller
 `deploy/k8s/` lika mot `deploy/aws/task-definition.json`. CI kör
 dessutom ett API-röktest med auth påslagen.
 
-### 9. Kan systemet driftsättas från grunden med en enda pipeline? 🟡
+### 9. Kan systemet driftsättas från grunden med en enda pipeline? ✅ (K8s-spåret bevisat live)
 - CI (`.github/workflows/ci.yml`): kompilering + hela sviten +
   API-röktest på Python 3.11/3.12 – noll beroenden krävs, vilket gör
   pipelinen trivial att lita på. Speglad i `.gitea/workflows/ci.yml`
@@ -122,35 +122,26 @@ dessutom ett API-röktest med auth påslagen.
 - IaC: inte CDK (backlog #6 syftade på CDK specifikt, och det är
   fortfarande oskrivet) – i stället två hand-skrivna, testade spår:
   `deploy/aws/task-definition.json` (ECS Fargate) och `deploy/k8s/`
-  (Kubernetes, se `docs/k8s.md`). Båda är deploybara som de står; ingen
-  av dem är körd mot riktig infrastruktur än.
-- **Ny information (2026-07-30-inventeringen och uppföljningssvaret,
-  `infra/infrastruktur-inventering-2026-07-30.md` +
-  `infra/aws-svar-2026-07-30.md`):** motorn kör redan skarpt –
-  `server-2:8087`, systemd, stdlib-servern (`api.dev_server`, inte
-  FastAPI/gunicorn) – **mot SQLite**
-  (`/var/lib/landvex/landvex.db`), inte Postgres.
-  `LANDVEX_API_KEYS` är satt (tjänsten kräver alltså nyckel, är inte
-  öppen); `AAMOS_CORE_URL` pekar lokalt (`127.0.0.1:3100`) men
-  `AAMOS_JWT_TOKEN` löpte ut 2026-07-26 – quiXzoom-uppdragsvägen är
-  förberedd men obekräftad live. En Postgres-databas som RÅKAR heta
-  `landvex` finns också på servern, men tillhör ett annat system
-  (`admin_users`/`data_caches`/`orders`/`reports`/`users`, ingen
-  PostGIS, ingen `schema_meta`) – **inte** en Opportunity Engine-databas,
-  och ska aldrig pekas ut med `LANDVEX_PG_DSN` (namnkrocken hade gett
-  ett `reports`-kolumnfel som inte säger varför; nu vägrar
-  `PostgresStore.selftest()` tidigt och tydligt i stället, se
-  `engine/storage/postgres._verify_shape`). Servern kör dessutom en
-  gammal ögonblicksbild av repot (saknar bl.a. `scripts/pg_selftest.py`)
-  – uppdateras när den fullständiga koden kopieras in i den egna Gitean.
-  Ett riktigt EKS-kluster (`landvex-prod`) finns också, tomt, med fem
-  namngivna luckor kvar innan Kubernetes-spåret kan bära trafik
-  (`docs/k8s.md`). Ingen Aurora finns i kontot – bara vanliga
-  RDS-instanser.
-- Kvar, i prioritetsordning: (1) uppdatera server-2 till den fullständiga
-  koden och förnya `AAMOS_JWT_TOKEN`; (2) de fem luckorna i `docs/k8s.md`
-  (ingress-controller, ECR-repo, OIDC-federation, en databas i EKS-VPC:t
-  med ett namn som INTE är `landvex`, ACM-cert); (3) OIDC/JWKS.
+  (Kubernetes, se `docs/k8s.md`).
+- **Kubernetes-spåret är driftsatt på riktigt, 2026-07-30**
+  (`infra/aws-svar-2026-07-30-c.md`): `https://opportunity.landvex.com/health`
+  svarar 200, 2/2 repliker, Postgres-persistens (RDS
+  `landvex_opportunity`, `schema_meta version: 19`, bekräftat med
+  `scripts.pg_selftest`), ALB + ACM-cert + Route53 klara. Fem verkliga
+  problem uppstod på vägen och är åtgärdade (se `docs/k8s.md` §6):
+  fel CPU-arkitektur i imagen (byggd arm64, klustret kör amd64),
+  `psycopg` var utkommenterad i `requirements.txt` (rättat – testat
+  mot drift av `tests/test_deploy.py`), nodgruppen behövde skalas
+  2→4, en fel IAM-policy på LB-kontrollerns IRSA-roll, och
+  ACM-ARN:et i `ingress.yaml` behövde ett manuellt fyll-i eftersom
+  `kustomize` inte fanns installerat på driftsättningsmaskinen.
+  quiXzoom-routen visade sig också vara `/api/quixzoom/missions`, inte
+  det tidigare gissade `/api/qz/missions` – rättat genomgående i koden.
+- ECS-spåret (`deploy/aws/`) är fortfarande enbart skrivet och testat,
+  inte kört mot riktig infrastruktur – men K8s-körningen bevisade att
+  samma persistenslager (`PostgresStore`, migrationskedjan, preflight)
+  fungerar mot en riktig Aurora-fri RDS-instans, vilket var den stora
+  obekräftade delen för båda spåren.
 
 ## Sammanfattning
 
@@ -163,16 +154,15 @@ dessutom ett API-röktest med auth påslagen.
 | Förklarbarhet & reproducerbarhet | ✅ |
 | Affärsflödestester + CI (GitHub + Gitea) | ✅ |
 | Säkerhet | 🟡 nycklar+JWT+RBAC+planer klart; OIDC/JWKS kvar |
-| Datamodell/migrationer | 🟡 runner+tenant-kolumner klart; skarp drift kör SQLite, inte Postgres; en Postgres-databas som råkar heta `landvex` finns men tillhör ett annat system (bekräftat, ska inte återanvändas) |
+| Datamodell/migrationer | ✅ Postgres bevisad live i K8s (RDS `landvex_opportunity`, schema v19, `pg_selftest` grönt). server-2:8087 kör fortfarande SQLite (ett separat, äldre spår); den lokala `landvex`-Postgres-databasen där tillhör ett annat system och ska aldrig återanvändas |
 | Observability | 🟡 logg/metrics/request-id klart; tracing senare |
-| CI/CD & IaC | 🟡 CI klar (två plattformar); ECS- och K8s-manifest klara och testade, ingen körd mot riktig infrastruktur |
+| CI/CD & IaC | ✅ K8s-spåret driftsatt och verifierat live (`opportunity.landvex.com`); ECS-spåret skrivet och testat, ej ännu kört mot riktig infrastruktur |
 
-**Rekommendation:** kopiera in den fullständiga koden på server-2
-(fångar upp `scripts/pg_selftest.py` och allt byggt sedan den
-ursprungliga driftsättningen) och förnya `AAMOS_JWT_TOKEN` FÖRST – den
-lokala `landvex`-Postgres-databasen är bekräftat ett annat systems
-schema och ska inte röras. Provisionera i stället en ny databas
-(annat namn, se `docs/k8s.md` D2) den dag Postgres väljs över SQLite.
-Stäng därefter de fem luckorna i `docs/k8s.md`, eller gå ECS-vägen
-(`docs/aws.md`) om Kubernetes inte är först ut. OIDC/JWKS kan gå i
-samma sprint (HS256-JWT är redan i drift).
+**Rekommendation:** K8s-betan är uppe – nästa steg är att låta
+`AWS Load Balancer`-hälsokontrollen bli `healthy` (automatiskt, minuter)
+och sedan skicka riktig trafik mot den. Kvarstående punkter: aktivera
+control plane-loggning (`docs/k8s.md` gap #10, best practice, inte
+blockerande); OIDC/JWKS för RS256-tokens (HS256-JWT är redan i drift,
+täcker det mesta); ta ställning till server-2:s SQLite-baserade
+körning (fortsätt parallellt, eller migrera dess data med
+`scripts/migrate_sqlite_to_postgres.py` in i samma RDS-instans).

@@ -688,6 +688,35 @@ def test_a_tick_that_stops_coming_is_not_silent():
         "MaximumEventAgeInSeconds"] <= 900
 
 
+# ── requirements.txt vs det deploy-manifesten faktiskt lovar ────────────
+def test_psycopg_ships_whenever_a_deploy_path_promises_postgres():
+    """Verkligt fynd 2026-07-30: raden var utkommenterad, imagen byggde
+    och pushade rent, och kraschade sedan vid första pod-starten med
+    ModuleNotFoundError. Både ECS- och K8s-manifesten sätter
+    LANDVEX_DB=off och en LANDVEX_PG_DSN-hemlighet — om någotdera gör
+    det måste psycopg vara en AKTIV rad i requirements.txt, inte en
+    kommentar."""
+    import json
+
+    taskdef = json.loads((_ROOT / "deploy" / "aws" / "task-definition.json")
+                         .read_text(encoding="utf-8"))
+    ecs_secrets = {s["name"] for s in
+                  taskdef["containerDefinitions"][0]["secrets"]}
+    k8s_secret = (_ROOT / "deploy" / "k8s" / "secret.example.yaml"
+                 ).read_text(encoding="utf-8")
+    lovar_postgres = ("LANDVEX_PG_DSN" in ecs_secrets
+                      or "LANDVEX_PG_DSN" in k8s_secret)
+    assert lovar_postgres, ("inget deploy-manifest lovar Postgres längre — "
+                            "om det är avsiktligt, uppdatera det här testet "
+                            "med skälet")
+    req = (_ROOT / "requirements.txt").read_text(encoding="utf-8")
+    aktiv = any(rad.strip().startswith("psycopg")
+               for rad in req.split("\n"))
+    assert aktiv, ("deploy-manifesten lovar Postgres men psycopg är "
+                  "kommenterad ut (eller saknas) i requirements.txt — "
+                  "imagen kraschar vid första pod-starten")
+
+
 # ── Gitea-spegeln ───────────────────────────────────────────────────────
 def test_the_gitea_workflow_runs_the_same_steps_as_the_github_one():
     """Två CI-plattformar, en pipeline. Skillnaden får vara språket i

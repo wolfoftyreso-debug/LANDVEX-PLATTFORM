@@ -2,5 +2,12 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 gunicorn>=22.0
 mangum>=0.17
-# Produktionspersistens (Aurora PostgreSQL + PostGIS) – valfri lokalt:
-# psycopg[binary]>=3.2
+# Production persistence (LANDVEX_PG_DSN) — required, not optional: both
+# deploy/aws/task-definition.json and deploy/k8s/ set LANDVEX_DB=off and
+# expect Postgres. A real deploy on 2026-07-30 crashed at container start
+# with "ModuleNotFoundError: No module named 'psycopg'" because this line
+# used to be commented out — the image built and pushed clean, then died
+# on first pod start. engine/ itself never imports psycopg directly (it's
+# lazy-imported inside PostgresStore), so SQLite-only local dev is
+# unaffected; this is about what ships in the image.
+psycopg[binary]>=3.2
