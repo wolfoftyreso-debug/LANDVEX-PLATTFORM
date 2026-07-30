@@ -1,0 +1,37 @@
+# Non-secret configuration. Mirrors deploy/aws/task-definition.json's
+# "environment" list value for value — the ECS path and this path must
+# describe the same running service. tests/test_k8s.py checks every key
+# here against engine/deployment.ENVIRONMENT (a documented variable
+# cannot be fiction, and a variable the code reads cannot go
+# undocumented — same rule as the ECS side).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: landvex-config
+  namespace: landvex
+data:
+  LANDVEX_PREFLIGHT: "strict"
+  LANDVEX_HOST: "0.0.0.0"
+  LANDVEX_PORT: "8000"
+  WEB_CONCURRENCY: "2"
+  LANDVEX_REPLICAS: "2"
+  LANDVEX_DB: "off"
+  LANDVEX_AUDIT_LOG: "/var/log/landvex/audit.jsonl"
+  LANDVEX_LIVE: "1"
+  LANDVEX_RATE_LIMIT: "300"
+  LANDVEX_SCB_BASE: "https://api.scb.se/OV0104/v1/doris/en/ssd"
+  LANDVEX_KOLADA_URL: "https://api.kolada.se/v2"
+  LANDVEX_CENSUS_BASE: "https://api.census.gov/data"
+  LANDVEX_TRAFFIC_URL: "https://api.trafikinfo.trafikverket.se/v2/data.json"
+  LANDVEX_TRAFFIC_FI_URL: "https://tie.digitraffic.fi"
+  LANDVEX_WEATHER_URL: "https://opendata-download-metobs.smhi.se"
+  LANDVEX_WEATHER_US_URL: "https://api.weather.gov"
+  LANDVEX_HYDRO_URL: "https://opendata-download-hydroobs.smhi.se"
+  LANDVEX_AIR_URL: "https://api.openaq.org"
+  LANDVEX_SEISMIC_URL: "https://earthquake.usgs.gov"
+  LANDVEX_AIS_URL: "https://meri.digitraffic.fi"
+  # Recommendation, not yet confirmed (docs/k8s.md, decision D3): reach
+  # AAMOS Core over its public endpoint for beta rather than waiting on
+  # VPC peering. Change to an internal address once peering exists.
+  AAMOS_CORE_URL: "https://amos.aamos.systems"
+  AAMOS_QUIXZOOM_PATH: "/api/qz/missions"

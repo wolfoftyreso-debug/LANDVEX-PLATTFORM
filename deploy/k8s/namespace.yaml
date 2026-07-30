@@ -1,0 +1,7 @@
+# Landvex is the first workload in landvex-prod (eu-north-1). The cluster
+# was created under the "vims" project tag and is otherwise empty — no
+# existing namespace convention to follow, so this one is ours.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: landvex

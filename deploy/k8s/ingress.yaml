@@ -1,0 +1,37 @@
+# Inert until two things exist in landvex-prod (docs/k8s.md, gaps #1 and
+# #5): the AWS Load Balancer Controller (this Ingress does nothing
+# without it — no ingress-controller of any kind is installed in the
+# cluster today) and an ACM certificate for opportunity.landvex.com
+# (none exists yet; the report found only *.wavult.com / *.aamos.systems
+# / quixzoom.* certs in eu-north-1).
+#
+# Decision D4 (docs/k8s.md): opportunity.landvex.com runs ALONGSIDE
+# api.landvex.com, not in place of it — api.landvex.com already proxies
+# to unrelated ports (7073, 3250) on server-2.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: landvex-opportunity-engine
+  namespace: landvex
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # Filled in once the cert in gap #5 is issued (DNS-validated against
+    # the landvex.com zone, zone-id Z05966261S4KJRAGIJ6FQ).
+    alb.ingress.kubernetes.io/certificate-arn: "${ACM_CERTIFICATE_ARN}"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: opportunity.landvex.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: landvex-opportunity-engine
+                port:
+                  number: 80

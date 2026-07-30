@@ -47,7 +47,8 @@ point (coverage, endpoints, integrations, activation checklist).
 | `tests/` | Every suite runs without pytest and without network. |
 | `scripts/` | The start gate (`preflight`), source probes (SCB, AAMOS, sensors, registers), the 90-second demo, and the standalone-demo builder. Ships inside the image on purpose. |
 | `deploy/aws/` | ECS task definition and execution-role policy, both held against the code by tests. See [`docs/aws.md`](docs/aws.md). |
-| `infra/` | systemd unit, nginx conf, AWS notes, deployment collateral. |
+| `deploy/k8s/` | Kubernetes manifests for the `landvex-prod` EKS cluster, held against the code and against `deploy/aws/` by tests. See [`docs/k8s.md`](docs/k8s.md). |
+| `infra/` | systemd unit, nginx conf, AWS notes, deployment collateral, infrastructure inventories. |
 | `docs/` | Documentation — see [`docs/README.md`](docs/README.md). |
 
 ## The decision layers

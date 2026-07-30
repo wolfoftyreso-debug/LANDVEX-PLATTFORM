@@ -1,0 +1,63 @@
+# Image tag is a placeholder — CI resolves it with
+# `kustomize edit set image` before apply (see kustomization.yaml).
+# Every numeric value below that also appears in
+# deploy/aws/task-definition.json (probe timing, grace period, non-root
+# uid, container port) is held equal to it by tests/test_k8s.py: the ECS
+# path and this path describe the same service, and a driftt between
+# them would only be caught by whoever deploys second, in production.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landvex-opportunity-engine
+  namespace: landvex
+  labels:
+    app: landvex-opportunity-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: landvex-opportunity-engine
+  template:
+    metadata:
+      labels:
+        app: landvex-opportunity-engine
+    spec:
+      terminationGracePeriodSeconds: 35
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: app
+          image: landvex/opportunity-engine:latest
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: landvex-config
+            - secretRef:
+                name: landvex-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
